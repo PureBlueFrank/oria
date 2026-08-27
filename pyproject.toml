@@ -1,0 +1,91 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oria"
+version = "0.1.0"
+description = "Enterprise-grade AI agent platform for merchant campaign workflows"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "aiosqlite>=0.21,<1",
+  "alembic>=1.16,<2",
+  "chromadb>=1,<2",
+  "httpx>=0.28,<1",
+  "jinja2>=3.1,<4",
+  "langgraph>=1,<2",
+  "langgraph-checkpoint-sqlite>=3,<4",
+  "onnxruntime>=1.23.2,<1.24; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "pydantic>=2.11,<3",
+  "pydantic-settings>=2.10,<3",
+  "pyyaml>=6,<7",
+  "sqlalchemy>=2,<3",
+  "structlog>=25,<26",
+  "typer>=0.16,<1",
+]
+
+[project.optional-dependencies]
+standard = [
+  "numpy>=1.26,<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "sentence-transformers>=5,<6",
+  "torch>=2.2,<2.3; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "transformers>=4.41,<5",
+]
+
+[project.scripts]
+oria = "oria.cli:app"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.18,<2",
+  "pytest>=8.4,<10",
+  "pytest-asyncio>=1.2,<2",
+  "ruff>=0.14,<1",
+  "types-pyyaml>=6.0.12,<7",
+]
+
+[tool.uv]
+required-version = "==0.12.6"
+default-groups = ["dev"]
+required-environments = [
+  "sys_platform == 'darwin' and platform_machine == 'x86_64'",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oria"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "unit: pure unit tests",
+  "contract: protocol and serialization contract tests",
+  "integration: local component integration tests",
+  "live: tests that call an explicitly selected public model provider",
+  "enterprise: tests that call an explicitly selected enterprise-like or enterprise backend",
+  "slow: tests intentionally excluded from the fast feedback loop",
+  "security: authorization and adversarial security tests",
+  "recovery: crash, retry, resume, idempotency, and reconciliation tests",
+  "performance: latency, throughput, token, and cost baseline tests",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = ["**/*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src/oria"]
+warn_unreachable = true
+show_error_codes = true
