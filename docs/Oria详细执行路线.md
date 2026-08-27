@@ -170,7 +170,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 
 | 版本 | 目标 | 当前状态 | 必须包含的真实验证 |
 | --- | --- | --- | --- |
-| V0.1 | 场景 A 只读提案 MVP | 进行中（T01 完成） | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
+| V0.1 | 场景 A 只读提案 MVP | 进行中（T01–T02 完成） | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
 | V0.2 | Provider/RAG 完整化 | 未开始 | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
 | V0.3 | 场景 A 完整 Workflow | 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
@@ -288,12 +288,15 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
 
 ### V0.1 验证状态（2026-08-27）
 
-- 代码状态：进行中；`V0.1-T01` 已完成，`V0.1-T02–T10` 未开始。
-- Core Gate：未运行；仅 T01 工程基线门禁通过。
+- 代码状态：进行中；`V0.1-T01`、`V0.1-T02` 已完成，`V0.1-T03–T10` 未开始。
+- Core Gate：未运行；仅 T01 工程基线与 T02 运行时/配置/权限 seam 的 Fixture 等级门禁通过。
 - Live 卡：未运行；未调用真实 Provider，未下载或推理 BGE 模型。
 - Enterprise 卡：未运行。
-- 证据：[`reports/verification/v0.1/20260827T084858+0800/summary.md`](../reports/verification/v0.1/20260827T084858+0800/summary.md)。
-- 当前门禁结论：可进入 `V0.1-T02`；不得宣称 V0.1 Core 或 Live 已通过。
+- 证据：
+  - [`reports/verification/v0.1/20260827T084858+0800/summary.md`](../reports/verification/v0.1/20260827T084858+0800/summary.md)（T01 工程基线）
+  - [`reports/verification/v0.1/20260827T112706+0800/summary.md`](../reports/verification/v0.1/20260827T112706+0800/summary.md)（T02，commit `a39c639`，F 等级，24 passed）
+- T02 期间修复的阻塞缺陷：`src/oria/core/types.py` 的 `JsonValue` 原为隐式递归类型别名，在锁定 pydantic 2.13.4 / Python 3.11 下 import 即抛 `RecursionError`，导致 `core.context`、`core.runtime`、`permission.local`、`ingress.local` 全部不可导入；静态检查因不执行 import 未能捕获。已改为复用 `pydantic.JsonValue`。
+- 当前门禁结论：可并行进入 `V0.1-T03` 与 `V0.1-T04`；不得宣称 V0.1 Core 或 Live 已通过。
 
 ## 五、V0.2 Provider 与 RAG 完整化
 
