@@ -1,6 +1,6 @@
 # Oria 详细执行路线
 
-> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。当前代码尚未开始，因此下列阶段默认状态均为“未开始”，所有验证项均为“待验证”。
+> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。仓库现已完成 `V0.1-T01` 工程基线；`V0.1-T02` remediation 代码与源码级门禁已完成，但本次受限环境无法取得构建后端，已安装 wheel 门禁仍 blocked。其余任务与验证状态以 §三总览和对应版本的“验证状态”小节为准，不再使用“全仓未开始”的初始化口径。
 
 > **场景 A 设计评审记录（2026-08-26）**：已按“需求接入 → 规则快照 → 商家预筛/LLM 软排序 → 活动与券批次草案 → 运营审核/招商投放 → 自主报名或自动圈品 → 券关联 → 招后选品 → C 端投放 → 商家通知”同步架构与路线。此次只更新设计契约，未生成代码、未运行验证，版本状态仍为“未开始”。
 
@@ -108,7 +108,7 @@ known_limits: []
 
 ### 2.1 目标命令契约
 
-以下命令由 `V0.1-T01` 建立后才应可用；当前仓库尚无 `pyproject.toml`，因此它们现在只是执行契约，不是已验证事实。后续任务不得另造平行入口。
+以下命令已由 `V0.1-T01` 建立为执行契约；当前仓库已有 `pyproject.toml`、`uv.lock` 和 Python 3.11 开发环境。后续任务不得另造平行入口；命令是否通过仍必须按每次任务的真实输出记录。
 
 | 目的 | 目标命令 | 适用范围 |
 | --- | --- | --- |
@@ -128,7 +128,7 @@ known_limits: []
 
 `live`/`enterprise` 测试 fixture 必须检查显式运行开关、非空 target 列表、凭证和组件健康状态。`ORIA_LIVE_TARGETS` 使用 provider profile ID，`ORIA_ENTERPRISE_TARGETS` 使用 `postgres,milvus,redis,otel,mcp-http` 等稳定 ID；一次 run 只产生选中 target 的卡片。默认 CI 不收集这些测试；显式选中的 target 若条件缺失，命令应以 non-zero 结束并生成 `blocked` 报告，不能全部 `skip` 后返回成功。未选中 target 是“本次未运行”，不得被写成 passed/blocked；target 列表为空或包含未知 ID 时在测试开始前退出码 2。每个 optional extra 至少有一个独立 CI/import smoke，不能只测试“安装全部 extras”的环境。
 
-当前未发现项目 `.venv`；T01 只以新生成的 `uv.lock + uv sync` 结果为准，不手工沿用系统或上级目录环境中的包版本。开工前先执行 `command -v uv` 和 `uv --version`；当前环境已知 `uv` 缺失，T01 必须用经批准的官方方式安装并记录版本，在 `pyproject.toml/uv.lock` 建立前不得用系统 Python 3.14 临时环境替代锁定的 Python 3.11。若开工时发现已有环境或同步失败，先保存错误并确认环境归属，不得直接删除整个 `.venv`。开始 T01 时先确认是否处于父级 Git worktree；若不是，才在 Oria 根目录初始化 Git，禁止误把上级资料目录纳入仓库。
+`V0.1-T01` 已完成：项目使用锁定的 `uv 0.12.6 + Python 3.11`、`uv.lock` 和仓库本地 `.venv`，并已确认 Oria 根目录为独立 Git 工作树。后续只按锁文件同步，不手工沿用系统或上级目录环境中的包版本；同步失败时先保存错误并确认环境归属，不得直接删除整个 `.venv`。受限环境运行 `uv` 时应把缓存指向仓库内已 gitignore 的 `.artifacts/`，不得写开发者 Home。
 
 ### 2.2 CLI 演进契约
 
@@ -170,7 +170,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 
 | 版本 | 目标 | 当前状态 | 必须包含的真实验证 |
 | --- | --- | --- | --- |
-| V0.1 | 场景 A 只读提案 MVP | 进行中（T01–T02 完成） | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
+| V0.1 | 场景 A 只读提案 MVP | 进行中（T01 完成；T02 remediation 已实现、wheel 门禁 blocked） | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
 | V0.2 | Provider/RAG 完整化 | 未开始 | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
 | V0.3 | 场景 A 完整 Workflow | 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
@@ -243,7 +243,7 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
 | V01-CFG-01 | CT | `community+demo` 无 Key 成功启动且选择 Mock/Fixture/SQLite/Chroma |
 | V01-CFG-02 | CT | `community+standard` 选择 DeepSeek 但无 Key 时 fail closed |
 | V01-CFG-03 | SEC | `production+demo`、production Mock 或 FixtureEmbedder 被拒绝 |
-| V01-CFG-04 | CT | 多来源配置解析为只读 ResolvedRuntimeConfig；冲突来源拒绝；fingerprint 不含 secret |
+| V01-CFG-04 | CT | 多来源配置按 CLI > env > YAML 优先级解析为只读 ResolvedRuntimeConfig；“冲突来源拒绝”特指混合 `${}` 引用、未知 profile 与非 mapping YAML 根等语义错误，不指跨来源同字段覆盖；fingerprint 不含 secret |
 | V01-CFG-05 | SEC | production 相对 data_dir 被拒绝；测试 profile 只写注入的临时目录，不访问 Home |
 | V01-LIFE-01 | CT | build_runtime 中途失败按逆序关闭已创建资源，Registry/engine/client 无半初始化残留 |
 | V01-LIFE-02 | CT | RuntimeServices 对外可用后 `_exit_stack` 已封存；node/tool/request Context 不能注册进程级 teardown，局部临时资源在节点返回前关闭，checkpoint resume 不依赖旧进程清理栈 |
@@ -288,15 +288,17 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
 
 ### V0.1 验证状态（2026-08-27）
 
-- 代码状态：进行中；`V0.1-T01`、`V0.1-T02` 已完成，`V0.1-T03–T10` 未开始。
-- Core Gate：未运行；仅 T01 工程基线与 T02 运行时/配置/权限 seam 的 Fixture 等级门禁通过。
+- 代码状态：进行中；`V0.1-T01` 已完成，`V0.1-T02` 在上一份报告判定过早后已实现 remediation，但已安装 wheel 门禁 blocked，`V0.1-T03–T10` 未开始。
+- Core Gate：未运行；T02 源码级 F 验证通过，但 package/wheel 门禁未完成，因此尚不能重新判定 T02 完成。
 - Live 卡：未运行；未调用真实 Provider，未下载或推理 BGE 模型。
 - Enterprise 卡：未运行。
 - 证据：
   - [`reports/verification/v0.1/20260827T084858+0800/summary.md`](../reports/verification/v0.1/20260827T084858+0800/summary.md)（T01 工程基线）
-  - [`reports/verification/v0.1/20260827T112706+0800/summary.md`](../reports/verification/v0.1/20260827T112706+0800/summary.md)（T02，commit `a39c639`，F 等级，24 passed）
-- T02 期间修复的阻塞缺陷：`src/oria/core/types.py` 的 `JsonValue` 原为隐式递归类型别名，在锁定 pydantic 2.13.4 / Python 3.11 下 import 即抛 `RecursionError`，导致 `core.context`、`core.runtime`、`permission.local`、`ingress.local` 全部不可导入；静态检查因不执行 import 未能捕获。已改为复用 `pydantic.JsonValue`。
-- 当前门禁结论：可并行进入 `V0.1-T03` 与 `V0.1-T04`；不得宣称 V0.1 Core 或 Live 已通过。
+  - [`reports/verification/v0.1/20260827T112706+0800/summary.md`](../reports/verification/v0.1/20260827T112706+0800/summary.md)（T02 首次报告，F 等级；`result: passed` 判定过早，保留为失败历史）
+  - [`reports/verification/v0.1/20260827T133710+0800/summary.md`](../reports/verification/v0.1/20260827T133710+0800/summary.md)（T02 remediation，F 等级；源码门禁通过，wheel 构建 blocked）
+- T02 remediation 修复：Runtime ready 后整体不可替换/扩展；跨 seam 容器深度不可变；JsonValue 拒绝非有限浮点且显式导出；reasoning/provider raw 默认公开投影脱敏；配置矩阵、生命周期边界、模块/schema/union/wheel/CI 覆盖收紧。详细缺陷与命令见新报告。
+- 判定历史：上一份 T02 报告在 Runtime 组成仍可替换、嵌套值仍可修改、敏感字段仍可默认序列化且 security 未进入 required `test-core` 时写为 `passed`，属于判定过早；旧报告按 §1.1 第 5 条不改写，由本次新 run 追加纠正。
+- 当前门禁结论：暂不进入 `V0.1-T03`/`V0.1-T04` 主线实现；先在可取得锁定 `hatchling` 的环境复跑 `uv build`、已安装 wheel 全模块 import 和下游 mypy。三项通过并追加新的 follow-up run 后，才可从已修正 seam 并行进入 T03/T04。仍不得宣称 V0.1 Core 或 Live 已通过。
 
 ## 五、V0.2 Provider 与 RAG 完整化
 

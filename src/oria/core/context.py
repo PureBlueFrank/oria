@@ -33,6 +33,14 @@ class LifecycleSealedError(RuntimeError):
     """Raised when process teardown is modified after runtime startup."""
 
 
+class LifecycleClosedError(RuntimeError):
+    """Raised when a closed process teardown stack is reused."""
+
+
+class RuntimeSealedError(RuntimeError):
+    """Raised when process-scoped services are changed after construction."""
+
+
 class SealedAsyncExitStack:
     """AsyncExitStack wrapper whose registration phase can be permanently sealed."""
 
@@ -50,6 +58,8 @@ class SealedAsyncExitStack:
         return self._closed
 
     async def enter_async_context(self, manager: AbstractAsyncContextManager[T]) -> T:
+        if self._closed:
+            raise LifecycleClosedError("process teardown stack is closed")
         if self._sealed:
             raise LifecycleSealedError("process teardown registration is sealed")
         return await self._stack.enter_async_context(manager)
@@ -65,6 +75,26 @@ class SealedAsyncExitStack:
 
 class RuntimeServices:
     """Resources shared for one process; never stores actor, tenant or run metadata."""
+
+    __slots__ = (
+        "_exit_stack",
+        "_sealed",
+        "agents",
+        "cache",
+        "config",
+        "domain",
+        "embedder",
+        "guardrails",
+        "ingress",
+        "llm",
+        "memory",
+        "nodes",
+        "notifier",
+        "objects",
+        "policy",
+        "retriever",
+        "tools",
+    )
 
     def __init__(
         self,
@@ -86,6 +116,7 @@ class RuntimeServices:
         cache: CacheStore | None = None,
         objects: ObjectStore | None = None,
     ) -> None:
+        object.__setattr__(self, "_sealed", False)
         self.config = config
         self.llm = llm
         self.tools = tools
@@ -102,6 +133,17 @@ class RuntimeServices:
         self.ingress = ingress
         self.notifier = notifier
         self._exit_stack = exit_stack
+        object.__setattr__(self, "_sealed", True)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if getattr(self, "_sealed", False):
+            raise RuntimeSealedError(f"runtime services are sealed; cannot assign {name!r}")
+        object.__setattr__(self, name, value)
+
+    def __delattr__(self, name: str) -> None:
+        if getattr(self, "_sealed", False):
+            raise RuntimeSealedError(f"runtime services are sealed; cannot delete {name!r}")
+        object.__delattr__(self, name)
 
     @property
     def ready(self) -> bool:

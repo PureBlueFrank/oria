@@ -13,6 +13,7 @@
 - `make test`：运行不含 Live/Enterprise/Performance 的本地测试。
 - `make build`：构建 wheel 与 sdist。
 - `make smoke`：验证 `oria` CLI 入口。
+- `uv run oria config doctor [--output json]`：解析并校验当前配置；有效配置退出 0，输入或配置错误退出 2。JSON 输出使用 `ok` 与脱敏配置投影，适合自动化消费。
 
 更细的单项命令见 `README.md` 和 `docs/Oria详细执行路线.md` §2.1。Live/Enterprise 必须显式提供运行开关与非空的已知 target，不得把默认未运行记为通过。
 
@@ -30,7 +31,7 @@
 
 ## 提交与 Pull Request
 
-当前目录尚无可分析的 Git 历史。后续采用 Conventional Commits，例如 `feat: add agent registry`、`fix: handle tool timeout`。每个提交聚焦一个目的。PR 应说明背景、主要改动、验证命令和已知风险，并关联相关 Issue；涉及界面变更时附截图，涉及配置变更时同步更新示例配置与文档。
+仓库已建立 Git 历史，前三个提交均采用 Conventional Commits；后续继续使用例如 `feat: add agent registry`、`fix: handle tool timeout` 的格式。每个提交聚焦一个目的。PR 应说明背景、主要改动、验证命令和已知风险，并关联相关 Issue；涉及界面变更时附截图，涉及配置变更时同步更新示例配置与文档。
 
 ## 安全与配置
 

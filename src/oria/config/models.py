@@ -5,7 +5,23 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
+
+from oria._internal.immutable import FrozenDict
+
+LLMProviderName = Literal["mock", "deepseek", "kimi", "zhipu", "openai", "anthropic"]
+APIDialect = Literal["mock", "chat_completions", "responses", "anthropic_messages"]
+IMChannelName = Literal["mock", "daxiang", "feishu", "dingtalk"]
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+
+_PROVIDER_DIALECTS: dict[str, frozenset[str]] = {
+    "mock": frozenset({"mock"}),
+    "deepseek": frozenset({"responses"}),
+    "kimi": frozenset({"chat_completions"}),
+    "zhipu": frozenset({"chat_completions"}),
+    "openai": frozenset({"chat_completions", "responses"}),
+    "anthropic": frozenset({"anthropic_messages"}),
+}
 
 
 class ConfigResolutionError(ValueError):
@@ -17,11 +33,19 @@ class InputConfigModel(BaseModel):
 
 
 class LLMProfileConfig(InputConfigModel):
-    provider: str
-    api_dialect: Literal["mock", "chat_completions", "responses", "anthropic_messages"]
+    provider: LLMProviderName
+    api_dialect: APIDialect
     model: str
     api_key: SecretStr | None = Field(default=None, repr=False)
     base_url: str | None = None
+
+    @model_validator(mode="after")
+    def validate_provider_dialect(self) -> LLMProfileConfig:
+        if self.api_dialect not in _PROVIDER_DIALECTS[self.provider]:
+            raise ValueError(
+                f"provider {self.provider!r} is incompatible with api_dialect {self.api_dialect!r}"
+            )
+        return self
 
 
 class LLMConfig(InputConfigModel):
@@ -49,8 +73,14 @@ class IMChannelConfig(InputConfigModel):
 
 
 class IMConfig(InputConfigModel):
-    default: str
+    default: IMChannelName
     channels: dict[str, IMChannelConfig]
+
+    @model_validator(mode="after")
+    def validate_selected_channel_exists(self) -> IMConfig:
+        if self.default != "mock" and self.default not in self.channels:
+            raise ValueError(f"selected IM channel {self.default!r} is not configured")
+        return self
 
 
 class StorageConfig(InputConfigModel):
@@ -62,9 +92,9 @@ class StorageConfig(InputConfigModel):
 
 
 class TelemetryConfig(InputConfigModel):
-    log_exporter: str
-    trace_exporter: str
-    metric_exporter: str
+    log_exporter: Literal["console_json", "file_json", "enterprise"]
+    trace_exporter: Literal["console", "otlp", "langfuse"]
+    metric_exporter: Literal["console", "otlp"]
     capture_content: bool = False
 
 
@@ -75,7 +105,7 @@ class RuntimeConfig(InputConfigModel):
     llm: LLMConfig
     embedding: EmbeddingConfig
     im: IMConfig
-    log_level: str
+    log_level: LogLevel
     data_dir: Path
     storage: StorageConfig
     telemetry: TelemetryConfig
@@ -87,8 +117,8 @@ class ResolvedConfigModel(BaseModel):
 
 class ResolvedLLMProfile(ResolvedConfigModel):
     profile_id: str
-    provider: str
-    api_dialect: Literal["mock", "chat_completions", "responses", "anthropic_messages"]
+    provider: LLMProviderName
+    api_dialect: APIDialect
     model: str
     api_key: SecretStr | None = Field(default=None, repr=False)
     base_url: str | None = None
@@ -102,8 +132,21 @@ class ResolvedEmbeddingProfile(ResolvedConfigModel):
     trust_remote_code: bool = False
 
 
+class ResolvedIMChannelConfig(ResolvedConfigModel):
+    webhook: SecretStr | None = Field(default=None, repr=False)
+    app_id: str | None = None
+    app_secret: SecretStr | None = Field(default=None, repr=False)
+    secret: SecretStr | None = Field(default=None, repr=False)
+
+
 class ResolvedIMConfig(ResolvedConfigModel):
-    default: str
+    default: IMChannelName
+    channels: dict[str, ResolvedIMChannelConfig]
+
+    @model_validator(mode="after")
+    def freeze_channels(self) -> ResolvedIMConfig:
+        object.__setattr__(self, "channels", FrozenDict(dict(self.channels)))
+        return self
 
 
 class ResolvedStorageConfig(ResolvedConfigModel):
@@ -115,9 +158,9 @@ class ResolvedStorageConfig(ResolvedConfigModel):
 
 
 class ResolvedTelemetryConfig(ResolvedConfigModel):
-    log_exporter: str
-    trace_exporter: str
-    metric_exporter: str
+    log_exporter: Literal["console_json", "file_json", "enterprise"]
+    trace_exporter: Literal["console", "otlp", "langfuse"]
+    metric_exporter: Literal["console", "otlp"]
     capture_content: bool
 
 
@@ -139,7 +182,7 @@ class ResolvedRuntimeConfig(ResolvedConfigModel):
     llm: ResolvedLLMProfile
     embedding: ResolvedEmbeddingProfile
     im: ResolvedIMConfig
-    log_level: str
+    log_level: LogLevel
     data_dir: Path
     storage: ResolvedStorageConfig
     telemetry: ResolvedTelemetryConfig

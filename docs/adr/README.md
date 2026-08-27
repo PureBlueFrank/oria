@@ -43,5 +43,6 @@
 | ADR-027 | RAG/Memory 内容安全 | 计划中 | V0.2-T03 前实体化 |
 | ADR-028 | 确定性资格与 LLM 软排序 | 已接受 | [ADR-028](ADR-028-deterministic-eligibility-and-llm-ranking.md) |
 | ADR-029 | 外部事件等待与恢复 | 已接受 | [ADR-029](ADR-029-external-event-wait-and-resume.md) |
+| ADR-030 | 跨 seam 值类型深度不可变 | 已接受 | [ADR-030](ADR-030-deep-immutable-seam-values.md) |
 
 新建 ADR 使用 [ADR 模板](000-template.md)。已接受 ADR 如需改变关键边界，应新建 ADR 并把原记录标为“已替代”，不直接覆盖历史理由。

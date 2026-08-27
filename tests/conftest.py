@@ -15,6 +15,18 @@ def _has_marker(item: pytest.Item, marker: str) -> bool:
     return item.get_closest_marker(marker) is not None
 
 
+@pytest.fixture(autouse=True)
+def _isolate_ambient_oria_environment(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Keep local tests deterministic while preserving explicitly selected external runs."""
+    if _has_marker(request.node, "live") or _has_marker(request.node, "enterprise"):
+        return
+    for name in tuple(os.environ):
+        if name.startswith("ORIA_"):
+            monkeypatch.delenv(name, raising=False)
+
+
 def _deselect(config: pytest.Config, items: list[pytest.Item], markers: Iterable[str]) -> None:
     marker_names = frozenset(markers)
     deselected = [item for item in items if any(_has_marker(item, name) for name in marker_names)]

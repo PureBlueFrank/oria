@@ -10,7 +10,7 @@
 
 > 本节是架构作者给“无对话上下文的实现方”的交接说明，确保对方能准确起步、不偏航。本节与其余各节冲突时，以其余各节为准；本节只负责“如何开始”与“口径澄清”。
 
-**0.1 当前状态（2026-08-27）**：架构已完成场景 A 资深 Agent 架构复核及工程路线修订，代码未落盘。仓库当前无 `pyproject.toml` / `src/oria/` 包 / `tests/` / `README.md`，也未发现可复用的项目虚拟环境；T01 需先安装/记录当前缺失的 `uv`，再以新生成的 `uv.lock + uv sync` 作为唯一依赖基线。第一里程碑是 V0.1 MVP（见 0.6），先交付永久保留的纵向切片，再逐层增强。**本文档与 `docs/Oria详细执行路线.md` 共同构成执行契约**；ADR 状态以 `docs/adr/README.md` 为准，冲突时必须先修正文档或 ADR，不能自行择一。
+**0.1 当前状态（2026-08-27）**：架构已完成场景 A 资深 Agent 架构复核及工程路线修订；仓库已完成 V0.1-T01 工程基线，V0.1-T02 remediation 代码与源码级门禁已完成，但本次受限环境无法取得 `hatchling`，新 wheel 构建/安装门禁仍 blocked。仓库已有锁定的 `uv 0.12.6 + Python 3.11`、`pyproject.toml`、`uv.lock`、`src/oria/` 与测试。V0.1-T03 及后续业务实现尚未开始。第一里程碑仍是 V0.1 MVP（见 0.6），先交付永久保留的纵向切片，再逐层增强。**本文档与 `docs/Oria详细执行路线.md` 共同构成执行契约**；ADR 状态以 `docs/adr/README.md` 为准，冲突时必须先修正文档或 ADR，不能自行择一。
 
 **0.2 实现方角色**：由 Codex 按 §九版本路线和 `docs/Oria详细执行路线.md` 实现。每次任务前先检查详细路线的准入、真实场景和测试；遇设计空白在 `docs/adr/` 建 ADR 并标“待 review”，不得擅自偏离架构。每条 ADR 对应 §十面试 hook。
 
@@ -1324,6 +1324,7 @@ oria/
 | RAG/Memory 如何防注入与投毒 | ADR-027 | trust label + provenance + ACL + 生命周期治理 |
 | 为什么硬资格不用 LLM 直接判定 | [ADR-028](docs/adr/ADR-028-deterministic-eligibility-and-llm-ranking.md) | EligibilityPolicy / ProductEligibilityPolicy 确定性过滤；LLM 仅做候选集内软排序/解释 |
 | 外部报名/选品事件如何跨进程恢复 | [ADR-029](docs/adr/ADR-029-external-event-wait-and-resume.md) | waiting_event + event inbox + event envelope + wait/resource/version/checkpoint 绑定 |
+| 跨 seam 值为什么校验后深度冻结 | [ADR-030](docs/adr/ADR-030-deep-immutable-seam-values.md) | 容器深度不可变 + 标准 JSON 投影；保护参数哈希、授权与重放稳定性 |
 
 ---
 

@@ -131,8 +131,8 @@ def test_resolved_config_rejects_mutation(tmp_path: Path) -> None:
     assert resolved.storage.vector == "chroma"
 
 
-def test_conflicting_configuration_sources_are_rejected(tmp_path: Path) -> None:
-    """V01-CFG-04: conflicting or malformed configuration sources are rejected."""
+def test_invalid_references_profiles_and_yaml_roots_are_rejected(tmp_path: Path) -> None:
+    """V01-CFG-04: semantic source errors fail; same-field sources use declared precedence."""
     empty = _write_config(tmp_path, "empty.yaml", "{}\n")
     partial_ref_yaml = _write_config(
         tmp_path,
@@ -169,6 +169,100 @@ llm:
     with pytest.raises(ConfigResolutionError) as excinfo:
         resolve_runtime_config(config_path=non_mapping_yaml, environ={})
     assert "string-keyed mapping" in str(excinfo.value)
+
+
+def test_cli_environment_and_yaml_use_declared_precedence(tmp_path: Path) -> None:
+    """V01-CFG-04: CLI overrides environment, which overrides YAML for the same field."""
+    config = _write_config(tmp_path, "precedence.yaml", "runtime_profile: demo\n")
+
+    resolved = resolve_runtime_config(
+        config_path=config,
+        runtime_profile="demo",
+        environ={"ORIA_RUNTIME_PROFILE": "standard"},
+        cwd=tmp_path,
+    )
+
+    assert resolved.runtime_profile == "demo"
+
+
+@pytest.mark.parametrize(
+    ("provider", "dialect"),
+    [("mock", "responses"), ("deepseek", "mock")],
+)
+def test_provider_and_api_dialect_must_match(tmp_path: Path, provider: str, dialect: str) -> None:
+    config = _write_config(
+        tmp_path,
+        "provider-dialect.yaml",
+        f"""\
+llm:
+  profiles:
+    mock:
+      provider: {provider}
+      api_dialect: {dialect}
+      api_key: null
+""",
+    )
+
+    with pytest.raises(ConfigResolutionError, match="api_dialect"):
+        resolve_runtime_config(config_path=config, environ={}, cwd=tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("log_level", "VERBOSE"),
+        ("telemetry.log_exporter", "unknown"),
+        ("telemetry.trace_exporter", "unknown"),
+        ("telemetry.metric_exporter", "unknown"),
+        ("im.default", "unknown"),
+    ],
+)
+def test_runtime_enums_reject_unknown_consumer_values(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    parts = field.split(".")
+    body = f"{parts[0]}: {value}\n" if len(parts) == 1 else f"{parts[0]}:\n  {parts[1]}: {value}\n"
+
+    with pytest.raises(ConfigResolutionError):
+        resolve_runtime_config(
+            config_path=_write_config(tmp_path, f"invalid-{field}.yaml", body),
+            environ={},
+            cwd=tmp_path,
+        )
+
+
+def test_resolved_im_config_preserves_channels_without_publicly_dumping_secrets(
+    tmp_path: Path,
+) -> None:
+    secret = "im-secret-value"
+    config = _write_config(
+        tmp_path,
+        "im.yaml",
+        f"""\
+im:
+  default: feishu
+  channels:
+    feishu:
+      app_id: app-1
+      app_secret: {secret}
+""",
+    )
+
+    resolved = resolve_runtime_config(config_path=config, environ={}, cwd=tmp_path)
+
+    assert resolved.im.channels["feishu"].app_id == "app-1"
+    assert resolved.im.channels["feishu"].app_secret is not None
+    assert resolved.im.channels["feishu"].app_secret.get_secret_value() == secret
+    assert secret not in json.dumps(resolved.public_summary())
+
+
+def test_selected_non_mock_im_channel_requires_a_matching_config(tmp_path: Path) -> None:
+    with pytest.raises(ConfigResolutionError, match="selected IM channel"):
+        resolve_runtime_config(
+            config_path=_write_config(tmp_path, "missing-im.yaml", "im:\n  default: feishu\n"),
+            environ={},
+            cwd=tmp_path,
+        )
 
 
 def test_fingerprint_and_public_projection_exclude_secrets(tmp_path: Path) -> None:

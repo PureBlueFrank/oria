@@ -2,24 +2,98 @@
 
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Any, Literal, TypeAlias
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    JsonValue,
     SecretStr,
     field_validator,
     model_validator,
 )
+from pydantic import JsonValue as JsonValue
+
+from oria._internal.immutable import deep_freeze
+
+__all__ = [
+    "ACLMetadata",
+    "AuthorizationContext",
+    "AuthorizationRequest",
+    "ChatOptions",
+    "ChatResult",
+    "CitationBlock",
+    "ContentBlock",
+    "Doc",
+    "Done",
+    "GuardrailResult",
+    "ImageBlock",
+    "InboundMessage",
+    "InboundRequest",
+    "IngressContext",
+    "JsonValue",
+    "MemoryItem",
+    "Message",
+    "NodeError",
+    "NodeResult",
+    "PolicyDecision",
+    "Principal",
+    "PrincipalAttributes",
+    "ProviderCapabilities",
+    "ProviderError",
+    "ProviderExtensionBlock",
+    "QueryFilters",
+    "ReasoningDelta",
+    "RefusalBlock",
+    "ResourceRef",
+    "ResponseSchema",
+    "RetryPolicy",
+    "SecretValue",
+    "SendResult",
+    "ServiceHealth",
+    "StreamEvent",
+    "TextBlock",
+    "TextDelta",
+    "ToolCall",
+    "ToolCallBlock",
+    "ToolCallDelta",
+    "ToolError",
+    "ToolPolicy",
+    "ToolResult",
+    "ToolResultBlock",
+    "ToolSpec",
+    "Usage",
+    "UsageDelta",
+    "ValueModel",
+]
+
+
+def _reject_non_finite(value: Any, path: str = "value") -> None:
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"{path} must contain only finite floats")
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            _reject_non_finite(item, f"{path}.{key}")
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        for index, item in enumerate(value):
+            _reject_non_finite(item, f"{path}[{index}]")
 
 
 class ValueModel(BaseModel):
     """Strict immutable base for values crossing Oria component seams."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @model_validator(mode="after")
+    def freeze_and_validate_values(self) -> ValueModel:
+        for name in type(self).model_fields:
+            value = getattr(self, name)
+            _reject_non_finite(value, name)
+            object.__setattr__(self, name, deep_freeze(value))
+        return self
 
 
 class TextBlock(ValueModel):
@@ -79,7 +153,7 @@ ContentBlock: TypeAlias = Annotated[
 
 class Message(ValueModel):
     role: Literal["system", "user", "assistant", "tool"]
-    content: str | list[ContentBlock]
+    content: str | tuple[ContentBlock, ...]
     tool_call_id: str | None = None
 
 
@@ -133,16 +207,28 @@ class ProviderCapabilities(ValueModel):
     context_window: int | None = Field(default=None, gt=0)
     max_output_tokens: int | None = Field(default=None, gt=0)
 
+    @model_validator(mode="after")
+    def validate_structured_output_modes(self) -> ProviderCapabilities:
+        if self.structured_output != bool(self.structured_output_modes):
+            raise ValueError(
+                "structured_output must be true exactly when structured_output_modes is non-empty"
+            )
+        return self
+
 
 class ChatResult(ValueModel):
-    content: list[ContentBlock]
-    tool_calls: list[ToolCall]
+    content: tuple[ContentBlock, ...]
+    tool_calls: tuple[ToolCall, ...]
     structured_output: dict[str, JsonValue] | None = None
     usage: Usage
     finish_reason: str | None = None
     request_id: str | None = None
     refusal: str | None = None
-    raw_response: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    raw_response: dict[str, JsonValue] | None = Field(default=None, repr=False, exclude=True)
+
+    def internal_raw_response(self) -> dict[str, JsonValue] | None:
+        """Return the retained provider payload for bounded internal diagnostics only."""
+        return self.raw_response
 
 
 class StreamEventBase(ValueModel):
@@ -165,7 +251,11 @@ class ToolCallDelta(StreamEventBase):
 
 class ReasoningDelta(StreamEventBase):
     type: Literal["reasoning_delta"] = "reasoning_delta"
-    text: str = Field(repr=False)
+    text: str = Field(repr=False, exclude=True)
+
+    def internal_text(self) -> str:
+        """Return retained reasoning for provider-internal continuation only."""
+        return self.text
 
 
 class UsageDelta(StreamEventBase):

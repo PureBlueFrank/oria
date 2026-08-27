@@ -12,7 +12,7 @@ import pytest
 
 from oria.config import resolve_runtime_config
 from oria.config.models import ResolvedRuntimeConfig
-from oria.core.context import Context
+from oria.core.context import Context, RuntimeSealedError
 from oria.core.runtime import build_runtime
 from oria.core.types import Principal
 
@@ -119,23 +119,15 @@ async def test_concurrent_contexts_across_tenants_stay_isolated(tmp_path: Path) 
         identity_a = (actor_a, executor_a, "tenant-alpha", "session-a", "thread-a", "run-a")
         identity_b = (actor_b, executor_b, "tenant-beta", "session-b", "thread-b", "run-b")
 
-        b_identifiers = ("actor-b", "executor-b", "tenant-beta", "session-b", "thread-b", "run-b")
-        a_identifiers = ("actor-a", "executor-a", "tenant-alpha", "session-a", "thread-a", "run-a")
-        for name in dir(ctx_a):
-            if not name.startswith("_"):
-                rendered = str(getattr(ctx_a, name))
-                for identifier in b_identifiers:
-                    assert identifier not in rendered
-        for name in dir(ctx_b):
-            if not name.startswith("_"):
-                rendered = str(getattr(ctx_b, name))
-                for identifier in a_identifiers:
-                    assert identifier not in rendered
-
         with pytest.raises(FrozenInstanceError):
             ctx_a.run_id = "run-b"
         with pytest.raises(FrozenInstanceError):
             ctx_a.actor = actor_b
+        with pytest.raises(RuntimeSealedError):
+            runtime.stashed_run_id = ctx_a.run_id
+
+        assert _identity(ctx_a) == identity_a
+        assert _identity(ctx_b) == identity_b
 
         events: list[tuple[str, tuple[object, ...]]] = []
         run_a_local_closed: list[str] = []

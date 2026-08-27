@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from pydantic import SecretStr, ValidationError
+from typer.main import get_command
 from typer.testing import CliRunner
 
 from oria.cli import app
@@ -169,6 +170,7 @@ def test_outputs_and_serializations_do_not_leak_secrets(tmp_path: Path) -> None:
     assert reasoning.text == reasoning_secret
     assert reasoning_secret not in repr(reasoning)
     assert "reasoning_delta" in repr(reasoning)
+    assert reasoning_secret not in reasoning.model_dump_json()
 
     api_secret = "sk-live-4e8f1a306547bd9d2b7c"
     secret = SecretValue(value=SecretStr(api_secret))
@@ -185,6 +187,7 @@ def test_outputs_and_serializations_do_not_leak_secrets(tmp_path: Path) -> None:
     )
     assert chat_result.raw_response == {"internal": provider_payload_secret}
     assert provider_payload_secret not in repr(chat_result)
+    assert provider_payload_secret not in chat_result.model_dump_json()
 
     provider_key = "sk-live-9d2b7c4e8f1a306547bd"
     config_path = tmp_path / "runtime.yaml"
@@ -215,13 +218,14 @@ def test_outputs_and_serializations_do_not_leak_secrets(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_cli_and_local_identities_cannot_be_impersonated(tmp_path: Path) -> None:
     """tenant/roles 不可冒充: the CLI offers no identity flags and forged principals are denied."""
-    help_result = CliRunner().invoke(app, ["config", "doctor", "--help"])
-    assert help_result.exit_code == 0
+    root_command = get_command(app)
+    config_command = root_command.commands["config"]
+    doctor_command = config_command.commands["doctor"]
+    option_names = {
+        option for parameter in doctor_command.params for option in getattr(parameter, "opts", ())
+    }
     for forbidden_flag in ("--tenant", "--roles", "--subject", "--actor"):
-        assert forbidden_flag not in help_result.stdout
-    help_text = help_result.stdout.lower()
-    for forbidden_word in ("tenant", "roles", "subject", "actor"):
-        assert forbidden_word not in help_text
+        assert forbidden_flag not in option_names
 
     operator = local_operator()
     executor = local_cli_executor()

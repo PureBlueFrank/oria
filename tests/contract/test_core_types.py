@@ -1,0 +1,132 @@
+"""Contracts for immutable, finite and safely projected core value types."""
+
+from __future__ import annotations
+
+import math
+from typing import Any
+
+import pytest
+from pydantic import TypeAdapter, ValidationError
+
+from oria.core.types import (
+    AuthorizationContext,
+    ChatResult,
+    ContentBlock,
+    Message,
+    ProviderCapabilities,
+    ProviderExtensionBlock,
+    ReasoningDelta,
+    StreamEvent,
+    TextBlock,
+    TextDelta,
+    ToolCall,
+    Usage,
+)
+
+pytestmark = pytest.mark.contract
+
+
+def test_cross_seam_containers_are_deeply_immutable_and_detached_from_inputs() -> None:
+    args: dict[str, Any] = {"tenant": "safe", "nested": {"ids": [1, 2]}}
+    call = ToolCall(id="call-1", name="query", args=args)
+    auth = AuthorizationContext(correlation_id="corr-1", attributes={"scope": "read"})
+    message = Message(role="assistant", content=[TextBlock(text="safe")])
+
+    with pytest.raises(TypeError):
+        call.args["tenant"] = "HIJACKED"
+    mapping_view: Any = call.args
+    with pytest.raises(TypeError):
+        mapping_view |= {"tenant": "HIJACKED"}
+    nested: Any = call.args["nested"]
+    with pytest.raises(TypeError):
+        nested["ids"] += (3,)
+    list_view: Any = nested["ids"]
+    with pytest.raises(TypeError):
+        list_view += [3]
+    with pytest.raises(TypeError):
+        auth.attributes["injected"] = "x"
+    content: Any = message.content
+    with pytest.raises(AttributeError):
+        content.append(TextBlock(text="tampered"))
+
+    args["tenant"] = "changed-after-validation"
+    args["nested"]["ids"].append(3)
+    assert call.model_dump(mode="json")["args"] == {
+        "tenant": "safe",
+        "nested": {"ids": [1, 2]},
+    }
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_json_values_reject_non_finite_floats(value: float) -> None:
+    with pytest.raises(ValidationError, match="finite"):
+        ToolCall(id="call-1", name="query", args={"value": value})
+
+
+def test_finite_json_float_round_trips() -> None:
+    value = 12.375
+    call = ToolCall(id="call-1", name="query", args={"value": value})
+
+    restored = ToolCall.model_validate_json(call.model_dump_json())
+
+    assert restored.args["value"] == value
+    assert math.isfinite(restored.args["value"])
+
+
+def test_sensitive_provider_fields_use_public_projection_by_default() -> None:
+    reasoning_secret = "internal-chain-of-thought"
+    reasoning = ReasoningDelta(
+        sequence=1,
+        provider="mock",
+        model="mock-demo",
+        text=reasoning_secret,
+    )
+    raw_secret = "provider-raw-secret"
+    result = ChatResult(
+        content=[TextBlock(text="visible")],
+        tool_calls=[],
+        usage=Usage(input_tokens=1, output_tokens=1),
+        raw_response={"secret": raw_secret},
+    )
+
+    assert reasoning.internal_text() == reasoning_secret
+    assert result.internal_raw_response() == {"secret": raw_secret}
+    assert reasoning_secret not in repr(reasoning)
+    assert reasoning_secret not in reasoning.model_dump_json()
+    assert "text" not in reasoning.model_dump()
+    assert raw_secret not in repr(result)
+    assert raw_secret not in result.model_dump_json()
+    assert "raw_response" not in result.model_dump()
+
+
+@pytest.mark.parametrize(
+    ("structured_output", "modes"),
+    [(True, frozenset()), (False, frozenset({"native_json_schema"}))],
+)
+def test_provider_capabilities_reject_inconsistent_structured_output(
+    structured_output: bool,
+    modes: frozenset[str],
+) -> None:
+    with pytest.raises(ValidationError, match="structured_output"):
+        ProviderCapabilities(
+            tool_calling=True,
+            streaming=True,
+            reasoning=False,
+            structured_output=structured_output,
+            parallel_tool_calls=True,
+            structured_output_modes=modes,
+            api_dialect="responses",
+        )
+
+
+def test_content_block_and_stream_event_discriminated_unions_round_trip() -> None:
+    content_adapter = TypeAdapter(ContentBlock)
+    stream_adapter = TypeAdapter(StreamEvent)
+    block = ProviderExtensionBlock(raw_type="vendor", raw_payload={"items": [1, 2]})
+    event = TextDelta(sequence=2, provider="mock", model="mock-demo", text="hello")
+
+    restored_block = content_adapter.validate_json(content_adapter.dump_json(block))
+    restored_event = stream_adapter.validate_json(stream_adapter.dump_json(event))
+
+    assert restored_block == block
+    assert restored_event == event

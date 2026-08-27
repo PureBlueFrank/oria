@@ -75,8 +75,8 @@ def test_production_edition_rejects_relative_data_dir(tmp_path: Path) -> None:
     assert "production edition requires an absolute data_dir" in str(excinfo.value)
 
 
-def test_data_dir_stays_within_injected_tmp_path(tmp_path: Path) -> None:
-    """V01-CFG-05: resolved data_dir stays under the injected tmp_path and never under HOME."""
+def test_resolving_config_does_not_create_or_escape_injected_data_dir(tmp_path: Path) -> None:
+    """The non-creation assertion is an extra guard beyond CFG-05's path-boundary contract."""
     empty = _write_config(tmp_path, "empty.yaml", "{}\n")
 
     resolved = resolve_runtime_config(

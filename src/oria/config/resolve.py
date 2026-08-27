@@ -20,6 +20,7 @@ from oria.config.models import (
     EmbeddingProfileConfig,
     LLMProfileConfig,
     ResolvedEmbeddingProfile,
+    ResolvedIMChannelConfig,
     ResolvedIMConfig,
     ResolvedLLMProfile,
     ResolvedRuntimeConfig,
@@ -256,7 +257,19 @@ def _fingerprint_payload(
             "base_url": llm.base_url,
         },
         "embedding": embedding.model_dump(mode="json"),
-        "im": {"default": config.im.default},
+        "im": {
+            "default": config.im.default,
+            "channels": {
+                name: {
+                    "app_id": channel.app_id,
+                    "credential_configured": any(
+                        credential is not None
+                        for credential in (channel.webhook, channel.app_secret, channel.secret)
+                    ),
+                }
+                for name, channel in sorted(config.im.channels.items())
+            },
+        },
         "log_level": config.log_level,
         "data_dir": str(data_dir),
         "storage": config.storage.model_dump(mode="json"),
@@ -326,7 +339,13 @@ def resolve_runtime_config(
         runtime_profile=parsed.runtime_profile,
         llm=llm,
         embedding=embedding,
-        im=ResolvedIMConfig(default=parsed.im.default),
+        im=ResolvedIMConfig(
+            default=parsed.im.default,
+            channels={
+                name: ResolvedIMChannelConfig(**channel.model_dump())
+                for name, channel in parsed.im.channels.items()
+            },
+        ),
         log_level=parsed.log_level,
         data_dir=absolute_data_dir,
         storage=ResolvedStorageConfig(**parsed.storage.model_dump()),

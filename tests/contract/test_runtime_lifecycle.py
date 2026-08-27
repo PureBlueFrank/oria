@@ -10,7 +10,12 @@ import pytest
 
 from oria.config import resolve_runtime_config
 from oria.config.models import ResolvedRuntimeConfig
-from oria.core.context import LifecycleSealedError, SealedAsyncExitStack
+from oria.core.context import (
+    LifecycleClosedError,
+    LifecycleSealedError,
+    RuntimeSealedError,
+    SealedAsyncExitStack,
+)
 from oria.core.registry import RegistrySealedError
 from oria.core.runtime import RuntimeResourceFactory, build_runtime
 from oria.permission.local import local_cli_executor, local_operator
@@ -39,6 +44,11 @@ class _ObservableResource:
         traceback: TracebackType | None,
     ) -> None:
         self._closed.append(self._name)
+
+
+class _FailingEnterResource(_ObservableResource):
+    async def __aenter__(self) -> _FailingEnterResource:
+        raise _FactoryFailure(self._name)
 
 
 def _tracked_factory(name: str, created: list[str], closed: list[str]) -> RuntimeResourceFactory:
@@ -97,6 +107,30 @@ async def test_failed_runtime_build_unwinds_resources_in_reverse_order(tmp_path:
 
 
 @pytest.mark.asyncio
+async def test_resource_aenter_failure_unwinds_previously_entered_resources(tmp_path: Path) -> None:
+    """V01-LIFE-01: __aenter__ failure unwinds earlier resources, not the failed manager."""
+    created: list[str] = []
+    closed: list[str] = []
+
+    def failing_enter_factory() -> _FailingEnterResource:
+        created.append("beta")
+        return _FailingEnterResource("beta", closed)
+
+    with pytest.raises(_FactoryFailure, match="beta"):
+        await build_runtime(
+            _resolve_config(tmp_path),
+            resource_factories=(
+                _tracked_factory("alpha", created, closed),
+                failing_enter_factory,
+                _tracked_factory("gamma", created, closed),
+            ),
+        )
+
+    assert created == ["alpha", "beta"]
+    assert closed == ["alpha"]
+
+
+@pytest.mark.asyncio
 async def test_ready_runtime_seals_teardown_and_registries(tmp_path: Path) -> None:
     """V01-LIFE-02: once ready, process teardown and registry mutation are permanently sealed."""
     process_closed: list[str] = []
@@ -107,6 +141,38 @@ async def test_ready_runtime_seals_teardown_and_registries(tmp_path: Path) -> No
     )
     try:
         assert runtime.ready is True
+
+        runtime_components = (
+            "config",
+            "policy",
+            "domain",
+            "tools",
+            "guardrails",
+            "nodes",
+            "agents",
+            "ingress",
+            "notifier",
+            "llm",
+            "retriever",
+            "embedder",
+            "memory",
+            "cache",
+            "objects",
+            "_exit_stack",
+        )
+        for component in runtime_components:
+            original = getattr(runtime, component)
+            with pytest.raises(RuntimeSealedError, match="cannot assign"):
+                setattr(runtime, component, object())
+            assert getattr(runtime, component) is original
+
+        for metadata in ("actor", "run_id", "session_id", "stashed_run_id"):
+            with pytest.raises(RuntimeSealedError, match="cannot assign"):
+                setattr(runtime, metadata, "untrusted-execution-metadata")
+            assert not hasattr(runtime, metadata)
+
+        with pytest.raises(RuntimeSealedError, match="cannot delete"):
+            del runtime.tools
 
         exit_stack = runtime._exit_stack
         assert isinstance(exit_stack, SealedAsyncExitStack)
@@ -159,3 +225,21 @@ async def test_ready_runtime_seals_teardown_and_registries(tmp_path: Path) -> No
 
     assert process_closed == ["process-store"]
     assert runtime.ready is False
+
+
+@pytest.mark.asyncio
+async def test_sealed_exit_stack_boundary_operations_are_deterministic() -> None:
+    """P3-17: seal/close are idempotent and a closed stack never accepts resources."""
+    closed: list[str] = []
+    stack = SealedAsyncExitStack()
+
+    await stack.aclose()
+    await stack.aclose()
+    assert stack.closed is True
+    with pytest.raises(LifecycleClosedError):
+        await stack.enter_async_context(_ObservableResource("late", closed))
+
+    stack.seal()
+    stack.seal()
+    assert stack.sealed is True
+    assert closed == []
