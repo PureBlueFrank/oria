@@ -52,6 +52,7 @@ jobs:
       - run: uv pip install --python .artifacts/package-venv/bin/python dist/*.whl
       - run: .artifacts/package-venv/bin/oria --version
       - run: .artifacts/package-venv/bin/python scripts/verify_t02_wheel.py
+      - run: .artifacts/package-venv/bin/python scripts/verify_t03_wheel.py --data-dir .artifacts/t03-wheel-data
       - run: uv run mypy --python-executable .artifacts/package-venv/bin/python --strict scripts/wheel_type_consumer.py
 
   extras-smoke:

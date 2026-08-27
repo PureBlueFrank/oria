@@ -1,0 +1,1 @@
+"""Platform database migration environment."""

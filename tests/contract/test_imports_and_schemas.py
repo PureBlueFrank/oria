@@ -27,7 +27,16 @@ def test_every_oria_module_imports() -> None:
 
 
 def test_every_oria_pydantic_model_builds_json_schema() -> None:
-    modules = [importlib.import_module(name) for name in ["oria.config.models", "oria.core.types"]]
+    modules = [
+        importlib.import_module(name)
+        for name in [
+            "oria.config.models",
+            "oria.core.types",
+            "oria.data",
+            "oria.domain.models",
+            "oria.migrations.runner",
+        ]
+    ]
     models = {
         value
         for module in modules

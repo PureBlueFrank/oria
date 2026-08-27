@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "chains": {
+    "platform": {
+      "head": "platform_0001",
+      "files": {
+        "platform/env.py": "f8d7eec2019cd15696294fbe56ee24c23c0b9bc57aa22c78b5133b9bb43e83af",
+        "platform/versions/platform_0001_catalog.py": "231ecf5361e84a3ba0a4d2861405bd6cd02a30dc62fd2d9212d77cff8a6e1771"
+      }
+    },
+    "business": {
+      "head": "business_0001",
+      "files": {
+        "business/env.py": "7628d5dc806bcc58b2cfaf14f9100876ea6c706afedc24991ae80f02fe68c491",
+        "business/versions/business_0001_merchants.py": "7cbcd8134a2345f9f9ac1de8a676a1158ab8f118038ed75d2cbdd8ec34e0ec07"
+      }
+    }
+  }
+}

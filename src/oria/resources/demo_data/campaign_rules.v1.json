@@ -1,0 +1,38 @@
+{
+  "rule_set_id": "demo-east-dining-v1",
+  "version": "1.0.0",
+  "tenant_id": "local-community",
+  "basic": {
+    "template_ref": "synthetic-summer-dining",
+    "campaign_type": "merchant_recruitment",
+    "campaign_window": "2026-07-01T00:00:00+08:00/2026-08-31T23:59:59+08:00"
+  },
+  "recruitment_scope": {
+    "categories": ["餐饮"],
+    "cities": ["上海", "杭州"],
+    "allowlist_merchant_ids": ["demo-m001", "demo-m002", "demo-m003", "demo-m004", "demo-m005", "demo-m006", "demo-m007", "demo-m008", "demo-m009", "demo-m010", "demo-m012"],
+    "denylist_merchant_ids": ["demo-m004"],
+    "enrollment_systems": ["demo-enroll"],
+    "sales_org_scope": ["synthetic-east-a", "synthetic-east-b"]
+  },
+  "enrollment_policy": {
+    "mode": "hybrid",
+    "linked_campaign_rules": ["synthetic-link-rule-v1"],
+    "accepted_sources": ["merchant", "auto"]
+  },
+  "benefit_policy": {
+    "tiers": ["base", "boosted"],
+    "currency": "CNY",
+    "rounding": "half_up"
+  },
+  "confirmation_policy": {
+    "ordered_steps": ["merchant", "sales", "sales_manager"],
+    "timeout_action": "reject"
+  },
+  "merchant_material": {
+    "title": "虚构华东餐饮夏季活动",
+    "hero_image_ref": "object://demo/synthetic-summer-dining-v1",
+    "introduction": "仅用于 Oria 离线演示的合成招商素材。",
+    "tags": ["虚构", "离线演示"]
+  }
+}
