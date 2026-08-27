@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Annotated, Any, Literal, TypeAlias
 
+from jsonschema import validators
+from jsonschema.exceptions import SchemaError
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -163,18 +166,55 @@ class ToolCall(ValueModel):
     args: dict[str, JsonValue]
 
 
+def _validate_object_json_schema(value: dict[str, JsonValue], label: str) -> None:
+    if value.get("type") != "object":
+        raise ValueError(f"{label} root type must be object")
+    try:
+        validators.validator_for(value).check_schema(value)
+    except SchemaError as exc:
+        raise ValueError(f"{label} is invalid") from exc
+
+
 class ToolSpec(ValueModel):
-    name: str
+    name: str = Field(pattern=r"^[A-Za-z_][A-Za-z0-9_-]{0,127}$")
     schema_version: int = Field(ge=1)
     description: str
     json_schema: dict[str, JsonValue]
     strict: bool = True
+
+    @field_validator("name")
+    @classmethod
+    def reject_reserved_tool_name(cls, value: str) -> str:
+        if value == "__oria_submit_response__":
+            raise ValueError("tool name is reserved for structured output")
+        return value
+
+    @field_validator("json_schema")
+    @classmethod
+    def validate_tool_schema(cls, value: dict[str, JsonValue]) -> dict[str, JsonValue]:
+        _validate_object_json_schema(value, "tool schema")
+        return value
 
 
 class ResponseSchema(ValueModel):
     name: str
     json_schema: dict[str, JsonValue]
     strict: bool = True
+
+    @field_validator("name")
+    @classmethod
+    def validate_schema_name(cls, value: str) -> str:
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]{0,63}", value) is None:
+            raise ValueError("response schema name is invalid")
+        if value == "__oria_submit_response__":
+            raise ValueError("response schema name is reserved")
+        return value
+
+    @field_validator("json_schema")
+    @classmethod
+    def validate_response_json_schema(cls, value: dict[str, JsonValue]) -> dict[str, JsonValue]:
+        _validate_object_json_schema(value, "response schema")
+        return value
 
 
 class ChatOptions(ValueModel):

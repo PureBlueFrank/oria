@@ -1,0 +1,668 @@
+"""OpenAI-compatible adapter with an explicit DeepSeek Responses dialect profile."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING, Any, cast
+
+import httpx
+
+from oria.config.models import ResolvedLLMProfile
+from oria.core.types import (
+    ChatOptions,
+    ChatResult,
+    Done,
+    JsonValue,
+    Message,
+    ProviderCapabilities,
+    ProviderError,
+    ProviderExtensionBlock,
+    ReasoningDelta,
+    RefusalBlock,
+    ResponseSchema,
+    StreamEvent,
+    TextBlock,
+    TextDelta,
+    ToolCall,
+    ToolCallBlock,
+    ToolCallDelta,
+    ToolResultBlock,
+    ToolSpec,
+    Usage,
+    UsageDelta,
+)
+from oria.providers.errors import (
+    AuthenticationError,
+    ContextLengthError,
+    InvalidRequestError,
+    ProviderException,
+    ProviderResponseError,
+    ProviderTimeoutError,
+    ProviderUnavailable,
+    RateLimitError,
+    StructuredOutputError,
+    UnsupportedCapabilityError,
+)
+from oria.providers.structured import RESERVED_RESPONSE_TOOL, parse_structured_text
+
+if TYPE_CHECKING:
+    from oria.core.context import Context
+
+
+class OpenAICompatProvider:
+    """Normalize one resolved OpenAI-compatible model profile into Oria contracts."""
+
+    def __init__(self, profile: ResolvedLLMProfile, client: httpx.AsyncClient) -> None:
+        self._profile = profile
+        self._client = client
+
+    async def capabilities(self, ctx: Context) -> ProviderCapabilities:
+        del ctx
+        modes = (
+            frozenset()
+            if self._profile.structured_output_mode == "unsupported"
+            else frozenset({self._profile.structured_output_mode})
+        )
+        return ProviderCapabilities(
+            tool_calling=True,
+            streaming=True,
+            reasoning=True,
+            structured_output=bool(modes),
+            parallel_tool_calls=True,
+            structured_output_modes=modes,
+            api_dialect=self._profile.api_dialect,
+        )
+
+    async def chat(
+        self,
+        messages: list[Message],
+        ctx: Context,
+        tools: list[ToolSpec] | None = None,
+        options: ChatOptions | None = None,
+    ) -> ChatResult:
+        del ctx
+        selected_options = options or ChatOptions()
+        payload = self._request_payload(messages, tools or [], selected_options, stream=False)
+        request_kwargs: dict[str, Any] = {}
+        if selected_options.timeout_seconds is not None:
+            request_kwargs["timeout"] = selected_options.timeout_seconds
+        try:
+            response = await self._client.post(
+                "/responses",
+                json=payload,
+                headers=self._headers(),
+                **request_kwargs,
+            )
+        except asyncio.CancelledError:
+            raise
+        except httpx.TimeoutException as exc:
+            raise ProviderTimeoutError("provider request timed out", retryable=True) from exc
+        except httpx.HTTPError as exc:
+            raise ProviderUnavailable("provider request failed", retryable=True) from exc
+        self._raise_for_status(response)
+        try:
+            body = response.json()
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise ProviderResponseError("provider returned invalid JSON", retryable=False) from exc
+        if not isinstance(body, dict):
+            raise ProviderResponseError("provider returned an invalid response", retryable=False)
+        return self._parse_response(cast(dict[str, Any], body), selected_options)
+
+    async def chat_stream(
+        self,
+        messages: list[Message],
+        ctx: Context,
+        tools: list[ToolSpec] | None = None,
+        options: ChatOptions | None = None,
+    ) -> AsyncIterator[StreamEvent]:
+        del ctx
+        selected_options = options or ChatOptions()
+        sequence = 0
+        try:
+            payload = self._request_payload(messages, tools or [], selected_options, stream=True)
+            request_kwargs: dict[str, Any] = {}
+            if selected_options.timeout_seconds is not None:
+                request_kwargs["timeout"] = selected_options.timeout_seconds
+            async with self._client.stream(
+                "POST",
+                "/responses",
+                json=payload,
+                headers=self._headers(),
+                **request_kwargs,
+            ) as response:
+                self._raise_for_status(response)
+                item_calls: dict[str, str] = {}
+                item_names: dict[str, str] = {}
+                structured_text_parts: list[str] = []
+                structured_arguments: dict[str, list[str]] = {}
+                response_schema = selected_options.response_schema
+                async for line in response.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if not data:
+                        continue
+                    try:
+                        event = json.loads(data)
+                    except json.JSONDecodeError as exc:
+                        raise ProviderResponseError(
+                            "provider stream returned invalid JSON", retryable=False
+                        ) from exc
+                    if not isinstance(event, dict):
+                        continue
+                    event_type = event.get("type")
+                    if event_type == "response.output_item.added":
+                        item = event.get("item")
+                        if isinstance(item, dict) and item.get("type") == "function_call":
+                            item_id = item.get("id")
+                            call_id = item.get("call_id")
+                            name = item.get("name")
+                            if (
+                                isinstance(item_id, str)
+                                and isinstance(call_id, str)
+                                and isinstance(name, str)
+                            ):
+                                item_calls[item_id] = call_id
+                                item_names[item_id] = name
+                    elif event_type == "response.reasoning_text.delta":
+                        delta = event.get("delta")
+                        if isinstance(delta, str):
+                            yield ReasoningDelta(**self._event_base(sequence), text=delta)
+                            sequence += 1
+                    elif event_type == "response.output_text.delta":
+                        delta = event.get("delta")
+                        if isinstance(delta, str):
+                            if response_schema is None:
+                                yield TextDelta(**self._event_base(sequence), text=delta)
+                                sequence += 1
+                            else:
+                                structured_text_parts.append(delta)
+                    elif event_type == "response.function_call_arguments.delta":
+                        item_id = event.get("item_id")
+                        delta = event.get("delta")
+                        if isinstance(item_id, str) and isinstance(delta, str):
+                            if response_schema is None:
+                                yield ToolCallDelta(
+                                    **self._event_base(sequence),
+                                    tool_call_id=item_calls.get(item_id, item_id),
+                                    arguments_delta=delta,
+                                )
+                                sequence += 1
+                            else:
+                                structured_arguments.setdefault(item_id, []).append(delta)
+                    elif event_type == "response.completed":
+                        completed = event.get("response")
+                        if not isinstance(completed, dict):
+                            raise ProviderResponseError(
+                                "provider stream completion is invalid", retryable=False
+                            )
+                        request_id = _optional_string(completed.get("id"))
+                        if response_schema is not None:
+                            structured_text = self._validated_stream_text(
+                                response_schema,
+                                structured_text_parts,
+                                structured_arguments,
+                                item_names,
+                            )
+                            yield TextDelta(
+                                **self._event_base(sequence, request_id=request_id),
+                                text=structured_text,
+                            )
+                            sequence += 1
+                        yield UsageDelta(
+                            **self._event_base(sequence, request_id=request_id),
+                            usage=_parse_usage(completed.get("usage")),
+                        )
+                        sequence += 1
+                        yield Done(
+                            **self._event_base(sequence, request_id=request_id),
+                            finish_reason=_optional_string(completed.get("status")),
+                        )
+                        return
+                    elif event_type in {"response.failed", "response.incomplete"}:
+                        yield ProviderError(
+                            **self._event_base(sequence),
+                            code="provider_response_error",
+                            safe_message="provider stream did not complete",
+                            retryable=event_type == "response.failed",
+                        )
+                        return
+                yield ProviderError(
+                    **self._event_base(sequence),
+                    code="incomplete_stream",
+                    safe_message="provider stream ended without a terminal event",
+                    retryable=True,
+                )
+        except asyncio.CancelledError:
+            raise
+        except ProviderException as exc:
+            yield ProviderError(
+                **self._event_base(sequence, request_id=exc.provider_request_id),
+                code=exc.code,
+                safe_message=exc.safe_message,
+                retryable=exc.retryable,
+            )
+        except httpx.TimeoutException:
+            yield ProviderError(
+                **self._event_base(sequence),
+                code=ProviderTimeoutError.code,
+                safe_message="provider request timed out",
+                retryable=True,
+            )
+        except httpx.HTTPError:
+            yield ProviderError(
+                **self._event_base(sequence),
+                code=ProviderUnavailable.code,
+                safe_message="provider request failed",
+                retryable=True,
+            )
+
+    def _validated_stream_text(
+        self,
+        response_schema: ResponseSchema,
+        text_parts: list[str],
+        arguments: dict[str, list[str]],
+        item_names: dict[str, str],
+    ) -> str:
+        mode = self._profile.structured_output_mode
+        if mode == "native_json_schema":
+            if item_names or arguments or not text_parts:
+                raise StructuredOutputError(
+                    "structured response is missing or mixed with tool calls",
+                    retryable=False,
+                )
+            text = "".join(text_parts)
+            parse_structured_text(text, response_schema)
+            return text
+        if mode == "synthetic_tool":
+            reserved = [
+                item_id for item_id, name in item_names.items() if name == RESERVED_RESPONSE_TOOL
+            ]
+            business = [
+                item_id for item_id, name in item_names.items() if name != RESERVED_RESPONSE_TOOL
+            ]
+            unknown = set(arguments).difference(item_names)
+            if len(reserved) != 1 or business or unknown:
+                raise StructuredOutputError(
+                    "structured response must contain one reserved submission only",
+                    retryable=False,
+                )
+            payload = "".join(arguments.get(reserved[0], []))
+            structured = parse_structured_text(payload, response_schema)
+            return json.dumps(
+                structured,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        raise UnsupportedCapabilityError(
+            "structured output mode is unsupported",
+            retryable=False,
+        )
+
+    def _request_payload(
+        self,
+        messages: list[Message],
+        tools: list[ToolSpec],
+        options: ChatOptions,
+        *,
+        stream: bool,
+    ) -> dict[str, Any]:
+        if self._profile.api_dialect != "responses":
+            raise UnsupportedCapabilityError(
+                "configured API dialect is not implemented", retryable=False
+            )
+        if self._profile.api_key is None:
+            raise AuthenticationError("provider credential is not configured", retryable=False)
+        if any(tool.name == RESERVED_RESPONSE_TOOL for tool in tools):
+            raise InvalidRequestError("tool name is reserved", retryable=False)
+
+        payload: dict[str, Any] = {
+            "model": self._profile.model,
+            "input": _map_messages(messages),
+        }
+        mapped_tools = [_map_tool(tool) for tool in tools]
+        response_schema = options.response_schema
+        if response_schema is not None:
+            if any(tool.name == response_schema.name for tool in tools):
+                raise InvalidRequestError(
+                    "response schema name conflicts with a business tool", retryable=False
+                )
+            mode = self._profile.structured_output_mode
+            if mode == "unsupported":
+                raise UnsupportedCapabilityError(
+                    "structured output is unsupported by this profile", retryable=False
+                )
+            if mode == "native_json_schema":
+                payload["text"] = {
+                    "format": {
+                        "type": "json_schema",
+                        "name": response_schema.name,
+                        "schema": response_schema.json_schema,
+                    }
+                }
+            elif mode == "synthetic_tool":
+                mapped_tools.append(
+                    {
+                        "type": "function",
+                        "name": RESERVED_RESPONSE_TOOL,
+                        "description": "Submit the final structured response.",
+                        "parameters": response_schema.json_schema,
+                    }
+                )
+            else:
+                raise UnsupportedCapabilityError(
+                    "structured output mode is unsupported", retryable=False
+                )
+        if mapped_tools:
+            payload["tools"] = mapped_tools
+        if options.temperature is not None:
+            payload["temperature"] = options.temperature
+        if options.max_output_tokens is not None:
+            payload["max_output_tokens"] = options.max_output_tokens
+        if options.tool_choice is not None:
+            payload["tool_choice"] = options.tool_choice
+        if options.parallel_tool_calls is not None:
+            payload["parallel_tool_calls"] = options.parallel_tool_calls
+        if stream:
+            payload["stream"] = True
+        return payload
+
+    def _parse_response(self, body: dict[str, Any], options: ChatOptions) -> ChatResult:
+        content: list[Any] = []
+        tool_calls: list[ToolCall] = []
+        output_text: list[str] = []
+        reserved_payloads: list[str] = []
+        refusal: str | None = None
+        output = body.get("output", [])
+        if not isinstance(output, list):
+            raise ProviderResponseError("provider output is invalid", retryable=False)
+        for item in output:
+            if not isinstance(item, dict):
+                raise ProviderResponseError("provider output item is invalid", retryable=False)
+            item_type = item.get("type")
+            if item_type == "message":
+                blocks = item.get("content", [])
+                if not isinstance(blocks, list):
+                    raise ProviderResponseError(
+                        "provider message content is invalid", retryable=False
+                    )
+                for block in blocks:
+                    if not isinstance(block, dict):
+                        raise ProviderResponseError(
+                            "provider message block is invalid", retryable=False
+                        )
+                    block_type = block.get("type")
+                    if block_type == "output_text" and isinstance(block.get("text"), str):
+                        text = cast(str, block["text"])
+                        output_text.append(text)
+                        content.append(TextBlock(text=text))
+                    elif block_type == "refusal" and isinstance(block.get("refusal"), str):
+                        refusal = cast(str, block["refusal"])
+                        content.append(RefusalBlock(reason=refusal))
+                    else:
+                        content.append(
+                            ProviderExtensionBlock(
+                                raw_type=str(block_type),
+                                raw_payload=cast(dict[str, JsonValue], block),
+                            )
+                        )
+            elif item_type == "function_call":
+                name = item.get("name")
+                call_id = item.get("call_id", item.get("id"))
+                arguments = item.get("arguments")
+                if not all(isinstance(value, str) for value in (name, call_id, arguments)):
+                    raise ProviderResponseError(
+                        "provider function call is invalid", retryable=False
+                    )
+                if name == RESERVED_RESPONSE_TOOL:
+                    reserved_payloads.append(cast(str, arguments))
+                    continue
+                args = _parse_arguments(cast(str, arguments))
+                call = ToolCall(id=cast(str, call_id), name=cast(str, name), args=args)
+                tool_calls.append(call)
+                content.append(ToolCallBlock(id=call.id, name=call.name, args=call.args))
+            elif item_type == "reasoning":
+                continue
+            else:
+                content.append(
+                    ProviderExtensionBlock(
+                        raw_type=str(item_type), raw_payload=cast(dict[str, JsonValue], item)
+                    )
+                )
+
+        structured: dict[str, JsonValue] | None = None
+        response_schema = options.response_schema
+        if response_schema is not None:
+            mode = self._profile.structured_output_mode
+            if mode == "native_json_schema":
+                if tool_calls:
+                    raise StructuredOutputError(
+                        "structured response is mixed with business tool calls", retryable=False
+                    )
+                if reserved_payloads or not output_text:
+                    raise StructuredOutputError("structured response is missing", retryable=False)
+                structured = parse_structured_text("".join(output_text), response_schema)
+                content = []
+            elif mode == "synthetic_tool":
+                if len(reserved_payloads) != 1:
+                    raise StructuredOutputError(
+                        "structured response must contain one reserved submission", retryable=False
+                    )
+                if tool_calls:
+                    raise StructuredOutputError(
+                        "structured response is mixed with business tool calls", retryable=False
+                    )
+                structured = parse_structured_text(reserved_payloads[0], response_schema)
+                content = [block for block in content if not isinstance(block, TextBlock)]
+
+        return ChatResult(
+            content=tuple(content),
+            tool_calls=tuple(tool_calls),
+            structured_output=structured,
+            usage=_parse_usage(body.get("usage")),
+            finish_reason=_optional_string(body.get("status")),
+            request_id=_optional_string(body.get("id")),
+            refusal=refusal,
+            raw_response=_diagnostic_payload(body),
+        )
+
+    def _headers(self) -> dict[str, str]:
+        if self._profile.api_key is None:
+            return {}
+        return {"Authorization": f"Bearer {self._profile.api_key.get_secret_value()}"}
+
+    def _event_base(self, sequence: int, *, request_id: str | None = None) -> dict[str, Any]:
+        return {
+            "sequence": sequence,
+            "provider": self._profile.provider,
+            "model": self._profile.model,
+            "request_id": request_id,
+        }
+
+    @staticmethod
+    def _raise_for_status(response: httpx.Response) -> None:
+        if response.status_code < 400:
+            return
+        request_id = response.headers.get("x-request-id")
+        status = response.status_code
+        if status == 401:
+            raise AuthenticationError(
+                "provider authentication failed",
+                retryable=False,
+                provider_request_id=request_id,
+            )
+        if status in {402, 429}:
+            raise RateLimitError(
+                "provider rate limit or quota was exceeded",
+                retryable=status == 429,
+                retry_after=_retry_after(response.headers.get("retry-after")),
+                provider_request_id=request_id,
+            )
+        if status == 413:
+            raise ContextLengthError(
+                "provider context limit was exceeded",
+                retryable=False,
+                provider_request_id=request_id,
+            )
+        if status in {400, 404, 422}:
+            raise InvalidRequestError(
+                "provider rejected the request",
+                retryable=False,
+                provider_request_id=request_id,
+            )
+        if status in {500, 502, 503, 504}:
+            raise ProviderUnavailable(
+                "provider is temporarily unavailable",
+                retryable=True,
+                provider_request_id=request_id,
+            )
+        raise ProviderResponseError(
+            "provider returned an unexpected status",
+            retryable=False,
+            provider_request_id=request_id,
+        )
+
+
+def _map_messages(messages: list[Message]) -> list[dict[str, Any]]:
+    mapped: list[dict[str, Any]] = []
+    for message in messages:
+        if message.role == "tool":
+            if not message.tool_call_id:
+                raise InvalidRequestError("tool message requires tool_call_id", retryable=False)
+            content = message.content if isinstance(message.content, str) else _blocks_text(message)
+            mapped.append(
+                {
+                    "type": "function_call_output",
+                    "call_id": message.tool_call_id,
+                    "output": content,
+                }
+            )
+            continue
+        if isinstance(message.content, str):
+            mapped.append({"role": message.role, "content": message.content})
+            continue
+        text = _blocks_text(message)
+        if text:
+            mapped.append({"role": message.role, "content": text})
+        for block in message.content:
+            if isinstance(block, ToolCallBlock):
+                mapped.append(
+                    {
+                        "type": "function_call",
+                        "call_id": block.id,
+                        "name": block.name,
+                        "arguments": json.dumps(
+                            block.args,
+                            ensure_ascii=False,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ),
+                    }
+                )
+    return mapped
+
+
+def _blocks_text(message: Message) -> str:
+    parts: list[str] = []
+    for block in message.content:
+        if isinstance(block, TextBlock):
+            parts.append(block.text)
+        elif isinstance(block, ToolResultBlock):
+            parts.append(block.content)
+    return "".join(parts)
+
+
+def _map_tool(tool: ToolSpec) -> dict[str, Any]:
+    return {
+        "type": "function",
+        "name": tool.name,
+        "description": tool.description,
+        "parameters": tool.json_schema,
+    }
+
+
+def _parse_arguments(arguments: str) -> dict[str, JsonValue]:
+    try:
+        value: Any = json.loads(arguments)
+    except json.JSONDecodeError as exc:
+        raise ProviderResponseError(
+            "provider tool arguments are invalid JSON", retryable=False
+        ) from exc
+    if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
+        raise ProviderResponseError("provider tool arguments must be an object", retryable=False)
+    return cast(dict[str, JsonValue], value)
+
+
+def _parse_usage(value: object) -> Usage:
+    usage = value if isinstance(value, dict) else {}
+    input_details = usage.get("input_tokens_details")
+    output_details = usage.get("output_tokens_details")
+    return Usage(
+        input_tokens=_nonnegative_int(usage.get("input_tokens")),
+        output_tokens=_nonnegative_int(usage.get("output_tokens")),
+        cache_read_tokens=_nested_nonnegative_int(input_details, "cached_tokens"),
+        reasoning_tokens=_nested_nonnegative_int(output_details, "reasoning_tokens"),
+    )
+
+
+def _nested_nonnegative_int(value: object, key: str) -> int | None:
+    if not isinstance(value, dict) or key not in value:
+        return None
+    return _nonnegative_int(value.get(key))
+
+
+def _nonnegative_int(value: object) -> int:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+
+
+def _optional_string(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def _retry_after(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        parsed = float(value)
+    except ValueError:
+        return None
+    return parsed if parsed >= 0 else None
+
+
+def _diagnostic_payload(body: dict[str, Any]) -> dict[str, JsonValue]:
+    secret_fragments = ("apikey", "authorization", "credential", "password", "secret", "token")
+
+    def sensitive_key(key: object) -> bool:
+        normalized = "".join(character for character in str(key).casefold() if character.isalnum())
+        return any(fragment in normalized for fragment in secret_fragments)
+
+    def scrub(value: object) -> JsonValue:
+        if isinstance(value, dict):
+            return {
+                str(key): "[REDACTED]" if sensitive_key(key) else scrub(child)
+                for key, child in value.items()
+                if "reasoning" not in str(key).lower()
+                and not (key == "type" and child == "reasoning")
+            }
+        if isinstance(value, list):
+            return [
+                scrub(child)
+                for child in value
+                if not (isinstance(child, dict) and child.get("type") == "reasoning")
+            ]
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        return str(value)
+
+    scrubbed = cast(dict[str, JsonValue], scrub(body))
+    encoded = json.dumps(scrubbed, ensure_ascii=False, separators=(",", ":")).encode()
+    if len(encoded) > 64 * 1024:
+        return {
+            "id": _optional_string(body.get("id")),
+            "status": _optional_string(body.get("status")),
+            "truncated": True,
+        }
+    return scrubbed

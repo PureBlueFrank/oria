@@ -58,6 +58,7 @@ def _defaults() -> dict[str, Any]:
                     "provider": "mock",
                     "api_dialect": "mock",
                     "model": "mock-demo",
+                    "structured_output_mode": "native_json_schema",
                 },
                 "deepseek": {
                     "provider": "deepseek",
@@ -65,6 +66,7 @@ def _defaults() -> dict[str, Any]:
                     "model": "deepseek-v4-flash",
                     "api_key": "${DEEPSEEK_API_KEY}",
                     "base_url": "https://api.deepseek.com",
+                    "structured_output_mode": "native_json_schema",
                 },
             },
         },
@@ -75,7 +77,7 @@ def _defaults() -> dict[str, Any]:
                 "bge": {
                     "provider": "sentence_transformers",
                     "model": "BAAI/bge-small-zh-v1.5",
-                    "revision": "${ORIA_BGE_REVISION}",
+                    "revision": "e534609e6b53ac54bd42d8e87995d21a73b90bad",
                     "trust_remote_code": False,
                 },
             },
@@ -184,6 +186,7 @@ def _resolve_llm(
         model=model,
         api_key=SecretStr(resolved_secret) if resolved_secret is not None else None,
         base_url=_expand(profile.base_url, environ),
+        structured_output_mode=profile.structured_output_mode,
     )
 
 
@@ -213,6 +216,23 @@ def _validate_matrix(
             raise ConfigResolutionError("standard profile requires a non-fixture embedder")
     if llm.provider != "mock" and llm.api_key is None:
         raise ConfigResolutionError(f"LLM profile {llm.profile_id!r} requires an API key")
+    if llm.provider != "mock" and llm.base_url is None:
+        raise ConfigResolutionError(f"LLM profile {llm.profile_id!r} requires a base_url")
+    if llm.provider == "deepseek" and (
+        llm.api_dialect != "responses"
+        or llm.model != "deepseek-v4-flash"
+        or llm.structured_output_mode != "native_json_schema"
+    ):
+        raise ConfigResolutionError(
+            "DeepSeek requires responses dialect, deepseek-v4-flash, and native JSON schema"
+        )
+    if embedding.provider == "sentence_transformers":
+        if embedding.model is None or embedding.revision is None:
+            raise ConfigResolutionError(
+                "sentence-transformers embedder requires model and revision"
+            )
+        if embedding.trust_remote_code:
+            raise ConfigResolutionError("sentence-transformers embedder forbids remote code")
 
     if config.edition != "production":
         return
@@ -255,6 +275,7 @@ def _fingerprint_payload(
             "api_dialect": llm.api_dialect,
             "model": llm.model,
             "base_url": llm.base_url,
+            "structured_output_mode": llm.structured_output_mode,
         },
         "embedding": embedding.model_dump(mode="json"),
         "im": {

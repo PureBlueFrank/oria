@@ -59,7 +59,7 @@ embedding:
   active_profile: bge
   profiles:
     bge:
-      revision: null
+      revision: e534609e6b53ac54bd42d8e87995d21a73b90bad
 """,
     )
     keyless_yaml = _write_config(
@@ -106,6 +106,7 @@ embedding:
     assert resolved.llm.provider == "deepseek"
     assert resolved.llm.model == "deepseek-v4-flash"
     assert resolved.llm.api_key is not None
+    assert resolved.llm.structured_output_mode == "native_json_schema"
 
 
 def test_resolved_config_rejects_mutation(tmp_path: Path) -> None:

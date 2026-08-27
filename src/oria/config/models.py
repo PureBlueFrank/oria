@@ -11,6 +11,7 @@ from oria._internal.immutable import FrozenDict
 
 LLMProviderName = Literal["mock", "deepseek", "kimi", "zhipu", "openai", "anthropic"]
 APIDialect = Literal["mock", "chat_completions", "responses", "anthropic_messages"]
+StructuredOutputMode = Literal["native_json_schema", "synthetic_tool", "unsupported"]
 IMChannelName = Literal["mock", "daxiang", "feishu", "dingtalk"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -38,6 +39,7 @@ class LLMProfileConfig(InputConfigModel):
     model: str
     api_key: SecretStr | None = Field(default=None, repr=False)
     base_url: str | None = None
+    structured_output_mode: StructuredOutputMode = "unsupported"
 
     @model_validator(mode="after")
     def validate_provider_dialect(self) -> LLMProfileConfig:
@@ -122,6 +124,7 @@ class ResolvedLLMProfile(ResolvedConfigModel):
     model: str
     api_key: SecretStr | None = Field(default=None, repr=False)
     base_url: str | None = None
+    structured_output_mode: StructuredOutputMode = "unsupported"
 
 
 class ResolvedEmbeddingProfile(ResolvedConfigModel):
@@ -212,6 +215,7 @@ class ResolvedRuntimeConfig(ResolvedConfigModel):
                 "api_dialect": self.llm.api_dialect,
                 "model": self.llm.model,
                 "base_url": self.llm.base_url,
+                "structured_output_mode": self.llm.structured_output_mode,
                 "credential_configured": self.llm.api_key is not None,
             },
             "embedding": {

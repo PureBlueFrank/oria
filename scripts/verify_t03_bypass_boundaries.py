@@ -128,7 +128,7 @@ async def _probe_migrations_and_paths(work_dir: Path) -> None:
     stamped_config.data_paths.platform_db.parent.mkdir(parents=True)
     with sqlite3.connect(stamped_config.data_paths.platform_db) as connection:
         connection.execute("CREATE TABLE alembic_version_platform (version_num TEXT NOT NULL)")
-        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0001')")
+        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0002')")
         connection.commit()
     await _expect_init_failure(stamped_config)
     if stamped_config.data_paths.business_db.exists():

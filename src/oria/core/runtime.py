@@ -2,13 +2,25 @@
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
 from collections.abc import Callable, Sequence
 from contextlib import AbstractAsyncContextManager
+
+import httpx
 
 from oria.config.models import ResolvedRuntimeConfig
 from oria.config.resolve import resolve_runtime_config
 from oria.core.context import RuntimeServices, SealedAsyncExitStack
-from oria.core.protocols import Guardrail, IngressAdapter, Node, Notifier, Tool
+from oria.core.protocols import (
+    Embedder,
+    Guardrail,
+    IngressAdapter,
+    LLMProvider,
+    Node,
+    Notifier,
+    Tool,
+)
 from oria.core.registry import ServiceRegistry
 from oria.domain.eligibility import EligibilityPolicy
 from oria.domain.services import (
@@ -18,6 +30,14 @@ from oria.domain.services import (
 )
 from oria.ingress.local import LocalCLIIngressAdapter
 from oria.permission.local import LocalPolicyEngine
+from oria.providers.embeddings import BGEEmbedder, FixtureEmbedder
+from oria.providers.mock import MockLLMProvider
+from oria.providers.openai_compat import OpenAICompatProvider
+from oria.rag.catalog import SQLiteKnowledgeCatalog
+from oria.rag.index import ChromaIndex
+from oria.rag.object_store import LocalObjectStore
+from oria.rag.service import AuthorizedChromaRetriever, LocalKnowledgeService
+from oria.rag.snapshots import LocalRuleSnapshotStore
 from oria.resources.loader import load_demo_data
 from oria.storage.database import DatabaseResources
 from oria.storage.repositories import SQLiteMerchantRepository
@@ -34,6 +54,34 @@ async def build_runtime(
     resolved = resolve_runtime_config() if config is None else config
     exit_stack = SealedAsyncExitStack()
     try:
+        llm: LLMProvider
+        if resolved.llm.provider == "mock":
+            llm = MockLLMProvider()
+        elif resolved.llm.provider == "deepseek":
+            if resolved.llm.base_url is None:
+                raise ValueError("DeepSeek profile requires a base_url")
+            http_client = await exit_stack.enter_async_context(
+                httpx.AsyncClient(base_url=resolved.llm.base_url)
+            )
+            llm = OpenAICompatProvider(resolved.llm, http_client)
+        else:
+            raise ValueError(f"unsupported LLM provider: {resolved.llm.provider}")
+
+        embedder: Embedder
+        if resolved.embedding.provider == "fixture":
+            embedder = FixtureEmbedder()
+        elif resolved.embedding.provider == "sentence_transformers":
+            if resolved.embedding.model is None:
+                raise ValueError("sentence-transformers profile requires a model")
+            embedder = await asyncio.to_thread(
+                BGEEmbedder,
+                model=resolved.embedding.model,
+                revision=resolved.embedding.revision,
+                trust_remote_code=resolved.embedding.trust_remote_code,
+            )
+        else:
+            raise ValueError(f"unsupported embedding provider: {resolved.embedding.provider}")
+
         database_resources: DatabaseResources | None = None
         for factory in resource_factories:
             resource = await exit_stack.enter_async_context(factory())
@@ -43,6 +91,37 @@ async def build_runtime(
                 database_resources = resource
         if database_resources is None:
             database_resources = await exit_stack.enter_async_context(DatabaseResources(resolved))
+
+        if resolved.storage.object != "local" or resolved.storage.vector != "chroma":
+            raise ValueError("selected knowledge storage implementation is unavailable")
+        objects = await exit_stack.enter_async_context(
+            LocalObjectStore(resolved.data_paths.objects, resolved.data_paths.root)
+        )
+        embedding_projection = (
+            "sha256:" + hashlib.sha256(resolved.embedding.model_dump_json().encode()).hexdigest()
+        )
+        index = await exit_stack.enter_async_context(
+            ChromaIndex(
+                resolved.data_paths.chroma,
+                projection_id=embedding_projection,
+                embedding_dimension=embedder.dim,
+            )
+        )
+        catalog = SQLiteKnowledgeCatalog(database_resources.platform_sessions)
+        knowledge = LocalKnowledgeService(
+            catalog=catalog,
+            objects=objects,
+            index=index,
+            embedder=embedder,
+            embedding_profile=embedding_projection,
+        )
+        retriever = AuthorizedChromaRetriever(
+            catalog=catalog,
+            index=index,
+            embedder=embedder,
+            knowledge=knowledge,
+        )
+        rule_snapshots = LocalRuleSnapshotStore(catalog, knowledge)
 
         bundle = load_demo_data()
         campaign_rules = PackageCampaignRuleService(bundle.rules)
@@ -79,6 +158,12 @@ async def build_runtime(
             ingress=ingress,
             notifier=notifier,
             exit_stack=exit_stack,
+            llm=llm,
+            embedder=embedder,
+            retriever=retriever,
+            objects=objects,
+            knowledge=knowledge,
+            rule_snapshots=rule_snapshots,
         )
         exit_stack.seal()
         return runtime

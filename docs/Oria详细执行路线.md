@@ -170,7 +170,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 
 | 版本 | 目标 | 当前状态 | 必须包含的真实验证 |
 | --- | --- | --- | --- |
-| V0.1 | 场景 A 只读提案 MVP | 进行中（T01 完成；T02 remediation 已实现、wheel 门禁 blocked） | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
+| V0.1 | 场景 A 只读提案 MVP | 进行中（T01–T05 完成） | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
 | V0.2 | Provider/RAG 完整化 | 未开始 | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
 | V0.3 | 场景 A 完整 Workflow | 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
@@ -286,10 +286,10 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
 - V0.1-T10/S2 至少完成一次真实 DeepSeek + BGE run，BGE model/revision/license 与 DeepSeek model/request ID 进入报告。
 - 若无 Key 或模型下载条件，卡片写 `blocked`，V0.1 状态为“Core 完成，Live blocked/待验证”；可以继续 V0.2 实施，但不得写“V0.1 全部通过”。
 
-### V0.1 验证状态（2026-08-27）
+### V0.1 验证状态（2026-08-28）
 
-- 代码状态：进行中；`V0.1-T01` 已完成，`V0.1-T02` 在上一份报告判定过早后已实现 remediation，并已完成 package/wheel 门禁补验，`V0.1-T03–T10` 未开始。
-- Core Gate：未运行；T02 源码级与 package 级 F 验证均已通过，T02 判定为「remediation 后完成」，但 Core Gate 尚缺 T03–T09。
+- 代码状态：进行中；`V0.1-T01–T05` 已完成，其中 T02/T03/T04 经 remediation；`V0.1-T06–T10` 未开始。
+- Core Gate：未运行；T01–T05 的 F 等级门禁均已通过，Core Gate 尚缺 T06–T09。
 - Live 卡：未运行；未调用真实 Provider，未下载或推理 BGE 模型。
 - Enterprise 卡：未运行。
 - 证据：
@@ -297,9 +297,17 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
   - [`reports/verification/v0.1/20260827T112706+0800/summary.md`](../reports/verification/v0.1/20260827T112706+0800/summary.md)（T02 首次报告，F 等级；`result: passed` 判定过早，保留为失败历史）
   - [`reports/verification/v0.1/20260827T133710+0800/summary.md`](../reports/verification/v0.1/20260827T133710+0800/summary.md)（T02 remediation，F 等级；源码门禁通过，wheel 构建因环境缺 `hatchling` 记为 blocked，保留不改）
   - [`reports/verification/v0.1/20260827T134842+0800/summary.md`](../reports/verification/v0.1/20260827T134842+0800/summary.md)（T02 package 门禁补验，F 等级，`result: passed`，commit `2469967`，47 passed）
-- T02 remediation 修复：Runtime ready 后整体不可替换/扩展；跨 seam 容器深度不可变；JsonValue 拒绝非有限浮点且显式导出；reasoning/provider raw 默认公开投影脱敏；配置矩阵、生命周期边界、模块/schema/union/wheel/CI 覆盖收紧。详细缺陷与命令见新报告。
-- 判定历史：上一份 T02 报告在 Runtime 组成仍可替换、嵌套值仍可修改、敏感字段仍可默认序列化且 security 未进入 required `test-core` 时写为 `passed`，属于判定过早；旧报告按 §1.1 第 5 条不改写，由后续 run 追加纠正。该误判的共同成因是断言只覆盖「直接路径被拒绝」而未覆盖「绕道」，T03 起每个任务的测试清单应显式区分这两类断言。
-- 当前门禁结论：可并行进入 `V0.1-T03` 与 `V0.1-T04`。T03 的新领域值需继续继承 ADR-030 的深度不可变契约，migration/resource 必须从已安装 wheel 读取；T04 需遵守收紧后的 provider/dialect 与 capability 矩阵，并沿用 reasoning/raw payload 的「公开脱敏 + 内部显式访问」边界。仍不得宣称 V0.1 Core 或 Live 已通过。
+  - [`reports/verification/v0.1/20260827T143158+0800/summary.md`](../reports/verification/v0.1/20260827T143158+0800/summary.md)（T03 首次报告，F 等级，commit `1b67b43`，82 passed；后续代码审查发现四项未覆盖问题，保留为历史证据）
+  - [`reports/verification/v0.1/20260827T214917+0800/summary.md`](../reports/verification/v0.1/20260827T214917+0800/summary.md)（T03 remediation 01，F 等级，`result: passed`，86 passed；修复两个 P1 与两个 P2，当前尚未提交）
+  - [`reports/verification/v0.1/20260827T232744+0800/summary.md`](../reports/verification/v0.1/20260827T232744+0800/summary.md)（T04，F 等级，`result: passed`，107 passed；MockTransport/Fake BGE 契约 + 隔离 wheel，未运行真实 DeepSeek/BGE）
+  - [`reports/verification/v0.1/20260828T005408+0800/summary.md`](../reports/verification/v0.1/20260828T005408+0800/summary.md)（T04 remediation 01 + T05，F 等级，`result: passed`，138 passed；含 T02–T05 隔离 wheel 门禁）
+- T02 remediation 修复：Runtime ready 后整体不可替换/扩展；跨 seam 容器深度不可变；JsonValue 拒绝非有限浮点且显式导出；reasoning/provider raw 默认公开投影脱敏；配置矩阵、生命周期边界、模块/schema/union/wheel/CI 覆盖收紧。详细缺陷与命令见对应报告。
+- T03 交付：类型化 Domain Service 契约（`ctx.domain` 公开成员精确为 `{campaign_rules, merchants}`，无 repository/engine/session 旁路）、确定性 EligibilityPolicy（denylist 优先，对照 ADR-028）、platform/business 两条 migration 与各自独立版本表、wheel 内全合成 demo resources（六类规则字段 + 12 商家 + sha256 manifest + `contains_real_entities: false`）、`oria data init`（双库同一 runner 升级 + 官方 saver setup + 幂等）。
+- T03 remediation 01：Domain Service 复核规则与 Repository 记录的 tenant；migration runner 校验列、类型、nullable、主键和复合外键，拒绝 lookalike schema + forged head；应用 SQLite 连接强制 `foreign_keys=ON`；Alembic `SQLAlchemyError` 归一化为脱敏 CLI JSON 错误。新增四条回归，总计 86 passed、15 条 T03 绕道用例，并完成隔离 wheel 验证。
+- T04 交付：接受 ADR-001，实现 MockLLMProvider、DeepSeek Responses profile 的 OpenAICompatProvider、Fixture/BGE Embedder、profile 级 native/synthetic/unsupported、本地严格 schema 校验、统一 stream/error/capability 和唯一 `build_runtime()` 装配。remediation 01 对 native/synthetic 流式结构化输出先缓冲再校验，拦截保留工具与业务工具混合，并补齐 Mock 常用严格 schema witness、BGE 单位向量验证与凭证键变体脱敏。真实 DeepSeek/BGE 仍未运行。
+- T05 交付：实现 tenant-qualified ObjectStore、platform catalog、按 provider/model/revision/dimension 指纹隔离的 Chroma 投影、ingest/delete/rebuild、tenant/ACL 前后过滤和 ObjectStore 原文回源；`CampaignRuleSnapshot` 覆盖六类规则、商品圈选/招后选品字段、金额/折扣/阶梯校验与列表叶子 citation。Fixture 固定 10 问实测 `Recall@3=10/10`，缺失/冲突/失效/篡改、跨 tenant、受限字段泄露、向量文本污染和 embedding profile 切换均有回归；已新增 T05 隔离 wheel CI 门禁。
+- 判定历史：T02 首次报告在 Runtime 组成仍可替换、嵌套值仍可修改、敏感字段仍可默认序列化且 security 未进入 required `test-core` 时写为 `passed`，属于判定过早；T03 首次报告也未覆盖「Repository seam 返回跨 tenant 数据」「伪造完整表名并 stamp head」「SQLite 外键实际未启用」「Alembic 包装异常绕过 CLI 错误边界」。旧报告按 §1.1 第 5 条不改写，均由后续 run 追加纠正。**每个任务的测试清单继续强制区分直接路径与绕道断言**。
+- 当前门禁结论：T03–T05 前置与 F 等级门禁均已满足，可进入 `V0.1-T06`（`search_campaign_rules` / `query_merchants` / ToolRegistry）。T05 当前只有 Fixture + 真实本地 SQLite/ObjectStore/Chroma 组件结果；未加载真实 BGE，不构成 Community Real/C 等级证据。仍不得宣称 V0.1 Core 或 Live 已通过。
 
 ## 五、V0.2 Provider 与 RAG 完整化
 

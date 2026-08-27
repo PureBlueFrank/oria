@@ -108,3 +108,27 @@ async def test_campaign_rule_service_rejects_unknown_or_cross_tenant_rule_ids(
             await service.get_rule_set("caller-invented-rules", ctx)
     finally:
         await runtime.aclose()
+
+
+@pytest.mark.asyncio
+async def test_merchant_service_rejects_cross_tenant_repository_records(tmp_path: Path) -> None:
+    runtime = await build_runtime(_config(tmp_path))
+    try:
+        ctx = runtime.new_context(
+            actor=local_operator(),
+            executor=local_cli_executor(),
+            session_id="tenant-session",
+            thread_id="tenant-thread",
+            run_id="tenant-run",
+        )
+        cross_tenant_record = _record("demo-m001").model_copy(update={"tenant_id": "other-tenant"})
+        service = DefaultMerchantService(
+            _FakeMerchantRepository((cross_tenant_record,)),
+            EligibilityPolicy(),
+            PackageCampaignRuleService(load_demo_data().rules),
+        )
+
+        with pytest.raises(PermissionError, match="not authorized"):
+            await service.eligible_merchants("demo-east-dining-v1", 10, ctx)
+    finally:
+        await runtime.aclose()

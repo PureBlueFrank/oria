@@ -9,15 +9,100 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from alembic.util.exc import CommandError
+from sqlalchemy.exc import SQLAlchemyError
 
 from oria.config.models import ResolvedRuntimeConfig
 from oria.core.types import ValueModel
 from oria.resources.loader import PackageAssetError, verify_migration_assets
 
-_EXPECTED_TABLES = {
-    "platform": frozenset({"documents", "document_versions", "ingestion_runs"}),
-    "business": frozenset({"merchants"}),
+ColumnSignature = tuple[str, str, int, int]
+ForeignKeySignature = tuple[str, tuple[tuple[str, str], ...]]
+
+_EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
+    "platform": {
+        "documents": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("document_id", "VARCHAR", 1, 2),
+            ("source_uri", "VARCHAR", 1, 0),
+            ("owner_ref", "VARCHAR", 1, 0),
+            ("data_classification", "VARCHAR", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+            ("deleted_at", "DATETIME", 0, 0),
+        ),
+        "document_versions": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("document_id", "VARCHAR", 1, 2),
+            ("version", "VARCHAR", 1, 3),
+            ("content_hash", "VARCHAR", 1, 0),
+            ("object_ref", "VARCHAR", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+            ("acl_json", "TEXT", 1, 0),
+            ("metadata_json", "TEXT", 1, 0),
+            ("chunking_version", "VARCHAR", 1, 0),
+            ("embedding_profile", "VARCHAR", 1, 0),
+            ("deleted_at", "DATETIME", 0, 0),
+        ),
+        "ingestion_runs": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("run_id", "VARCHAR", 1, 2),
+            ("document_id", "VARCHAR", 1, 0),
+            ("document_version", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+            ("started_at", "DATETIME", 1, 0),
+            ("completed_at", "DATETIME", 0, 0),
+        ),
+        "rule_snapshot_cache": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("snapshot_id", "VARCHAR", 1, 2),
+            ("snapshot_hash", "VARCHAR", 1, 0),
+            ("payload_json", "TEXT", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+        ),
+    },
+    "business": {
+        "merchants": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("merchant_id", "VARCHAR", 1, 2),
+            ("version", "INTEGER", 1, 0),
+            ("display_name", "VARCHAR", 1, 0),
+            ("categories_json", "TEXT", 1, 0),
+            ("cities_json", "TEXT", 1, 0),
+            ("enrollment_systems_json", "TEXT", 1, 0),
+            ("sales_org_code", "VARCHAR", 1, 0),
+            ("active", "BOOLEAN", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+            ("updated_at", "DATETIME", 1, 0),
+        ),
+    },
 }
+_EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
+    "platform": {
+        "documents": frozenset(),
+        "document_versions": frozenset(
+            {
+                (
+                    "documents",
+                    (("tenant_id", "tenant_id"), ("document_id", "document_id")),
+                )
+            }
+        ),
+        "ingestion_runs": frozenset(
+            {
+                (
+                    "document_versions",
+                    (
+                        ("tenant_id", "tenant_id"),
+                        ("document_id", "document_id"),
+                        ("document_version", "version"),
+                    ),
+                )
+            }
+        ),
+        "rule_snapshot_cache": frozenset(),
+    },
+    "business": {"merchants": frozenset()},
+}
+_EXPECTED_TABLES = {target: frozenset(tables) for target, tables in _EXPECTED_COLUMNS.items()}
 _VERSION_TABLES = {
     "platform": "alembic_version_platform",
     "business": "alembic_version_business",
@@ -59,8 +144,40 @@ def _upgrade_target(target: str, database_path: Path) -> None:
     config.set_main_option("sqlalchemy.url", _sqlite_url(database_path))
     try:
         command.upgrade(config, "head")
-    except (CommandError, OSError, sqlite3.Error) as exc:
+    except (CommandError, OSError, SQLAlchemyError, sqlite3.Error) as exc:
         raise MigrationError(f"{target} database migration failed") from exc
+
+
+def _column_signature(connection: sqlite3.Connection, table: str) -> tuple[ColumnSignature, ...]:
+    rows = connection.execute(f'PRAGMA table_info("{table}")').fetchall()
+    return tuple((str(row[1]), str(row[2]).upper(), int(row[3]), int(row[5])) for row in rows)
+
+
+def _foreign_key_signature(
+    connection: sqlite3.Connection,
+    table: str,
+) -> frozenset[ForeignKeySignature]:
+    rows = connection.execute(f'PRAGMA foreign_key_list("{table}")').fetchall()
+    grouped: dict[int, list[tuple[int, str, str, str]]] = {}
+    for row in rows:
+        grouped.setdefault(int(row[0]), []).append(
+            (int(row[1]), str(row[2]), str(row[3]), str(row[4]))
+        )
+    return frozenset(
+        (
+            sorted(parts)[0][1],
+            tuple((source, destination) for _, _, source, destination in sorted(parts)),
+        )
+        for parts in grouped.values()
+    )
+
+
+def _validate_schema(connection: sqlite3.Connection, target: str) -> None:
+    for table, expected_columns in _EXPECTED_COLUMNS[target].items():
+        if _column_signature(connection, table) != expected_columns:
+            raise MigrationError(f"{target} database schema verification failed")
+        if _foreign_key_signature(connection, table) != _EXPECTED_FOREIGN_KEYS[target][table]:
+            raise MigrationError(f"{target} database schema verification failed")
 
 
 def _validate_target(target: str, database_path: Path, expected_head: str) -> None:
@@ -73,6 +190,7 @@ def _validate_target(target: str, database_path: Path, expected_head: str) -> No
             version_table = _VERSION_TABLES[target]
             if version_table not in tables or not _EXPECTED_TABLES[target].issubset(tables):
                 raise MigrationError(f"{target} database schema verification failed")
+            _validate_schema(connection, target)
             revisions = connection.execute(f'SELECT version_num FROM "{version_table}"').fetchall()
     except sqlite3.Error as exc:
         raise MigrationError(f"{target} database schema verification failed") from exc

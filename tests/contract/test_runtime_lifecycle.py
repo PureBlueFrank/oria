@@ -158,6 +158,8 @@ async def test_ready_runtime_seals_teardown_and_registries(tmp_path: Path) -> No
             "memory",
             "cache",
             "objects",
+            "knowledge",
+            "rule_snapshots",
             "_exit_stack",
         )
         for component in runtime_components:

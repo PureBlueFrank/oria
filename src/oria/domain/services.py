@@ -75,8 +75,12 @@ class DefaultMerchantService:
         if not 1 <= limit <= 100:
             raise ValueError("limit must be between 1 and 100")
         rules = await self.__rules.get_rule_set(rule_set_id, ctx)
+        if rules.tenant_id != ctx.tenant_id:
+            raise PermissionError("domain read is not authorized")
         await _authorize("merchant:read", "merchant_catalog", "eligible", ctx)
         records = await self.__repository.list_for_eligibility(ctx)
+        if any(record.tenant_id != ctx.tenant_id for record in records):
+            raise PermissionError("domain read is not authorized")
         candidates = self.__eligibility.eligible_merchants(
             records, rules.internal_eligibility_criteria()
         )

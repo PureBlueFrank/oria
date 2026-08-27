@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
 import pytest
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from typer.testing import CliRunner
 
 from oria.cli import app
@@ -13,6 +16,7 @@ from oria.config import resolve_runtime_config
 from oria.core.runtime import build_runtime
 from oria.data import initialize_data
 from oria.permission.local import local_cli_executor, local_operator
+from oria.storage.database import DatabaseResources
 
 pytestmark = pytest.mark.integration
 
@@ -47,7 +51,7 @@ async def test_two_empty_databases_upgrade_seed_and_repeat_idempotently(tmp_path
 
     assert first.merchants_inserted == 12
     assert second.merchants_inserted == 0
-    assert first.platform_revision == second.platform_revision == "platform_0001"
+    assert first.platform_revision == second.platform_revision == "platform_0002"
     assert first.business_revision == second.business_revision == "business_0001"
     assert first.saver_setup is second.saver_setup is True
     platform_tables = _tables(config.data_paths.platform_db)
@@ -58,7 +62,7 @@ async def test_two_empty_databases_upgrade_seed_and_repeat_idempotently(tmp_path
     assert not any("campaign" in table or "coupon" in table for table in business_tables)
     assert "merchants" not in platform_tables
     assert not {"documents", "document_versions", "ingestion_runs"}.intersection(business_tables)
-    assert _revision(config.data_paths.platform_db, "alembic_version_platform") == ("platform_0001")
+    assert _revision(config.data_paths.platform_db, "alembic_version_platform") == ("platform_0002")
     assert _revision(config.data_paths.business_db, "alembic_version_business") == ("business_0001")
 
 
@@ -101,3 +105,57 @@ def test_data_init_cli_reports_json_and_is_idempotent(tmp_path: Path) -> None:
     assert '"merchants_inserted": 12' in first.stdout
     assert '"merchants_inserted": 0' in second.stdout
     assert '"saver_setup": true' in second.stdout
+
+
+@pytest.mark.asyncio
+async def test_runtime_connections_enforce_platform_foreign_keys(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    await initialize_data(config)
+
+    async with DatabaseResources(config) as databases:
+        with pytest.raises(IntegrityError):
+            async with databases.platform_sessions.begin() as session:
+                enabled = await session.scalar(text("PRAGMA foreign_keys"))
+                assert enabled == 1
+                await session.execute(
+                    text(
+                        "INSERT INTO document_versions "
+                        "(tenant_id, document_id, version, content_hash, object_ref, created_at) "
+                        "VALUES (:tenant_id, :document_id, :version, :content_hash, "
+                        ":object_ref, :created_at)"
+                    ),
+                    {
+                        "tenant_id": "local-community",
+                        "document_id": "missing-document",
+                        "version": "v1",
+                        "content_hash": "sha256:missing",
+                        "object_ref": "object://missing",
+                        "created_at": "2026-08-27T00:00:00+00:00",
+                    },
+                )
+
+
+def test_data_init_cli_normalizes_migration_conflicts_to_json(tmp_path: Path) -> None:
+    data_dir = tmp_path / "conflicting-data"
+    platform_db = data_dir / "sqlite" / "platform.db"
+    platform_db.parent.mkdir(parents=True)
+    with sqlite3.connect(platform_db) as connection:
+        connection.execute("CREATE TABLE documents (wrong TEXT)")
+        connection.commit()
+
+    result = CliRunner().invoke(
+        app,
+        ["data", "init", "--output", "json", "--data-dir", str(data_dir)],
+    )
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "error": {
+            "code": "data_init_failed",
+            "message": "local data initialization failed closed",
+        },
+        "ok": False,
+    }
+    assert "Traceback" not in result.output
+    assert "CREATE TABLE" not in result.output

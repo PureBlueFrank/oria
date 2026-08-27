@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import AbstractAsyncContextManager, AsyncExitStack
 from dataclasses import dataclass
 from types import TracebackType
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from oria.config.models import ResolvedRuntimeConfig
 from oria.core.protocols import (
@@ -25,6 +25,10 @@ from oria.core.protocols import (
 from oria.core.registry import ServiceRegistry
 from oria.core.types import Principal
 from oria.domain.services import DomainServiceRegistry
+
+if TYPE_CHECKING:
+    from oria.rag.service import LocalKnowledgeService
+    from oria.rag.snapshots import LocalRuleSnapshotStore
 
 T = TypeVar("T")
 
@@ -86,6 +90,7 @@ class RuntimeServices:
         "embedder",
         "guardrails",
         "ingress",
+        "knowledge",
         "llm",
         "memory",
         "nodes",
@@ -93,6 +98,7 @@ class RuntimeServices:
         "objects",
         "policy",
         "retriever",
+        "rule_snapshots",
         "tools",
     )
 
@@ -115,6 +121,8 @@ class RuntimeServices:
         memory: Memory | None = None,
         cache: CacheStore | None = None,
         objects: ObjectStore | None = None,
+        knowledge: LocalKnowledgeService | None = None,
+        rule_snapshots: LocalRuleSnapshotStore | None = None,
     ) -> None:
         object.__setattr__(self, "_sealed", False)
         self.config = config
@@ -130,6 +138,8 @@ class RuntimeServices:
         self.domain = domain
         self.cache = cache
         self.objects = objects
+        self.knowledge = knowledge
+        self.rule_snapshots = rule_snapshots
         self.ingress = ingress
         self.notifier = notifier
         self._exit_stack = exit_stack
@@ -263,6 +273,18 @@ class Context:
     @property
     def objects(self) -> ObjectStore | None:
         return self.runtime.objects
+
+    @property
+    def knowledge(self) -> LocalKnowledgeService:
+        if self.runtime.knowledge is None:
+            raise RuntimeError("knowledge service is unavailable")
+        return self.runtime.knowledge
+
+    @property
+    def rule_snapshots(self) -> LocalRuleSnapshotStore:
+        if self.runtime.rule_snapshots is None:
+            raise RuntimeError("rule snapshot service is unavailable")
+        return self.runtime.rule_snapshots
 
     @property
     def ingress(self) -> ServiceRegistry[IngressAdapter]:

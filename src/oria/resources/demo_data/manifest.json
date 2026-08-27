@@ -7,7 +7,7 @@
   "generator_seed": "oria-v01-t03-fixed-seed",
   "rule_categories": ["basic", "recruitment_scope", "enrollment_policy", "benefit_policy", "confirmation_policy", "merchant_material"],
   "files": {
-    "campaign_rules.v1.json": "60f3564cb2f04a86cd6b558f381c74262fb6bc7842672cf84ffec9f590759133",
+    "campaign_rules.v1.json": "ea461102ccc052b84566245f87e661bd2bdf133408fd7888a1598376b6c92450",
     "merchants.v1.json": "83a57222ca7bc00236835f1ef92e5260e392f3f203a239cebc728236d7558b81"
   }
 }

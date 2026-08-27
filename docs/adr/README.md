@@ -14,7 +14,7 @@
 
 | ADR | 主题 | 状态 | 文件 / 实体化门禁 |
 | --- | --- | --- | --- |
-| ADR-001 | Provider 归一化 | 计划中 | V0.1-T02 前实体化 |
+| ADR-001 | Provider 归一化 | 已接受 | [ADR-001](ADR-001-provider-normalization.md) |
 | ADR-002 | Chroma 到 Milvus | 计划中 | V0.8-T01 前实体化 |
 | ADR-003 | SQLite 到 PostgreSQL | 计划中 | V0.6-T01 前实体化 |
 | ADR-004 | Checkpoint 幂等与恢复 | 计划中 | V0.1-T03 前实体化 |

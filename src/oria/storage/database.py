@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import TracebackType
+from typing import Any
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -19,6 +21,20 @@ def _sqlite_url(path: Path) -> str:
     return f"sqlite+aiosqlite:///{path}"
 
 
+def _enable_sqlite_foreign_keys(dbapi_connection: Any, _: Any) -> None:
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys=ON")
+    finally:
+        cursor.close()
+
+
+def _create_sqlite_engine(path: Path) -> AsyncEngine:
+    engine = create_async_engine(_sqlite_url(path), pool_pre_ping=True)
+    event.listen(engine.sync_engine, "connect", _enable_sqlite_foreign_keys)
+    return engine
+
+
 class DatabaseResources:
     """The only process resource used to create local SQL repositories."""
 
@@ -31,12 +47,8 @@ class DatabaseResources:
 
     def __init__(self, config: ResolvedRuntimeConfig) -> None:
         paths = config.data_paths
-        self._platform_engine: AsyncEngine = create_async_engine(
-            _sqlite_url(paths.platform_db), pool_pre_ping=True
-        )
-        self._business_engine: AsyncEngine = create_async_engine(
-            _sqlite_url(paths.business_db), pool_pre_ping=True
-        )
+        self._platform_engine = _create_sqlite_engine(paths.platform_db)
+        self._business_engine = _create_sqlite_engine(paths.business_db)
         self.platform_sessions = async_sessionmaker(
             self._platform_engine, class_=AsyncSession, expire_on_commit=False
         )

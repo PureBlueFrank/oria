@@ -19,6 +19,8 @@ _LOCAL_READ_ACTIONS = frozenset(
         "campaign:read",
         "config:read",
         "ingress:submit",
+        "knowledge:delete",
+        "knowledge:write",
         "merchant:read",
         "rule:read",
     }

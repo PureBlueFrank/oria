@@ -4,8 +4,10 @@
   "tenant_id": "local-community",
   "basic": {
     "template_ref": "synthetic-summer-dining",
+    "product_scope": ["eligible_dining_products"],
     "campaign_type": "merchant_recruitment",
-    "campaign_window": "2026-07-01T00:00:00+08:00/2026-08-31T23:59:59+08:00"
+    "campaign_window": "2026-07-01T00:00:00+08:00/2026-08-31T23:59:59+08:00",
+    "enrollment_window": "2026-07-05T00:00:00+08:00/2026-08-15T23:59:59+08:00"
   },
   "recruitment_scope": {
     "categories": ["餐饮"],
@@ -17,13 +19,40 @@
   },
   "enrollment_policy": {
     "mode": "hybrid",
+    "customer_selection_rule": "eligible_merchant_and_linked_campaign",
     "linked_campaign_rules": ["synthetic-link-rule-v1"],
-    "accepted_sources": ["merchant", "auto"]
+    "accepted_sources": ["merchant", "auto"],
+    "product_circle_policy_ref": "synthetic-product-circle-policy",
+    "product_circle_policy_version": "1.0.0",
+    "product_price_min": "20.00",
+    "product_price_max": "500.00",
+    "product_categories": ["餐饮套餐"],
+    "product_keywords": ["夏季", "套餐"],
+    "assortment_policy_ref": "synthetic-assortment-policy",
+    "assortment_policy_version": "1.0.0",
+    "assortment_execution_mode": "async",
+    "assortment_completion_condition": "all_terminal"
   },
   "benefit_policy": {
     "tiers": ["base", "boosted"],
+    "tier_rules": [
+      {
+        "name": "base",
+        "funding_type": "fixed_amount",
+        "fixed_amount": "5.00"
+      },
+      {
+        "name": "boosted",
+        "funding_type": "stepped",
+        "steps": [
+          {"threshold": "100.00", "funding_amount": "10.00"},
+          {"threshold": "200.00", "funding_amount": "25.00"}
+        ]
+      }
+    ],
     "currency": "CNY",
-    "rounding": "half_up"
+    "rounding": "half_up",
+    "budget_cap": "100000.00"
   },
   "confirmation_policy": {
     "ordered_steps": ["merchant", "sales", "sales_manager"],
