@@ -288,17 +288,18 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
 
 ### V0.1 验证状态（2026-08-27）
 
-- 代码状态：进行中；`V0.1-T01` 已完成，`V0.1-T02` 在上一份报告判定过早后已实现 remediation，但已安装 wheel 门禁 blocked，`V0.1-T03–T10` 未开始。
-- Core Gate：未运行；T02 源码级 F 验证通过，但 package/wheel 门禁未完成，因此尚不能重新判定 T02 完成。
+- 代码状态：进行中；`V0.1-T01` 已完成，`V0.1-T02` 在上一份报告判定过早后已实现 remediation，并已完成 package/wheel 门禁补验，`V0.1-T03–T10` 未开始。
+- Core Gate：未运行；T02 源码级与 package 级 F 验证均已通过，T02 判定为「remediation 后完成」，但 Core Gate 尚缺 T03–T09。
 - Live 卡：未运行；未调用真实 Provider，未下载或推理 BGE 模型。
 - Enterprise 卡：未运行。
 - 证据：
   - [`reports/verification/v0.1/20260827T084858+0800/summary.md`](../reports/verification/v0.1/20260827T084858+0800/summary.md)（T01 工程基线）
   - [`reports/verification/v0.1/20260827T112706+0800/summary.md`](../reports/verification/v0.1/20260827T112706+0800/summary.md)（T02 首次报告，F 等级；`result: passed` 判定过早，保留为失败历史）
-  - [`reports/verification/v0.1/20260827T133710+0800/summary.md`](../reports/verification/v0.1/20260827T133710+0800/summary.md)（T02 remediation，F 等级；源码门禁通过，wheel 构建 blocked）
+  - [`reports/verification/v0.1/20260827T133710+0800/summary.md`](../reports/verification/v0.1/20260827T133710+0800/summary.md)（T02 remediation，F 等级；源码门禁通过，wheel 构建因环境缺 `hatchling` 记为 blocked，保留不改）
+  - [`reports/verification/v0.1/20260827T134842+0800/summary.md`](../reports/verification/v0.1/20260827T134842+0800/summary.md)（T02 package 门禁补验，F 等级，`result: passed`，commit `2469967`，47 passed）
 - T02 remediation 修复：Runtime ready 后整体不可替换/扩展；跨 seam 容器深度不可变；JsonValue 拒绝非有限浮点且显式导出；reasoning/provider raw 默认公开投影脱敏；配置矩阵、生命周期边界、模块/schema/union/wheel/CI 覆盖收紧。详细缺陷与命令见新报告。
-- 判定历史：上一份 T02 报告在 Runtime 组成仍可替换、嵌套值仍可修改、敏感字段仍可默认序列化且 security 未进入 required `test-core` 时写为 `passed`，属于判定过早；旧报告按 §1.1 第 5 条不改写，由本次新 run 追加纠正。
-- 当前门禁结论：暂不进入 `V0.1-T03`/`V0.1-T04` 主线实现；先在可取得锁定 `hatchling` 的环境复跑 `uv build`、已安装 wheel 全模块 import 和下游 mypy。三项通过并追加新的 follow-up run 后，才可从已修正 seam 并行进入 T03/T04。仍不得宣称 V0.1 Core 或 Live 已通过。
+- 判定历史：上一份 T02 报告在 Runtime 组成仍可替换、嵌套值仍可修改、敏感字段仍可默认序列化且 security 未进入 required `test-core` 时写为 `passed`，属于判定过早；旧报告按 §1.1 第 5 条不改写，由后续 run 追加纠正。该误判的共同成因是断言只覆盖「直接路径被拒绝」而未覆盖「绕道」，T03 起每个任务的测试清单应显式区分这两类断言。
+- 当前门禁结论：可并行进入 `V0.1-T03` 与 `V0.1-T04`。T03 的新领域值需继续继承 ADR-030 的深度不可变契约，migration/resource 必须从已安装 wheel 读取；T04 需遵守收紧后的 provider/dialect 与 capability 矩阵，并沿用 reasoning/raw payload 的「公开脱敏 + 内部显式访问」边界。仍不得宣称 V0.1 Core 或 Live 已通过。
 
 ## 五、V0.2 Provider 与 RAG 完整化
 
