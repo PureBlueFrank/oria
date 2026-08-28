@@ -1,0 +1,16 @@
+{
+  "suite": "scenario_a",
+  "dataset_version": "1",
+  "schema_version": 1,
+  "source": "synthetic",
+  "contains_real_entities": false,
+  "license": "CC0-1.0",
+  "generator_seed": "oria-v01-t07-golden-draft",
+  "case_count": 30,
+  "critical_case_count": 30,
+  "dataset_file": "v1.jsonl",
+  "dataset_sha256": "d6564a502d416ba9b3f1fd85625ec7b840a622cbc41e631b3a2979af5bbef407",
+  "review_status": "pending_human_review",
+  "human_review_complete": false,
+  "baseline_created": false
+}

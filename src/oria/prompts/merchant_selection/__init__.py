@@ -1,0 +1,1 @@
+"""Merchant-selection prompt resources."""

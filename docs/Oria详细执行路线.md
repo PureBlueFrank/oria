@@ -170,7 +170,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 
 | 版本 | 目标 | 当前状态 | 必须包含的真实验证 |
 | --- | --- | --- | --- |
-| V0.1 | 场景 A 只读提案 MVP | 进行中（T01–T05 完成） | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
+| V0.1 | 场景 A 只读提案 MVP | 进行中（T01–T06 完成；T07 待 Golden 人工审阅） | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
 | V0.2 | Provider/RAG 完整化 | 未开始 | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
 | V0.3 | 场景 A 完整 Workflow | 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
@@ -288,8 +288,8 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
 
 ### V0.1 验证状态（2026-08-28）
 
-- 代码状态：进行中；`V0.1-T01–T05` 已完成，其中 T02/T03/T04 经 remediation；`V0.1-T06–T10` 未开始。
-- Core Gate：未运行；T01–T05 的 F 等级门禁均已通过，Core Gate 尚缺 T06–T09。
+- 代码状态：进行中；`V0.1-T01–T06` 已完成，其中 T02/T03/T04/T05 经 remediation；T07 代码与 F 等级本地门禁已通过，但 Golden 实际人工审阅、baseline 和 `eval-golden` 尚未完成；`V0.1-T08–T10` 未开始。
+- Core Gate：未运行；T01–T06 及 T07 代码 F 等级门禁已通过，Core Gate 仍缺 T07 Golden 人工冻结/基线、T08 和 T09。
 - Live 卡：未运行；未调用真实 Provider，未下载或推理 BGE 模型。
 - Enterprise 卡：未运行。
 - 证据：
@@ -301,13 +301,18 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
   - [`reports/verification/v0.1/20260827T214917+0800/summary.md`](../reports/verification/v0.1/20260827T214917+0800/summary.md)（T03 remediation 01，F 等级，`result: passed`，86 passed；修复两个 P1 与两个 P2，当前尚未提交）
   - [`reports/verification/v0.1/20260827T232744+0800/summary.md`](../reports/verification/v0.1/20260827T232744+0800/summary.md)（T04，F 等级，`result: passed`，107 passed；MockTransport/Fake BGE 契约 + 隔离 wheel，未运行真实 DeepSeek/BGE）
   - [`reports/verification/v0.1/20260828T005408+0800/summary.md`](../reports/verification/v0.1/20260828T005408+0800/summary.md)（T04 remediation 01 + T05，F 等级，`result: passed`，138 passed；含 T02–T05 隔离 wheel 门禁）
+  - [`reports/verification/v0.1/20260828T082536+0800/summary.md`](../reports/verification/v0.1/20260828T082536+0800/summary.md)（T05 remediation 02 + T06，F 等级，`result: passed`，145 passed；含 T02–T06 隔离 wheel 门禁）
+  - [`reports/verification/v0.1/20260828T090353+0800/summary.md`](../reports/verification/v0.1/20260828T090353+0800/summary.md)（T07 代码 F 等级通过，171 passed + 隔离 wheel；30 条 Golden 为 `pending_human_review`，故整体 `result: blocked`）
 - T02 remediation 修复：Runtime ready 后整体不可替换/扩展；跨 seam 容器深度不可变；JsonValue 拒绝非有限浮点且显式导出；reasoning/provider raw 默认公开投影脱敏；配置矩阵、生命周期边界、模块/schema/union/wheel/CI 覆盖收紧。详细缺陷与命令见对应报告。
 - T03 交付：类型化 Domain Service 契约（`ctx.domain` 公开成员精确为 `{campaign_rules, merchants}`，无 repository/engine/session 旁路）、确定性 EligibilityPolicy（denylist 优先，对照 ADR-028）、platform/business 两条 migration 与各自独立版本表、wheel 内全合成 demo resources（六类规则字段 + 12 商家 + sha256 manifest + `contains_real_entities: false`）、`oria data init`（双库同一 runner 升级 + 官方 saver setup + 幂等）。
 - T03 remediation 01：Domain Service 复核规则与 Repository 记录的 tenant；migration runner 校验列、类型、nullable、主键和复合外键，拒绝 lookalike schema + forged head；应用 SQLite 连接强制 `foreign_keys=ON`；Alembic `SQLAlchemyError` 归一化为脱敏 CLI JSON 错误。新增四条回归，总计 86 passed、15 条 T03 绕道用例，并完成隔离 wheel 验证。
 - T04 交付：接受 ADR-001，实现 MockLLMProvider、DeepSeek Responses profile 的 OpenAICompatProvider、Fixture/BGE Embedder、profile 级 native/synthetic/unsupported、本地严格 schema 校验、统一 stream/error/capability 和唯一 `build_runtime()` 装配。remediation 01 对 native/synthetic 流式结构化输出先缓冲再校验，拦截保留工具与业务工具混合，并补齐 Mock 常用严格 schema witness、BGE 单位向量验证与凭证键变体脱敏。真实 DeepSeek/BGE 仍未运行。
 - T05 交付：实现 tenant-qualified ObjectStore、platform catalog、按 provider/model/revision/dimension 指纹隔离的 Chroma 投影、ingest/delete/rebuild、tenant/ACL 前后过滤和 ObjectStore 原文回源；`CampaignRuleSnapshot` 覆盖六类规则、商品圈选/招后选品字段、金额/折扣/阶梯校验与列表叶子 citation。Fixture 固定 10 问实测 `Recall@3=10/10`，缺失/冲突/失效/篡改、跨 tenant、受限字段泄露、向量文本污染和 embedding profile 切换均有回归；已新增 T05 隔离 wheel CI 门禁。
+- T05 remediation 02：文档删除会遍历同一 Chroma store 中的全部 Oria projection；向量与 ObjectStore 清理成功后才提交 catalog 软删除，失败重试仍可从完整版本记录恢复对象引用。双 profile 残留与向量删除故障注入均有回归。
+- T06 交付：实现启动期 allowlist 并封存的 ToolRegistry、`search_campaign_rules` 和 `query_merchants`；工具参数与模型可见结果均使用 versioned strict schema，执行前调用统一 PolicyEngine，成功结果携带 trust/provenance/classification。规则工具只返回六类脱敏规则与模型可见字段 citation；商家工具只接受完整性校验通过的 `rule_snapshot_id`，由 EligibilityPolicy 执行硬过滤，返回候选、数量和无 ID 的排除原因汇总，黑白名单成员与销售组织原文不进入模型结果。
+- T07 代码交付：实现显式版本 PromptManager、`merchant_selection/v1`、CampaignProposal 证据交叉校验、永久 `model/tools/validate` StateGraph、整批预检/canonical observation/32 KiB 转存/只读重试/无进展/一次 finalization-only repair/全量预算终止，以及官方 AsyncSqliteSaver 的 tenant-safe 异步适配。Fixture 已调整为 12 条中确定 10 条合格候选。
 - 判定历史：T02 首次报告在 Runtime 组成仍可替换、嵌套值仍可修改、敏感字段仍可默认序列化且 security 未进入 required `test-core` 时写为 `passed`，属于判定过早；T03 首次报告也未覆盖「Repository seam 返回跨 tenant 数据」「伪造完整表名并 stamp head」「SQLite 外键实际未启用」「Alembic 包装异常绕过 CLI 错误边界」。旧报告按 §1.1 第 5 条不改写，均由后续 run 追加纠正。**每个任务的测试清单继续强制区分直接路径与绕道断言**。
-- 当前门禁结论：T03–T05 前置与 F 等级门禁均已满足，可进入 `V0.1-T06`（`search_campaign_rules` / `query_merchants` / ToolRegistry）。T05 当前只有 Fixture + 真实本地 SQLite/ObjectStore/Chroma 组件结果；未加载真实 BGE，不构成 Community Real/C 等级证据。仍不得宣称 V0.1 Core 或 Live 已通过。
+- 当前门禁结论：T07 代码、Fixture E2E、Checkpoint 与安装包门禁已通过；30 条 Scenario A Golden 候选已通过 schema/hash 检查，但仍为 `pending_human_review`。根据首次 baseline 的前置规则，实际人工逐条审阅完成前不创建 baseline、不启用 `eval-golden`、不进入 T08。当前只有 Fixture + 真实本地 SQLite/ObjectStore/Chroma 组件结果；未加载真实 BGE/DeepSeek，仍不得宣称 V0.1 Core 或 Live 已通过。
 
 ## 五、V0.2 Provider 与 RAG 完整化
 

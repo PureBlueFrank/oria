@@ -56,6 +56,7 @@ jobs:
       - run: .artifacts/package-venv/bin/python scripts/verify_t04_wheel.py --data-dir .artifacts/t04-wheel-data
       - run: .artifacts/package-venv/bin/python scripts/verify_t05_wheel.py --data-dir .artifacts/t05-wheel-data
       - run: .artifacts/package-venv/bin/python scripts/verify_t06_wheel.py --data-dir .artifacts/t06-wheel-data
+      - run: .artifacts/package-venv/bin/python scripts/verify_t07_wheel.py --data-dir .artifacts/t07-wheel-data
       - run: uv run mypy --python-executable .artifacts/package-venv/bin/python --strict scripts/wheel_type_consumer.py
 
   extras-smoke:
