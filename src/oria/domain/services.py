@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
@@ -12,11 +13,19 @@ from oria.core.types import (
     ServiceHealth,
 )
 from oria.domain.eligibility import EligibilityPolicy
-from oria.domain.models import CampaignRuleSet, EligibleMerchantSet
+from oria.domain.models import (
+    CampaignRuleSet,
+    EligibilityCriteria,
+    EligibilityReason,
+    EligibleMerchantSet,
+    Merchant,
+    MerchantRecord,
+)
 from oria.domain.repositories import MerchantRepository
 
 if TYPE_CHECKING:
     from oria.core.context import Context
+    from oria.rag.models import CampaignRuleSnapshot
 
 
 class CampaignRuleService(Protocol):
@@ -29,6 +38,13 @@ class MerchantService(Protocol):
     async def eligible_merchants(
         self,
         rule_set_id: str,
+        limit: int,
+        ctx: Context,
+    ) -> EligibleMerchantSet: ...
+
+    async def eligible_merchants_for_snapshot(
+        self,
+        snapshot: CampaignRuleSnapshot,
         limit: int,
         ctx: Context,
     ) -> EligibleMerchantSet: ...
@@ -81,14 +97,73 @@ class DefaultMerchantService:
         records = await self.__repository.list_for_eligibility(ctx)
         if any(record.tenant_id != ctx.tenant_id for record in records):
             raise PermissionError("domain read is not authorized")
-        candidates = self.__eligibility.eligible_merchants(
-            records, rules.internal_eligibility_criteria()
+        return self._evaluate_records(
+            records,
+            rules.internal_eligibility_criteria(),
+            limit,
         )
+
+    async def eligible_merchants_for_snapshot(
+        self,
+        snapshot: CampaignRuleSnapshot,
+        limit: int,
+        ctx: Context,
+    ) -> EligibleMerchantSet:
+        if not 1 <= limit <= 100:
+            raise ValueError("limit must be between 1 and 100")
+        if (
+            snapshot.tenant_id != ctx.tenant_id
+            or snapshot.recompute_hash() != snapshot.snapshot_hash
+        ):
+            raise PermissionError("domain read is not authorized")
+        scope = snapshot.recruitment_scope
+        criteria = EligibilityCriteria(
+            rule_set_id=snapshot.snapshot_id,
+            rule_version=snapshot.snapshot_hash,
+            categories=scope.categories,
+            cities=scope.cities,
+            enrollment_systems=scope.enrollment_systems,
+            allowlist_merchant_ids=tuple(sorted(scope.internal_allowlist())),
+            denylist_merchant_ids=tuple(sorted(scope.internal_denylist())),
+            sales_org_scope=tuple(sorted(scope.internal_sales_org_scope())),
+        )
+        await _authorize("merchant:read", "merchant_catalog", "eligible", ctx)
+        records = await self.__repository.list_for_eligibility(ctx)
+        if any(record.tenant_id != ctx.tenant_id for record in records):
+            raise PermissionError("domain read is not authorized")
+        return self._evaluate_records(records, criteria, limit)
+
+    def _evaluate_records(
+        self,
+        records: tuple[MerchantRecord, ...],
+        criteria: EligibilityCriteria,
+        limit: int,
+    ) -> EligibleMerchantSet:
+        candidates: list[Merchant] = []
+        exclusion_counts: Counter[EligibilityReason] = Counter()
+        for record in records:
+            decision = self.__eligibility.evaluate(record, criteria)
+            if decision.eligible:
+                candidates.append(
+                    Merchant(
+                        tenant_id=record.tenant_id,
+                        merchant_id=record.merchant_id,
+                        version=record.version,
+                        display_name=record.display_name,
+                        categories=record.categories,
+                        cities=record.cities,
+                        enrollment_systems=record.enrollment_systems,
+                    )
+                )
+                continue
+            exclusion_counts.update(decision.reason_codes)
         return EligibleMerchantSet(
-            rule_set_id=rules.rule_set_id,
-            rule_version=rules.version,
+            rule_set_id=criteria.rule_set_id,
+            rule_version=criteria.rule_version,
             evaluated_count=len(records),
-            merchants=candidates[:limit],
+            eligible_count=len(candidates),
+            merchants=tuple(candidates[:limit]),
+            exclusion_reason_counts=dict(sorted(exclusion_counts.items())),
         )
 
     async def health(self, ctx: Context) -> ServiceHealth:

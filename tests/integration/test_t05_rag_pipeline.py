@@ -15,7 +15,7 @@ from oria.data import initialize_data
 from oria.permission.local import local_cli_executor, local_operator
 from oria.providers.embeddings import FixtureEmbedder
 from oria.rag.demo import demo_rule_document
-from oria.rag.errors import KnowledgeError, RuleSnapshotError
+from oria.rag.errors import IndexError, KnowledgeError, ObjectStoreError, RuleSnapshotError
 from oria.rag.index import ChromaIndex
 from oria.rag.service import AuthorizedChromaRetriever, LocalKnowledgeService
 
@@ -174,10 +174,60 @@ async def test_embedding_profile_switch_reuses_catalog_with_an_independent_colle
             repeated = await switched_knowledge.ingest(request, ctx)
             rebuilt = await switched_knowledge.rebuild(ctx)
             docs = await switched_retriever.retrieve("优惠档位", ctx, k=10)
+            chunk_id = docs[0].id
+            deleted = await switched_knowledge.delete(request.document_id, ctx)
+            remains_in_switched = await switched_index.contains(chunk_id, ctx.tenant_id)
+            remains_in_original = await ctx.knowledge._index.contains(chunk_id, ctx.tenant_id)
 
         assert repeated.idempotent is True
         assert rebuilt.chunk_count == 6
         assert len(docs) == 6
+        assert deleted.deleted_versions == 1
+        assert remains_in_switched is False
+        assert remains_in_original is False
+    finally:
+        await runtime.aclose()
+
+
+@pytest.mark.asyncio
+async def test_delete_retries_after_projection_failure_without_leaking_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runtime, ctx = await _runtime(tmp_path)
+    try:
+        request = demo_rule_document()
+        ingested = await ctx.knowledge.ingest(request, ctx)
+        original_delete = ctx.knowledge._index.delete_document_all_projections
+
+        async def fail_delete(_tenant_id: str, _document_id: str) -> None:
+            raise IndexError("injected projection failure")
+
+        monkeypatch.setattr(ctx.knowledge._index, "delete_document_all_projections", fail_delete)
+        with pytest.raises(IndexError, match="injected projection failure"):
+            await ctx.knowledge.delete(request.document_id, ctx)
+
+        assert ctx.knowledge._objects.read_bytes(ingested.object_ref, ctx)
+        assert (
+            await ctx.knowledge._catalog.get_active_version(
+                ctx.tenant_id, request.document_id, request.version
+            )
+            is not None
+        )
+
+        monkeypatch.setattr(
+            ctx.knowledge._index, "delete_document_all_projections", original_delete
+        )
+        retried = await ctx.knowledge.delete(request.document_id, ctx)
+
+        assert retried.deleted_versions == 1
+        with pytest.raises(ObjectStoreError, match="unavailable"):
+            ctx.knowledge._objects.read_bytes(ingested.object_ref, ctx)
+        assert (
+            await ctx.knowledge._catalog.get_active_version(
+                ctx.tenant_id, request.document_id, request.version
+            )
+            is None
+        )
     finally:
         await runtime.aclose()
 

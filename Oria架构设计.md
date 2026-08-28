@@ -10,7 +10,7 @@
 
 > 本节是架构作者给“无对话上下文的实现方”的交接说明，确保对方能准确起步、不偏航。本节与其余各节冲突时，以其余各节为准；本节只负责“如何开始”与“口径澄清”。
 
-**0.1 当前状态（2026-08-28）**：架构已完成场景 A 资深 Agent 架构复核及工程路线修订；仓库已完成 V0.1-T01–T05，其中 T02/T03/T04 经 remediation。T05 交付 ObjectStore 原文、SQLite catalog、按 embedding projection 隔离的 Chroma 投影、AuthorizedRetriever、可重建 citation 与 tenant-qualified `CampaignRuleSnapshot`；T04 remediation 补齐流式结构化校验、Mock schema witness、BGE 归一化验证和诊断脱敏。仓库已有锁定的 `uv 0.12.6 + Python 3.11`、`pyproject.toml`、`uv.lock`、`src/oria/` 与测试（138 passed）。V0.1-T06 及后续尚未开始，V0.1 Core Gate 与 Live 卡均未通过；真实 DeepSeek/BGE 未运行。第一里程碑仍是 V0.1 MVP（见 0.6），先交付永久保留的纵向切片，再逐层增强。**本文档与 `docs/Oria详细执行路线.md` 共同构成执行契约**；ADR 状态以 `docs/adr/README.md` 为准，冲突时必须先修正文档或 ADR，不能自行择一。
+**0.1 当前状态（2026-08-28）**：架构已完成场景 A 资深 Agent 架构复核及工程路线修订；仓库已完成 V0.1-T01–T06，其中 T02/T03/T04/T05 经 remediation。T05 交付 ObjectStore 原文、SQLite catalog、按 embedding projection 隔离的 Chroma 投影、AuthorizedRetriever、可重建 citation 与 tenant-qualified `CampaignRuleSnapshot`，并补齐跨投影删除与失败重试；T06 交付 `search_campaign_rules`、`query_merchants` 与启动期封存的 ToolRegistry，执行参数/结果 schema、allowlist、授权、trust metadata 和受限资格输入脱敏。仓库已有锁定的 `uv 0.12.6 + Python 3.11`、`pyproject.toml`、`uv.lock`、`src/oria/` 与测试（145 passed）。V0.1-T07 及后续尚未开始，V0.1 Core Gate 与 Live 卡均未通过；真实 DeepSeek/BGE 未运行。第一里程碑仍是 V0.1 MVP（见 0.6），先交付永久保留的纵向切片，再逐层增强。**本文档与 `docs/Oria详细执行路线.md` 共同构成执行契约**；ADR 状态以 `docs/adr/README.md` 为准，冲突时必须先修正文档或 ADR，不能自行择一。
 
 **0.2 实现方角色**：由 Codex 按 §九版本路线和 `docs/Oria详细执行路线.md` 实现。每次任务前先检查详细路线的准入、真实场景和测试；遇设计空白在 `docs/adr/` 建 ADR 并标“待 review”，不得擅自偏离架构。每条 ADR 对应 §十面试 hook。
 

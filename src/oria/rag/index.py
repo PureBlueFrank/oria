@@ -163,6 +163,23 @@ class ChromaIndex:
         except Exception as exc:
             raise IndexError("vector projection deletion failed") from exc
 
+    async def delete_document_all_projections(self, tenant_id: str, document_id: str) -> None:
+        """Remove one document from every Oria projection in this Chroma store."""
+        where = {
+            "$and": [
+                {"tenant_id": {"$eq": tenant_id}},
+                {"document_id": {"$eq": document_id}},
+            ]
+        }
+        try:
+            collections = await asyncio.to_thread(self._client.list_collections)
+            for collection in collections:
+                if not collection.name.startswith(f"{_COLLECTION_PREFIX}_"):
+                    continue
+                await asyncio.to_thread(collection.delete, where=where)
+        except Exception as exc:
+            raise IndexError("vector projection deletion failed") from exc
+
     async def delete_tenant(self, tenant_id: str) -> None:
         try:
             await asyncio.to_thread(

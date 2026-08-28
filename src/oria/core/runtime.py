@@ -19,7 +19,6 @@ from oria.core.protocols import (
     LLMProvider,
     Node,
     Notifier,
-    Tool,
 )
 from oria.core.registry import ServiceRegistry
 from oria.domain.eligibility import EligibilityPolicy
@@ -41,6 +40,8 @@ from oria.rag.snapshots import LocalRuleSnapshotStore
 from oria.resources.loader import load_demo_data
 from oria.storage.database import DatabaseResources
 from oria.storage.repositories import SQLiteMerchantRepository
+from oria.tools.builtin import QueryMerchantsTool, SearchCampaignRulesTool
+from oria.tools.registry import ToolRegistry
 
 RuntimeResourceFactory = Callable[[], AbstractAsyncContextManager[object]]
 
@@ -136,7 +137,9 @@ async def build_runtime(
             merchants=merchant_service,
         )
 
-        tools: ServiceRegistry[Tool] = ServiceRegistry()
+        tools = ToolRegistry(allowlist=frozenset({"search_campaign_rules", "query_merchants"}))
+        tools.register(SearchCampaignRulesTool(retriever, rule_snapshots))
+        tools.register(QueryMerchantsTool(rule_snapshots, merchant_service))
         guardrails: ServiceRegistry[Guardrail] = ServiceRegistry()
         nodes: ServiceRegistry[Node] = ServiceRegistry()
         agents: ServiceRegistry[object] = ServiceRegistry()
@@ -144,7 +147,8 @@ async def build_runtime(
         notifier: ServiceRegistry[Notifier] = ServiceRegistry()
         ingress.register("cli", LocalCLIIngressAdapter())
 
-        for registry in (tools, guardrails, nodes, agents, ingress, notifier):
+        tools.seal()
+        for registry in (guardrails, nodes, agents, ingress, notifier):
             registry.seal()
 
         runtime = RuntimeServices(

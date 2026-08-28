@@ -62,7 +62,7 @@ async def test_context_has_no_repository_engine_session_or_second_domain_path(
             result = await ctx.domain.merchants.eligible_merchants("demo-east-dining-v1", 100, ctx)
         candidate_ids = {merchant.merchant_id for merchant in result.merchants}
         assert "demo-m004" not in candidate_ids
-        assert "demo-m011" not in candidate_ids
+        assert "demo-m011" in candidate_ids
         assert "demo-m004" not in result.model_dump_json()
         assert "synthetic-east-a" not in result.model_dump_json()
         assert "demo-m004" not in caplog.text

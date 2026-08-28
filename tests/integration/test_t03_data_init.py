@@ -85,8 +85,13 @@ async def test_unique_runtime_assembly_exposes_service_not_repository(tmp_path: 
         assert [merchant.merchant_id for merchant in result.merchants] == [
             "demo-m001",
             "demo-m002",
+            "demo-m005",
+            "demo-m006",
+            "demo-m007",
+            "demo-m008",
             "demo-m009",
             "demo-m010",
+            "demo-m011",
             "demo-m012",
         ]
         assert result.evaluated_count == 12

@@ -65,6 +65,8 @@ class Tool(Protocol):
     result_schema: dict[str, Any]
     policy: ToolPolicy
 
+    def validate_params(self, params: dict[str, Any]) -> None: ...
+
     async def run(self, params: dict[str, Any], ctx: Context) -> ToolResult: ...
 
 
@@ -132,6 +134,8 @@ class ObjectStore(Protocol):
     async def put(self, key: str, path: str, ctx: Context) -> str: ...
 
     async def get(self, key: str, dest: str, ctx: Context) -> str: ...
+
+    def put_bytes(self, key: str, data: bytes, ctx: Context) -> str: ...
 
 
 class DomainService(Protocol):

@@ -262,4 +262,6 @@ class EligibleMerchantSet(ValueModel):
     rule_set_id: str
     rule_version: str
     evaluated_count: int = Field(ge=0)
+    eligible_count: int = Field(ge=0)
     merchants: tuple[Merchant, ...]
+    exclusion_reason_counts: dict[EligibilityReason, int] = Field(default_factory=dict)

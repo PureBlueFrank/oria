@@ -278,6 +278,35 @@ class SQLiteKnowledgeCatalog:
         except (SQLAlchemyError, ValueError, TypeError, json.JSONDecodeError) as exc:
             raise CatalogError("knowledge catalog listing failed") from exc
 
+    async def list_document_versions(
+        self, tenant_id: str, document_id: str
+    ) -> tuple[CatalogVersion, ...]:
+        """Return every known version so interrupted deletion can be retried."""
+        try:
+            async with self._sessions() as session:
+                rows = (
+                    (
+                        await session.execute(
+                            text(
+                                "SELECT d.source_uri, d.owner_ref, d.data_classification, "
+                                "v.tenant_id, v.document_id, v.version, v.content_hash, "
+                                "v.object_ref, v.acl_json, v.metadata_json, "
+                                "v.chunking_version, v.embedding_profile "
+                                "FROM document_versions v JOIN documents d ON "
+                                "d.tenant_id = v.tenant_id AND d.document_id = v.document_id "
+                                "WHERE v.tenant_id = :tenant_id AND v.document_id = :document_id "
+                                "ORDER BY v.version"
+                            ),
+                            {"tenant_id": tenant_id, "document_id": document_id},
+                        )
+                    )
+                    .mappings()
+                    .all()
+                )
+            return tuple(_catalog_version(row) for row in rows)
+        except (SQLAlchemyError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            raise CatalogError("knowledge catalog version listing failed") from exc
+
     async def mark_document_deleted(
         self, tenant_id: str, document_id: str
     ) -> tuple[CatalogVersion, ...]:

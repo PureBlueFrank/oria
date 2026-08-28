@@ -20,7 +20,6 @@ from oria.core.protocols import (
     ObjectStore,
     PolicyEngine,
     Retriever,
-    Tool,
 )
 from oria.core.registry import ServiceRegistry
 from oria.core.types import Principal
@@ -29,6 +28,7 @@ from oria.domain.services import DomainServiceRegistry
 if TYPE_CHECKING:
     from oria.rag.service import LocalKnowledgeService
     from oria.rag.snapshots import LocalRuleSnapshotStore
+    from oria.tools.registry import ToolRegistry
 
 T = TypeVar("T")
 
@@ -108,7 +108,7 @@ class RuntimeServices:
         config: ResolvedRuntimeConfig,
         policy: PolicyEngine,
         domain: DomainServiceRegistry,
-        tools: ServiceRegistry[Tool],
+        tools: ToolRegistry,
         guardrails: ServiceRegistry[Guardrail],
         nodes: ServiceRegistry[Node],
         agents: ServiceRegistry[object],
@@ -231,7 +231,7 @@ class Context:
         return self.runtime.llm
 
     @property
-    def tools(self) -> ServiceRegistry[Tool]:
+    def tools(self) -> ToolRegistry:
         return self.runtime.tools
 
     @property

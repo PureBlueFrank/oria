@@ -145,11 +145,18 @@ class LocalKnowledgeService:
 
     async def delete(self, document_id: str, ctx: Context) -> DeletionResult:
         await _authorize("knowledge:delete", document_id, ctx)
-        versions = await self._catalog.mark_document_deleted(ctx.tenant_id, document_id)
-        await self._index.delete_document(ctx.tenant_id, document_id)
-        for version in versions:
+        active_versions = tuple(
+            version
+            for version in await self._catalog.list_active_versions(ctx.tenant_id)
+            if version.document_id == document_id
+        )
+        known_versions = await self._catalog.list_document_versions(ctx.tenant_id, document_id)
+        await self._index.delete_document_all_projections(ctx.tenant_id, document_id)
+        for version in known_versions:
             self._objects.delete_ref(version.object_ref, ctx)
-        return DeletionResult(document_id=document_id, deleted_versions=len(versions))
+        if active_versions:
+            await self._catalog.mark_document_deleted(ctx.tenant_id, document_id)
+        return DeletionResult(document_id=document_id, deleted_versions=len(active_versions))
 
     async def citation_exists(self, citation: CitationBlock, ctx: Context) -> bool:
         try:

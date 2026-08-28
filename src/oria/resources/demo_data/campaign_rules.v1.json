@@ -12,7 +12,7 @@
   "recruitment_scope": {
     "categories": ["餐饮"],
     "cities": ["上海", "杭州"],
-    "allowlist_merchant_ids": ["demo-m001", "demo-m002", "demo-m003", "demo-m004", "demo-m005", "demo-m006", "demo-m007", "demo-m008", "demo-m009", "demo-m010", "demo-m012"],
+    "allowlist_merchant_ids": ["demo-m001", "demo-m002", "demo-m004", "demo-m005", "demo-m006", "demo-m007", "demo-m008", "demo-m009", "demo-m010", "demo-m011", "demo-m012"],
     "denylist_merchant_ids": ["demo-m004"],
     "enrollment_systems": ["demo-enroll"],
     "sales_org_scope": ["synthetic-east-a", "synthetic-east-b"]
