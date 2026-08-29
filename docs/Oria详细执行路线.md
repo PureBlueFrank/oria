@@ -171,7 +171,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 | 版本 | 目标 | 当前状态 | 必须包含的真实验证 |
 | --- | --- | --- | --- |
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 Live 卡均通过 | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
-| V0.2 | Provider/RAG 完整化 | 未开始 | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
+| V0.2 | Provider/RAG 完整化 | 进行中（T01 已完成） | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
 | V0.3 | 场景 A 完整 Workflow | 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
 | V0.5 | 多智能体、上下文和记忆 | 未开始 | 单/多 Agent 同集对照；跨会话记忆生命周期 |
@@ -363,6 +363,8 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
 | V02-RAG-03 | SEC | 含恶意指令的文档只能作为引用数据，不能增加工具权限 |
 | V02-RAG-04 | IT | 文档更新/删除传播到 chunk/vector/citation，不返回过期版本 |
 | V02-POL-01 | CT/SEC | 无 actor/executor、主体与 Context 不一致或未知 action 默认拒绝；PolicyDecision 生成不可覆盖 ACLFilter，跨 tenant/document ACL 查询无结果且留脱敏审计 |
+
+T01 交付：OpenAI-compatible adapter 现按 profile 显式支持 Responses 与 Chat Completions 两种方言，Anthropic adapter 按 Messages content block 做双向转换；Mock、DeepSeek、Kimi、智谱、OpenAI、Anthropic 共用消息、工具、usage、stream、错误和结构化输出契约。V02-PROV-01/V02-PROV-03 仅使用 `httpx.MockTransport` 固定 fixture 验证，六家 V0.2 状态卡均初始化为 `live_verified=false`；本任务未运行真实网络，不能把 CT 结果声明为 Live 支持。
 
 Core Gate：V0.2-T01–T05、真实 BGE 对照、ACL/删除和安全测试通过后可实施 V0.3。必需 Live 卡：DeepSeek；未通过时 V0.2 只能标“Core 完成，DeepSeek Live blocked/失败”。Anthropic 及其他 Provider 使用独立可选 adapter card，不阻塞 V0.3，但未 Live 验证的厂商不得进入“已验证支持”列表。
 

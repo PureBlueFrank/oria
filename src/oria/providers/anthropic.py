@@ -46,7 +46,11 @@ from oria.providers.errors import (
     StructuredOutputError,
     UnsupportedCapabilityError,
 )
-from oria.providers.structured import RESERVED_RESPONSE_TOOL, validate_structured_value
+from oria.providers.structured import (
+    RESERVED_RESPONSE_TOOL,
+    parse_structured_text,
+    validate_structured_value,
+)
 
 if TYPE_CHECKING:
     from oria.core.context import Context
@@ -204,16 +208,26 @@ class AnthropicProvider:
                                 )
                             call_ids[index] = call_id
                             call_names[index] = name
+                            arguments.setdefault(index, [])
                             initial_input = block.get("input")
                             if isinstance(initial_input, dict) and initial_input:
-                                arguments.setdefault(index, []).append(
-                                    json.dumps(
-                                        initial_input,
-                                        ensure_ascii=False,
-                                        sort_keys=True,
-                                        separators=(",", ":"),
-                                    )
+                                initial_payload = json.dumps(
+                                    initial_input,
+                                    ensure_ascii=False,
+                                    sort_keys=True,
+                                    separators=(",", ":"),
                                 )
+                                arguments[index].append(initial_payload)
+                                if (
+                                    selected_options.response_schema is None
+                                    and name != RESERVED_RESPONSE_TOOL
+                                ):
+                                    yield ToolCallDelta(
+                                        **self._event_base(sequence, request_id=request_id),
+                                        tool_call_id=call_id,
+                                        arguments_delta=initial_payload,
+                                    )
+                                    sequence += 1
                         elif block_type == "text" and isinstance(block.get("text"), str):
                             text = cast(str, block["text"])
                             if text:
@@ -287,6 +301,9 @@ class AnthropicProvider:
                         _merge_usage(usage_values, event.get("usage"))
                     elif event_type == "message_stop":
                         usage = _parse_usage(usage_values, request_id=request_id)
+                        for index in call_names:
+                            if not arguments.get(index):
+                                arguments[index] = ["{}"]
                         try:
                             business_arguments = _validate_stream_tool_arguments(
                                 arguments,
@@ -504,7 +521,7 @@ class AnthropicProvider:
             elif reserved_payloads or not output_text:
                 raise StructuredOutputError("structured response is missing", retryable=False)
             else:
-                structured = _parse_structured_text("".join(output_text), response_schema)
+                structured = parse_structured_text("".join(output_text), response_schema)
                 content = [block for block in content if not isinstance(block, TextBlock)]
         elif self._profile.structured_output_mode == "synthetic_tool":
             if reserved_payloads and tool_calls:
@@ -562,7 +579,7 @@ class AnthropicProvider:
             if not text_parts:
                 raise StructuredOutputError("structured response is missing", retryable=False)
             text = "".join(text_parts)
-            _parse_structured_text(text, response_schema)
+            parse_structured_text(text, response_schema)
             return text
         if mode == "synthetic_tool":
             reserved = [
@@ -586,7 +603,7 @@ class AnthropicProvider:
             if len(reserved) != 1:
                 raise StructuredOutputError("structured response is missing", retryable=False)
             payload = "".join(arguments.get(reserved[0], []))
-            structured = _parse_structured_text(payload, response_schema)
+            structured = parse_structured_text(payload, response_schema)
             return json.dumps(
                 structured,
                 ensure_ascii=False,
@@ -660,9 +677,7 @@ def _map_messages(messages: list[Message]) -> tuple[str, list[dict[str, Any]]]:
     mapped: list[dict[str, Any]] = []
     for message in messages:
         if message.role == "system":
-            system_parts.append(
-                message.content if isinstance(message.content, str) else _blocks_text(message)
-            )
+            system_parts.append(_system_text(message))
             continue
         if message.role == "tool":
             if not message.tool_call_id:
@@ -722,6 +737,20 @@ def _blocks_text(message: Message) -> str:
     )
 
 
+def _system_text(message: Message) -> str:
+    if isinstance(message.content, str):
+        return message.content
+    parts: list[str] = []
+    for block in message.content:
+        if not isinstance(block, TextBlock):
+            raise InvalidRequestError(
+                "system messages support text blocks only",
+                retryable=False,
+            )
+        parts.append(block.text)
+    return "".join(parts)
+
+
 def _map_tool(tool: ToolSpec) -> dict[str, Any]:
     return {
         "name": tool.name,
@@ -736,16 +765,6 @@ def _map_tool_choice(value: str | dict[str, JsonValue]) -> dict[str, Any]:
         return dict(value)
     aliases = {"required": "any", "auto": "auto", "none": "none"}
     return {"type": aliases.get(value, "tool"), **({"name": value} if value not in aliases else {})}
-
-
-def _parse_structured_text(text: str, response_schema: ResponseSchema) -> dict[str, JsonValue]:
-    try:
-        value: Any = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise StructuredOutputError(
-            "structured response is not valid JSON", retryable=False
-        ) from exc
-    return validate_structured_value(value, response_schema)
 
 
 def _validate_tool_input(value: object, tool: ToolSpec | None) -> dict[str, JsonValue]:

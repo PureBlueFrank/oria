@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "task_id": "V0.2-T01",
+  "executed_at": "2026-08-29T20:33:00+08:00",
+  "verification_scope": "fixture_contract_only",
+  "contract_result": "passed",
+  "commands": [
+    {
+      "command": "uv run pytest tests/contract/test_v02_openai_compat.py tests/contract/test_v02_anthropic.py tests/contract/test_v02_provider_matrix.py -q",
+      "result": "74 passed"
+    },
+    {
+      "command": "uv run pytest -m \"unit or contract\" -q",
+      "result": "189 passed, 74 deselected"
+    }
+  ],
+  "profiles": {
+    "mock": {
+      "provider": "mock",
+      "api_dialect": "mock",
+      "structured_output_mode": "native_json_schema",
+      "fixture_contract_verified": true,
+      "network_executed": false,
+      "live_verified": false
+    },
+    "deepseek": {
+      "provider": "deepseek",
+      "api_dialect": "responses",
+      "structured_output_mode": "native_json_schema",
+      "fixture_contract_verified": true,
+      "network_executed": false,
+      "live_verified": false
+    },
+    "kimi": {
+      "provider": "kimi",
+      "api_dialect": "chat_completions",
+      "structured_output_mode": "synthetic_tool",
+      "fixture_contract_verified": true,
+      "network_executed": false,
+      "live_verified": false
+    },
+    "zhipu": {
+      "provider": "zhipu",
+      "api_dialect": "chat_completions",
+      "structured_output_mode": "synthetic_tool",
+      "fixture_contract_verified": true,
+      "network_executed": false,
+      "live_verified": false
+    },
+    "openai": {
+      "provider": "openai",
+      "api_dialect": "chat_completions",
+      "structured_output_mode": "native_json_schema",
+      "fixture_contract_verified": true,
+      "network_executed": false,
+      "live_verified": false
+    },
+    "anthropic": {
+      "provider": "anthropic",
+      "api_dialect": "anthropic_messages",
+      "structured_output_mode": "native_json_schema",
+      "fixture_contract_verified": true,
+      "network_executed": false,
+      "live_verified": false
+    }
+  }
+}
