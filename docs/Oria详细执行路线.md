@@ -1,6 +1,6 @@
 # Oria 详细执行路线
 
-> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。仓库现已完成 `V0.1-T01–T10`；`V0.1-Core` 与真实 DeepSeek + 锁定 BGE 必需 Live 卡均已通过。当前口径是“V0.1 Core 与必需 Live 卡通过”，不包含企业 Adapter 或其他 Provider。其余任务与验证状态以 §三总览和对应版本的“验证状态”小节为准。
+> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。仓库现已完成 `V0.1-T01–T10` 与 `V0.2-T01–T02`；`V0.1-Core` 与真实 DeepSeek + 锁定 BGE 必需 Live 卡均已通过。当前口径是“V0.1 Core 与必需 Live 卡通过，V0.2 T01–T02 的 Fixture/Community 门禁通过”，不包含 V0.2 Live、企业 Adapter 或其他 Provider Live。其余任务与验证状态以 §三总览和对应版本的“验证状态”小节为准。
 
 > **场景 A 设计评审记录（2026-08-26）**：已按“需求接入 → 规则快照 → 商家预筛/LLM 软排序 → 活动与券批次草案 → 运营审核/招商投放 → 自主报名或自动圈品 → 券关联 → 招后选品 → C 端投放 → 商家通知”同步架构与路线。此次只更新设计契约，未生成代码、未运行验证，版本状态仍为“未开始”。
 
@@ -171,7 +171,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 | 版本 | 目标 | 当前状态 | 必须包含的真实验证 |
 | --- | --- | --- | --- |
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 Live 卡均通过 | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
-| V0.2 | Provider/RAG 完整化 | 进行中（T01 已完成） | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
+| V0.2 | Provider/RAG 完整化 | 进行中（T01–T02 已完成） | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
 | V0.3 | 场景 A 完整 Workflow | 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
 | V0.5 | 多智能体、上下文和记忆 | 未开始 | 单/多 Agent 同集对照；跨会话记忆生命周期 |
@@ -365,6 +365,8 @@ Core 关键路径：`V0.1-T01 → V0.1-T02 → (V0.1-T03 ∥ V0.1-T04) → V0.1-
 | V02-POL-01 | CT/SEC | 无 actor/executor、主体与 Context 不一致或未知 action 默认拒绝；PolicyDecision 生成不可覆盖 ACLFilter，跨 tenant/document ACL 查询无结果且留脱敏审计 |
 
 T01 交付：OpenAI-compatible adapter 现按 profile 显式支持 Responses 与 Chat Completions 两种方言，Anthropic adapter 按 Messages content block 做双向转换；Mock、DeepSeek、Kimi、智谱、OpenAI、Anthropic 共用消息、工具、usage、stream、错误和结构化输出契约。V02-PROV-01/V02-PROV-03 仅使用 `httpx.MockTransport` 固定 fixture 验证，六家 V0.2 状态卡均初始化为 `live_verified=false`；本任务未运行真实网络，不能把 CT 结果声明为 Live 支持。
+
+T02 交付：新增 `platform_0003` 的 `read_policy/audit_events/outbox` 表及升级/回滚契约，新增不可变且默认拒绝的 `ACLFilter` 与 `EventEnvelope`；本地 PolicyEngine 对 document/rule read 生成 tenant + subject/role + classification ACLFilter，Retriever 的 Chroma pre-filter、catalog post-filter 与 citation load 统一消费该决策，调用方过滤不能覆盖策略字段。Platform AuditService 对拒绝决策单独 append 并按字段脱敏，`production + restricted` 写库失败会 fail closed。V02-POL-01 的 Fixture/Community CT/SEC、本地 SQLite migration、完整社区套件与 30 条 Golden 已通过；本任务未运行真实网络、Live、Enterprise 或 Performance，也未实现 T03 的完整文档生命周期增强。
 
 Core Gate：V0.2-T01–T05、真实 BGE 对照、ACL/删除和安全测试通过后可实施 V0.3。必需 Live 卡：DeepSeek；未通过时 V0.2 只能标“Core 完成，DeepSeek Live blocked/失败”。Anthropic 及其他 Provider 使用独立可选 adapter card，不阻塞 V0.3，但未 Live 验证的厂商不得进入“已验证支持”列表。
 
