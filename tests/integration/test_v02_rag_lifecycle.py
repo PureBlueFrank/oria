@@ -134,6 +134,9 @@ async def test_update_cleans_old_chunks_across_projections_and_rebuilds_only_act
         await ctx.knowledge.ingest(original, ctx)
         old_docs = await ctx.retriever.retrieve("rules", ctx, k=10)
         assert len(old_docs) == 6
+        bm25_index = ctx.knowledge._bm25_index
+        assert bm25_index is not None
+        assert all([await bm25_index.contains(doc.id, ctx.tenant_id) for doc in old_docs])
 
         second_embedder = FixtureEmbedder(dim=32)
         async with ChromaIndex(
@@ -155,6 +158,7 @@ async def test_update_cleans_old_chunks_across_projections_and_rebuilds_only_act
             for doc in old_docs:
                 assert not await ctx.knowledge._index.contains(doc.id, ctx.tenant_id)
                 assert not await second_index.contains(doc.id, ctx.tenant_id)
+                assert not await bm25_index.contains(doc.id, ctx.tenant_id)
 
         current_docs = await ctx.retriever.retrieve("rules", ctx, k=10)
         assert len(current_docs) == 6
@@ -189,6 +193,7 @@ async def test_update_cleans_old_chunks_across_projections_and_rebuilds_only_act
                 ctx.knowledge._objects.read_bytes(version.object_ref, ctx)
         for citation in current_citations:
             assert await ctx.knowledge.citation_exists(citation, ctx) is False
+            assert not await bm25_index.contains(citation.chunk_id, ctx.tenant_id)
     finally:
         await runtime.aclose()
 

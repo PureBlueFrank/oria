@@ -82,7 +82,7 @@ class ChromaIndex:
             raise ValueError("chunk and embedding counts differ")
         if not chunks:
             return
-        metadatas = [self._metadata(catalog, chunk) for chunk in chunks]
+        metadatas = [projection_metadata(catalog, chunk) for chunk in chunks]
         try:
             await asyncio.to_thread(
                 self._collection.upsert,
@@ -242,30 +242,6 @@ class ChromaIndex:
             raise IndexError("vector projection reset failed") from exc
 
     @staticmethod
-    def _metadata(catalog: CatalogVersion, chunk: IndexedChunk) -> dict[str, Any]:
-        metadata: dict[str, Any] = {
-            "tenant_id": catalog.tenant_id,
-            "document_id": catalog.document_id,
-            "document_version": catalog.version,
-            "content_hash": catalog.content_hash,
-            "source_uri": catalog.source_uri,
-            "classification": catalog.data_classification,
-            "acl_public": not (catalog.acl.allowed_subject_ids or catalog.acl.allowed_roles),
-            "acl_subjects": list(catalog.acl.allowed_subject_ids) or ["__none__"],
-            "acl_roles": list(catalog.acl.allowed_roles) or ["__none__"],
-        }
-        if chunk.rule_category is not None:
-            metadata["rule_category"] = chunk.rule_category
-        for key, value in catalog.metadata.items():
-            if isinstance(value, (str, int, float, bool)):
-                metadata[f"doc_{key}"] = value
-            elif value is not None:
-                metadata[f"doc_{key}"] = json.dumps(
-                    value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-                )
-        return metadata
-
-    @staticmethod
     def _where(
         acl_filter: ACLFilter,
         filters: dict[str, JsonValue],
@@ -293,3 +269,28 @@ class ChromaIndex:
                 raise ValueError("unsupported retrieval filter")
             terms.append({mapping[name]: {"$eq": value}})
         return {"$and": terms}
+
+
+def projection_metadata(catalog: CatalogVersion, chunk: IndexedChunk) -> dict[str, Any]:
+    """Build the shared ACL/version metadata used by dense and lexical projections."""
+    metadata: dict[str, Any] = {
+        "tenant_id": catalog.tenant_id,
+        "document_id": catalog.document_id,
+        "document_version": catalog.version,
+        "content_hash": catalog.content_hash,
+        "source_uri": catalog.source_uri,
+        "classification": catalog.data_classification,
+        "acl_public": not (catalog.acl.allowed_subject_ids or catalog.acl.allowed_roles),
+        "acl_subjects": list(catalog.acl.allowed_subject_ids) or ["__none__"],
+        "acl_roles": list(catalog.acl.allowed_roles) or ["__none__"],
+    }
+    if chunk.rule_category is not None:
+        metadata["rule_category"] = chunk.rule_category
+    for key, value in catalog.metadata.items():
+        if isinstance(value, (str, int, float, bool)):
+            metadata[f"doc_{key}"] = value
+        elif value is not None:
+            metadata[f"doc_{key}"] = json.dumps(
+                value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            )
+    return metadata

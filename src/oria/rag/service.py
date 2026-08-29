@@ -21,6 +21,7 @@ from oria.core.types import (
     QueryFilters,
     ResourceRef,
 )
+from oria.rag.bm25 import BM25Index
 from oria.rag.catalog import SQLiteKnowledgeCatalog
 from oria.rag.errors import KnowledgeError
 from oria.rag.index import ChromaIndex
@@ -74,12 +75,14 @@ class LocalKnowledgeService:
         index: ChromaIndex,
         embedder: Embedder,
         embedding_profile: str,
+        bm25_index: BM25Index | None = None,
     ) -> None:
         self._catalog = catalog
         self._objects = objects
         self._index = index
         self._embedder = embedder
         self._embedding_profile = embedding_profile
+        self._bm25_index = bm25_index
 
     async def ingest(self, request: DocumentIngestRequest, ctx: Context) -> IngestionResult:
         await _authorize("knowledge:write", request.document_id, ctx)
@@ -112,6 +115,8 @@ class LocalKnowledgeService:
         try:
             embeddings = await self._embedder.embed([chunk.public_content for chunk in chunks], ctx)
             await self._index.upsert(catalog, chunks, embeddings)
+            if self._bm25_index is not None:
+                await self._bm25_index.upsert(catalog, chunks)
         except BaseException:
             if not idempotent:
                 await self._catalog.finish_ingestion(ctx.tenant_id, run_id, success=False)
@@ -127,6 +132,12 @@ class LocalKnowledgeService:
                 request.document_id,
                 version,
             )
+            if self._bm25_index is not None:
+                await self._bm25_index.delete_document_version(
+                    ctx.tenant_id,
+                    request.document_id,
+                    version,
+                )
         return IngestionResult(
             document_id=request.document_id,
             document_version=request.version,
@@ -140,6 +151,8 @@ class LocalKnowledgeService:
         await _authorize("knowledge:write", "rebuild", ctx)
         versions = await self._catalog.list_active_versions(ctx.tenant_id)
         await self._index.delete_tenant(ctx.tenant_id)
+        if self._bm25_index is not None:
+            await self._bm25_index.rebuild_tenant(ctx.tenant_id)
         chunk_count = 0
         for catalog in versions:
             data = self._objects.read_bytes(catalog.object_ref, ctx)
@@ -150,6 +163,8 @@ class LocalKnowledgeService:
             chunks = _chunk_document(request, catalog.content_hash, catalog.tenant_id)
             embeddings = await self._embedder.embed([chunk.public_content for chunk in chunks], ctx)
             await self._index.upsert(catalog, chunks, embeddings)
+            if self._bm25_index is not None:
+                await self._bm25_index.upsert(catalog, chunks)
             chunk_count += len(chunks)
         return RebuildResult(document_versions=len(versions), chunk_count=chunk_count)
 
@@ -162,6 +177,8 @@ class LocalKnowledgeService:
         )
         known_versions = await self._catalog.list_document_versions(ctx.tenant_id, document_id)
         await self._index.delete_document_all_projections(ctx.tenant_id, document_id)
+        if self._bm25_index is not None:
+            await self._bm25_index.delete_document(ctx.tenant_id, document_id)
         for version in known_versions:
             self._objects.delete_ref(version.object_ref, ctx)
         if active_versions:
@@ -317,6 +334,104 @@ class AuthorizedChromaRetriever:
                     content=source_content,
                     metadata=metadata,
                     score=1.0 / (1.0 + hit.distance),
+                    source_uri=catalog.source_uri,
+                    acl=catalog.acl,
+                    trust_level="untrusted_data",
+                    provenance=catalog.source_uri,
+                    data_classification=catalog.data_classification,
+                )
+            )
+            if len(documents) == k:
+                break
+        return documents
+
+
+class AuthorizedBM25Retriever:
+    """Apply the same policy and source-of-truth checks to lexical recall."""
+
+    def __init__(
+        self,
+        *,
+        catalog: SQLiteKnowledgeCatalog,
+        index: BM25Index,
+        knowledge: LocalKnowledgeService,
+    ) -> None:
+        self._catalog = catalog
+        self._index = index
+        self._knowledge = knowledge
+
+    async def retrieve(
+        self,
+        query: str,
+        ctx: Context,
+        k: int = 5,
+        query_filters: QueryFilters | None = None,
+    ) -> list[Doc]:
+        if not query.strip():
+            raise ValueError("retrieval query must be non-empty")
+        if not 1 <= k <= 50:
+            raise ValueError("k must be between 1 and 50")
+        decision = await _authorize("rule:read", "knowledge", ctx)
+        acl_filter = decision.require_acl_filter()
+        effective_filters = acl_filter.and_query_filters(query_filters)
+        if not acl_filter.classifications:
+            return []
+        filters = {
+            name: value
+            for name, value in effective_filters.attributes.items()
+            if name not in _RESERVED_FILTERS
+        }
+        if acl_filter.tenant_id != ctx.tenant_id:
+            raise PermissionError("knowledge read is not authorized")
+        hits = await self._index.query(
+            query,
+            acl_filter=acl_filter,
+            k=min(k * 5, 100),
+            filters=filters,
+        )
+        documents: list[Doc] = []
+        for hit in hits:
+            document_id = hit.metadata.get("document_id")
+            version = hit.metadata.get("document_version")
+            if not isinstance(document_id, str) or not isinstance(version, str):
+                continue
+            catalog = await self._catalog.get_active_version(ctx.tenant_id, document_id, version)
+            if (
+                catalog is None
+                or not acl_filter.allows(
+                    tenant_id=catalog.tenant_id,
+                    acl=catalog.acl,
+                    classification=catalog.data_classification,
+                )
+                or hit.metadata.get("tenant_id") != ctx.tenant_id
+                or hit.metadata.get("content_hash") != catalog.content_hash
+            ):
+                continue
+            citation = CitationBlock(
+                document_id=document_id,
+                document_version=version,
+                chunk_id=hit.chunk_id,
+            )
+            try:
+                source_content = await self._knowledge.load_public_chunk(citation, ctx)
+            except (KnowledgeError, ValueError, ValidationError):
+                continue
+            metadata: dict[str, JsonValue] = {
+                **catalog.metadata,
+                "document_id": document_id,
+                "chunk_id": hit.chunk_id,
+            }
+            category = hit.metadata.get("rule_category")
+            if isinstance(category, str):
+                metadata["rule_category"] = category
+            documents.append(
+                Doc(
+                    id=hit.chunk_id,
+                    version=version,
+                    tenant_id=ctx.tenant_id,
+                    content=source_content,
+                    metadata=metadata,
+                    score=hit.score,
                     source_uri=catalog.source_uri,
                     acl=catalog.acl,
                     trust_level="untrusted_data",

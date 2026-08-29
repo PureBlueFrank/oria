@@ -57,6 +57,13 @@ class IndexHit(ValueModel):
     distance: float = Field(ge=0)
 
 
+class BM25Hit(ValueModel):
+    chunk_id: str
+    content: str
+    metadata: dict[str, JsonValue]
+    score: float = Field(ge=0)
+
+
 class IngestionResult(ValueModel):
     document_id: str
     document_version: str

@@ -36,6 +36,7 @@ from oria.providers.anthropic import AnthropicProvider
 from oria.providers.demo import DemoMockLLMProvider
 from oria.providers.embeddings import BGEEmbedder, FixtureEmbedder
 from oria.providers.openai_compat import OpenAICompatProvider
+from oria.rag.bm25 import BM25Index
 from oria.rag.catalog import SQLiteKnowledgeCatalog
 from oria.rag.index import ChromaIndex
 from oria.rag.object_store import LocalObjectStore
@@ -122,6 +123,7 @@ async def build_runtime(
             )
         )
         catalog = SQLiteKnowledgeCatalog(database_resources.platform_sessions)
+        bm25_index = BM25Index()
         audit = PlatformAuditService(database_resources.platform_sessions, resolved)
         knowledge = LocalKnowledgeService(
             catalog=catalog,
@@ -129,6 +131,7 @@ async def build_runtime(
             index=index,
             embedder=embedder,
             embedding_profile=embedding_projection,
+            bm25_index=bm25_index,
         )
         retriever = AuthorizedChromaRetriever(
             catalog=catalog,
