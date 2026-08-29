@@ -12,7 +12,7 @@ from typing import Any, cast
 import chromadb
 from chromadb.config import Settings
 
-from oria.core.types import JsonValue, Principal
+from oria.core.types import ACLFilter, JsonValue
 from oria.rag.errors import IndexError
 from oria.rag.models import CatalogVersion, IndexedChunk, IndexHit
 
@@ -98,12 +98,11 @@ class ChromaIndex:
         self,
         embedding: list[float],
         *,
-        tenant_id: str,
-        principal: Principal,
+        acl_filter: ACLFilter,
         k: int,
         filters: dict[str, JsonValue],
     ) -> tuple[IndexHit, ...]:
-        where = self._where(tenant_id, principal, filters)
+        where = self._where(acl_filter, filters)
         try:
             result = await asyncio.to_thread(
                 self._collection.query,
@@ -215,18 +214,21 @@ class ChromaIndex:
 
     @staticmethod
     def _where(
-        tenant_id: str,
-        principal: Principal,
+        acl_filter: ACLFilter,
         filters: dict[str, JsonValue],
     ) -> dict[str, Any]:
         acl_terms: list[dict[str, Any]] = [
             {"acl_public": {"$eq": True}},
-            {"acl_subjects": {"$contains": principal.subject_id}},
         ]
-        acl_terms.extend({"acl_roles": {"$contains": role}} for role in principal.roles)
+        acl_terms.extend(
+            {"acl_subjects": {"$contains": subject_id}}
+            for subject_id in acl_filter.allowed_subject_ids
+        )
+        acl_terms.extend({"acl_roles": {"$contains": role}} for role in acl_filter.allowed_roles)
         terms: list[dict[str, Any]] = [
-            {"tenant_id": {"$eq": tenant_id}},
+            {"tenant_id": {"$eq": acl_filter.tenant_id}},
             {"$or": acl_terms},
+            {"classification": {"$in": list(acl_filter.classifications)}},
         ]
         mapping = {
             "document_id": "document_id",

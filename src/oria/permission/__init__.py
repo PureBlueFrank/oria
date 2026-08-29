@@ -1,5 +1,6 @@
 """Central authorization policy implementations."""
 
+from oria.permission.audit import AuditUnavailableError, PlatformAuditService
 from oria.permission.local import (
     LOCAL_TENANT_ID,
     LOCAL_USER_SUBJECT_ID,
@@ -11,7 +12,9 @@ from oria.permission.local import (
 __all__ = [
     "LOCAL_TENANT_ID",
     "LOCAL_USER_SUBJECT_ID",
+    "AuditUnavailableError",
     "LocalPolicyEngine",
+    "PlatformAuditService",
     "local_cli_executor",
     "local_operator",
 ]

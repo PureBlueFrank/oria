@@ -11,7 +11,7 @@ import pytest
 
 from oria.config import resolve_runtime_config
 from oria.core.runtime import build_runtime
-from oria.core.types import ACLMetadata, PolicyDecision, Principal, QueryFilters
+from oria.core.types import ACLFilter, ACLMetadata, PolicyDecision, Principal, QueryFilters
 from oria.data import initialize_data
 from oria.permission.local import local_cli_executor, local_operator
 from oria.rag.demo import demo_rule_document
@@ -29,6 +29,12 @@ class _TenantTestPolicy:
             constraints={"tenant_id": tenant_id},
             policy_version="tenant-test-v1",
             reason="test tenant isolation",
+            acl_filter=ACLFilter(
+                tenant_id=tenant_id,
+                allowed_subject_ids=(ctx.actor.subject_id,),
+                allowed_roles=ctx.actor.roles,
+                classifications=("public", "internal", "restricted"),
+            ),
         )
 
 

@@ -17,6 +17,7 @@ from oria.core.types import (
     CitationBlock,
     Doc,
     JsonValue,
+    PolicyDecision,
     QueryFilters,
     ResourceRef,
 )
@@ -187,11 +188,16 @@ class LocalKnowledgeService:
     async def _load_cited_chunk(
         self, citation: CitationBlock, ctx: Context
     ) -> tuple[IndexedChunk, bytes]:
-        await _authorize("rule:read", citation.document_id, ctx)
+        decision = await _authorize("rule:read", citation.document_id, ctx)
+        acl_filter = decision.require_acl_filter()
         catalog = await self._catalog.get_active_version(
             ctx.tenant_id, citation.document_id, citation.document_version
         )
-        if catalog is None or not _acl_allows(catalog, ctx):
+        if catalog is None or not acl_filter.allows(
+            tenant_id=catalog.tenant_id,
+            acl=catalog.acl,
+            classification=catalog.data_classification,
+        ):
             raise KnowledgeError("cited knowledge is unavailable")
         if not await self._index.contains(citation.chunk_id, ctx.tenant_id):
             raise KnowledgeError("cited knowledge projection is unavailable")
@@ -234,17 +240,22 @@ class AuthorizedChromaRetriever:
             raise ValueError("retrieval query must be non-empty")
         if not 1 <= k <= 50:
             raise ValueError("k must be between 1 and 50")
-        filters = dict((query_filters or QueryFilters()).attributes)
-        if _RESERVED_FILTERS.intersection(filters):
-            raise ValueError("retrieval filter name is reserved")
         decision = await _authorize("rule:read", "knowledge", ctx)
-        if decision.get("tenant_id") != ctx.tenant_id:
+        acl_filter = decision.require_acl_filter()
+        effective_filters = acl_filter.and_query_filters(query_filters)
+        if not acl_filter.classifications:
+            return []
+        filters = {
+            name: value
+            for name, value in effective_filters.attributes.items()
+            if name not in _RESERVED_FILTERS
+        }
+        if acl_filter.tenant_id != ctx.tenant_id:
             raise PermissionError("knowledge read is not authorized")
         query_embedding = (await self._embedder.embed([query], ctx))[0]
         hits = await self._index.query(
             query_embedding,
-            tenant_id=ctx.tenant_id,
-            principal=ctx.actor,
+            acl_filter=acl_filter,
             k=min(k * 5, 100),
             filters=filters,
         )
@@ -257,7 +268,11 @@ class AuthorizedChromaRetriever:
             catalog = await self._catalog.get_active_version(ctx.tenant_id, document_id, version)
             if (
                 catalog is None
-                or not _acl_allows(catalog, ctx)
+                or not acl_filter.allows(
+                    tenant_id=catalog.tenant_id,
+                    acl=catalog.acl,
+                    classification=catalog.data_classification,
+                )
                 or hit.metadata.get("tenant_id") != ctx.tenant_id
                 or hit.metadata.get("content_hash") != catalog.content_hash
             ):
@@ -459,16 +474,7 @@ def _request_from_catalog(catalog: CatalogVersion, data: bytes) -> DocumentInges
     )
 
 
-def _acl_allows(catalog: CatalogVersion, ctx: Context) -> bool:
-    acl = catalog.acl
-    if not acl.allowed_subject_ids and not acl.allowed_roles:
-        return True
-    return ctx.actor.subject_id in acl.allowed_subject_ids or bool(
-        set(ctx.actor.roles).intersection(acl.allowed_roles)
-    )
-
-
-async def _authorize(action: str, resource_id: str, ctx: Context) -> dict[str, JsonValue]:
+async def _authorize(action: str, resource_id: str, ctx: Context) -> PolicyDecision:
     decision = await ctx.policy.authorize(
         AuthorizationRequest(
             actor=ctx.actor,
@@ -485,4 +491,4 @@ async def _authorize(action: str, resource_id: str, ctx: Context) -> dict[str, J
     )
     if not decision.allow:
         raise PermissionError("knowledge operation is not authorized")
-    return dict(decision.constraints)
+    return decision

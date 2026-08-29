@@ -11,6 +11,7 @@ from oria.core.types import (
     ChatOptions,
     ChatResult,
     Doc,
+    EventEnvelope,
     GuardrailResult,
     InboundMessage,
     InboundRequest,
@@ -55,6 +56,10 @@ class LLMProvider(Protocol):
 
 class PolicyEngine(Protocol):
     async def authorize(self, request: AuthorizationRequest, ctx: Context) -> PolicyDecision: ...
+
+
+class AuditService(Protocol):
+    async def append(self, event: EventEnvelope, *, classification: str) -> bool: ...
 
 
 class Tool(Protocol):

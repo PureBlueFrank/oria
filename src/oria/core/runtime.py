@@ -30,6 +30,7 @@ from oria.domain.services import (
 )
 from oria.ingress.local import LocalCLIIngressAdapter
 from oria.orchestrator.checkpoint import open_tenant_sqlite_saver
+from oria.permission.audit import PlatformAuditService
 from oria.permission.local import LocalPolicyEngine
 from oria.providers.anthropic import AnthropicProvider
 from oria.providers.demo import DemoMockLLMProvider
@@ -121,6 +122,7 @@ async def build_runtime(
             )
         )
         catalog = SQLiteKnowledgeCatalog(database_resources.platform_sessions)
+        audit = PlatformAuditService(database_resources.platform_sessions, resolved)
         knowledge = LocalKnowledgeService(
             catalog=catalog,
             objects=objects,
@@ -166,7 +168,7 @@ async def build_runtime(
 
         runtime = RuntimeServices(
             config=resolved,
-            policy=LocalPolicyEngine(),
+            policy=LocalPolicyEngine(audit),
             domain=domain,
             tools=tools,
             guardrails=guardrails,
