@@ -31,6 +31,7 @@ from oria.domain.services import (
 from oria.ingress.local import LocalCLIIngressAdapter
 from oria.orchestrator.checkpoint import open_tenant_sqlite_saver
 from oria.permission.local import LocalPolicyEngine
+from oria.providers.anthropic import AnthropicProvider
 from oria.providers.demo import DemoMockLLMProvider
 from oria.providers.embeddings import BGEEmbedder, FixtureEmbedder
 from oria.providers.openai_compat import OpenAICompatProvider
@@ -60,16 +61,19 @@ async def build_runtime(
         llm: LLMProvider
         if resolved.llm.provider == "mock":
             llm = DemoMockLLMProvider()
-        elif resolved.llm.provider == "deepseek":
+        elif resolved.llm.provider in {"deepseek", "kimi", "zhipu", "openai", "anthropic"}:
             if resolved.llm.base_url is None:
-                raise ValueError("DeepSeek profile requires a base_url")
+                raise ValueError(f"{resolved.llm.provider} profile requires a base_url")
             http_client = await exit_stack.enter_async_context(
                 httpx.AsyncClient(
                     base_url=resolved.llm.base_url,
                     timeout=httpx.Timeout(120.0, connect=10.0),
                 )
             )
-            llm = OpenAICompatProvider(resolved.llm, http_client)
+            if resolved.llm.provider == "anthropic":
+                llm = AnthropicProvider(resolved.llm, http_client)
+            else:
+                llm = OpenAICompatProvider(resolved.llm, http_client)
         else:
             raise ValueError(f"unsupported LLM provider: {resolved.llm.provider}")
 
