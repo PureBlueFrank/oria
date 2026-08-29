@@ -23,6 +23,7 @@ from pydantic import JsonValue as JsonValue
 from oria._internal.immutable import deep_freeze
 
 __all__ = [
+    "ACLFilter",
     "ACLMetadata",
     "AuthorizationContext",
     "AuthorizationRequest",
@@ -32,6 +33,7 @@ __all__ = [
     "ContentBlock",
     "Doc",
     "Done",
+    "EventEnvelope",
     "GuardrailResult",
     "ImageBlock",
     "InboundMessage",
@@ -406,21 +408,111 @@ class AuthorizationRequest(ValueModel):
     context: AuthorizationContext
 
 
-class PolicyDecision(ValueModel):
-    allow: bool
-    constraints: dict[str, JsonValue] = Field(default_factory=dict)
-    policy_version: str
-    reason: str
-
-
 class ACLMetadata(ValueModel):
     allowed_subject_ids: tuple[str, ...] = ()
     allowed_roles: tuple[str, ...] = ()
     classification: str = "internal"
 
 
+_ACL_FILTER_NAMES = frozenset(
+    {"tenant_id", "acl", "allowed_subject_ids", "allowed_roles", "classification"}
+)
+
+
 class QueryFilters(ValueModel):
     attributes: dict[str, JsonValue] = Field(default_factory=dict)
+
+
+class ACLFilter(ValueModel):
+    """Policy-owned document constraints kept separate from caller filters."""
+
+    tenant_id: str = Field(min_length=1)
+    allowed_subject_ids: tuple[str, ...] = ()
+    allowed_roles: tuple[str, ...] = ()
+    classifications: tuple[Literal["public", "internal", "restricted"], ...] = ()
+
+    def and_query_filters(self, query_filters: QueryFilters | None = None) -> QueryFilters:
+        """Combine filters with policy fields last so callers cannot weaken them."""
+        attributes = dict((query_filters or QueryFilters()).attributes)
+        if _ACL_FILTER_NAMES.intersection(attributes):
+            raise ValueError("query filter name is reserved for policy constraints")
+        attributes.update(
+            {
+                "tenant_id": self.tenant_id,
+                "allowed_subject_ids": list(self.allowed_subject_ids),
+                "allowed_roles": list(self.allowed_roles),
+                "classification": list(self.classifications),
+            }
+        )
+        return QueryFilters(attributes=attributes)
+
+    def allows(
+        self,
+        *,
+        tenant_id: str,
+        acl: ACLMetadata,
+        classification: str,
+    ) -> bool:
+        """Evaluate a document against this deny-by-default policy projection."""
+        if tenant_id != self.tenant_id or classification not in self.classifications:
+            return False
+        if not acl.allowed_subject_ids and not acl.allowed_roles:
+            return True
+        return bool(
+            set(self.allowed_subject_ids).intersection(acl.allowed_subject_ids)
+            or set(self.allowed_roles).intersection(acl.allowed_roles)
+        )
+
+
+class PolicyDecision(ValueModel):
+    allow: bool
+    constraints: dict[str, JsonValue] = Field(default_factory=dict)
+    policy_version: str
+    reason: str
+    acl_filter: ACLFilter | None = None
+
+    @model_validator(mode="after")
+    def validate_acl_filter(self) -> PolicyDecision:
+        if not self.allow and self.acl_filter is not None:
+            raise ValueError("denied policy decisions cannot carry an ACL filter")
+        constrained_tenant = self.constraints.get("tenant_id")
+        if (
+            self.acl_filter is not None
+            and isinstance(constrained_tenant, str)
+            and constrained_tenant != self.acl_filter.tenant_id
+        ):
+            raise ValueError("ACL filter tenant must match policy constraints")
+        return self
+
+    def require_acl_filter(self) -> ACLFilter:
+        """Return the authorized document filter or fail closed."""
+        if not self.allow or self.acl_filter is None:
+            raise PermissionError("document ACL filter is unavailable")
+        return self.acl_filter
+
+
+class EventEnvelope(ValueModel):
+    """Secret-free audit record shared by platform and business audit stores."""
+
+    event_id: str = Field(min_length=1)
+    occurred_at: datetime
+    tenant_id: str = Field(min_length=1)
+    actor: str = Field(min_length=1)
+    action: str = Field(min_length=1)
+    resource: ResourceRef
+    decision: Literal["allow", "deny"]
+    policy_version: str = Field(min_length=1)
+    args_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    result: Literal["success", "denied", "failure"]
+    correlation_id: str = Field(min_length=1)
+    payload: dict[str, JsonValue] = Field(default_factory=dict, repr=False)
+
+    @field_validator("occurred_at")
+    @classmethod
+    def require_aware_occurred_at(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("occurred_at must include a timezone")
+        return value
 
 
 class Doc(ValueModel):

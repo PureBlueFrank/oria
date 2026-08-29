@@ -3,19 +3,26 @@
 from __future__ import annotations
 
 import math
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from oria.core.types import (
+    ACLFilter,
+    ACLMetadata,
     AuthorizationContext,
     ChatResult,
     ContentBlock,
+    EventEnvelope,
     Message,
+    PolicyDecision,
     ProviderCapabilities,
     ProviderExtensionBlock,
+    QueryFilters,
     ReasoningDelta,
+    ResourceRef,
     StreamEvent,
     TextBlock,
     TextDelta,
@@ -130,3 +137,65 @@ def test_content_block_and_stream_event_discriminated_unions_round_trip() -> Non
 
     assert restored_block == block
     assert restored_event == event
+
+
+def test_acl_filter_is_deny_by_default_and_policy_constraints_cannot_be_overridden() -> None:
+    default_filter = ACLFilter(tenant_id="tenant-a")
+    public_acl = ACLMetadata()
+
+    assert not default_filter.allows(
+        tenant_id="tenant-a", acl=public_acl, classification="internal"
+    )
+
+    acl_filter = ACLFilter(
+        tenant_id="tenant-a",
+        allowed_subject_ids=("subject-a",),
+        allowed_roles=("reader",),
+        classifications=("public", "internal"),
+    )
+    combined = acl_filter.and_query_filters(QueryFilters(attributes={"document_id": "document-a"}))
+
+    assert combined.attributes["tenant_id"] == "tenant-a"
+    assert combined.attributes["document_id"] == "document-a"
+    with pytest.raises(TypeError):
+        combined.attributes["tenant_id"] = "tenant-b"
+    with pytest.raises(ValueError, match="reserved"):
+        acl_filter.and_query_filters(QueryFilters(attributes={"tenant_id": "tenant-b"}))
+
+    decision = PolicyDecision(
+        allow=True,
+        constraints={"tenant_id": "tenant-a"},
+        policy_version="policy-v1",
+        reason="allowed",
+        acl_filter=acl_filter,
+    )
+    assert decision.require_acl_filter() == acl_filter
+    decision_values = decision.model_dump()
+    decision_values["constraints"] = {"tenant_id": "tenant-b"}
+    with pytest.raises(ValidationError, match="tenant"):
+        PolicyDecision.model_validate(decision_values)
+
+
+def test_event_envelope_requires_aware_time_and_round_trips() -> None:
+    event = EventEnvelope(
+        event_id="audit-1",
+        occurred_at=datetime(2026, 8, 29, tzinfo=UTC),
+        tenant_id="tenant-a",
+        actor="subject-a",
+        action="document:read",
+        resource=ResourceRef(
+            resource_type="document", resource_id="document-a", tenant_id="tenant-a"
+        ),
+        decision="deny",
+        policy_version="policy-v1",
+        args_hash="sha256:" + "0" * 64,
+        result="denied",
+        correlation_id="correlation-a",
+        payload={"reason_code": "acl_denied"},
+    )
+
+    assert EventEnvelope.model_validate_json(event.model_dump_json()) == event
+    values = event.model_dump()
+    values["occurred_at"] = datetime(2026, 8, 29)
+    with pytest.raises(ValidationError, match="timezone"):
+        EventEnvelope.model_validate(values)
