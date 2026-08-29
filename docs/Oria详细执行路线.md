@@ -171,7 +171,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 | 版本 | 目标 | 当前状态 | 必须包含的真实验证 |
 | --- | --- | --- | --- |
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 Live 卡均通过 | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
-| V0.2 | Provider/RAG 完整化 | 进行中（T01–T02 已完成） | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
+| V0.2 | Provider/RAG 完整化 | 进行中（T01–T04 已完成） | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
 | V0.3 | 场景 A 完整 Workflow | 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
 | V0.5 | 多智能体、上下文和记忆 | 未开始 | 单/多 Agent 同集对照；跨会话记忆生命周期 |
@@ -369,6 +369,8 @@ T01 交付：OpenAI-compatible adapter 现按 profile 显式支持 Responses 与
 T02 交付：新增 `platform_0003` 的 `read_policy/audit_events/outbox` 表及升级/回滚契约，新增不可变且默认拒绝的 `ACLFilter` 与 `EventEnvelope`；本地 PolicyEngine 对 document/rule read 生成 tenant + subject/role + classification ACLFilter，Retriever 的 Chroma pre-filter、catalog post-filter 与 citation load 统一消费该决策，调用方过滤不能覆盖策略字段。Platform AuditService 对拒绝决策单独 append 并按字段脱敏，`production + restricted` 写库失败会 fail closed。V02-POL-01 的 Fixture/Community CT/SEC、本地 SQLite migration、完整社区套件与 30 条 Golden 已通过；本任务未运行真实网络、Live、Enterprise 或 Performance，也未实现 T03 的完整文档生命周期增强。
 
 T03 交付（已完成，Community）：新增 `platform_0004` document-version lifecycle revision，把 owner/classification 下沉到不可变的 `(tenant_id, document_id, version)` 并增加 `superseded_at`；新版本成功建立投影后原子地 supersede 旧版本，按版本清理全部 Oria Chroma projection，清理故障可经当前版本幂等摄入重试；删除仍遍历全版本清理 ObjectStore/向量投影，rebuild 仅重建 active version。AuthorizedRetriever 与 citation load 现同时复核 tenant/ACL/current version/content hash/chunk metadata，`Doc` 显式标记为 `untrusted_data`。V02-RAG-02/03/04 与 V0.2-S2 的双 tenant、不同 ACL、查询/更新/删除/重建闭环已用本地 SQLite + Chroma + 合成 Fixture 通过；完整社区套件 `277 passed, 1 deselected`，security `49 passed`，Golden `30/30`，静态检查与隔离 wheel 验证通过。证据：[`reports/verification/v0.2/20260829T214048+0800/summary.md`](../reports/verification/v0.2/20260829T214048+0800/summary.md)。本任务未运行 Live、Enterprise 或 Performance，V0.2 Core 仍等待 T04–T05 及真实 BGE 对照。
+
+T04 交付（已完成，Community）：自建纯 Python BM25 检索投影（标准 tf 饱和 + Robertson/Sparck Jones 正化 IDF + 文档长度归一化，无 numpy/rank-bm25 依赖），与 dense 投影同步 upsert/删除/重建，按 tenant 追踪 readiness 且未构建时显式抛错而非静默降级；新增 `ConfigurableRetriever` 提供 dense / dense+BM25（Reciprocal Rank Fusion）/ dense+BM25+reranker 三配置同一接口，新增 `Reranker` seam 与确定性 `FixtureReranker`，`AuthorizedBM25Retriever` 与 dense 一样复核 tenant/ACL/current version/content hash，检索结果仍标记 `untrusted_data`。runtime 默认装配 dense 管线（保持 demo 行为），bm25/reranker 组件已就位可切换。三配置真实运行、无静默 fallback、BM25 评分/ACL/生命周期契约测试已用本地 SQLite + Chroma + 合成 Fixture 通过；完整社区套件 `282 passed, 1 deselected`，静态检查与隔离 wheel 验证通过。本任务未接入真实 cross-encoder reranker，未运行真实 BGE 三管线 Recall@K/MRR 对照（留 T05），也未设性能阈值（仅原始延迟基线）。
 
 Core Gate：V0.2-T01–T05、真实 BGE 对照、ACL/删除和安全测试通过后可实施 V0.3。必需 Live 卡：DeepSeek；未通过时 V0.2 只能标“Core 完成，DeepSeek Live blocked/失败”。Anthropic 及其他 Provider 使用独立可选 adapter card，不阻塞 V0.3，但未 Live 验证的厂商不得进入“已验证支持”列表。
 
