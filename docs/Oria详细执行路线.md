@@ -368,6 +368,8 @@ T01 交付：OpenAI-compatible adapter 现按 profile 显式支持 Responses 与
 
 T02 交付：新增 `platform_0003` 的 `read_policy/audit_events/outbox` 表及升级/回滚契约，新增不可变且默认拒绝的 `ACLFilter` 与 `EventEnvelope`；本地 PolicyEngine 对 document/rule read 生成 tenant + subject/role + classification ACLFilter，Retriever 的 Chroma pre-filter、catalog post-filter 与 citation load 统一消费该决策，调用方过滤不能覆盖策略字段。Platform AuditService 对拒绝决策单独 append 并按字段脱敏，`production + restricted` 写库失败会 fail closed。V02-POL-01 的 Fixture/Community CT/SEC、本地 SQLite migration、完整社区套件与 30 条 Golden 已通过；本任务未运行真实网络、Live、Enterprise 或 Performance，也未实现 T03 的完整文档生命周期增强。
 
+T03 交付（已完成，Community）：新增 `platform_0004` document-version lifecycle revision，把 owner/classification 下沉到不可变的 `(tenant_id, document_id, version)` 并增加 `superseded_at`；新版本成功建立投影后原子地 supersede 旧版本，按版本清理全部 Oria Chroma projection，清理故障可经当前版本幂等摄入重试；删除仍遍历全版本清理 ObjectStore/向量投影，rebuild 仅重建 active version。AuthorizedRetriever 与 citation load 现同时复核 tenant/ACL/current version/content hash/chunk metadata，`Doc` 显式标记为 `untrusted_data`。V02-RAG-02/03/04 与 V0.2-S2 的双 tenant、不同 ACL、查询/更新/删除/重建闭环已用本地 SQLite + Chroma + 合成 Fixture 通过；完整社区套件 `277 passed, 1 deselected`，security `49 passed`，Golden `30/30`，静态检查与隔离 wheel 验证通过。证据：[`reports/verification/v0.2/20260829T214048+0800/summary.md`](../reports/verification/v0.2/20260829T214048+0800/summary.md)。本任务未运行 Live、Enterprise 或 Performance，V0.2 Core 仍等待 T04–T05 及真实 BGE 对照。
+
 Core Gate：V0.2-T01–T05、真实 BGE 对照、ACL/删除和安全测试通过后可实施 V0.3。必需 Live 卡：DeepSeek；未通过时 V0.2 只能标“Core 完成，DeepSeek Live blocked/失败”。Anthropic 及其他 Provider 使用独立可选 adapter card，不阻塞 V0.3，但未 Live 验证的厂商不得进入“已验证支持”列表。
 
 ## 六、V0.3 场景 A 完整 Workflow

@@ -9,8 +9,18 @@ from pathlib import Path
 import pytest
 
 from oria.config import resolve_runtime_config
+from oria.core.context import Context
 from oria.core.runtime import build_runtime
-from oria.core.types import ACLMetadata, CitationBlock, Doc
+from oria.core.types import (
+    ACLFilter,
+    ACLMetadata,
+    AuthorizationRequest,
+    CitationBlock,
+    Doc,
+    PolicyDecision,
+    Principal,
+    QueryFilters,
+)
 from oria.data import initialize_data
 from oria.permission.local import local_cli_executor, local_operator
 from oria.providers.embeddings import FixtureEmbedder
@@ -20,6 +30,23 @@ from oria.rag.index import ChromaIndex
 from oria.rag.service import LocalKnowledgeService
 
 pytestmark = pytest.mark.integration
+
+
+class _MultiTenantPolicy:
+    async def authorize(self, request: AuthorizationRequest, ctx: Context) -> PolicyDecision:
+        del request
+        return PolicyDecision(
+            allow=True,
+            constraints={"tenant_id": ctx.tenant_id},
+            policy_version="v02-s2-test-v1",
+            reason="synthetic multi-tenant lifecycle test",
+            acl_filter=ACLFilter(
+                tenant_id=ctx.tenant_id,
+                allowed_subject_ids=(ctx.actor.subject_id,),
+                allowed_roles=ctx.actor.roles,
+                classifications=("public", "internal", "restricted"),
+            ),
+        )
 
 
 async def _runtime(tmp_path: Path):
@@ -204,5 +231,107 @@ async def test_update_cleanup_failure_is_retryable_after_catalog_activation(
         retried = await ctx.knowledge.ingest(updated, ctx)
         assert retried.idempotent is True
         assert not await ctx.knowledge._index.contains(old_doc.id, ctx.tenant_id)
+    finally:
+        await runtime.aclose()
+
+
+@pytest.mark.security
+@pytest.mark.asyncio
+async def test_v02_s2_two_tenant_acl_update_delete_and_rebuild_loop(tmp_path: Path) -> None:
+    runtime, first_ctx = await _runtime(tmp_path)
+    try:
+        object.__setattr__(runtime, "policy", _MultiTenantPolicy())
+        second_actor = Principal(
+            subject_id="tenant-b-reader",
+            tenant_id="tenant-b",
+            kind="human",
+            roles=("knowledge-reader",),
+            authn_method="synthetic-test",
+        )
+        second_executor = Principal(
+            subject_id="tenant-b-runtime",
+            tenant_id="tenant-b",
+            kind="service",
+            roles=("runtime",),
+            authn_method="synthetic-test",
+        )
+        second_ctx = runtime.new_context(
+            actor=second_actor,
+            executor=second_executor,
+            session_id="tenant-b-session",
+            thread_id="tenant-b-thread",
+            run_id="tenant-b-run",
+        )
+        document_id = "shared-lifecycle-rules"
+        first = demo_rule_document().model_copy(
+            update={
+                "document_id": document_id,
+                "acl": ACLMetadata(allowed_subject_ids=(first_ctx.actor.subject_id,)),
+            }
+        )
+        second = demo_rule_document().model_copy(
+            update={
+                "document_id": document_id,
+                "content": "tenant B synthetic lifecycle knowledge",
+                "acl": ACLMetadata(allowed_roles=("knowledge-reader",)),
+                "metadata": {},
+            }
+        )
+        await first_ctx.knowledge.ingest(first, first_ctx)
+        await second_ctx.knowledge.ingest(second, second_ctx)
+
+        with pytest.raises(ValueError, match="reserved"):
+            await first_ctx.retriever.retrieve(
+                "rules",
+                first_ctx,
+                query_filters=QueryFilters(attributes={"tenant_id": "tenant-b"}),
+            )
+        first_docs = await first_ctx.retriever.retrieve(
+            "rules",
+            first_ctx,
+            k=10,
+            query_filters=QueryFilters(attributes={"document_id": document_id}),
+        )
+        second_docs = await second_ctx.retriever.retrieve(
+            "lifecycle knowledge",
+            second_ctx,
+            k=10,
+            query_filters=QueryFilters(attributes={"document_id": document_id}),
+        )
+        assert len(first_docs) == 6
+        assert len(second_docs) == 1
+        assert {doc.tenant_id for doc in first_docs} == {first_ctx.tenant_id}
+        assert {doc.tenant_id for doc in second_docs} == {second_ctx.tenant_id}
+        old_first_citation = _citation(first_docs[0])
+        second_citation = _citation(second_docs[0])
+
+        first_update = _updated_document().model_copy(update={"document_id": document_id})
+        await first_ctx.knowledge.ingest(first_update, first_ctx)
+        assert await first_ctx.knowledge.citation_exists(old_first_citation, first_ctx) is False
+        assert await second_ctx.knowledge.citation_exists(second_citation, second_ctx) is True
+        assert {
+            doc.version
+            for doc in await first_ctx.retriever.retrieve(
+                "rules",
+                first_ctx,
+                k=10,
+                query_filters=QueryFilters(attributes={"document_id": document_id}),
+            )
+        } == {"2.0.0"}
+        assert {doc.version for doc in second_docs} == {"1.0.0"}
+
+        deleted = await second_ctx.knowledge.delete(document_id, second_ctx)
+        assert deleted.deleted_versions == 1
+        assert await second_ctx.knowledge.citation_exists(second_citation, second_ctx) is False
+        assert await second_ctx.retriever.retrieve("lifecycle", second_ctx, k=10) == []
+
+        first_rebuild = await first_ctx.knowledge.rebuild(first_ctx)
+        second_rebuild = await second_ctx.knowledge.rebuild(second_ctx)
+        assert (first_rebuild.document_versions, first_rebuild.chunk_count) == (1, 6)
+        assert (second_rebuild.document_versions, second_rebuild.chunk_count) == (0, 0)
+        assert {
+            doc.tenant_id for doc in await first_ctx.retriever.retrieve("rules", first_ctx, k=10)
+        } == {first_ctx.tenant_id}
+        assert await second_ctx.retriever.retrieve("rules", second_ctx, k=10) == []
     finally:
         await runtime.aclose()

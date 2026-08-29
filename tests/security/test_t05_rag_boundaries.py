@@ -11,7 +11,14 @@ import pytest
 
 from oria.config import resolve_runtime_config
 from oria.core.runtime import build_runtime
-from oria.core.types import ACLFilter, ACLMetadata, PolicyDecision, Principal, QueryFilters
+from oria.core.types import (
+    ACLFilter,
+    ACLMetadata,
+    CitationBlock,
+    PolicyDecision,
+    Principal,
+    QueryFilters,
+)
 from oria.data import initialize_data
 from oria.permission.local import local_cli_executor, local_operator
 from oria.rag.demo import demo_rule_document
@@ -137,7 +144,7 @@ async def test_retriever_returns_object_truth_when_vector_content_is_tampered(
         stored = await asyncio.to_thread(
             index._collection.get,
             ids=[target.id],
-            include=["embeddings"],
+            include=["embeddings", "metadatas"],
         )
         await asyncio.to_thread(
             index._collection.update,
@@ -150,6 +157,20 @@ async def test_retriever_returns_object_truth_when_vector_content_is_tampered(
         observed = next(doc for doc in after if doc.id == target.id)
         assert observed.content == target.content
         assert "POISONED_VECTOR_CONTENT" not in observed.content
+
+        metadata = dict(stored["metadatas"][0])
+        metadata["content_hash"] = f"sha256:{'0' * 64}"
+        await asyncio.to_thread(
+            index._collection.update,
+            ids=[target.id],
+            metadatas=[metadata],
+        )
+        citation = CitationBlock(
+            document_id=str(target.metadata["document_id"]),
+            document_version=target.version,
+            chunk_id=target.id,
+        )
+        assert await ctx.knowledge.citation_exists(citation, ctx) is False
     finally:
         await runtime.aclose()
 
