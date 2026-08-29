@@ -85,6 +85,10 @@ class Retriever(Protocol):
     ) -> list[Doc]: ...
 
 
+class Reranker(Protocol):
+    async def rerank(self, query: str, docs: list[Doc], ctx: Context) -> list[Doc]: ...
+
+
 class Embedder(Protocol):
     dim: int
 
