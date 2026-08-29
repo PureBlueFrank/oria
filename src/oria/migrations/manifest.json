@@ -2,11 +2,12 @@
   "version": "1.0.0",
   "chains": {
     "platform": {
-      "head": "platform_0002",
+      "head": "platform_0003",
       "files": {
         "platform/env.py": "f8d7eec2019cd15696294fbe56ee24c23c0b9bc57aa22c78b5133b9bb43e83af",
         "platform/versions/platform_0001_catalog.py": "231ecf5361e84a3ba0a4d2861405bd6cd02a30dc62fd2d9212d77cff8a6e1771",
-        "platform/versions/platform_0002_knowledge_projection.py": "d6ddf39ebf57a745760ca9faeb45ad669ad9d712c67bc0edd65a64a9cbfbbcbf"
+        "platform/versions/platform_0002_knowledge_projection.py": "d6ddf39ebf57a745760ca9faeb45ad669ad9d712c67bc0edd65a64a9cbfbbcbf",
+        "platform/versions/platform_0003_acl_audit_outbox.py": "404e347b15be9d4cc84856cab32fa64d1c7773120f161ecc710d4c2271b4920c"
       }
     },
     "business": {
