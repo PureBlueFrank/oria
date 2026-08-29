@@ -357,6 +357,24 @@ class SQLiteKnowledgeCatalog:
         except (SQLAlchemyError, ValueError, TypeError, json.JSONDecodeError) as exc:
             raise CatalogError("knowledge catalog version listing failed") from exc
 
+    async def list_superseded_versions(self, tenant_id: str, document_id: str) -> tuple[str, ...]:
+        """Return inactive version identities whose vector projections may be removed."""
+        try:
+            async with self._sessions() as session:
+                rows = (
+                    await session.execute(
+                        text(
+                            "SELECT version FROM document_versions WHERE tenant_id = :tenant_id "
+                            "AND document_id = :document_id AND superseded_at IS NOT NULL "
+                            "ORDER BY version"
+                        ),
+                        {"tenant_id": tenant_id, "document_id": document_id},
+                    )
+                ).all()
+            return tuple(str(row[0]) for row in rows)
+        except SQLAlchemyError as exc:
+            raise CatalogError("knowledge catalog superseded-version listing failed") from exc
+
     async def mark_document_deleted(
         self, tenant_id: str, document_id: str
     ) -> tuple[CatalogVersion, ...]:

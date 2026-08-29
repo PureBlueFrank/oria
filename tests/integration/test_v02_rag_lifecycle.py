@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -12,8 +13,11 @@ from oria.core.runtime import build_runtime
 from oria.core.types import ACLMetadata
 from oria.data import initialize_data
 from oria.permission.local import local_cli_executor, local_operator
+from oria.providers.embeddings import FixtureEmbedder
 from oria.rag.demo import demo_rule_document
-from oria.rag.errors import CatalogError
+from oria.rag.errors import CatalogError, IndexError, ObjectStoreError
+from oria.rag.index import ChromaIndex
+from oria.rag.service import LocalKnowledgeService
 
 pytestmark = pytest.mark.integration
 
@@ -81,5 +85,103 @@ async def test_new_version_versions_owner_acl_classification_and_supersedes_old(
                 updated.model_copy(update={"owner_ref": "mutated-owner"}),
                 ctx,
             )
+    finally:
+        await runtime.aclose()
+
+
+@pytest.mark.asyncio
+async def test_update_cleans_old_chunks_across_projections_and_rebuilds_only_active(
+    tmp_path: Path,
+) -> None:
+    runtime, ctx = await _runtime(tmp_path)
+    try:
+        original = demo_rule_document()
+        await ctx.knowledge.ingest(original, ctx)
+        old_docs = await ctx.retriever.retrieve("rules", ctx, k=10)
+        assert len(old_docs) == 6
+
+        second_embedder = FixtureEmbedder(dim=32)
+        async with ChromaIndex(
+            runtime.config.data_paths.chroma,
+            projection_id="v02-secondary-projection",
+            embedding_dimension=second_embedder.dim,
+        ) as second_index:
+            second_knowledge = LocalKnowledgeService(
+                catalog=ctx.knowledge._catalog,
+                objects=ctx.knowledge._objects,
+                index=second_index,
+                embedder=second_embedder,
+                embedding_profile="v02-secondary-projection",
+            )
+            assert (await second_knowledge.rebuild(ctx)).chunk_count == 6
+
+            await ctx.knowledge.ingest(_updated_document(), ctx)
+
+            for doc in old_docs:
+                assert not await ctx.knowledge._index.contains(doc.id, ctx.tenant_id)
+                assert not await second_index.contains(doc.id, ctx.tenant_id)
+
+        current_docs = await ctx.retriever.retrieve("rules", ctx, k=10)
+        assert len(current_docs) == 6
+        assert {doc.version for doc in current_docs} == {"2.0.0"}
+        rebuilt = await ctx.knowledge.rebuild(ctx)
+        assert rebuilt.document_versions == 1
+        assert rebuilt.chunk_count == 6
+        stored = await asyncio.to_thread(
+            ctx.knowledge._index._collection.get,
+            where={"tenant_id": {"$eq": ctx.tenant_id}},
+            include=["metadatas"],
+        )
+        assert len(stored["ids"]) == rebuilt.chunk_count
+
+        history = await ctx.knowledge._catalog.list_document_versions(
+            ctx.tenant_id, original.document_id
+        )
+        deleted = await ctx.knowledge.delete(original.document_id, ctx)
+        assert deleted.deleted_versions == 1
+        after_delete = await asyncio.to_thread(
+            ctx.knowledge._index._collection.get,
+            where={"tenant_id": {"$eq": ctx.tenant_id}},
+            include=["metadatas"],
+        )
+        assert after_delete["ids"] == []
+        for version in history:
+            with pytest.raises(ObjectStoreError, match="unavailable"):
+                ctx.knowledge._objects.read_bytes(version.object_ref, ctx)
+    finally:
+        await runtime.aclose()
+
+
+@pytest.mark.asyncio
+async def test_update_cleanup_failure_is_retryable_after_catalog_activation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runtime, ctx = await _runtime(tmp_path)
+    try:
+        await ctx.knowledge.ingest(demo_rule_document(), ctx)
+        updated = _updated_document()
+        original_delete = ctx.knowledge._index.delete_document_version_all_projections
+
+        async def fail_delete(_tenant_id: str, _document_id: str, _document_version: str) -> None:
+            raise IndexError("injected version cleanup failure")
+
+        monkeypatch.setattr(
+            ctx.knowledge._index,
+            "delete_document_version_all_projections",
+            fail_delete,
+        )
+        with pytest.raises(IndexError, match="injected version cleanup failure"):
+            await ctx.knowledge.ingest(updated, ctx)
+
+        docs = await ctx.retriever.retrieve("rules", ctx, k=10)
+        assert {doc.version for doc in docs} == {"2.0.0"}
+
+        monkeypatch.setattr(
+            ctx.knowledge._index,
+            "delete_document_version_all_projections",
+            original_delete,
+        )
+        retried = await ctx.knowledge.ingest(updated, ctx)
+        assert retried.idempotent is True
     finally:
         await runtime.aclose()

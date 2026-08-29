@@ -112,12 +112,21 @@ class LocalKnowledgeService:
         try:
             embeddings = await self._embedder.embed([chunk.public_content for chunk in chunks], ctx)
             await self._index.upsert(catalog, chunks, embeddings)
-            if not idempotent:
-                await self._catalog.finish_ingestion(ctx.tenant_id, run_id, success=True)
         except BaseException:
             if not idempotent:
                 await self._catalog.finish_ingestion(ctx.tenant_id, run_id, success=False)
             raise
+        if not idempotent:
+            await self._catalog.finish_ingestion(ctx.tenant_id, run_id, success=True)
+        superseded_versions = await self._catalog.list_superseded_versions(
+            ctx.tenant_id, request.document_id
+        )
+        for version in superseded_versions:
+            await self._index.delete_document_version_all_projections(
+                ctx.tenant_id,
+                request.document_id,
+                version,
+            )
         return IngestionResult(
             document_id=request.document_id,
             document_version=request.version,
