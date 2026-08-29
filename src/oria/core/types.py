@@ -266,6 +266,11 @@ class ChatResult(ValueModel):
     refusal: str | None = None
     raw_response: dict[str, JsonValue] | None = Field(default=None, repr=False, exclude=True)
 
+    @property
+    def text(self) -> str:
+        """Return visible text without flattening or discarding the ordered content blocks."""
+        return "".join(block.text for block in self.content if isinstance(block, TextBlock))
+
     def internal_raw_response(self) -> dict[str, JsonValue] | None:
         """Return the retained provider payload for bounded internal diagnostics only."""
         return self.raw_response
