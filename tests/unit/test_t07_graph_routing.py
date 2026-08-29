@@ -12,9 +12,21 @@ from oria.agent.graph import (
     route_after_tools,
     route_after_validate,
 )
+from oria.agent.models import campaign_proposal_draft_schema
 from oria.agent.state import initial_research_state
 
 pytestmark = pytest.mark.unit
+
+
+def test_model_draft_schema_excludes_trusted_rule_and_evidence_fields() -> None:
+    properties = campaign_proposal_draft_schema().json_schema["properties"]
+
+    assert set(properties) == {
+        "schema_version",
+        "recommended_merchants",
+        "unresolved_items",
+        "abstained",
+    }
 
 
 def _state():

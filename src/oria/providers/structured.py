@@ -46,7 +46,9 @@ def _strict_schema(schema: dict[str, JsonValue]) -> dict[str, JsonValue]:
 
     def visit(node: object) -> None:
         if isinstance(node, dict):
-            if node.get("type") == "object":
+            if node.get("type") == "object" and not isinstance(
+                node.get("additionalProperties"), dict
+            ):
                 node["additionalProperties"] = False
             for child in node.values():
                 visit(child)

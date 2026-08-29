@@ -25,9 +25,11 @@ pytestmark = pytest.mark.integration
 
 
 class _ScenarioAProvider:
-    def __init__(self, *, forged_merchant_id: str | None = None) -> None:
+    def __init__(self, *, forged_merchant_id: str | None = None, query_limit: int = 10) -> None:
         self.calls = 0
         self.forged_merchant_id = forged_merchant_id
+        self.query_limit = query_limit
+        self.visible_query_maximum: int | None = None
 
     async def chat(
         self,
@@ -37,6 +39,9 @@ class _ScenarioAProvider:
         options: object | None = None,
     ) -> ChatResult:
         del ctx, options
+        if tools is not None:
+            query_spec = next(tool for tool in tools if tool.name == "query_merchants")
+            self.visible_query_maximum = query_spec.json_schema["properties"]["limit"]["maximum"]
         if self.calls == 0:
             assert tools is not None and len(tools) == 2
             result = ChatResult(
@@ -64,7 +69,7 @@ class _ScenarioAProvider:
                         name="query_merchants",
                         args={
                             "rule_snapshot_id": search["rule_snapshot_id"],
-                            "limit": 10,
+                            "limit": self.query_limit,
                         },
                     ),
                 ),
@@ -106,7 +111,7 @@ def _proposal(
     *,
     forged_merchant_id: str | None,
 ) -> dict[str, Any]:
-    rules = search["rules"]
+    del search
     recommendations = [
         {
             "merchant_id": candidate["merchant_id"],
@@ -123,30 +128,15 @@ def _proposal(
         }
     return {
         "schema_version": 1,
-        "rule_snapshot_id": search["rule_snapshot_id"],
-        "snapshot_hash": search["snapshot_hash"],
-        "rules": rules,
-        "campaign_preview": {
-            "template_ref": rules["basic"]["template_ref"],
-            "campaign_type": rules["basic"]["campaign_type"],
-            "campaign_window": rules["basic"]["campaign_window"],
-            "enrollment_window": rules["basic"]["enrollment_window"],
-            "title": rules["merchant_material"]["title"],
-            "hero_image_ref": rules["merchant_material"]["hero_image_ref"],
-        },
-        "coupon_batch_preview": {
-            "currency": rules["benefit_policy"]["currency"],
-            "budget_cap": rules["benefit_policy"]["budget_cap"],
-            "tier_rules": rules["benefit_policy"]["tier_rules"],
-        },
         "recommended_merchants": recommendations,
-        "field_evidence": search["field_evidence"],
         "unresolved_items": [],
         "abstained": False,
     }
 
 
-async def _run(tmp_path: Path, provider: _ScenarioAProvider) -> dict[str, Any]:
+async def _run(
+    tmp_path: Path, provider: _ScenarioAProvider, *, max_candidates: int = 10
+) -> dict[str, Any]:
     config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
     await initialize_data(config)
     services = await build_runtime(config)
@@ -165,6 +155,7 @@ async def _run(tmp_path: Path, provider: _ScenarioAProvider) -> dict[str, Any]:
             initial_research_state(
                 user_request="生成华东餐饮招商活动建议",
                 effective_at="2026-07-15T00:00:00+08:00",
+                max_candidates=max_candidates,
             ),
             config={"configurable": {"thread_id": "fixture-e2e"}},
             context=ResearchRunContext(ctx=ctx),
@@ -181,6 +172,8 @@ async def test_fixture_graph_produces_cited_ten_merchant_proposal(tmp_path: Path
     assert result["termination"] is None
     assert result["proposal"] is not None
     assert len(result["proposal"]["recommended_merchants"]) == 10
+    assert result["proposal"]["rules"] == result["rule_result"]["rules"]
+    assert result["proposal"]["field_evidence"] == result["rule_result"]["field_evidence"]
     assert result["model_turns"] == 3
     assert result["tool_calls_total"] == 2
     assert result["validation_repairs"] == 0
@@ -208,3 +201,19 @@ async def test_hard_excluded_merchant_cannot_be_repaired_into_proposal(tmp_path:
     assert result["termination"]["reason"] == "evidence_validation_failed"
     assert result["validation_repairs"] == 0
     assert result["model_turns"] == 3
+
+
+@pytest.mark.asyncio
+async def test_query_limit_cannot_exceed_the_requested_candidate_limit(tmp_path: Path) -> None:
+    provider = _ScenarioAProvider(query_limit=2)
+    result = await _run(
+        tmp_path,
+        provider,
+        max_candidates=1,
+    )
+
+    assert result["proposal"] is None
+    assert result["termination"]["reason"] == "policy_or_contract_violation"
+    assert result["events"][-1]["error_code"] == "invalid_arguments"
+    assert result["tool_calls_total"] == 1
+    assert provider.visible_query_maximum == 1

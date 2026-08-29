@@ -9,6 +9,7 @@ from contextlib import AbstractAsyncContextManager
 
 import httpx
 
+from oria.agent.graph import build_research_graph
 from oria.config.models import ResolvedRuntimeConfig
 from oria.config.resolve import resolve_runtime_config
 from oria.core.context import RuntimeServices, SealedAsyncExitStack
@@ -28,9 +29,10 @@ from oria.domain.services import (
     PackageCampaignRuleService,
 )
 from oria.ingress.local import LocalCLIIngressAdapter
+from oria.orchestrator.checkpoint import open_tenant_sqlite_saver
 from oria.permission.local import LocalPolicyEngine
+from oria.providers.demo import DemoMockLLMProvider
 from oria.providers.embeddings import BGEEmbedder, FixtureEmbedder
-from oria.providers.mock import MockLLMProvider
 from oria.providers.openai_compat import OpenAICompatProvider
 from oria.rag.catalog import SQLiteKnowledgeCatalog
 from oria.rag.index import ChromaIndex
@@ -57,12 +59,15 @@ async def build_runtime(
     try:
         llm: LLMProvider
         if resolved.llm.provider == "mock":
-            llm = MockLLMProvider()
+            llm = DemoMockLLMProvider()
         elif resolved.llm.provider == "deepseek":
             if resolved.llm.base_url is None:
                 raise ValueError("DeepSeek profile requires a base_url")
             http_client = await exit_stack.enter_async_context(
-                httpx.AsyncClient(base_url=resolved.llm.base_url)
+                httpx.AsyncClient(
+                    base_url=resolved.llm.base_url,
+                    timeout=httpx.Timeout(120.0, connect=10.0),
+                )
             )
             llm = OpenAICompatProvider(resolved.llm, http_client)
         else:
@@ -92,6 +97,9 @@ async def build_runtime(
                 database_resources = resource
         if database_resources is None:
             database_resources = await exit_stack.enter_async_context(DatabaseResources(resolved))
+        checkpointer = await exit_stack.enter_async_context(
+            open_tenant_sqlite_saver(resolved.data_paths.platform_db)
+        )
 
         if resolved.storage.object != "local" or resolved.storage.vector != "chroma":
             raise ValueError("selected knowledge storage implementation is unavailable")
@@ -146,6 +154,7 @@ async def build_runtime(
         ingress: ServiceRegistry[IngressAdapter] = ServiceRegistry()
         notifier: ServiceRegistry[Notifier] = ServiceRegistry()
         ingress.register("cli", LocalCLIIngressAdapter())
+        agents.register("research_agent", build_research_graph(checkpointer=checkpointer))
 
         tools.seal()
         for registry in (guardrails, nodes, agents, ingress, notifier):

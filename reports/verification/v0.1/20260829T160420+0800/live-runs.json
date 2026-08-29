@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "config_fingerprint": "sha256:3edd7613d7286fa66669b9b1ddf0011e9f108cdb3d95738cfd18bde216e48ea9",
+  "failed_attempt": {
+    "result": "failed",
+    "reason": "policy_or_contract_violation",
+    "observed_query_limit": 100,
+    "configured_max_candidates": 10,
+    "request_ids": [
+      "fbb214c7-87dd-4c7c-8bfa-6bca0d3d4049",
+      "e250ef12-ea6a-4d1b-a975-202e300573b2"
+    ],
+    "usage": {
+      "model_turns": 2,
+      "tool_calls_total": 1,
+      "input_tokens": 6481,
+      "output_tokens": 465,
+      "total_tokens": 6946
+    },
+    "business_rows_unchanged": true
+  },
+  "passed_runs": [
+    {
+      "run_id": "run_3a16a20fa6fa4967ad6166734786001e",
+      "executed_at": "2026-08-29T08:01:07.342159Z",
+      "request_ids": [
+        "79458469-d716-4128-bef0-358038d56309",
+        "82693d8b-bb9a-4df0-9613-adeb4ae6b188",
+        "3b21911c-0d78-40e3-bff5-3c2826fafaa6",
+        "0cc5236a-3976-4ed9-98ef-17c18fe3ba55"
+      ],
+      "usage": {
+        "model_turns": 4,
+        "tool_calls_total": 2,
+        "input_tokens": 18314,
+        "output_tokens": 3333,
+        "total_tokens": 21647
+      },
+      "merchants_inserted": 12,
+      "knowledge_ingestion_idempotent": false,
+      "eligible_merchant_count": 10,
+      "recommended_merchant_count": 10,
+      "field_evidence_count": 52,
+      "business_database_unchanged": true
+    },
+    {
+      "run_id": "run_48a134ad208143a28abd75ae801e5567",
+      "executed_at": "2026-08-29T08:01:19.962997Z",
+      "request_ids": [
+        "d489836b-d728-472b-91ab-0ff9e10df786",
+        "59836176-0e00-4506-bea0-a513083ae02f",
+        "76004723-cd27-4b1c-a07f-73959b24da79"
+      ],
+      "usage": {
+        "model_turns": 3,
+        "tool_calls_total": 2,
+        "input_tokens": 12630,
+        "output_tokens": 1017,
+        "total_tokens": 13647
+      },
+      "merchants_inserted": 0,
+      "knowledge_ingestion_idempotent": true,
+      "eligible_merchant_count": 10,
+      "recommended_merchant_count": 10,
+      "field_evidence_count": 52,
+      "business_database_unchanged": true
+    }
+  ]
+}

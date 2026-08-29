@@ -9,8 +9,8 @@
   "case_count": 30,
   "critical_case_count": 30,
   "dataset_file": "v1.jsonl",
-  "dataset_sha256": "d6564a502d416ba9b3f1fd85625ec7b840a622cbc41e631b3a2979af5bbef407",
-  "review_status": "pending_human_review",
-  "human_review_complete": false,
-  "baseline_created": false
+  "dataset_sha256": "6f706e5307d39054cc2dd232eecefbf9099cccdcd6f42c398bf0b1363a81f325",
+  "review_status": "approved",
+  "human_review_complete": true,
+  "baseline_created": true
 }

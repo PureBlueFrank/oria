@@ -12,7 +12,7 @@ pytestmark = pytest.mark.unit
 
 
 class _FakeSentenceTransformer:
-    def get_sentence_embedding_dimension(self) -> int:
+    def get_embedding_dimension(self) -> int:
         return 2
 
     def encode(

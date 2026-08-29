@@ -75,6 +75,29 @@ class CampaignProposal(ValueModel):
         return self
 
 
+class CampaignProposalDraft(ValueModel):
+    """LLM-owned soft ranking only; trusted rule fields are assembled locally."""
+
+    schema_version: Literal[1] = 1
+    recommended_merchants: tuple[MerchantRecommendation, ...] = ()
+    unresolved_items: tuple[str, ...] = ()
+    abstained: bool = False
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> Self:
+        if self.abstained:
+            if self.recommended_merchants or not self.unresolved_items:
+                raise ValueError("abstained drafts require unresolved items and no merchants")
+            return self
+        if not self.recommended_merchants or self.unresolved_items:
+            raise ValueError("non-abstained drafts require merchants and no unresolved items")
+        ids = tuple(item.merchant_id for item in self.recommended_merchants)
+        ranks = tuple(item.rank for item in self.recommended_merchants)
+        if len(set(ids)) != len(ids) or ranks != tuple(range(1, len(ranks) + 1)):
+            raise ValueError("merchant recommendations require unique IDs and contiguous ranks")
+        return self
+
+
 class AgentTermination(ValueModel):
     status: Literal["failed", "waiting"]
     reason: str
@@ -91,6 +114,13 @@ def campaign_proposal_schema() -> ResponseSchema:
     return ResponseSchema(
         name="campaign_proposal_v1",
         json_schema=CampaignProposal.model_json_schema(mode="serialization"),
+    )
+
+
+def campaign_proposal_draft_schema() -> ResponseSchema:
+    return ResponseSchema(
+        name="campaign_proposal_draft_v1",
+        json_schema=CampaignProposalDraft.model_json_schema(mode="serialization"),
     )
 
 
@@ -139,3 +169,52 @@ def validate_campaign_proposal(
             "proposal contains a merchant outside the eligible candidate set"
         )
     return proposal
+
+
+def finalize_campaign_proposal_draft(
+    value: dict[str, JsonValue],
+    *,
+    rules: SearchCampaignRulesResult | None,
+    merchants: QueryMerchantsResult | None,
+    max_candidates: int,
+) -> CampaignProposal:
+    unexpected = set(value).difference(CampaignProposalDraft.model_fields)
+    if unexpected:
+        raise ProposalEvidenceError("model draft contains authoritative or unknown fields")
+    draft = CampaignProposalDraft.model_validate(value)
+    if draft.abstained:
+        return CampaignProposal(
+            unresolved_items=draft.unresolved_items,
+            abstained=True,
+        )
+    if rules is None or merchants is None or rules.rules is None:
+        raise ProposalEvidenceError("proposal requires trusted rule and merchant evidence")
+    if merchants.returned_count > max_candidates:
+        raise ProposalEvidenceError("merchant evidence exceeds the requested candidate limit")
+    if len(draft.recommended_merchants) > max_candidates:
+        raise ProposalEvidenceError("proposal exceeds the requested candidate limit")
+    proposal = CampaignProposal(
+        rule_snapshot_id=rules.rule_snapshot_id,
+        snapshot_hash=rules.snapshot_hash,
+        rules=rules.rules,
+        campaign_preview=CampaignPreview(
+            template_ref=rules.rules.basic.template_ref,
+            campaign_type=rules.rules.basic.campaign_type,
+            campaign_window=rules.rules.basic.campaign_window,
+            enrollment_window=rules.rules.basic.enrollment_window,
+            title=rules.rules.merchant_material.title,
+            hero_image_ref=rules.rules.merchant_material.hero_image_ref,
+        ),
+        coupon_batch_preview=CouponBatchPreview(
+            currency=rules.rules.benefit_policy.currency,
+            budget_cap=rules.rules.benefit_policy.budget_cap,
+            tier_rules=rules.rules.benefit_policy.tier_rules,
+        ),
+        recommended_merchants=draft.recommended_merchants,
+        field_evidence=dict(rules.field_evidence),
+    )
+    return validate_campaign_proposal(
+        proposal.model_dump(mode="json"),
+        rules=rules,
+        merchants=merchants,
+    )

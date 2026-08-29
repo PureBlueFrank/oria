@@ -12,7 +12,7 @@ from typing import Protocol, cast
 
 
 class _SentenceTransformer(Protocol):
-    def get_sentence_embedding_dimension(self) -> int | None: ...
+    def get_embedding_dimension(self) -> int | None: ...
 
     def encode(
         self,
@@ -76,7 +76,7 @@ class BGEEmbedder:
             raise ValueError("BGE remote model code is forbidden")
         factory = model_factory if model_factory is not None else self._load_factory()
         self._model = factory(model, revision=revision, trust_remote_code=False)
-        dimension = self._model.get_sentence_embedding_dimension()
+        dimension = self._model.get_embedding_dimension()
         if dimension is None or dimension <= 0:
             raise ValueError("BGE model returned an invalid embedding dimension")
         self.dim = dimension

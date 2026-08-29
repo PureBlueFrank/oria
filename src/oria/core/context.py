@@ -167,6 +167,7 @@ class RuntimeServices:
         session_id: str,
         thread_id: str,
         run_id: str,
+        correlation_id: str | None = None,
         job_id: str | None = None,
     ) -> Context:
         if not self.ready:
@@ -180,6 +181,7 @@ class RuntimeServices:
             session_id=session_id,
             thread_id=thread_id,
             run_id=run_id,
+            correlation_id=run_id if correlation_id is None else correlation_id,
             job_id=job_id,
         )
 
@@ -210,11 +212,12 @@ class Context:
     session_id: str
     thread_id: str
     run_id: str
+    correlation_id: str
     job_id: str | None = None
 
     def __post_init__(self) -> None:
-        if not all((self.session_id, self.thread_id, self.run_id)):
-            raise ValueError("session_id, thread_id and run_id must be non-empty")
+        if not all((self.session_id, self.thread_id, self.run_id, self.correlation_id)):
+            raise ValueError("session_id, thread_id, run_id and correlation_id must be non-empty")
         if self.actor.tenant_id != self.executor.tenant_id:
             raise ValueError("actor and executor must belong to the same tenant")
 

@@ -90,7 +90,6 @@ def _abstain_result() -> ChatResult:
         structured_output={
             "schema_version": 1,
             "recommended_merchants": [],
-            "field_evidence": {},
             "unresolved_items": ["insufficient evidence"],
             "abstained": True,
         },
@@ -238,7 +237,13 @@ async def test_plain_output_gets_one_finalization_only_repair(tmp_path: Path) ->
 async def test_structured_provider_error_counts_turn_and_repairs_once(tmp_path: Path) -> None:
     provider = _SequenceProvider(
         [
-            StructuredOutputError("invalid structured output", retryable=False),
+            StructuredOutputError(
+                "invalid structured output",
+                retryable=False,
+                provider_request_id="rejected-response-1",
+                provider_model="test-model",
+                usage=Usage(input_tokens=7, output_tokens=5, cost=0.02),
+            ),
             _abstain_result(),
         ]
     )
@@ -247,11 +252,52 @@ async def test_structured_provider_error_counts_turn_and_repairs_once(tmp_path: 
     assert result["termination"] is None, result
     assert result["proposal"]["abstained"] is True
     assert result["model_turns"] == 2
+    assert result["input_tokens"] == 8
+    assert result["output_tokens"] == 6
+    assert result["total_cost"] == 0.02
     assert result["validation_repairs"] == 1
+    failed = [event for event in result["events"] if event["type"] == "provider_failed"]
+    assert failed == [
+        {
+            "type": "provider_failed",
+            "model_turn": 1,
+            "error_code": "structured_output_error",
+            "provider_request_id": "rejected-response-1",
+            "provider_model": "test-model",
+            "retryable": False,
+        }
+    ]
     assert provider.visible_tool_names == [
         ("search_campaign_rules", "query_merchants"),
         None,
     ]
+
+
+@pytest.mark.asyncio
+async def test_rejected_structured_response_usage_can_exhaust_budget(tmp_path: Path) -> None:
+    provider = _SequenceProvider(
+        [
+            StructuredOutputError(
+                "invalid structured output",
+                retryable=False,
+                provider_request_id="over-budget-rejected-response",
+                provider_model="test-model",
+                usage=Usage(input_tokens=11, output_tokens=1),
+            )
+        ]
+    )
+
+    result = await _invoke(
+        tmp_path,
+        provider,
+        limits=ResearchLimits(max_input_tokens=10),
+    )
+
+    assert result["termination"]["reason"] == "max_input_tokens"
+    assert result["validation_repairs"] == 0
+    assert result["model_turns"] == 1
+    assert result["input_tokens"] == 11
+    assert provider.calls == 1
 
 
 @pytest.mark.asyncio

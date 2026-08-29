@@ -1,0 +1,9 @@
+suite: scenario_a
+dataset_version: "1"
+allowed_regression: 0
+required_metrics:
+  case_pass_rate: 1.0
+  critical_pass_rate: 1.0
+  outcome_accuracy: 1.0
+  tool_sequence_accuracy: 1.0
+  grounded_proposal_rate: 1.0

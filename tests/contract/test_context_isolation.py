@@ -75,7 +75,15 @@ def _principal(
 
 
 def _identity(ctx: Context) -> tuple[object, ...]:
-    return (ctx.actor, ctx.executor, ctx.tenant_id, ctx.session_id, ctx.thread_id, ctx.run_id)
+    return (
+        ctx.actor,
+        ctx.executor,
+        ctx.tenant_id,
+        ctx.session_id,
+        ctx.thread_id,
+        ctx.run_id,
+        ctx.correlation_id,
+    )
 
 
 @pytest.mark.asyncio
@@ -100,6 +108,7 @@ async def test_concurrent_contexts_across_tenants_stay_isolated(tmp_path: Path) 
             session_id="session-a",
             thread_id="thread-a",
             run_id="run-a",
+            correlation_id="correlation-a",
         )
         ctx_b = runtime.new_context(
             actor=actor_b,
@@ -107,6 +116,7 @@ async def test_concurrent_contexts_across_tenants_stay_isolated(tmp_path: Path) 
             session_id="session-b",
             thread_id="thread-b",
             run_id="run-b",
+            correlation_id="correlation-b",
         )
 
         assert ctx_a.actor != ctx_b.actor
@@ -115,9 +125,26 @@ async def test_concurrent_contexts_across_tenants_stay_isolated(tmp_path: Path) 
         assert ctx_a.run_id != ctx_b.run_id
         assert ctx_a.session_id != ctx_b.session_id
         assert ctx_a.thread_id != ctx_b.thread_id
+        assert ctx_a.correlation_id != ctx_b.correlation_id
 
-        identity_a = (actor_a, executor_a, "tenant-alpha", "session-a", "thread-a", "run-a")
-        identity_b = (actor_b, executor_b, "tenant-beta", "session-b", "thread-b", "run-b")
+        identity_a = (
+            actor_a,
+            executor_a,
+            "tenant-alpha",
+            "session-a",
+            "thread-a",
+            "run-a",
+            "correlation-a",
+        )
+        identity_b = (
+            actor_b,
+            executor_b,
+            "tenant-beta",
+            "session-b",
+            "thread-b",
+            "run-b",
+            "correlation-b",
+        )
 
         with pytest.raises(FrozenInstanceError):
             ctx_a.run_id = "run-b"

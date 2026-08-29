@@ -10,7 +10,7 @@
 
 > 本节是架构作者给“无对话上下文的实现方”的交接说明，确保对方能准确起步、不偏航。本节与其余各节冲突时，以其余各节为准；本节只负责“如何开始”与“口径澄清”。
 
-**0.1 当前状态（2026-08-28）**：架构已完成场景 A 资深 Agent 架构复核及工程路线修订；仓库已完成 V0.1-T01–T06，其中 T02/T03/T04/T05 经 remediation。T05 交付 ObjectStore 原文、SQLite catalog、按 embedding projection 隔离的 Chroma 投影、AuthorizedRetriever、可重建 citation 与 tenant-qualified `CampaignRuleSnapshot`，并补齐跨投影删除与失败重试；T06 交付 `search_campaign_rules`、`query_merchants` 与启动期封存的 ToolRegistry，执行参数/结果 schema、allowlist、授权、trust metadata 和受限资格输入脱敏。仓库已有锁定的 `uv 0.12.6 + Python 3.11`、`pyproject.toml`、`uv.lock`、`src/oria/` 与测试（145 passed）。V0.1-T07 及后续尚未开始，V0.1 Core Gate 与 Live 卡均未通过；真实 DeepSeek/BGE 未运行。第一里程碑仍是 V0.1 MVP（见 0.6），先交付永久保留的纵向切片，再逐层增强。**本文档与 `docs/Oria详细执行路线.md` 共同构成执行契约**；ADR 状态以 `docs/adr/README.md` 为准，冲突时必须先修正文档或 ADR，不能自行择一。
+**0.1 当前状态（2026-08-29）**：架构已完成场景 A 资深 Agent 架构复核及工程路线修订；仓库已完成 V0.1-T01–T10，`V0.1-Core` 与必需 Live 卡均通过。当前基线包含唯一 Runtime/Graph/SQLite Checkpointer 装配、自动初始化离线 Demo、30 条已人工批准 Golden、README、V0.1 威胁模型、Eval ADR 与证据模板。本地验证为 188 passed，Golden 30/30 且五项指标均为 1.0，wheel/sdist 及无源码路径的已安装 wheel 双跑通过。Agent 审计修复已确保失败模型响应的 request ID/usage 计入预算、用户输入不进入 system message、`max_candidates` 在 Tool Schema/执行/最终校验三层强制执行，并以业务库执行前后完整指纹证明零副作用。修复后真实 `deepseek-v4-flash` Responses + 锁定 BGE 双跑通过，7/7 模型轮次保存 request ID 与 usage，均返回 10 个合格商家和 52 条引用；BGE 首次加载及强制离线复跑均为 512 维单位向量。远端 GitHub Actions 尚未在本次未提交变更上实跑；企业 Adapter 与其他 Provider 仍未 Live 验证。第一里程碑仍是 V0.1 MVP（见 0.6），先交付永久保留的纵向切片，再逐层增强。**本文档与 `docs/Oria详细执行路线.md` 共同构成执行契约**；ADR 状态以 `docs/adr/README.md` 为准，冲突时必须先修正文档或 ADR，不能自行择一。
 
 **0.2 实现方角色**：由 Codex 按 §九版本路线和 `docs/Oria详细执行路线.md` 实现。每次任务前先检查详细路线的准入、真实场景和测试；遇设计空白在 `docs/adr/` 建 ADR 并标“待 review”，不得擅自偏离架构。每条 ADR 对应 §十面试 hook。
 
@@ -169,6 +169,7 @@ class Context:
     session_id: str
     thread_id: str              # LangGraph 持久化游标；一个 session 可含多个 thread
     run_id: str                 # 单次执行 ID
+    correlation_id: str         # 日志/报告/跨组件关联 ID
     job_id: str | None          # 异步任务 ID；同步调用为空
 
     # ctx.llm / ctx.tools / ctx.policy / ctx.domain 等是只读转发属性，

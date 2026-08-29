@@ -12,6 +12,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
 from oria.agent import build_research_graph
+from oria.eval import ScenarioAGates
 from oria.orchestrator import open_tenant_sqlite_saver
 from oria.prompts import PromptManager
 
@@ -31,14 +32,24 @@ def _config(tenant_id: str) -> RunnableConfig:
 
 
 async def _verify(data_dir: Path) -> dict[str, object]:
+    gates = ScenarioAGates(
+        suite="scenario_a",
+        dataset_version="1",
+        required_metrics={
+            "case_pass_rate": 1.0,
+            "critical_pass_rate": 1.0,
+            "outcome_accuracy": 1.0,
+            "tool_sequence_accuracy": 1.0,
+            "grounded_proposal_rate": 1.0,
+        },
+    )
     prompt = PromptManager().render(
         "merchant_selection",
         version=1,
-        user_request="installed wheel verification",
         effective_at="2026-07-15T00:00:00+08:00",
         max_candidates=10,
     )
-    if "installed wheel verification" not in prompt:
+    if "CampaignProposalDraft v1" not in prompt:
         raise AssertionError("installed prompt resource was not rendered")
     if tuple(build_research_graph().get_graph().nodes) != (
         "__start__",
@@ -67,6 +78,7 @@ async def _verify(data_dir: Path) -> dict[str, object]:
         "prompt_version": 1,
         "graph_nodes": ["model", "tools", "validate"],
         "checkpoint_tenant_isolation": True,
+        "golden_contract": gates.dataset_version == "1",
     }
 
 

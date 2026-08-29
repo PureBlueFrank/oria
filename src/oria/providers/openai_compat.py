@@ -108,7 +108,21 @@ class OpenAICompatProvider:
             raise ProviderResponseError("provider returned invalid JSON", retryable=False) from exc
         if not isinstance(body, dict):
             raise ProviderResponseError("provider returned an invalid response", retryable=False)
-        return self._parse_response(cast(dict[str, Any], body), selected_options)
+        typed_body = cast(dict[str, Any], body)
+        request_id = _optional_string(typed_body.get("id"))
+        provider_model = _optional_string(typed_body.get("model"))
+        usage = _parse_usage(typed_body.get("usage"), request_id=request_id)
+        try:
+            return self._parse_response(typed_body, selected_options, usage=usage)
+        except StructuredOutputError as exc:
+            raise StructuredOutputError(
+                exc.safe_message,
+                retryable=exc.retryable,
+                retry_after=exc.retry_after,
+                provider_request_id=request_id,
+                provider_model=provider_model,
+                usage=usage,
+            ) from exc
 
     async def chat_stream(
         self,
@@ -199,21 +213,37 @@ class OpenAICompatProvider:
                                 "provider stream completion is invalid", retryable=False
                             )
                         request_id = _optional_string(completed.get("id"))
+                        usage = _parse_usage(completed.get("usage"), request_id=request_id)
                         if response_schema is not None:
-                            structured_text = self._validated_stream_text(
-                                response_schema,
-                                structured_text_parts,
-                                structured_arguments,
-                                item_names,
-                            )
-                            yield TextDelta(
-                                **self._event_base(sequence, request_id=request_id),
-                                text=structured_text,
-                            )
-                            sequence += 1
+                            try:
+                                structured_text = self._validated_stream_text(
+                                    response_schema,
+                                    structured_text_parts,
+                                    structured_arguments,
+                                    item_names,
+                                )
+                            except StructuredOutputError as exc:
+                                yield UsageDelta(
+                                    **self._event_base(sequence, request_id=request_id),
+                                    usage=usage,
+                                )
+                                sequence += 1
+                                yield ProviderError(
+                                    **self._event_base(sequence, request_id=request_id),
+                                    code=exc.code,
+                                    safe_message=exc.safe_message,
+                                    retryable=exc.retryable,
+                                )
+                                return
+                            if structured_text is not None:
+                                yield TextDelta(
+                                    **self._event_base(sequence, request_id=request_id),
+                                    text=structured_text,
+                                )
+                                sequence += 1
                         yield UsageDelta(
                             **self._event_base(sequence, request_id=request_id),
-                            usage=_parse_usage(completed.get("usage")),
+                            usage=usage,
                         )
                         sequence += 1
                         yield Done(
@@ -265,12 +295,20 @@ class OpenAICompatProvider:
         text_parts: list[str],
         arguments: dict[str, list[str]],
         item_names: dict[str, str],
-    ) -> str:
+    ) -> str | None:
         mode = self._profile.structured_output_mode
         if mode == "native_json_schema":
-            if item_names or arguments or not text_parts:
+            unknown = set(arguments).difference(item_names)
+            if unknown or (item_names and text_parts):
                 raise StructuredOutputError(
-                    "structured response is missing or mixed with tool calls",
+                    "structured response is mixed with tool calls",
+                    retryable=False,
+                )
+            if item_names:
+                return None
+            if not text_parts:
+                raise StructuredOutputError(
+                    "structured response is missing",
                     retryable=False,
                 )
             text = "".join(text_parts)
@@ -284,9 +322,21 @@ class OpenAICompatProvider:
                 item_id for item_id, name in item_names.items() if name != RESERVED_RESPONSE_TOOL
             ]
             unknown = set(arguments).difference(item_names)
-            if len(reserved) != 1 or business or unknown:
+            if unknown or (reserved and business):
                 raise StructuredOutputError(
                     "structured response must contain one reserved submission only",
+                    retryable=False,
+                )
+            if business:
+                if text_parts:
+                    raise StructuredOutputError(
+                        "structured response is mixed with tool calls",
+                        retryable=False,
+                    )
+                return None
+            if len(reserved) != 1:
+                raise StructuredOutputError(
+                    "structured response is missing",
                     retryable=False,
                 )
             payload = "".join(arguments.get(reserved[0], []))
@@ -370,7 +420,9 @@ class OpenAICompatProvider:
             payload["stream"] = True
         return payload
 
-    def _parse_response(self, body: dict[str, Any], options: ChatOptions) -> ChatResult:
+    def _parse_response(
+        self, body: dict[str, Any], options: ChatOptions, *, usage: Usage
+    ) -> ChatResult:
         content: list[Any] = []
         tool_calls: list[ToolCall] = []
         output_text: list[str] = []
@@ -439,30 +491,36 @@ class OpenAICompatProvider:
             mode = self._profile.structured_output_mode
             if mode == "native_json_schema":
                 if tool_calls:
+                    if reserved_payloads or output_text:
+                        raise StructuredOutputError(
+                            "structured response is mixed with business tool calls",
+                            retryable=False,
+                        )
+                elif reserved_payloads or not output_text:
+                    raise StructuredOutputError("structured response is missing", retryable=False)
+                else:
+                    structured = parse_structured_text("".join(output_text), response_schema)
+                    content = []
+            elif mode == "synthetic_tool":
+                if reserved_payloads and tool_calls:
                     raise StructuredOutputError(
                         "structured response is mixed with business tool calls", retryable=False
                     )
-                if reserved_payloads or not output_text:
-                    raise StructuredOutputError("structured response is missing", retryable=False)
-                structured = parse_structured_text("".join(output_text), response_schema)
-                content = []
-            elif mode == "synthetic_tool":
-                if len(reserved_payloads) != 1:
+                if not reserved_payloads and tool_calls:
+                    pass
+                elif len(reserved_payloads) != 1:
                     raise StructuredOutputError(
                         "structured response must contain one reserved submission", retryable=False
                     )
-                if tool_calls:
-                    raise StructuredOutputError(
-                        "structured response is mixed with business tool calls", retryable=False
-                    )
-                structured = parse_structured_text(reserved_payloads[0], response_schema)
-                content = [block for block in content if not isinstance(block, TextBlock)]
+                else:
+                    structured = parse_structured_text(reserved_payloads[0], response_schema)
+                    content = [block for block in content if not isinstance(block, TextBlock)]
 
         return ChatResult(
             content=tuple(content),
             tool_calls=tuple(tool_calls),
             structured_output=structured,
-            usage=_parse_usage(body.get("usage")),
+            usage=usage,
             finish_reason=_optional_string(body.get("status")),
             request_id=_optional_string(body.get("id")),
             refusal=refusal,
@@ -596,26 +654,44 @@ def _parse_arguments(arguments: str) -> dict[str, JsonValue]:
     return cast(dict[str, JsonValue], value)
 
 
-def _parse_usage(value: object) -> Usage:
-    usage = value if isinstance(value, dict) else {}
+def _parse_usage(value: object, *, request_id: str | None = None) -> Usage:
+    if not isinstance(value, dict):
+        raise ProviderResponseError(
+            "provider response usage is missing or invalid",
+            retryable=False,
+            provider_request_id=request_id,
+        )
+    usage = value
     input_details = usage.get("input_tokens_details")
     output_details = usage.get("output_tokens_details")
     return Usage(
-        input_tokens=_nonnegative_int(usage.get("input_tokens")),
-        output_tokens=_nonnegative_int(usage.get("output_tokens")),
-        cache_read_tokens=_nested_nonnegative_int(input_details, "cached_tokens"),
-        reasoning_tokens=_nested_nonnegative_int(output_details, "reasoning_tokens"),
+        input_tokens=_required_nonnegative_int(usage.get("input_tokens"), request_id=request_id),
+        output_tokens=_required_nonnegative_int(usage.get("output_tokens"), request_id=request_id),
+        cache_read_tokens=_optional_nested_nonnegative_int(
+            input_details, "cached_tokens", request_id=request_id
+        ),
+        reasoning_tokens=_optional_nested_nonnegative_int(
+            output_details, "reasoning_tokens", request_id=request_id
+        ),
     )
 
 
-def _nested_nonnegative_int(value: object, key: str) -> int | None:
+def _optional_nested_nonnegative_int(
+    value: object, key: str, *, request_id: str | None
+) -> int | None:
     if not isinstance(value, dict) or key not in value:
         return None
-    return _nonnegative_int(value.get(key))
+    return _required_nonnegative_int(value.get(key), request_id=request_id)
 
 
-def _nonnegative_int(value: object) -> int:
-    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+def _required_nonnegative_int(value: object, *, request_id: str | None) -> int:
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    raise ProviderResponseError(
+        "provider response usage is missing or invalid",
+        retryable=False,
+        provider_request_id=request_id,
+    )
 
 
 def _optional_string(value: object) -> str | None:

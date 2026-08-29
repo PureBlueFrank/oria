@@ -77,7 +77,7 @@ def _defaults() -> dict[str, Any]:
                 "bge": {
                     "provider": "sentence_transformers",
                     "model": "BAAI/bge-small-zh-v1.5",
-                    "revision": "e534609e6b53ac54bd42d8e87995d21a73b90bad",
+                    "revision": "a7ec18349c42fc774b0e86af26215e38a10fbe9d",
                     "trust_remote_code": False,
                 },
             },

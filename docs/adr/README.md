@@ -28,7 +28,7 @@
 | ADR-012 | Memory 生命周期 | 计划中 | V0.5-T02 前实体化 |
 | ADR-013 | 端到端流式事件 | 计划中 | V0.6-T05 前实体化 |
 | ADR-014 | Durable Job | 计划中 | V0.6-T03 前实体化 |
-| ADR-015 | Eval 子系统 | 计划中 | V0.1-T09 前实体化 |
+| ADR-015 | Eval 子系统 | 已接受 | [ADR-015](ADR-015-eval-subsystem-and-gates.md) |
 | ADR-016 | 薄核心与插件 seam | 计划中 | V0.7-T04 前实体化 |
 | ADR-017 | Context + Protocol | 计划中 | V0.1-T02 前实体化 |
 | ADR-018 | Checkpoint 与 Domain/Audit Event 分离 | 计划中 | V0.1-T03 前实体化 |

@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "provider": {
+    "name": "deepseek",
+    "api_dialect": "responses",
+    "model": "deepseek-v4-flash",
+    "documented_model_version": "DeepSeek-V4-Flash-0731"
+  },
+  "embedding": {
+    "provider": "sentence_transformers",
+    "model": "BAAI/bge-small-zh-v1.5",
+    "revision": "a7ec18349c42fc774b0e86af26215e38a10fbe9d",
+    "trust_remote_code": false,
+    "license": "MIT",
+    "dimension": 512,
+    "offline_norms": [1.0, 1.0]
+  },
+  "config_fingerprint": "sha256:060d53ce79351ce10bb0e1cc3710178fcf409a4b2aeea0267c214ff3c0e855f4",
+  "runs": [
+    {
+      "run_id": "run_728fe3942b95417ebeb191127ba5e8c4",
+      "executed_at": "2026-08-29T06:55:53.043105Z",
+      "request_ids": [
+        "00e5a542-925a-4c02-9ffb-17f7a471ff4a",
+        "4dc7025b-954d-4fcc-8980-124c0c05e175",
+        "a9d4bd18-153a-4764-a910-20954110f2cf"
+      ],
+      "usage": {
+        "model_turns": 4,
+        "tool_calls_total": 2,
+        "input_tokens": 11937,
+        "output_tokens": 1652,
+        "total_tokens": 13589
+      },
+      "merchants_inserted": 12,
+      "knowledge_ingestion_idempotent": false,
+      "eligible_merchant_count": 10,
+      "recommended_merchant_count": 10,
+      "field_evidence_count": 52,
+      "rule_category_count": 6,
+      "citations_resolvable": true,
+      "recommended_subset_of_eligible": true,
+      "business_tables": ["alembic_version_business", "merchants"],
+      "forbidden_business_tables": [],
+      "business_side_effect_free": true
+    },
+    {
+      "run_id": "run_c63285f7503f409db8dfad224f9303cc",
+      "executed_at": "2026-08-29T06:56:18.332010Z",
+      "request_ids": [
+        "f2d97f9d-8cf5-4847-bf5f-39deed8cc981",
+        "ab6aaf9d-12f3-462a-bbb6-5ade53890661",
+        "354fc1e3-f184-4347-883f-7dea5dc2112c"
+      ],
+      "usage": {
+        "model_turns": 4,
+        "tool_calls_total": 2,
+        "input_tokens": 12037,
+        "output_tokens": 1471,
+        "total_tokens": 13508
+      },
+      "merchants_inserted": 0,
+      "knowledge_ingestion_idempotent": true,
+      "eligible_merchant_count": 10,
+      "recommended_merchant_count": 10,
+      "field_evidence_count": 52,
+      "rule_category_count": 6,
+      "citations_resolvable": true,
+      "recommended_subset_of_eligible": true,
+      "business_tables": ["alembic_version_business", "merchants"],
+      "forbidden_business_tables": [],
+      "business_side_effect_free": true
+    }
+  ]
+}

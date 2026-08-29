@@ -13,6 +13,7 @@ from oria.config.models import ResolvedLLMProfile
 from oria.core.runtime import build_runtime
 from oria.core.types import (
     ChatOptions,
+    ChatResult,
     Done,
     Message,
     ProviderError,
@@ -22,12 +23,14 @@ from oria.core.types import (
     ToolCallBlock,
     ToolCallDelta,
     ToolSpec,
+    Usage,
     UsageDelta,
 )
 from oria.permission.local import local_cli_executor, local_operator
 from oria.providers.embeddings import FixtureEmbedder
 from oria.providers.errors import (
     InvalidRequestError,
+    ProviderResponseError,
     StructuredOutputError,
     UnsupportedCapabilityError,
 )
@@ -182,7 +185,7 @@ async def test_native_structured_output_is_locally_validated(tmp_path: Path) -> 
         base_url="https://api.deepseek.com", transport=httpx.MockTransport(handler)
     ) as client:
         try:
-            with pytest.raises(StructuredOutputError):
+            with pytest.raises(StructuredOutputError) as excinfo:
                 await OpenAICompatProvider(_profile(), client).chat(
                     [Message(role="user", content="invalid")],
                     ctx,
@@ -190,6 +193,100 @@ async def test_native_structured_output_is_locally_validated(tmp_path: Path) -> 
                 )
         finally:
             await runtime.aclose()
+
+    assert excinfo.value.provider_request_id == "resp-1"
+    assert excinfo.value.provider_model == "deepseek-v4-flash"
+    assert excinfo.value.usage == Usage(
+        input_tokens=7,
+        output_tokens=5,
+        cache_read_tokens=2,
+        reasoning_tokens=1,
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "usage",
+    [
+        None,
+        {},
+        {"input_tokens": "7", "output_tokens": 5},
+        {"input_tokens": 7, "output_tokens": -1},
+    ],
+)
+async def test_invalid_or_missing_provider_usage_fails_closed(
+    tmp_path: Path, usage: object
+) -> None:
+    body = _response(
+        {
+            "type": "message",
+            "role": "assistant",
+            "content": [{"type": "output_text", "text": '{"answer":"ok"}'}],
+        }
+    )
+    body["usage"] = usage
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=body)
+
+    runtime, ctx = await _runtime_context(tmp_path)
+    async with httpx.AsyncClient(
+        base_url="https://api.deepseek.com", transport=httpx.MockTransport(handler)
+    ) as client:
+        try:
+            with pytest.raises(ProviderResponseError) as excinfo:
+                await OpenAICompatProvider(_profile(), client).chat(
+                    [Message(role="user", content="invalid usage")],
+                    ctx,
+                    options=ChatOptions(response_schema=_schema()),
+                )
+        finally:
+            await runtime.aclose()
+
+    assert excinfo.value.provider_request_id == "resp-1"
+
+
+@pytest.mark.asyncio
+async def test_native_schema_allows_business_tool_only_turn(tmp_path: Path) -> None:
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=_response(
+                {
+                    "type": "function_call",
+                    "call_id": "rules-1",
+                    "name": "search_campaign_rules",
+                    "arguments": (
+                        '{"intent":"merchant_recruitment",'
+                        '"effective_at":"2026-07-15T00:00:00+08:00"}'
+                    ),
+                }
+            ),
+        )
+
+    runtime, ctx = await _runtime_context(tmp_path)
+    async with httpx.AsyncClient(
+        base_url="https://api.deepseek.com", transport=httpx.MockTransport(handler)
+    ) as client:
+        try:
+            result = await OpenAICompatProvider(_profile(), client).chat(
+                [Message(role="user", content="先查规则")],
+                ctx,
+                tools=[
+                    ToolSpec(
+                        name="search_campaign_rules",
+                        schema_version=1,
+                        description="查询规则",
+                        json_schema={"type": "object", "properties": {}},
+                    )
+                ],
+                options=ChatOptions(response_schema=_schema()),
+            )
+        finally:
+            await runtime.aclose()
+
+    assert result.structured_output is None
+    assert [call.name for call in result.tool_calls] == ["search_campaign_rules"]
 
 
 @pytest.mark.asyncio
@@ -391,8 +488,10 @@ async def test_native_structured_stream_is_buffered_and_locally_validated(tmp_pa
         finally:
             await runtime.aclose()
 
-    assert [type(event) for event in events] == [ProviderError]
-    assert events[0].code == "structured_output_error"
+    assert [type(event) for event in events] == [UsageDelta, ProviderError]
+    assert events[0].request_id == "resp-1"
+    assert events[1].request_id == "resp-1"
+    assert events[1].code == "structured_output_error"
 
 
 @pytest.mark.asyncio
@@ -519,8 +618,10 @@ async def test_synthetic_structured_stream_rejects_business_tool_mix(tmp_path: P
         finally:
             await runtime.aclose()
 
-    assert [type(event) for event in events] == [ProviderError]
-    assert events[0].code == "structured_output_error"
+    assert [type(event) for event in events] == [UsageDelta, ProviderError]
+    assert events[0].request_id == "resp-1"
+    assert events[1].request_id == "resp-1"
+    assert events[1].code == "structured_output_error"
 
 
 @pytest.mark.asyncio
@@ -720,3 +821,42 @@ async def test_default_mock_generates_values_for_common_strict_schema(tmp_path: 
         "scores": [1, 1],
         "profile": {"code": "x"},
     }
+
+
+@pytest.mark.asyncio
+async def test_strict_schema_preserves_typed_dynamic_map_entries(tmp_path: Path) -> None:
+    schema = ResponseSchema(
+        name="citation_map",
+        json_schema={
+            "type": "object",
+            "properties": {
+                "field_evidence": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {"document_id": {"type": "string"}},
+                        "required": ["document_id"],
+                    },
+                }
+            },
+            "required": ["field_evidence"],
+        },
+    )
+    runtime, ctx = await _runtime_context(tmp_path)
+    try:
+        fixed = ChatResult(
+            content=(),
+            tool_calls=(),
+            structured_output={"field_evidence": {"basic.title": {"document_id": "doc-1"}}},
+            usage=Usage(input_tokens=0, output_tokens=0),
+            finish_reason="stop",
+        )
+        result = await MockLLMProvider(fixed).chat(
+            [Message(role="user", content="fixture")],
+            ctx,
+            options=ChatOptions(response_schema=schema),
+        )
+    finally:
+        await runtime.aclose()
+
+    assert result.structured_output == {"field_evidence": {"basic.title": {"document_id": "doc-1"}}}

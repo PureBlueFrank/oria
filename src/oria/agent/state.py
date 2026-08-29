@@ -81,7 +81,6 @@ def initial_research_state(
     rendered = (prompts or PromptManager()).render(
         "merchant_selection",
         version=1,
-        user_request=user_request,
         effective_at=effective_at,
         max_candidates=max_candidates,
     )

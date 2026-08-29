@@ -20,8 +20,8 @@ from pydantic import ValidationError
 from oria.agent.models import (
     AgentTermination,
     ProposalEvidenceError,
-    campaign_proposal_schema,
-    validate_campaign_proposal,
+    campaign_proposal_draft_schema,
+    finalize_campaign_proposal_draft,
 )
 from oria.agent.observations import (
     build_observation,
@@ -35,9 +35,14 @@ from oria.core.types import (
     ToolCall,
     ToolCallBlock,
     ToolResult,
+    ToolSpec,
 )
-from oria.providers.errors import StructuredOutputError
-from oria.tools.models import QueryMerchantsResult, SearchCampaignRulesResult
+from oria.providers.errors import ProviderException, StructuredOutputError
+from oria.tools.models import (
+    QueryMerchantsParams,
+    QueryMerchantsResult,
+    SearchCampaignRulesResult,
+)
 
 _TOOL_FAILURE_CODE = "tool_execution_failed"
 
@@ -124,6 +129,66 @@ def _usage_limit_reason(
     return None
 
 
+def _provider_failure_state(state: ResearchState, exc: ProviderException) -> ResearchState:
+    usage = exc.usage
+    input_tokens = state["input_tokens"] + (0 if usage is None else usage.input_tokens)
+    output_tokens = state["output_tokens"] + (0 if usage is None else usage.output_tokens)
+    total_cost = state["total_cost"] + (0.0 if usage is None or usage.cost is None else usage.cost)
+    model_turns = state["model_turns"] + 1
+    return cast(
+        ResearchState,
+        {
+            **state,
+            "model_turns": model_turns,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_cost": total_cost,
+            "events": _event(
+                state,
+                "provider_failed",
+                model_turn=model_turns,
+                error_code=exc.code,
+                provider_request_id=exc.provider_request_id,
+                provider_model=exc.provider_model,
+                retryable=exc.retryable,
+            ),
+        },
+    )
+
+
+def _provider_failure_update(state: ResearchState) -> dict[str, object]:
+    return {
+        "model_turns": state["model_turns"],
+        "input_tokens": state["input_tokens"],
+        "output_tokens": state["output_tokens"],
+        "total_cost": state["total_cost"],
+        "events": state["events"],
+    }
+
+
+def _bounded_tool_specs(specs: tuple[ToolSpec, ...], max_candidates: int) -> list[ToolSpec]:
+    bounded: list[ToolSpec] = []
+    for spec in specs:
+        if spec.name != "query_merchants":
+            bounded.append(spec)
+            continue
+        payload = spec.model_dump(mode="json")
+        schema = cast(dict[str, JsonValue], payload["json_schema"])
+        properties = schema.get("properties")
+        if not isinstance(properties, dict):
+            raise ValueError("query_merchants schema has no properties")
+        raw_limit = properties.get("limit")
+        if not isinstance(raw_limit, dict):
+            raise ValueError("query_merchants schema has no limit property")
+        limit = dict(raw_limit)
+        limit["maximum"] = max_candidates
+        schema = dict(schema)
+        schema["properties"] = {**properties, "limit": limit}
+        payload["json_schema"] = schema
+        bounded.append(ToolSpec.model_validate(payload))
+    return bounded
+
+
 def _repair_update(
     state: ResearchState,
     *,
@@ -161,30 +226,58 @@ async def research_model_node(
         return {"termination": _termination(state, context, "llm_unavailable")}
     remaining_output = context.limits.max_output_tokens - state["output_tokens"]
     try:
+        tools = (
+            None
+            if state["finalization_only"]
+            else _bounded_tool_specs(context.ctx.tools.specs(), state["max_candidates"])
+        )
         result = await llm.chat(
             _messages(state),
             context.ctx,
-            tools=None if state["finalization_only"] else list(context.ctx.tools.specs()),
+            tools=tools,
             options=ChatOptions(
                 temperature=0,
                 max_output_tokens=remaining_output,
                 parallel_tool_calls=True,
-                response_schema=campaign_proposal_schema(),
+                response_schema=campaign_proposal_draft_schema(),
             ),
         )
-    except StructuredOutputError:
-        failed_state = cast(
-            ResearchState,
-            {**state, "model_turns": state["model_turns"] + 1},
+    except StructuredOutputError as exc:
+        failed_state = _provider_failure_state(state, exc)
+        failure_update = _provider_failure_update(failed_state)
+        usage_reason = (
+            "deadline_exceeded"
+            if _deadline_exceeded(context)
+            else _usage_limit_reason(
+                input_tokens=failed_state["input_tokens"],
+                output_tokens=failed_state["output_tokens"],
+                total_cost=failed_state["total_cost"],
+                context=context,
+            )
         )
+        if usage_reason is not None:
+            failure_update["termination"] = _termination(failed_state, context, usage_reason)
+            return failure_update
         if failed_state["validation_repairs"] < context.limits.max_validation_repairs:
             update = _repair_update(failed_state, code="structured_output_error", paths=[])
-            update["model_turns"] = failed_state["model_turns"]
+            update.update(
+                {
+                    "model_turns": failed_state["model_turns"],
+                    "input_tokens": failed_state["input_tokens"],
+                    "output_tokens": failed_state["output_tokens"],
+                    "total_cost": failed_state["total_cost"],
+                }
+            )
             return update
-        return {
-            "model_turns": failed_state["model_turns"],
-            "termination": _termination(failed_state, context, "structured_output_error"),
-        }
+        failure_update["termination"] = _termination(
+            failed_state, context, "structured_output_error"
+        )
+        return failure_update
+    except ProviderException as exc:
+        failed_state = _provider_failure_state(state, exc)
+        update = _provider_failure_update(failed_state)
+        update["termination"] = _termination(failed_state, context, "provider_failure")
+        return update
     except Exception:
         failed_state = cast(
             ResearchState,
@@ -199,13 +292,23 @@ async def research_model_node(
     output_tokens = state["output_tokens"] + result.usage.output_tokens
     total_cost = state["total_cost"] + (result.usage.cost or 0.0)
     model_turns = state["model_turns"] + 1
+    provider_model: str | None = None
+    raw_response = result.internal_raw_response()
+    if raw_response is not None and isinstance(raw_response.get("model"), str):
+        provider_model = cast(str, raw_response["model"])
     base_update: dict[str, object] = {
         "model_turns": model_turns,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "total_cost": total_cost,
         "repair_pending": False,
-        "events": _event(state, "model_completed", model_turn=model_turns),
+        "events": _event(
+            state,
+            "model_completed",
+            model_turn=model_turns,
+            provider_request_id=result.request_id,
+            provider_model=provider_model,
+        ),
     }
     usage_reason = (
         "deadline_exceeded"
@@ -307,6 +410,10 @@ async def research_tools_node(
 
     for call in calls:
         try:
+            if call.name == "query_merchants":
+                query = QueryMerchantsParams.model_validate(call.args)
+                if query.limit > state["max_candidates"]:
+                    raise ValueError("query limit exceeds the requested candidate limit")
             await context.ctx.tools.preflight(call.name, dict(call.args), context.ctx)
         except LookupError:
             code = "unknown_tool"
@@ -437,7 +544,12 @@ async def research_validate_node(
             if state["merchant_result"] is None
             else QueryMerchantsResult.model_validate(state["merchant_result"])
         )
-        proposal = validate_campaign_proposal(structured, rules=rules, merchants=merchants)
+        proposal = finalize_campaign_proposal_draft(
+            structured,
+            rules=rules,
+            merchants=merchants,
+            max_candidates=state["max_candidates"],
+        )
     except ProposalEvidenceError:
         return {"termination": _termination(state, context, "evidence_validation_failed")}
     except ValidationError as exc:

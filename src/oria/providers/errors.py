@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from oria.core.types import Usage
+
 
 class ProviderException(RuntimeError):
     """Base provider failure that never embeds an upstream response body."""
@@ -15,12 +17,16 @@ class ProviderException(RuntimeError):
         retryable: bool,
         retry_after: float | None = None,
         provider_request_id: str | None = None,
+        provider_model: str | None = None,
+        usage: Usage | None = None,
     ) -> None:
         super().__init__(safe_message)
         self.safe_message = safe_message
         self.retryable = retryable
         self.retry_after = retry_after
         self.provider_request_id = provider_request_id
+        self.provider_model = provider_model
+        self.usage = usage
 
 
 class AuthenticationError(ProviderException):
