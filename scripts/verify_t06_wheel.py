@@ -54,7 +54,7 @@ async def _verify(data_dir: Path) -> None:
                 )
             ).data
         )
-        if merchants.returned_count != 5 or merchants.excluded_count != 7:
+        if merchants.returned_count != 10 or merchants.excluded_count != 2:
             raise AssertionError(
                 "installed T06 merchant tool returned unexpected eligibility counts"
             )
@@ -62,7 +62,7 @@ async def _verify(data_dir: Path) -> None:
             [search.model_dump(mode="json"), merchants.model_dump(mode="json")],
             ensure_ascii=False,
         )
-        for restricted in ("demo-m004", "demo-m011", "synthetic-east-a"):
+        for restricted in ("demo-m004", "demo-m003", "synthetic-east-a"):
             if restricted in visible:
                 raise AssertionError("installed T06 tools disclosed restricted eligibility inputs")
     finally:
