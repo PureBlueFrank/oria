@@ -40,7 +40,12 @@ from oria.rag.bm25 import BM25Index
 from oria.rag.catalog import SQLiteKnowledgeCatalog
 from oria.rag.index import ChromaIndex
 from oria.rag.object_store import LocalObjectStore
-from oria.rag.service import AuthorizedChromaRetriever, LocalKnowledgeService
+from oria.rag.pipeline import ConfigurableRetriever
+from oria.rag.service import (
+    AuthorizedBM25Retriever,
+    AuthorizedChromaRetriever,
+    LocalKnowledgeService,
+)
 from oria.rag.snapshots import LocalRuleSnapshotStore
 from oria.resources.loader import load_demo_data
 from oria.storage.database import DatabaseResources
@@ -133,11 +138,20 @@ async def build_runtime(
             embedding_profile=embedding_projection,
             bm25_index=bm25_index,
         )
-        retriever = AuthorizedChromaRetriever(
+        bm25_retriever = AuthorizedBM25Retriever(
             catalog=catalog,
-            index=index,
-            embedder=embedder,
+            index=bm25_index,
             knowledge=knowledge,
+        )
+        retriever = ConfigurableRetriever(
+            mode="dense",
+            dense=AuthorizedChromaRetriever(
+                catalog=catalog,
+                index=index,
+                embedder=embedder,
+                knowledge=knowledge,
+            ),
+            bm25=bm25_retriever,
         )
         rule_snapshots = LocalRuleSnapshotStore(catalog, knowledge)
 
