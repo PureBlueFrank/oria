@@ -148,6 +148,36 @@ class ChromaIndex:
         except Exception as exc:
             raise IndexError("vector projection lookup failed") from exc
 
+    async def contains_versioned_chunk(
+        self,
+        chunk_id: str,
+        *,
+        tenant_id: str,
+        document_id: str,
+        document_version: str,
+        content_hash: str,
+    ) -> bool:
+        """Verify a citation projection against its authoritative version identity."""
+        where = {
+            "$and": [
+                {"tenant_id": {"$eq": tenant_id}},
+                {"document_id": {"$eq": document_id}},
+                {"document_version": {"$eq": document_version}},
+                {"content_hash": {"$eq": content_hash}},
+            ]
+        }
+        try:
+            result = await asyncio.to_thread(
+                self._collection.get,
+                ids=[chunk_id],
+                where=where,
+                include=["metadatas"],
+            )
+            ids = result.get("ids")
+            return isinstance(ids, list) and ids == [chunk_id]
+        except Exception as exc:
+            raise IndexError("vector projection citation lookup failed") from exc
+
     async def delete_document(self, tenant_id: str, document_id: str) -> None:
         try:
             await asyncio.to_thread(

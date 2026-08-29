@@ -208,7 +208,13 @@ class LocalKnowledgeService:
             classification=catalog.data_classification,
         ):
             raise KnowledgeError("cited knowledge is unavailable")
-        if not await self._index.contains(citation.chunk_id, ctx.tenant_id):
+        if not await self._index.contains_versioned_chunk(
+            citation.chunk_id,
+            tenant_id=ctx.tenant_id,
+            document_id=citation.document_id,
+            document_version=citation.document_version,
+            content_hash=catalog.content_hash,
+        ):
             raise KnowledgeError("cited knowledge projection is unavailable")
         data = self._objects.read_bytes(catalog.object_ref, ctx)
         observed_hash = f"sha256:{hashlib.sha256(data).hexdigest()}"
@@ -313,6 +319,9 @@ class AuthorizedChromaRetriever:
                     score=1.0 / (1.0 + hit.distance),
                     source_uri=catalog.source_uri,
                     acl=catalog.acl,
+                    trust_level="untrusted_data",
+                    provenance=catalog.source_uri,
+                    data_classification=catalog.data_classification,
                 )
             )
             if len(documents) == k:

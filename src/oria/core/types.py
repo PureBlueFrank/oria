@@ -524,6 +524,9 @@ class Doc(ValueModel):
     score: float
     source_uri: str
     acl: ACLMetadata
+    trust_level: Literal["untrusted_data"]
+    provenance: str
+    data_classification: str
 
 
 class MemoryItem(ValueModel):

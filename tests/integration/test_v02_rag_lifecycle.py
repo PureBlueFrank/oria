@@ -10,12 +10,12 @@ import pytest
 
 from oria.config import resolve_runtime_config
 from oria.core.runtime import build_runtime
-from oria.core.types import ACLMetadata
+from oria.core.types import ACLMetadata, CitationBlock, Doc
 from oria.data import initialize_data
 from oria.permission.local import local_cli_executor, local_operator
 from oria.providers.embeddings import FixtureEmbedder
 from oria.rag.demo import demo_rule_document
-from oria.rag.errors import CatalogError, IndexError, ObjectStoreError
+from oria.rag.errors import CatalogError, IndexError, KnowledgeError, ObjectStoreError
 from oria.rag.index import ChromaIndex
 from oria.rag.service import LocalKnowledgeService
 
@@ -49,6 +49,14 @@ def _updated_document():
             "acl": ACLMetadata(allowed_subject_ids=("local-operator",)),
             "metadata": {**original.metadata, "priority": 200, "supersedes": "1.0.0"},
         }
+    )
+
+
+def _citation(doc: Doc) -> CitationBlock:
+    return CitationBlock(
+        document_id=str(doc.metadata["document_id"]),
+        document_version=doc.version,
+        chunk_id=doc.id,
     )
 
 
@@ -137,6 +145,10 @@ async def test_update_cleans_old_chunks_across_projections_and_rebuilds_only_act
         history = await ctx.knowledge._catalog.list_document_versions(
             ctx.tenant_id, original.document_id
         )
+        current_citations = [_citation(doc) for doc in current_docs]
+        assert all(
+            [await ctx.knowledge.citation_exists(citation, ctx) for citation in current_citations]
+        )
         deleted = await ctx.knowledge.delete(original.document_id, ctx)
         assert deleted.deleted_versions == 1
         after_delete = await asyncio.to_thread(
@@ -148,6 +160,8 @@ async def test_update_cleans_old_chunks_across_projections_and_rebuilds_only_act
         for version in history:
             with pytest.raises(ObjectStoreError, match="unavailable"):
                 ctx.knowledge._objects.read_bytes(version.object_ref, ctx)
+        for citation in current_citations:
+            assert await ctx.knowledge.citation_exists(citation, ctx) is False
     finally:
         await runtime.aclose()
 
@@ -159,6 +173,8 @@ async def test_update_cleanup_failure_is_retryable_after_catalog_activation(
     runtime, ctx = await _runtime(tmp_path)
     try:
         await ctx.knowledge.ingest(demo_rule_document(), ctx)
+        old_doc = (await ctx.retriever.retrieve("rules", ctx, k=1))[0]
+        old_citation = _citation(old_doc)
         updated = _updated_document()
         original_delete = ctx.knowledge._index.delete_document_version_all_projections
 
@@ -175,6 +191,10 @@ async def test_update_cleanup_failure_is_retryable_after_catalog_activation(
 
         docs = await ctx.retriever.retrieve("rules", ctx, k=10)
         assert {doc.version for doc in docs} == {"2.0.0"}
+        assert await ctx.knowledge._index.contains(old_doc.id, ctx.tenant_id)
+        assert await ctx.knowledge.citation_exists(old_citation, ctx) is False
+        with pytest.raises(KnowledgeError, match="unavailable"):
+            await ctx.knowledge.load_public_chunk(old_citation, ctx)
 
         monkeypatch.setattr(
             ctx.knowledge._index,
@@ -183,5 +203,6 @@ async def test_update_cleanup_failure_is_retryable_after_catalog_activation(
         )
         retried = await ctx.knowledge.ingest(updated, ctx)
         assert retried.idempotent is True
+        assert not await ctx.knowledge._index.contains(old_doc.id, ctx.tenant_id)
     finally:
         await runtime.aclose()
