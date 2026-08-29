@@ -41,7 +41,7 @@ class SQLiteKnowledgeCatalog:
                     (
                         await session.execute(
                             text(
-                                "SELECT source_uri, owner_ref, data_classification FROM documents "
+                                "SELECT source_uri, deleted_at FROM documents "
                                 "WHERE tenant_id = :tenant_id AND document_id = :document_id"
                             ),
                             {"tenant_id": tenant_id, "document_id": request.document_id},
@@ -68,11 +68,7 @@ class SQLiteKnowledgeCatalog:
                             "created_at": now,
                         },
                     )
-                elif (
-                    str(document["source_uri"]),
-                    str(document["owner_ref"]),
-                    str(document["data_classification"]),
-                ) != (request.source_uri, request.owner_ref, request.data_classification):
+                elif str(document["source_uri"]) != request.source_uri:
                     raise CatalogError("document identity conflicts with the existing catalog")
                 else:
                     await session.execute(
@@ -88,7 +84,8 @@ class SQLiteKnowledgeCatalog:
                         await session.execute(
                             text(
                                 "SELECT content_hash, object_ref, acl_json, metadata_json, "
-                                "chunking_version, embedding_profile, deleted_at "
+                                "chunking_version, embedding_profile, deleted_at, "
+                                "owner_ref, data_classification, superseded_at "
                                 "FROM document_versions WHERE tenant_id = :tenant_id "
                                 "AND document_id = :document_id AND version = :version"
                             ),
@@ -108,6 +105,8 @@ class SQLiteKnowledgeCatalog:
                     acl_json,
                     metadata_json,
                     chunking_version,
+                    request.owner_ref,
+                    request.data_classification,
                 )
                 if version is None:
                     await session.execute(
@@ -115,10 +114,11 @@ class SQLiteKnowledgeCatalog:
                             "INSERT INTO document_versions "
                             "(tenant_id, document_id, version, content_hash, object_ref, "
                             "created_at, acl_json, metadata_json, chunking_version, "
-                            "embedding_profile, deleted_at) VALUES "
+                            "embedding_profile, deleted_at, owner_ref, data_classification, "
+                            "superseded_at) VALUES "
                             "(:tenant_id, :document_id, :version, :content_hash, :object_ref, "
                             ":created_at, :acl_json, :metadata_json, :chunking_version, "
-                            ":embedding_profile, NULL)"
+                            ":embedding_profile, NULL, :owner_ref, :data_classification, NULL)"
                         ),
                         {
                             "tenant_id": tenant_id,
@@ -131,6 +131,8 @@ class SQLiteKnowledgeCatalog:
                             "metadata_json": metadata_json,
                             "chunking_version": chunking_version,
                             "embedding_profile": embedding_profile,
+                            "owner_ref": request.owner_ref,
+                            "data_classification": request.data_classification,
                         },
                     )
                 else:
@@ -142,22 +144,12 @@ class SQLiteKnowledgeCatalog:
                             "acl_json",
                             "metadata_json",
                             "chunking_version",
+                            "owner_ref",
+                            "data_classification",
                         )
                     )
                     if observed != expected:
                         raise CatalogError("document version conflicts with immutable content")
-                    await session.execute(
-                        text(
-                            "UPDATE document_versions SET deleted_at = NULL "
-                            "WHERE tenant_id = :tenant_id AND document_id = :document_id "
-                            "AND version = :version"
-                        ),
-                        {
-                            "tenant_id": tenant_id,
-                            "document_id": request.document_id,
-                            "version": request.version,
-                        },
-                    )
                     completed = await session.scalar(
                         text(
                             "SELECT COUNT(*) FROM ingestion_runs WHERE tenant_id = :tenant_id "
@@ -171,7 +163,21 @@ class SQLiteKnowledgeCatalog:
                         },
                     )
                     if int(completed or 0) > 0 and version["deleted_at"] is None:
+                        if version["superseded_at"] is not None:
+                            raise CatalogError("superseded document version cannot be reactivated")
                         return True
+                    await session.execute(
+                        text(
+                            "UPDATE document_versions SET deleted_at = NULL, "
+                            "superseded_at = NULL WHERE tenant_id = :tenant_id "
+                            "AND document_id = :document_id AND version = :version"
+                        ),
+                        {
+                            "tenant_id": tenant_id,
+                            "document_id": request.document_id,
+                            "version": request.version,
+                        },
+                    )
 
                 await session.execute(
                     text(
@@ -195,8 +201,24 @@ class SQLiteKnowledgeCatalog:
             raise CatalogError("knowledge catalog write failed") from exc
 
     async def finish_ingestion(self, tenant_id: str, run_id: str, *, success: bool) -> None:
+        now = datetime.now(UTC)
         try:
             async with self._sessions.begin() as session:
+                run = (
+                    (
+                        await session.execute(
+                            text(
+                                "SELECT document_id, document_version FROM ingestion_runs "
+                                "WHERE tenant_id = :tenant_id AND run_id = :run_id"
+                            ),
+                            {"tenant_id": tenant_id, "run_id": run_id},
+                        )
+                    )
+                    .mappings()
+                    .first()
+                )
+                if run is None:
+                    raise CatalogError("knowledge ingestion run is unavailable")
                 await session.execute(
                     text(
                         "UPDATE ingestion_runs SET status = :status, completed_at = :completed_at "
@@ -204,11 +226,38 @@ class SQLiteKnowledgeCatalog:
                     ),
                     {
                         "status": "completed" if success else "failed",
-                        "completed_at": datetime.now(UTC),
+                        "completed_at": now,
                         "tenant_id": tenant_id,
                         "run_id": run_id,
                     },
                 )
+                if success:
+                    await session.execute(
+                        text(
+                            "UPDATE document_versions SET superseded_at = :superseded_at "
+                            "WHERE tenant_id = :tenant_id AND document_id = :document_id "
+                            "AND version != :version AND deleted_at IS NULL "
+                            "AND superseded_at IS NULL"
+                        ),
+                        {
+                            "superseded_at": now,
+                            "tenant_id": tenant_id,
+                            "document_id": str(run["document_id"]),
+                            "version": str(run["document_version"]),
+                        },
+                    )
+                    await session.execute(
+                        text(
+                            "UPDATE document_versions SET deleted_at = NULL, "
+                            "superseded_at = NULL WHERE tenant_id = :tenant_id "
+                            "AND document_id = :document_id AND version = :version"
+                        ),
+                        {
+                            "tenant_id": tenant_id,
+                            "document_id": str(run["document_id"]),
+                            "version": str(run["document_version"]),
+                        },
+                    )
         except SQLAlchemyError as exc:
             raise CatalogError("knowledge ingestion status update failed") from exc
 
@@ -221,7 +270,7 @@ class SQLiteKnowledgeCatalog:
                     (
                         await session.execute(
                             text(
-                                "SELECT d.source_uri, d.owner_ref, d.data_classification, "
+                                "SELECT d.source_uri, v.owner_ref, v.data_classification, "
                                 "v.tenant_id, v.document_id, v.version, v.content_hash, "
                                 "v.object_ref, v.acl_json, v.metadata_json, "
                                 "v.chunking_version, v.embedding_profile "
@@ -229,6 +278,7 @@ class SQLiteKnowledgeCatalog:
                                 "d.tenant_id = v.tenant_id AND d.document_id = v.document_id "
                                 "WHERE v.tenant_id = :tenant_id AND v.document_id = :document_id "
                                 "AND v.version = :version AND v.deleted_at IS NULL "
+                                "AND v.superseded_at IS NULL "
                                 "AND d.deleted_at IS NULL "
                                 "AND EXISTS (SELECT 1 FROM ingestion_runs i WHERE "
                                 "i.tenant_id = v.tenant_id AND i.document_id = v.document_id "
@@ -255,14 +305,14 @@ class SQLiteKnowledgeCatalog:
                     (
                         await session.execute(
                             text(
-                                "SELECT d.source_uri, d.owner_ref, d.data_classification, "
+                                "SELECT d.source_uri, v.owner_ref, v.data_classification, "
                                 "v.tenant_id, v.document_id, v.version, v.content_hash, "
                                 "v.object_ref, v.acl_json, v.metadata_json, "
                                 "v.chunking_version, v.embedding_profile "
                                 "FROM document_versions v JOIN documents d ON "
                                 "d.tenant_id = v.tenant_id AND d.document_id = v.document_id "
                                 "WHERE v.tenant_id = :tenant_id AND v.deleted_at IS NULL "
-                                "AND d.deleted_at IS NULL AND EXISTS "
+                                "AND v.superseded_at IS NULL AND d.deleted_at IS NULL AND EXISTS "
                                 "(SELECT 1 FROM ingestion_runs i WHERE i.tenant_id = v.tenant_id "
                                 "AND i.document_id = v.document_id "
                                 "AND i.document_version = v.version "
@@ -288,7 +338,7 @@ class SQLiteKnowledgeCatalog:
                     (
                         await session.execute(
                             text(
-                                "SELECT d.source_uri, d.owner_ref, d.data_classification, "
+                                "SELECT d.source_uri, v.owner_ref, v.data_classification, "
                                 "v.tenant_id, v.document_id, v.version, v.content_hash, "
                                 "v.object_ref, v.acl_json, v.metadata_json, "
                                 "v.chunking_version, v.embedding_profile "

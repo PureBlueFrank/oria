@@ -41,6 +41,9 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("chunking_version", "VARCHAR", 1, 0),
             ("embedding_profile", "VARCHAR", 1, 0),
             ("deleted_at", "DATETIME", 0, 0),
+            ("owner_ref", "VARCHAR", 1, 0),
+            ("data_classification", "VARCHAR", 1, 0),
+            ("superseded_at", "DATETIME", 0, 0),
         ),
         "ingestion_runs": (
             ("tenant_id", "VARCHAR", 1, 1),
