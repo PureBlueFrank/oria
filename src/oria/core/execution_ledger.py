@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Literal, TypeAlias
 
@@ -24,6 +25,17 @@ from oria.storage.ledger import (
 
 BusinessMutation: TypeAlias = Callable[[AsyncSession], Awaitable[None]]
 ExternalInvocation: TypeAlias = Callable[[str], Awaitable[Receipt]]
+ExecutionOutcome: TypeAlias = Literal["succeeded", "failed", "unknown"]
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionEventBundle:
+    domain_events: Sequence[DomainEvent] = ()
+    audit_events: Sequence[EventEnvelope] = ()
+    outbox_records: Sequence[OutboxRecord] = ()
+
+
+OutcomeEventFactory: TypeAlias = Callable[[ExecutionOutcome], ExecutionEventBundle]
 
 _HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -210,6 +222,7 @@ class ExecutionLedger:
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
         outbox_records: Sequence[OutboxRecord] = (),
+        outcome_events: OutcomeEventFactory | None = None,
     ) -> ToolExecution:
         """Run one reserved side effect; retries return history without reinvocation."""
         if reservation.status != "reserved":
@@ -219,53 +232,105 @@ class ExecutionLedger:
             reservation.tool_name,
             reservation.idempotency_key,
         )
-        if history is not None:
+        if history is not None and (
+            history.execution_id != reservation.execution_id or history.status != "reserved"
+        ):
             return history
-        reserved, created = await self._tools._reserve_with_status(reservation)
-        if not created:
-            return reserved
+        if history is None:
+            reserved, created = await self._tools._reserve_with_status(reservation)
+            if not created:
+                return reserved
+        else:
+            reserved = history
         executing = await self.mark_executing(reserved)
         try:
             receipt = await invoke(executing.idempotency_key)
         except SideEffectUnknownError as exc:
+            events = self._outcome_events(
+                "unknown",
+                outcome_events,
+                domain_events,
+                audit_events,
+                outbox_records,
+            )
             return await self.record_unknown(
                 executing,
                 receipt_id=exc.receipt_id,
-                domain_events=domain_events,
-                audit_events=audit_events,
-                outbox_records=outbox_records,
+                domain_events=events.domain_events,
+                audit_events=events.audit_events,
+                outbox_records=events.outbox_records,
             )
         except Exception:
+            events = self._outcome_events(
+                "failed",
+                outcome_events,
+                domain_events,
+                audit_events,
+                outbox_records,
+            )
             await self.record_failure(
                 executing,
-                domain_events=domain_events,
-                audit_events=audit_events,
-                outbox_records=outbox_records,
+                domain_events=events.domain_events,
+                audit_events=events.audit_events,
+                outbox_records=events.outbox_records,
             )
             raise
         if receipt.status == "accepted":
+            events = self._outcome_events(
+                "succeeded",
+                outcome_events,
+                domain_events,
+                audit_events,
+                outbox_records,
+            )
             return await self.record_success(
                 executing,
                 receipt.receipt_id,
                 business_write=business_write,
-                domain_events=domain_events,
-                audit_events=audit_events,
-                outbox_records=outbox_records,
+                domain_events=events.domain_events,
+                audit_events=events.audit_events,
+                outbox_records=events.outbox_records,
             )
         if receipt.status == "unknown":
+            events = self._outcome_events(
+                "unknown",
+                outcome_events,
+                domain_events,
+                audit_events,
+                outbox_records,
+            )
             return await self.record_unknown(
                 executing,
                 receipt_id=receipt.receipt_id,
-                domain_events=domain_events,
-                audit_events=audit_events,
-                outbox_records=outbox_records,
+                domain_events=events.domain_events,
+                audit_events=events.audit_events,
+                outbox_records=events.outbox_records,
             )
+        events = self._outcome_events(
+            "failed",
+            outcome_events,
+            domain_events,
+            audit_events,
+            outbox_records,
+        )
         return await self.record_failure(
             executing,
-            domain_events=domain_events,
-            audit_events=audit_events,
-            outbox_records=outbox_records,
+            domain_events=events.domain_events,
+            audit_events=events.audit_events,
+            outbox_records=events.outbox_records,
         )
+
+    @staticmethod
+    def _outcome_events(
+        outcome: ExecutionOutcome,
+        factory: OutcomeEventFactory | None,
+        domain_events: Sequence[DomainEvent],
+        audit_events: Sequence[EventEnvelope],
+        outbox_records: Sequence[OutboxRecord],
+    ) -> ExecutionEventBundle:
+        if factory is not None:
+            return factory(outcome)
+        return ExecutionEventBundle(domain_events, audit_events, outbox_records)
 
     async def _commit_outcome(
         self,

@@ -390,6 +390,22 @@ class ApprovalService:
             raise PermissionError("approval is not approved")
         return approval
 
+    async def invalidate_binding(self, approval: Approval, *, ctx: Context) -> Approval:
+        """Invalidate an otherwise approved record after a composite binding mismatch."""
+        if approval.tenant_id != ctx.tenant_id:
+            raise PermissionError("cross-tenant approval access is denied")
+        current = await self._required(approval.tenant_id, approval.approval_id)
+        if current.status == "invalidated":
+            return current
+        if current.status not in {"pending", "approved"}:
+            raise PermissionError("approval cannot be invalidated from its current state")
+        invalidated = self._terminalize(current, status="invalidated")
+        await self._repository.replace(
+            invalidated,
+            self._audit_event(invalidated, action="approval.invalidated", ctx=ctx),
+        )
+        return invalidated
+
     async def _authorize(
         self,
         *,

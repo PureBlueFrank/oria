@@ -56,8 +56,7 @@ _LAUNCH_SAGA_FAILURE_STATES = frozenset(
 )
 _LAUNCH_SAGA_TRANSITIONS: dict[str, frozenset[str]] = {
     "planned": frozenset({"coupon_materialized"}) | _LAUNCH_SAGA_FAILURE_STATES,
-    "coupon_materialized": frozenset({"recruitment_published"})
-    | _LAUNCH_SAGA_FAILURE_STATES,
+    "coupon_materialized": frozenset({"recruitment_published"}) | _LAUNCH_SAGA_FAILURE_STATES,
     "recruitment_published": frozenset({"completed"}) | _LAUNCH_SAGA_FAILURE_STATES,
     "completed": frozenset(),
     "compensation_pending": frozenset(),

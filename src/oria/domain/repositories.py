@@ -20,6 +20,7 @@ from oria.domain.business import (
     EnrollmentCouponLink,
     EnrollmentItem,
     LaunchSagaState,
+    LaunchSagaStatus,
     MerchantNotification,
     ProductSnapshot,
     RecruitmentPublication,
@@ -28,6 +29,8 @@ from oria.domain.business import (
 from oria.domain.models import MerchantRecord, MerchantSeedSet
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from oria.core.context import Context
 
 
@@ -103,7 +106,13 @@ class CouponBatchRepository(BusinessEntityRepository[CouponBatch], Protocol):
 
 
 class LaunchSagaStateRepository(BusinessEntityRepository[LaunchSagaState], Protocol):
-    pass
+    async def transition(
+        self,
+        launch_saga_id: str,
+        target: LaunchSagaStatus,
+        updated_at: datetime,
+        ctx: Context,
+    ) -> LaunchSagaState: ...
 
 
 class RecruitmentPublicationRepository(BusinessEntityRepository[RecruitmentPublication], Protocol):
@@ -140,3 +149,47 @@ class ConsumerPlacementRepository(BusinessEntityRepository[ConsumerPlacement], P
 
 class MerchantNotificationRepository(BusinessEntityRepository[MerchantNotification], Protocol):
     pass
+
+
+class CampaignLaunchRepository(Protocol):
+    async def load_draft_entities(
+        self,
+        *,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        coupon_batch_id: str,
+        recruitment_publication_id: str,
+        ctx: Context,
+    ) -> tuple[Campaign, CampaignRuleSnapshotRef, CouponBatch, RecruitmentPublication]: ...
+
+    async def get_saga(self, campaign_id: str, ctx: Context) -> LaunchSagaState | None: ...
+
+    async def create_saga(self, saga: LaunchSagaState, ctx: Context) -> LaunchSagaState: ...
+
+    async def transition_saga(
+        self,
+        saga: LaunchSagaState,
+        target: LaunchSagaStatus,
+        updated_at: datetime,
+        ctx: Context,
+    ) -> LaunchSagaState: ...
+
+    async def mark_coupon_ready(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        coupon_batch_id: str,
+        updated_at: datetime,
+    ) -> None: ...
+
+    async def mark_recruitment_published(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        recruitment_publication_id: str,
+        request_id: str,
+        receipt_id: str,
+        updated_at: datetime,
+    ) -> None: ...

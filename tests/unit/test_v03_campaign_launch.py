@@ -13,6 +13,12 @@ from oria.domain.launch import CampaignDraftSpec, DefaultCampaignLaunchService
 from oria.permission.local import LocalPolicyEngine
 from oria.rag.models import CampaignRuleSnapshot
 from oria.resources.loader import load_demo_data
+from oria.tools.campaign_launch import (
+    LaunchApprovalTool,
+    MaterializeCouponBatchTool,
+    PersistCampaignDraftTool,
+    PublishRecruitmentTool,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -168,3 +174,26 @@ async def test_persist_campaign_draft_rejects_invalid_rules_without_any_write(
         await service.persist_campaign_draft(_spec(), invalid, _context())  # type: ignore[arg-type]
 
     assert repository.bundles == []
+
+
+def test_campaign_launch_tools_declare_the_fixed_policy_matrix() -> None:
+    service = object()
+    persist = PersistCampaignDraftTool(service)  # type: ignore[arg-type]
+    approval = LaunchApprovalTool(service)  # type: ignore[arg-type]
+    materialize = MaterializeCouponBatchTool(service)  # type: ignore[arg-type]
+    publish = PublishRecruitmentTool(service)  # type: ignore[arg-type]
+
+    assert (persist.name, persist.policy.risk_level) == (
+        "persist_campaign_draft",
+        "medium",
+    )
+    assert persist.policy.side_effect is False
+    assert persist.policy.approval_mode == "none"
+    assert approval.name == "launch_approval"
+    assert approval.policy.required_action == "approval:launch:request"
+    for tool in (materialize, publish):
+        assert tool.policy.risk_level == "high"
+        assert tool.policy.side_effect is True
+        assert tool.policy.approval_mode == "required"
+        assert tool.policy.approval_action == "launch_approval"
+        assert tool.policy.retry_policy.max_attempts == 1

@@ -96,7 +96,7 @@ def _business_graph() -> tuple[object, ...]:
             **common,
             launch_saga_id="saga-1",
             campaign_id="campaign-1",
-            status="pending",
+            status="planned",
             checkpoint="draft-persisted",
         ),
         RecruitmentPublication(

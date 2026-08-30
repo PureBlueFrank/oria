@@ -27,6 +27,7 @@ from oria.domain.business import (
     EnrollmentCouponLink,
     EnrollmentItem,
     LaunchSagaState,
+    LaunchSagaStatus,
     MerchantNotification,
     ProductSnapshot,
     RecruitmentPublication,
@@ -378,7 +379,7 @@ class SQLiteBusinessRepository(Generic[BusinessEntityT]):
     async def _transition(
         self,
         entity_id: str,
-        target: CampaignStatus | CouponBatchStatus,
+        target: CampaignStatus | CouponBatchStatus | LaunchSagaStatus,
         updated_at: datetime,
         ctx: Context,
     ) -> BusinessEntityT:
@@ -398,6 +399,13 @@ class SQLiteBusinessRepository(Generic[BusinessEntityT]):
                         BusinessEntityT,
                         existing.transition_to(
                             cast(CouponBatchStatus, target), updated_at=updated_at
+                        ),
+                    )
+                elif isinstance(existing, LaunchSagaState):
+                    typed = cast(
+                        BusinessEntityT,
+                        existing.transition_to(
+                            cast(LaunchSagaStatus, target), updated_at=updated_at
                         ),
                     )
                 else:
@@ -462,6 +470,7 @@ _LAUNCH_SAGA = _RepositorySpec(
     LaunchSagaState,
     (("campaign_id", "campaign_id"), ("status", "status"), ("checkpoint", "checkpoint")),
     LaunchSagaState.unique_key_fields,
+    protected_status=True,
 )
 _RECRUITMENT_PUBLICATION = _RepositorySpec(
     "recruitment_publications",
@@ -635,6 +644,15 @@ class SQLiteLaunchSagaStateRepository(SQLiteBusinessRepository[LaunchSagaState])
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         super().__init__(sessions, _LAUNCH_SAGA)
 
+    async def transition(
+        self,
+        launch_saga_id: str,
+        target: LaunchSagaStatus,
+        updated_at: datetime,
+        ctx: Context,
+    ) -> LaunchSagaState:
+        return await self._transition(launch_saga_id, target, updated_at, ctx)
+
 
 class SQLiteRecruitmentPublicationRepository(SQLiteBusinessRepository[RecruitmentPublication]):
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
@@ -717,3 +735,92 @@ class SQLiteCampaignDraftRepository:
             raise
         except SQLAlchemyError as exc:
             raise BusinessRepositoryError("campaign draft persistence failed") from exc
+
+
+class SQLiteCampaignLaunchRepository:
+    """Business persistence needed by the checkpointed launch saga."""
+
+    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
+        self._campaigns = SQLiteCampaignRepository(sessions)
+        self._rule_refs = SQLiteCampaignRuleSnapshotRefRepository(sessions)
+        self._coupons = SQLiteCouponBatchRepository(sessions)
+        self._publications = SQLiteRecruitmentPublicationRepository(sessions)
+        self._sagas = SQLiteLaunchSagaStateRepository(sessions)
+
+    async def load_draft_entities(
+        self,
+        *,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        coupon_batch_id: str,
+        recruitment_publication_id: str,
+        ctx: Context,
+    ) -> tuple[Campaign, CampaignRuleSnapshotRef, CouponBatch, RecruitmentPublication]:
+        campaign = await self._campaigns.get(campaign_id, ctx)
+        rule_ref = await self._rule_refs.get(rule_snapshot_ref_id, ctx)
+        coupon = await self._coupons.get(coupon_batch_id, ctx)
+        publication = await self._publications.get(recruitment_publication_id, ctx)
+        if campaign is None or rule_ref is None or coupon is None or publication is None:
+            raise BusinessRepositoryError("campaign launch draft is unavailable")
+        return campaign, rule_ref, coupon, publication
+
+    async def get_saga(self, campaign_id: str, ctx: Context) -> LaunchSagaState | None:
+        return await self._sagas.get_by_unique_key((ctx.tenant_id, campaign_id), ctx)
+
+    async def create_saga(self, saga: LaunchSagaState, ctx: Context) -> LaunchSagaState:
+        return await self._sagas.create(saga, ctx)
+
+    async def transition_saga(
+        self,
+        saga: LaunchSagaState,
+        target: LaunchSagaStatus,
+        updated_at: datetime,
+        ctx: Context,
+    ) -> LaunchSagaState:
+        return await self._sagas.transition(saga.launch_saga_id, target, updated_at, ctx)
+
+    async def mark_coupon_ready(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        coupon_batch_id: str,
+        updated_at: datetime,
+    ) -> None:
+        existing = await self._coupons._find_by_id(session, coupon_batch_id, tenant_id)
+        if existing is None:
+            raise BusinessRepositoryError("coupon batch is unavailable")
+        current = existing
+        if current.status == "draft":
+            materializing = current.transition_to("materializing", updated_at=updated_at)
+            await self._coupons._update(session, current, materializing, allow_status_change=True)
+            current = materializing
+        if current.status != "materializing":
+            raise BusinessRepositoryError("coupon batch is not materializable")
+        ready = current.transition_to("ready", updated_at=updated_at)
+        await self._coupons._update(session, current, ready, allow_status_change=True)
+
+    async def mark_recruitment_published(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        recruitment_publication_id: str,
+        request_id: str,
+        receipt_id: str,
+        updated_at: datetime,
+    ) -> None:
+        existing = await self._publications._find_by_id(
+            session, recruitment_publication_id, tenant_id
+        )
+        if existing is None:
+            raise BusinessRepositoryError("recruitment publication is unavailable")
+        if existing.status != "pending":
+            raise BusinessRepositoryError("recruitment publication is not publishable")
+        published = existing._next_version(
+            updated_at=updated_at,
+            status="published",
+            request_id=request_id,
+            receipt_id=receipt_id,
+        )
+        await self._publications._update(session, existing, published, allow_status_change=True)

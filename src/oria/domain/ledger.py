@@ -218,8 +218,11 @@ class LaunchPlan(ValueModel):
         cls,
         *,
         child_steps: Sequence[LaunchChildStep],
+        campaign_draft_id: str,
         campaign_draft_hash: str,
+        rule_snapshot_id: str,
         rule_snapshot_hash: str,
+        coupon_batch_draft_id: str,
         coupon_batch_draft_hash: str,
         merchant_scope_hash: str,
         material_version: str,
@@ -227,6 +230,7 @@ class LaunchPlan(ValueModel):
     ) -> str:
         ordered_steps = sorted(child_steps, key=lambda step: step.tool_name)
         document = {
+            "campaign_draft_id": campaign_draft_id,
             "campaign_draft_hash": campaign_draft_hash,
             "child_steps": [
                 {
@@ -237,9 +241,11 @@ class LaunchPlan(ValueModel):
                 for step in ordered_steps
             ],
             "compensation_policy_version": compensation_policy_version,
+            "coupon_batch_draft_id": coupon_batch_draft_id,
             "coupon_batch_draft_hash": coupon_batch_draft_hash,
             "material_version": material_version,
             "merchant_scope_hash": merchant_scope_hash,
+            "rule_snapshot_id": rule_snapshot_id,
             "rule_snapshot_hash": rule_snapshot_hash,
         }
         normalized = _normalize(document, "launch_plan")
@@ -251,10 +257,15 @@ class LaunchPlan(ValueModel):
         names = [step.tool_name for step in self.child_steps]
         if len(names) != len(set(names)):
             raise ValueError("launch plan child tool names must be unique")
+        if set(names) != {"materialize_coupon_batch", "publish_recruitment"}:
+            raise ValueError("launch plan requires the two declared launch child tools")
         expected = self.compute_plan_hash(
             child_steps=self.child_steps,
+            campaign_draft_id=self.campaign_draft_id,
             campaign_draft_hash=self.campaign_draft_hash,
+            rule_snapshot_id=self.rule_snapshot_id,
             rule_snapshot_hash=self.rule_snapshot_hash,
+            coupon_batch_draft_id=self.coupon_batch_draft_id,
             coupon_batch_draft_hash=self.coupon_batch_draft_hash,
             merchant_scope_hash=self.merchant_scope_hash,
             material_version=self.material_version,

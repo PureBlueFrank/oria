@@ -210,6 +210,44 @@ async def test_reserve_for_args_uses_canonical_hash_in_a_stable_idempotency_key(
 
 
 @pytest.mark.asyncio
+async def test_execute_invokes_an_explicit_reserve_for_args_record_once(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    await initialize_data(config)
+    calls = 0
+
+    async with DatabaseResources(config) as databases:
+        ledger = ExecutionLedger(databases.business_sessions, clock=_Clock())
+        reserved = await ledger.reserve_for_args(
+            execution_id="exec_reserved_args",
+            tenant_id=TENANT,
+            tool_name="materialize_coupon_batch",
+            tool_schema_version=1,
+            schema=_ToolArgs,
+            args={"campaign_id": "campaign_1", "amount": Decimal("10")},
+            stable_business_id="campaign_1:coupon",
+            checkpoint_id="checkpoint_1",
+        )
+
+        async def invoke(_: str) -> Receipt:
+            nonlocal calls
+            calls += 1
+            return Receipt(
+                receipt_id="receipt_reserved_args",
+                adapter_id="mock_coupon",
+                resource_ref="coupon:coupon_1",
+                status="accepted",
+                received_at=NOW + timedelta(seconds=1),
+                summary_hash=HASH_B,
+            )
+
+        first = await ledger.execute(reserved, invoke)
+        duplicate = await ledger.execute(reserved, invoke)
+
+    assert first.status == duplicate.status == "succeeded"
+    assert calls == 1
+
+
+@pytest.mark.asyncio
 async def test_business_state_ledger_and_events_roll_back_as_one_transaction(
     tmp_path: Path,
 ) -> None:

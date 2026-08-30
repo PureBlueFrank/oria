@@ -38,8 +38,11 @@ def _reserved() -> ToolExecution:
 def _plan_hash(steps: list[LaunchChildStep]) -> str:
     return LaunchPlan.compute_plan_hash(
         child_steps=steps,
+        campaign_draft_id="campaign_1",
         campaign_draft_hash=HASH_A,
+        rule_snapshot_id="rule_1",
         rule_snapshot_hash=HASH_B,
+        coupon_batch_draft_id="coupon_1",
         coupon_batch_draft_hash=HASH_C,
         merchant_scope_hash=HASH_A,
         material_version="material_v1",
@@ -127,7 +130,12 @@ def test_launch_plan_hash_is_order_independent_and_binds_every_child_argument() 
 
 
 def test_launch_plan_rejects_a_hash_that_does_not_match_its_binding() -> None:
-    step = LaunchChildStep(
+    materialize = LaunchChildStep(
+        tool_name="materialize_coupon_batch",
+        canonical_args_hash=HASH_A,
+        idempotency_scope="campaign_1:coupon",
+    )
+    publish = LaunchChildStep(
         tool_name="publish_recruitment",
         canonical_args_hash=HASH_B,
         idempotency_scope="campaign_1:publish",
@@ -142,10 +150,59 @@ def test_launch_plan_rejects_a_hash_that_does_not_match_its_binding() -> None:
             coupon_batch_draft_hash=HASH_C,
             merchant_scope_hash=HASH_A,
             material_version="material_v1",
-            child_steps=[step],
+            child_steps=[materialize, publish],
             compensation_policy_version="compensation_v1",
             plan_hash=HASH_A,
         )
+
+
+@pytest.mark.parametrize(
+    ("field", "changed"),
+    [
+        ("campaign_draft_id", "campaign_2"),
+        ("campaign_draft_hash", HASH_C),
+        ("rule_snapshot_id", "rule_2"),
+        ("rule_snapshot_hash", HASH_C),
+        ("coupon_batch_draft_id", "coupon_2"),
+        ("coupon_batch_draft_hash", HASH_A),
+        ("merchant_scope_hash", HASH_C),
+        ("material_version", "material_v2"),
+        ("compensation_policy_version", "compensation_v2"),
+    ],
+)
+def test_launch_plan_hash_changes_with_every_top_level_binding(
+    field: str,
+    changed: str,
+) -> None:
+    steps = [
+        LaunchChildStep(
+            tool_name="materialize_coupon_batch",
+            canonical_args_hash=HASH_A,
+            idempotency_scope="campaign_1:coupon",
+        ),
+        LaunchChildStep(
+            tool_name="publish_recruitment",
+            canonical_args_hash=HASH_B,
+            idempotency_scope="campaign_1:publish",
+        ),
+    ]
+    values = {
+        "campaign_draft_id": "campaign_1",
+        "campaign_draft_hash": HASH_A,
+        "rule_snapshot_id": "rule_1",
+        "rule_snapshot_hash": HASH_B,
+        "coupon_batch_draft_id": "coupon_1",
+        "coupon_batch_draft_hash": HASH_C,
+        "merchant_scope_hash": HASH_A,
+        "material_version": "material_v1",
+        "compensation_policy_version": "compensation_v1",
+        "child_steps": steps,
+    }
+
+    original = LaunchPlan.compute_plan_hash(**values)  # type: ignore[arg-type]
+    mutated = LaunchPlan.compute_plan_hash(**(values | {field: changed}))  # type: ignore[arg-type]
+
+    assert mutated != original
 
 
 def test_domain_event_outbox_and_receipt_reject_untrusted_shapes() -> None:

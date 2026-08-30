@@ -9,10 +9,13 @@ from contextlib import AbstractAsyncContextManager
 
 import httpx
 
+from oria.adapters.launch import InMemoryCouponBatchAdapter, InMemoryRecruitmentAdapter
 from oria.agent.graph import build_research_graph
 from oria.config.models import ResolvedRuntimeConfig
 from oria.config.resolve import resolve_runtime_config
+from oria.core.approvals import ApprovalService
 from oria.core.context import RuntimeServices, SealedAsyncExitStack
+from oria.core.execution_ledger import ExecutionLedger
 from oria.core.protocols import (
     Embedder,
     Guardrail,
@@ -50,7 +53,12 @@ from oria.rag.service import (
 from oria.rag.snapshots import LocalRuleSnapshotStore
 from oria.resources.loader import load_demo_data
 from oria.storage.database import DatabaseResources
-from oria.storage.repositories import SQLiteCampaignDraftRepository, SQLiteMerchantRepository
+from oria.storage.platform import SQLiteApprovalRepository
+from oria.storage.repositories import (
+    SQLiteCampaignDraftRepository,
+    SQLiteCampaignLaunchRepository,
+    SQLiteMerchantRepository,
+)
 from oria.tools.builtin import QueryMerchantsTool, SearchCampaignRulesTool
 from oria.tools.registry import ToolRegistry
 
@@ -131,6 +139,7 @@ async def build_runtime(
         catalog = SQLiteKnowledgeCatalog(database_resources.platform_sessions)
         bm25_index = BM25Index()
         audit = PlatformAuditService(database_resources.platform_sessions, resolved)
+        policy = LocalPolicyEngine(audit)
         knowledge = LocalKnowledgeService(
             catalog=catalog,
             objects=objects,
@@ -168,7 +177,15 @@ async def build_runtime(
             campaign_rules=campaign_rules,
             merchants=merchant_service,
             campaign_launch=DefaultCampaignLaunchService(
-                SQLiteCampaignDraftRepository(database_resources.business_sessions)
+                SQLiteCampaignDraftRepository(database_resources.business_sessions),
+                launches=SQLiteCampaignLaunchRepository(database_resources.business_sessions),
+                approvals=ApprovalService(
+                    SQLiteApprovalRepository(database_resources.platform_sessions),
+                    policy,
+                ),
+                ledger=ExecutionLedger(database_resources.business_sessions),
+                coupon_adapter=InMemoryCouponBatchAdapter(),
+                recruitment_adapter=InMemoryRecruitmentAdapter(),
             ),
         )
 
@@ -189,7 +206,7 @@ async def build_runtime(
 
         runtime = RuntimeServices(
             config=resolved,
-            policy=LocalPolicyEngine(audit),
+            policy=policy,
             domain=domain,
             tools=tools,
             guardrails=guardrails,
