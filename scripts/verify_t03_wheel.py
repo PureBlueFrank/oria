@@ -54,7 +54,7 @@ def main() -> None:
     bundle = load_demo_data()
     if manifest.rule_categories != RULE_CATEGORIES or len(RULE_CATEGORIES) != 6:
         raise AssertionError("installed wheel does not contain the six-rule manifest")
-    if heads != {"platform": "platform_0004", "business": "business_0001"}:
+    if heads != {"platform": "platform_0004", "business": "business_0002"}:
         raise AssertionError("installed wheel migration heads are incorrect")
     if len(bundle.merchants.merchants) != 12:
         raise AssertionError("installed wheel merchant resource is incomplete")
@@ -74,13 +74,13 @@ def main() -> None:
         platform_tables
     ):
         raise AssertionError("platform migration or official saver setup is incomplete")
-    if "merchants" not in business_tables:
-        raise AssertionError("business merchant revision is missing")
-    if any("campaign" in table or "coupon" in table for table in business_tables):
-        raise AssertionError("T03 wheel verification found a forbidden business write table")
+    if not {"merchants", "campaigns", "coupon_batches", "enrollment_items"}.issubset(
+        business_tables
+    ):
+        raise AssertionError("installed business migration chain is incomplete")
     print(
-        "verified installed T03 wheel assets, two revisions, idempotent data init, "
-        f"and zero Campaign/CouponBatch tables from {package_file}"
+        "verified installed wheel assets, current revisions, idempotent data init, "
+        f"and V0.3 business tables from {package_file}"
     )
 
 

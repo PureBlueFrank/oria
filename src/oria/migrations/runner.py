@@ -18,6 +18,21 @@ from oria.resources.loader import PackageAssetError, verify_migration_assets
 ColumnSignature = tuple[str, str, int, int]
 ForeignKeySignature = tuple[str, tuple[tuple[str, str], ...]]
 
+
+def _business_columns(
+    entity_id: str,
+    *columns: ColumnSignature,
+) -> tuple[ColumnSignature, ...]:
+    return (
+        ("tenant_id", "VARCHAR", 1, 1),
+        (entity_id, "VARCHAR", 1, 2),
+        ("version", "INTEGER", 1, 0),
+        ("created_at", "DATETIME", 1, 0),
+        ("updated_at", "DATETIME", 1, 0),
+        *columns,
+    )
+
+
 _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
     "platform": {
         "documents": (
@@ -99,6 +114,118 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
         ),
     },
     "business": {
+        "product_snapshots": _business_columns(
+            "product_snapshot_id",
+            ("product_ref", "VARCHAR", 1, 0),
+            ("product_version", "VARCHAR", 1, 0),
+            ("catalog_snapshot_id", "VARCHAR", 1, 0),
+            ("attributes_json", "TEXT", 1, 0),
+        ),
+        "campaign_rule_snapshot_refs": _business_columns(
+            "campaign_rule_snapshot_ref_id",
+            ("snapshot_id", "VARCHAR", 1, 0),
+            ("snapshot_hash", "VARCHAR", 1, 0),
+        ),
+        "campaigns": _business_columns(
+            "campaign_id",
+            ("rule_snapshot_ref_id", "VARCHAR", 1, 0),
+            ("enrollment_mode", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+        ),
+        "coupon_batches": _business_columns(
+            "coupon_batch_id",
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("coupon_spec_hash", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+        ),
+        "launch_saga_states": _business_columns(
+            "launch_saga_id",
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+            ("checkpoint", "VARCHAR", 1, 0),
+        ),
+        "recruitment_publications": _business_columns(
+            "recruitment_publication_id",
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("merchant_scope_hash", "VARCHAR", 1, 0),
+            ("material_version", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+            ("request_id", "VARCHAR", 0, 0),
+            ("receipt_id", "VARCHAR", 0, 0),
+        ),
+        "enrollments": _business_columns(
+            "enrollment_id",
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("merchant_id", "VARCHAR", 1, 0),
+            ("mode", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+        ),
+        "enrollment_items": _business_columns(
+            "enrollment_item_id",
+            ("enrollment_id", "VARCHAR", 1, 0),
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("merchant_id", "VARCHAR", 1, 0),
+            ("product_ref", "VARCHAR", 1, 0),
+            ("product_version", "VARCHAR", 1, 0),
+            ("product_snapshot_id", "VARCHAR", 1, 0),
+            ("mode", "VARCHAR", 1, 0),
+            ("sources_json", "TEXT", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+        ),
+        "enrollment_coupon_links": _business_columns(
+            "enrollment_coupon_link_id",
+            ("enrollment_item_id", "VARCHAR", 1, 0),
+            ("coupon_batch_id", "VARCHAR", 1, 0),
+            ("benefit_tier", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+        ),
+        "confirmation_tasks": _business_columns(
+            "confirmation_task_id",
+            ("enrollment_item_id", "VARCHAR", 1, 0),
+            ("subject_type", "VARCHAR", 1, 0),
+            ("subject_id", "VARCHAR", 1, 0),
+            ("sequence", "INTEGER", 1, 0),
+            ("due_at", "DATETIME", 1, 0),
+            ("timeout_action", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+        ),
+        "assortment_submissions": _business_columns(
+            "assortment_submission_id",
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("submission_version", "VARCHAR", 1, 0),
+            ("assortment_policy_ref", "VARCHAR", 1, 0),
+            ("assortment_policy_version", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+        ),
+        "selection_decisions": _business_columns(
+            "selection_decision_id",
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("submission_version", "VARCHAR", 1, 0),
+            ("selection_version", "VARCHAR", 1, 0),
+            ("enrollment_item_id", "VARCHAR", 1, 0),
+            ("decision", "VARCHAR", 1, 0),
+            ("reason_code", "VARCHAR", 0, 0),
+        ),
+        "consumer_placements": _business_columns(
+            "consumer_placement_id",
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("selection_version", "VARCHAR", 1, 0),
+            ("placement_spec_hash", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+            ("request_id", "VARCHAR", 0, 0),
+            ("receipt_id", "VARCHAR", 0, 0),
+        ),
+        "merchant_notifications": _business_columns(
+            "merchant_notification_id",
+            ("merchant_id", "VARCHAR", 1, 0),
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("result_version", "VARCHAR", 1, 0),
+            ("template_id", "VARCHAR", 1, 0),
+            ("channel", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+            ("attempt_count", "INTEGER", 1, 0),
+            ("receipt_id", "VARCHAR", 0, 0),
+        ),
         "merchants": (
             ("tenant_id", "VARCHAR", 1, 1),
             ("merchant_id", "VARCHAR", 1, 2),
@@ -142,7 +269,105 @@ _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
         "audit_events": frozenset(),
         "outbox": frozenset(),
     },
-    "business": {"merchants": frozenset()},
+    "business": {
+        "product_snapshots": frozenset(),
+        "campaign_rule_snapshot_refs": frozenset(),
+        "campaigns": frozenset(
+            {
+                (
+                    "campaign_rule_snapshot_refs",
+                    (
+                        ("tenant_id", "tenant_id"),
+                        ("rule_snapshot_ref_id", "campaign_rule_snapshot_ref_id"),
+                    ),
+                )
+            }
+        ),
+        "coupon_batches": frozenset(
+            {("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id")))}
+        ),
+        "launch_saga_states": frozenset(
+            {("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id")))}
+        ),
+        "recruitment_publications": frozenset(
+            {("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id")))}
+        ),
+        "enrollments": frozenset(
+            {
+                ("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id"))),
+                ("merchants", (("tenant_id", "tenant_id"), ("merchant_id", "merchant_id"))),
+            }
+        ),
+        "enrollment_items": frozenset(
+            {
+                (
+                    "enrollments",
+                    (
+                        ("tenant_id", "tenant_id"),
+                        ("campaign_id", "campaign_id"),
+                        ("merchant_id", "merchant_id"),
+                    ),
+                ),
+                (
+                    "enrollments",
+                    (("tenant_id", "tenant_id"), ("enrollment_id", "enrollment_id")),
+                ),
+                (
+                    "product_snapshots",
+                    (("tenant_id", "tenant_id"), ("product_snapshot_id", "product_snapshot_id")),
+                ),
+            }
+        ),
+        "enrollment_coupon_links": frozenset(
+            {
+                (
+                    "enrollment_items",
+                    (("tenant_id", "tenant_id"), ("enrollment_item_id", "enrollment_item_id")),
+                ),
+                (
+                    "coupon_batches",
+                    (("tenant_id", "tenant_id"), ("coupon_batch_id", "coupon_batch_id")),
+                ),
+            }
+        ),
+        "confirmation_tasks": frozenset(
+            {
+                (
+                    "enrollment_items",
+                    (("tenant_id", "tenant_id"), ("enrollment_item_id", "enrollment_item_id")),
+                )
+            }
+        ),
+        "assortment_submissions": frozenset(
+            {("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id")))}
+        ),
+        "selection_decisions": frozenset(
+            {
+                (
+                    "assortment_submissions",
+                    (
+                        ("tenant_id", "tenant_id"),
+                        ("campaign_id", "campaign_id"),
+                        ("submission_version", "submission_version"),
+                    ),
+                ),
+                (
+                    "enrollment_items",
+                    (("tenant_id", "tenant_id"), ("enrollment_item_id", "enrollment_item_id")),
+                ),
+            }
+        ),
+        "consumer_placements": frozenset(
+            {("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id")))}
+        ),
+        "merchant_notifications": frozenset(
+            {
+                ("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id"))),
+                ("merchants", (("tenant_id", "tenant_id"), ("merchant_id", "merchant_id"))),
+            }
+        ),
+        "merchants": frozenset(),
+    },
 }
 _EXPECTED_TABLES = {target: frozenset(tables) for target, tables in _EXPECTED_COLUMNS.items()}
 _VERSION_TABLES = {
