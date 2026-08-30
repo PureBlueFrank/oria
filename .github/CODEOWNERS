@@ -1,0 +1,4 @@
+/eval/datasets/ @PureBlueFrank
+/eval/baselines/ @PureBlueFrank
+/eval/config/gates.yaml @PureBlueFrank
+/eval/config/rag-gates.yaml @PureBlueFrank

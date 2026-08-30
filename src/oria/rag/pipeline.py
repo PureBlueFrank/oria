@@ -48,6 +48,22 @@ class ConfigurableRetriever:
         self._reranker = reranker
         self._rrf_rank_constant = rrf_rank_constant
 
+    def for_mode(
+        self,
+        mode: RetrievalMode,
+        *,
+        reranker: Reranker | None = None,
+    ) -> ConfigurableRetriever:
+        """Create another configured view over the same authorized projections."""
+
+        return ConfigurableRetriever(
+            mode=mode,
+            dense=self._dense,
+            bm25=self._bm25,
+            reranker=reranker,
+            rrf_rank_constant=self._rrf_rank_constant,
+        )
+
     async def retrieve(
         self,
         query: str,

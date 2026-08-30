@@ -1,0 +1,19 @@
+suite: rag
+dataset_version: "1"
+allowed_regression: 0
+required_metrics:
+  dense:
+    recall_at_k: 0.90
+    mrr: 0.70
+    citation_hit_rate: 1.0
+    critical_pass_rate: 1.0
+  hybrid:
+    recall_at_k: 0.90
+    mrr: 0.80
+    citation_hit_rate: 1.0
+    critical_pass_rate: 1.0
+  hybrid_rerank:
+    recall_at_k: 0.90
+    mrr: 0.80
+    citation_hit_rate: 1.0
+    critical_pass_rate: 1.0

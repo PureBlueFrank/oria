@@ -32,6 +32,12 @@ standard = [
   "torch>=2.2,<2.3; sys_platform == 'darwin' and platform_machine == 'x86_64'",
   "transformers>=4.41,<5",
 ]
+eval = [
+  "numpy>=1.26,<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "sentence-transformers>=5,<6",
+  "torch>=2.2,<2.3; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "transformers>=4.41,<5",
+]
 
 [project.scripts]
 oria = "oria.cli:app"
@@ -55,6 +61,9 @@ required-environments = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/oria"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"eval" = "oria/eval_assets"
 
 [tool.pytest.ini_options]
 addopts = "--strict-config --strict-markers"

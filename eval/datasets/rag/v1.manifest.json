@@ -1,0 +1,23 @@
+{
+  "suite": "rag",
+  "dataset_version": "1",
+  "schema_version": 1,
+  "source": "synthetic",
+  "contains_real_entities": false,
+  "license": "CC0-1.0",
+  "generator_seed": "oria-v02-t05-rag-draft",
+  "case_count": 60,
+  "development_case_count": 42,
+  "holdout_case_count": 18,
+  "critical_case_count": 12,
+  "development_critical_case_count": 6,
+  "holdout_critical_case_count": 6,
+  "dataset_file": "v1.jsonl",
+  "dataset_sha256": "295e440cc0a9b32368f492a22bb6ec95396f42f5b9b2c8577becec1beb94d537",
+  "source_document_id": "demo-campaign-rules",
+  "source_document_version": "1.0.0",
+  "review_status": "approved",
+  "human_review_complete": true,
+  "holdout_frozen": true,
+  "baseline_created": true
+}

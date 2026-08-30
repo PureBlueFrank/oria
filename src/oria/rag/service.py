@@ -55,7 +55,7 @@ _CATEGORY_LABELS = {
         "报名规则 客户圈选 商家自主 自动报名 关联活动报名 "
         "商品圈选 价格 类目 关键词 招后选品 策略 执行模式 完成条件"
     ),
-    "benefit_policy": ("优惠档位 基础档 膨胀档 固定金额 阶梯出资 折扣率 币种 舍入 预算上限"),
+    "benefit_policy": "优惠档位 基础档 膨胀档 固定金额 阶梯出资 币种 舍入 预算上限",
     "confirmation_policy": "确认规则 商家 销售 销售经理 超时动作",
     "merchant_material": "商家端素材 活动标题 头图 介绍 标签",
 }
@@ -511,7 +511,15 @@ def _public_section(category: RuleCategory, section: dict[str, JsonValue]) -> st
             count = len(value) if isinstance(value, (list, tuple)) else 0
             public[f"{name}_ref"] = f"restricted:{count}"
     payload = json.dumps(public, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return f"{_CATEGORY_LABELS[category]}\n{payload}"
+    label = _CATEGORY_LABELS[category]
+    if category == "benefit_policy":
+        tier_rules = public.get("tier_rules")
+        if isinstance(tier_rules, (list, tuple)) and any(
+            isinstance(rule, dict) and rule.get("funding_type") == "discount_rate"
+            for rule in tier_rules
+        ):
+            label = f"{label} 折扣率"
+    return f"{label}\n{payload}"
 
 
 def _chunk_id(

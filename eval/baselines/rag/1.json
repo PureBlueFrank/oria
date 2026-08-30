@@ -1,0 +1,2389 @@
+{
+  "suite": "rag",
+  "dataset_version": "1",
+  "dataset_sha256": "295e440cc0a9b32368f492a22bb6ec95396f42f5b9b2c8577becec1beb94d537",
+  "runner_version": "rag_v1",
+  "split": "all",
+  "verification_level": "fixture",
+  "embedding_profile": "fixture",
+  "reranker_profile": "fixture",
+  "gates_sha256": "bf81649871389a72f703bafe6a9b692222297733315bb445c2ea7855a894ec33",
+  "lock_sha256": "b45a0bb6cef787031c371e3351d8bbad6b7b325388eb838c6265dc46ec5ad425",
+  "eval_fingerprint": "sha256:7d8b7357bcdfca1213e72195aca968fa137e46e17cbaaebdecb366627ab95278",
+  "created_at": "2026-08-30T15:16:12.426260+08:00",
+  "pipelines": [
+    {
+      "mode": "dense",
+      "metrics": {
+        "recall_at_k": 0.9666666666666667,
+        "mrr": 0.7694444444444445,
+        "citation_hit_rate": 1.0,
+        "critical_pass_rate": 1.0
+      },
+      "cases": [
+        {
+          "case_id": "rag-v1-001",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "basic",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-002",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-003",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-004",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-005",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-006",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "merchant_material",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-007",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-008",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-009",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-010",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-011",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-012",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "benefit_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-013",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-014",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-015",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-016",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-017",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-018",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-019",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "benefit_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-020",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-021",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "benefit_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-022",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-023",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-024",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-025",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-026",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-027",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-028",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-029",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-030",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-031",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-032",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-033",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-034",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "merchant_material",
+            "recruitment_scope",
+            "benefit_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-035",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "benefit_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-036",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-037",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-038",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-039",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-040",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-041",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "benefit_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-042",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-043",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-044",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "basic",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-045",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-046",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-047",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-048",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "basic",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-049",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-050",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-051",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "confirmation_policy",
+            "benefit_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-052",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-053",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-054",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "benefit_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-055",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-056",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-057",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-058",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "benefit_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-059",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-060",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "benefit_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "metrics": {
+        "recall_at_k": 0.9666666666666667,
+        "mrr": 0.875,
+        "citation_hit_rate": 1.0,
+        "critical_pass_rate": 1.0
+      },
+      "cases": [
+        {
+          "case_id": "rag-v1-001",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-002",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-003",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-004",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-005",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-006",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-007",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-008",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "basic",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-009",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-010",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "basic",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-011",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-012",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-013",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "merchant_material",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-014",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-015",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-016",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-017",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-018",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-019",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-020",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-021",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-022",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-023",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-024",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-025",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-026",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-027",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-028",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-029",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-030",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-031",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-032",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-033",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-034",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-035",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-036",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-037",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-038",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-039",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-040",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-041",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-042",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-043",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-044",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-045",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-046",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-047",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-048",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-049",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-050",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-051",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "confirmation_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-052",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-053",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-054",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-055",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-056",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-057",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-058",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-059",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-060",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "hybrid_rerank",
+      "metrics": {
+        "recall_at_k": 0.95,
+        "mrr": 0.8583333333333333,
+        "citation_hit_rate": 1.0,
+        "critical_pass_rate": 1.0
+      },
+      "cases": [
+        {
+          "case_id": "rag-v1-001",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-002",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-003",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "basic",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-004",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-005",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-006",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-007",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-008",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "basic",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-009",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-010",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "basic",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-011",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-012",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-013",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-014",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-015",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-016",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-017",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-018",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-019",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-020",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-021",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-022",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-023",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-024",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-025",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-026",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-027",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-028",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-029",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-030",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-031",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-032",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-033",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-034",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-035",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-036",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-037",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-038",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-039",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-040",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-041",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-042",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-043",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-044",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-045",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-046",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-047",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-048",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-049",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-050",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "merchant_material"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-051",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-052",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-053",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-054",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-055",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-056",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-057",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "recruitment_scope"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-058",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-059",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "enrollment_policy"
+          ],
+          "citations_valid": true,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-060",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "basic"
+          ],
+          "citations_valid": true,
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

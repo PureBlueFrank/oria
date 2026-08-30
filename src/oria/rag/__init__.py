@@ -1,5 +1,9 @@
 """Local knowledge ingestion, retrieval, and rule snapshot services."""
 
+from oria.rag.rerank import CrossEncoderReranker, FixtureReranker
+
+__all__ = ["CrossEncoderReranker", "FixtureReranker"]
+
 from oria.rag.models import (
     CampaignRuleSnapshot,
     DocumentIngestRequest,

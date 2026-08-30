@@ -1354,6 +1354,12 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+eval = [
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
+    { name = "sentence-transformers" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
+    { name = "transformers" },
+]
 standard = [
     { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
     { name = "sentence-transformers" },
@@ -1381,19 +1387,23 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.23,<5" },
     { name = "langgraph", specifier = ">=1,<2" },
     { name = "langgraph-checkpoint-sqlite", specifier = ">=3,<4" },
+    { name = "numpy", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'eval'", specifier = ">=1.26,<2" },
     { name = "numpy", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'standard'", specifier = ">=1.26,<2" },
     { name = "onnxruntime", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = ">=1.23.2,<1.24" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pydantic-settings", specifier = ">=2.10,<3" },
     { name = "pyyaml", specifier = ">=6,<7" },
+    { name = "sentence-transformers", marker = "extra == 'eval'", specifier = ">=5,<6" },
     { name = "sentence-transformers", marker = "extra == 'standard'", specifier = ">=5,<6" },
     { name = "sqlalchemy", specifier = ">=2,<3" },
     { name = "structlog", specifier = ">=25,<26" },
+    { name = "torch", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'eval'", specifier = ">=2.2,<2.3" },
     { name = "torch", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'standard'", specifier = ">=2.2,<2.3" },
+    { name = "transformers", marker = "extra == 'eval'", specifier = ">=4.41,<5" },
     { name = "transformers", marker = "extra == 'standard'", specifier = ">=4.41,<5" },
     { name = "typer", specifier = ">=0.16,<1" },
 ]
-provides-extras = ["standard"]
+provides-extras = ["standard", "eval"]
 
 [package.metadata.requires-dev]
 dev = [

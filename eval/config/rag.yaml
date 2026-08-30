@@ -1,0 +1,12 @@
+suite: rag
+dataset_version: "1"
+embedding:
+  model: BAAI/bge-small-zh-v1.5
+  revision: a7ec18349c42fc774b0e86af26215e38a10fbe9d
+  trust_remote_code: false
+  license: MIT
+reranker:
+  model: BAAI/bge-reranker-base
+  revision: 2cfc18c9415c912f9d8155881c133215df768a70
+  trust_remote_code: false
+  license: MIT

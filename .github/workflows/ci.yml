@@ -41,18 +41,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.6"
           python-version: "3.11"
           enable-cache: true
       - run: uv sync --locked --group dev
+      - if: github.event_name == 'pull_request'
+        env:
+          ORIA_EVAL_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          ORIA_EVAL_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          ORIA_EVAL_PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: uv run python scripts/check_eval_baseline_update.py
       - run: uv run python scripts/run_scenario_a_golden.py
+      - run: uv run python scripts/run_rag_golden.py
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: scenario-a-golden-v1
           path: .artifacts/eval/scenario_a_v1.json
+          if-no-files-found: error
+          retention-days: 14
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rag-golden-v1
+          path: .artifacts/eval/rag_v1.json
           if-no-files-found: error
           retention-days: 14
 
@@ -77,6 +93,7 @@ jobs:
       - run: .artifacts/package-venv/bin/python scripts/verify_t06_wheel.py --data-dir .artifacts/t06-wheel-data
       - run: .artifacts/package-venv/bin/python scripts/verify_t07_wheel.py --data-dir .artifacts/t07-wheel-data
       - run: .artifacts/package-venv/bin/python scripts/verify_t08_wheel.py --work-dir .artifacts/t08-wheel-work
+      - run: .artifacts/package-venv/bin/python scripts/verify_v02_t05_wheel.py
       - run: uv run mypy --python-executable .artifacts/package-venv/bin/python --strict scripts/wheel_type_consumer.py
 
   extras-smoke:
@@ -84,7 +101,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        extra: [standard]
+        extra: [standard, eval]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
@@ -93,4 +110,4 @@ jobs:
           python-version: "3.11"
           enable-cache: true
       - run: uv sync --locked --group dev --extra "${{ matrix.extra }}"
-      - run: uv run --extra "${{ matrix.extra }}" python -c "import sentence_transformers"
+      - run: uv run --extra "${{ matrix.extra }}" python -c "import sentence_transformers; from sentence_transformers import CrossEncoder"
