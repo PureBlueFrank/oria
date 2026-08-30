@@ -49,7 +49,7 @@ def test_business_0003_empty_upgrade_is_repeatable_and_downgrades_cleanly(
     command.upgrade(config, "head")
     command.upgrade(config, "head")
 
-    assert _revision(database) == "business_0003"
+    assert _revision(database) == "business_0004"
     assert _tables(database) >= LEDGER_TABLES
 
     command.downgrade(config, "business_0002")
@@ -116,3 +116,69 @@ def test_platform_and_business_revision_chains_upgrade_independently(tmp_path: P
     assert _revision(business) == "business_0002"
     assert "tool_executions" not in _tables(platform)
     assert LEDGER_TABLES.isdisjoint(_tables(business))
+
+
+def test_business_0004_enforces_and_downgrades_launch_saga_states(tmp_path: Path) -> None:
+    database = tmp_path / "launch-saga.db"
+    config = _config(database)
+    command.upgrade(config, "head")
+    timestamp = "2026-08-31T00:00:00+00:00"
+
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "INSERT INTO campaign_rule_snapshot_refs VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                "tenant_a",
+                "rule_ref_1",
+                1,
+                timestamp,
+                timestamp,
+                "rs_123456789012345678901234",
+                f"sha256:{'a' * 64}",
+            ),
+        )
+        connection.execute(
+            "INSERT INTO campaigns VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                "tenant_a",
+                "campaign_1",
+                1,
+                timestamp,
+                timestamp,
+                "rule_ref_1",
+                "hybrid",
+                "draft",
+            ),
+        )
+        connection.execute(
+            "INSERT INTO launch_saga_states VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                "tenant_a",
+                "saga_1",
+                1,
+                timestamp,
+                timestamp,
+                "campaign_1",
+                "planned",
+                "checkpoint_1",
+            ),
+        )
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                "UPDATE launch_saga_states SET status = 'pending' WHERE launch_saga_id = 'saga_1'"
+            )
+        connection.commit()
+
+    command.downgrade(config, "business_0003")
+
+    with sqlite3.connect(database) as connection:
+        status = connection.execute(
+            "SELECT status FROM launch_saga_states WHERE launch_saga_id = 'saga_1'"
+        ).fetchone()
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                "UPDATE launch_saga_states SET status = 'planned' "
+                "WHERE launch_saga_id = 'saga_1'"
+            )
+
+    assert status == ("pending",)
