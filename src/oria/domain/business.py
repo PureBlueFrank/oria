@@ -22,6 +22,15 @@ CampaignStatus = Literal[
     "cancelled",
 ]
 CouponBatchStatus = Literal["draft", "materializing", "ready", "failed", "unknown", "expired"]
+LaunchSagaStatus = Literal[
+    "planned",
+    "coupon_materialized",
+    "recruitment_published",
+    "completed",
+    "compensation_pending",
+    "reconciliation_required",
+    "failed",
+]
 BusinessKey = tuple[str, ...]
 
 _CAMPAIGN_TRANSITIONS: dict[str, frozenset[str]] = {
@@ -41,6 +50,19 @@ _COUPON_BATCH_TRANSITIONS: dict[str, frozenset[str]] = {
     "failed": frozenset({"expired"}),
     "unknown": frozenset({"expired"}),
     "expired": frozenset(),
+}
+_LAUNCH_SAGA_FAILURE_STATES = frozenset(
+    {"compensation_pending", "reconciliation_required", "failed"}
+)
+_LAUNCH_SAGA_TRANSITIONS: dict[str, frozenset[str]] = {
+    "planned": frozenset({"coupon_materialized"}) | _LAUNCH_SAGA_FAILURE_STATES,
+    "coupon_materialized": frozenset({"recruitment_published"})
+    | _LAUNCH_SAGA_FAILURE_STATES,
+    "recruitment_published": frozenset({"completed"}) | _LAUNCH_SAGA_FAILURE_STATES,
+    "completed": frozenset(),
+    "compensation_pending": frozenset(),
+    "reconciliation_required": frozenset(),
+    "failed": frozenset(),
 }
 
 
@@ -148,8 +170,17 @@ class LaunchSagaState(BusinessEntity):
 
     launch_saga_id: str = Field(min_length=1)
     campaign_id: str = Field(min_length=1)
-    status: Literal["pending", "running", "completed", "failed", "unknown"]
+    status: LaunchSagaStatus
     checkpoint: str = Field(min_length=1)
+
+    def transition_to(
+        self,
+        target: LaunchSagaStatus,
+        *,
+        updated_at: datetime,
+    ) -> LaunchSagaState:
+        _transition(self.status, target, _LAUNCH_SAGA_TRANSITIONS)
+        return self._next_version(updated_at=updated_at, status=target)
 
 
 class RecruitmentPublication(BusinessEntity):

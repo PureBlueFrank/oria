@@ -74,7 +74,7 @@ def _entities() -> tuple[object, ...]:
             **common,
             launch_saga_id="saga-1",
             campaign_id="campaign-1",
-            status="pending",
+            status="planned",
             checkpoint="draft-persisted",
         ),
         RecruitmentPublication(
@@ -229,6 +229,85 @@ def test_coupon_batch_accepts_every_declared_materialization_outcome(terminal: s
     )
     with pytest.raises(ValueError, match="illegal state transition"):
         batch.transition_to("ready", updated_at=LATER)
+
+
+@pytest.mark.parametrize(
+    ("source", "target"),
+    [
+        ("planned", "coupon_materialized"),
+        ("coupon_materialized", "recruitment_published"),
+        ("recruitment_published", "completed"),
+        ("planned", "compensation_pending"),
+        ("planned", "reconciliation_required"),
+        ("planned", "failed"),
+        ("coupon_materialized", "compensation_pending"),
+        ("coupon_materialized", "reconciliation_required"),
+        ("coupon_materialized", "failed"),
+        ("recruitment_published", "compensation_pending"),
+        ("recruitment_published", "reconciliation_required"),
+        ("recruitment_published", "failed"),
+    ],
+)
+def test_launch_saga_accepts_every_declared_transition(source: str, target: str) -> None:
+    saga = _entities()[4]
+    assert isinstance(saga, LaunchSagaState)
+    if source == "coupon_materialized":
+        saga = saga.transition_to("coupon_materialized", updated_at=LATER)
+    elif source == "recruitment_published":
+        saga = saga.transition_to("coupon_materialized", updated_at=LATER).transition_to(
+            "recruitment_published",
+            updated_at=LATER + timedelta(minutes=1),
+        )
+
+    transitioned = saga.transition_to(  # type: ignore[arg-type]
+        target,
+        updated_at=LATER + timedelta(minutes=2),
+    )
+
+    assert transitioned.status == target
+    assert transitioned.version == saga.version + 1
+
+
+@pytest.mark.parametrize(
+    ("source", "target"),
+    [
+        ("planned", "recruitment_published"),
+        ("planned", "completed"),
+        ("coupon_materialized", "planned"),
+        ("coupon_materialized", "completed"),
+        ("recruitment_published", "planned"),
+        ("recruitment_published", "coupon_materialized"),
+        ("completed", "failed"),
+        ("compensation_pending", "failed"),
+        ("reconciliation_required", "failed"),
+        ("failed", "planned"),
+    ],
+)
+def test_launch_saga_rejects_skips_backtracking_and_terminal_transitions(
+    source: str,
+    target: str,
+) -> None:
+    saga = _entities()[4]
+    assert isinstance(saga, LaunchSagaState)
+    path = {
+        "coupon_materialized": ("coupon_materialized",),
+        "recruitment_published": ("coupon_materialized", "recruitment_published"),
+        "completed": ("coupon_materialized", "recruitment_published", "completed"),
+        "compensation_pending": ("compensation_pending",),
+        "reconciliation_required": ("reconciliation_required",),
+        "failed": ("failed",),
+    }.get(source, ())
+    for index, step in enumerate(path, start=1):
+        saga = saga.transition_to(  # type: ignore[arg-type]
+            step,
+            updated_at=NOW + timedelta(minutes=index),
+        )
+
+    with pytest.raises(ValueError, match="illegal state transition"):
+        saga.transition_to(  # type: ignore[arg-type]
+            target,
+            updated_at=NOW + timedelta(minutes=10),
+        )
 
 
 @pytest.mark.parametrize(
