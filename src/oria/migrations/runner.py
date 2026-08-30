@@ -273,6 +273,59 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("attempt_count", "INTEGER", 1, 0),
             ("receipt_id", "VARCHAR", 0, 0),
         ),
+        "tool_executions": (
+            ("execution_id", "VARCHAR", 1, 1),
+            ("tenant_id", "VARCHAR", 1, 0),
+            ("tool_name", "VARCHAR", 1, 0),
+            ("idempotency_key", "VARCHAR", 1, 0),
+            ("canonical_args_hash", "VARCHAR", 1, 0),
+            ("checkpoint_id", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+            ("receipt_id", "VARCHAR", 0, 0),
+            ("compensation_status", "VARCHAR", 0, 0),
+            ("attempt_count", "INTEGER", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+            ("updated_at", "DATETIME", 1, 0),
+            ("executed_at", "DATETIME", 0, 0),
+        ),
+        "domain_events": (
+            ("event_id", "VARCHAR", 1, 1),
+            ("tenant_id", "VARCHAR", 1, 0),
+            ("aggregate_type", "VARCHAR", 1, 0),
+            ("aggregate_id", "VARCHAR", 1, 0),
+            ("event_type", "VARCHAR", 1, 0),
+            ("event_version", "INTEGER", 1, 0),
+            ("payload_json", "TEXT", 1, 0),
+            ("occurred_at", "DATETIME", 1, 0),
+            ("correlation_id", "VARCHAR", 1, 0),
+        ),
+        "audit_events": (
+            ("event_id", "VARCHAR", 1, 1),
+            ("occurred_at", "DATETIME", 1, 0),
+            ("tenant_id", "VARCHAR", 1, 0),
+            ("actor", "VARCHAR", 1, 0),
+            ("action", "VARCHAR", 1, 0),
+            ("resource_type", "VARCHAR", 1, 0),
+            ("resource_id", "VARCHAR", 1, 0),
+            ("resource_tenant_id", "VARCHAR", 1, 0),
+            ("decision", "VARCHAR", 1, 0),
+            ("policy_version", "VARCHAR", 1, 0),
+            ("args_hash", "VARCHAR", 1, 0),
+            ("result", "VARCHAR", 1, 0),
+            ("correlation_id", "VARCHAR", 1, 0),
+            ("payload_json", "TEXT", 1, 0),
+        ),
+        "outbox": (
+            ("event_id", "VARCHAR", 1, 1),
+            ("tenant_id", "VARCHAR", 1, 0),
+            ("topic", "VARCHAR", 1, 0),
+            ("payload_json", "TEXT", 1, 0),
+            ("occurred_at", "DATETIME", 1, 0),
+            ("available_at", "DATETIME", 1, 0),
+            ("published_at", "DATETIME", 0, 0),
+            ("attempt_count", "INTEGER", 1, 0),
+            ("last_error_code", "VARCHAR", 0, 0),
+        ),
         "merchants": (
             ("tenant_id", "VARCHAR", 1, 1),
             ("merchant_id", "VARCHAR", 1, 2),
@@ -423,6 +476,10 @@ _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
                 ("merchants", (("tenant_id", "tenant_id"), ("merchant_id", "merchant_id"))),
             }
         ),
+        "tool_executions": frozenset(),
+        "domain_events": frozenset(),
+        "audit_events": frozenset(),
+        "outbox": frozenset(),
         "merchants": frozenset(),
     },
 }
@@ -520,7 +577,8 @@ def _validate_target(target: str, database_path: Path, expected_head: str) -> No
         raise MigrationError(f"{target} database schema verification failed") from exc
     if revisions != [(expected_head,)]:
         raise MigrationError(f"{target} database revision verification failed")
-    foreign_tables = _EXPECTED_TABLES["business" if target == "platform" else "platform"]
+    other_target = "business" if target == "platform" else "platform"
+    foreign_tables = _EXPECTED_TABLES[other_target].difference(_EXPECTED_TABLES[target])
     if tables.intersection(foreign_tables):
         raise MigrationError(f"{target} database contains tables from the other revision chain")
 
