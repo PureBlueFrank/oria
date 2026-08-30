@@ -140,8 +140,19 @@ class BenefitRule(ValueModel):
 
 
 class ConfirmationRule(ValueModel):
-    ordered_steps: tuple[Literal["merchant", "sales", "sales_manager"], ...] = Field(min_length=1)
+    ordered_steps: tuple[Literal["merchant", "sales", "sales_manager"], ...]
     timeout_action: Literal["reject", "escalate", "explicit_auto_confirm"]
+
+    @field_validator("ordered_steps")
+    @classmethod
+    def validate_ordered_steps(
+        cls,
+        value: tuple[Literal["merchant", "sales", "sales_manager"], ...],
+    ) -> tuple[Literal["merchant", "sales", "sales_manager"], ...]:
+        rank = {"merchant": 0, "sales": 1, "sales_manager": 2}
+        if len(set(value)) != len(value) or tuple(sorted(value, key=rank.__getitem__)) != value:
+            raise ValueError("confirmation steps must be unique and ordered by responsibility")
+        return value
 
 
 class MerchantMaterialRule(ValueModel):
