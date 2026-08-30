@@ -55,7 +55,7 @@ _DENIAL_REASONS = {
     "context_mismatch": "authorization principals do not match the trusted context",
     "untrusted_principal": "principal is not the trusted community identity",
     "cross_tenant": "cross-tenant access is denied",
-    "unknown_action": "action is not allowed by the local policy",
+    "unknown_action": "action is not allowed by the local read policy",
     "role_denied": "actor role is not authorized for the write action",
     "assignment_denied": "confirmation task is not assigned to the actor",
 }
