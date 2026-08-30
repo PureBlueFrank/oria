@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from oria.core.types import (
     AuthorizationContext,
     AuthorizationRequest,
+    EventEnvelope,
     PolicyDecision,
     ResourceRef,
     ToolPolicy,
@@ -165,11 +166,19 @@ class ApprovalResumeRequest(ValueModel):
 
 
 class ApprovalRepository(Protocol):
-    async def add(self, approval: Approval) -> None: ...
+    async def add(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+    ) -> None: ...
 
     async def get(self, tenant_id: str, approval_id: str) -> Approval | None: ...
 
-    async def replace(self, approval: Approval) -> None: ...
+    async def replace(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+    ) -> None: ...
 
 
 class InMemoryApprovalRepository:
@@ -178,7 +187,12 @@ class InMemoryApprovalRepository:
     def __init__(self) -> None:
         self._items: dict[tuple[str, str], Approval] = {}
 
-    async def add(self, approval: Approval) -> None:
+    async def add(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+    ) -> None:
+        del audit_event
         key = (approval.tenant_id, approval.approval_id)
         if key in self._items:
             raise ValueError("approval already exists")
@@ -187,7 +201,12 @@ class InMemoryApprovalRepository:
     async def get(self, tenant_id: str, approval_id: str) -> Approval | None:
         return self._items.get((tenant_id, approval_id))
 
-    async def replace(self, approval: Approval) -> None:
+    async def replace(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+    ) -> None:
+        del audit_event
         key = (approval.tenant_id, approval.approval_id)
         if key not in self._items:
             raise LookupError("approval is unavailable")
@@ -214,11 +233,13 @@ class ApprovalService:
         *,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         id_factory: Callable[[], str] = lambda: f"approval_{uuid.uuid4().hex}",
+        event_id_factory: Callable[[], str] = lambda: f"audit_{uuid.uuid4().hex}",
     ) -> None:
         self._repository = repository
         self._policy = policy
         self._clock = clock
         self._id_factory = id_factory
+        self._event_id_factory = event_id_factory
 
     async def create(
         self,
@@ -251,7 +272,10 @@ class ApprovalService:
             created_at=now,
             updated_at=now,
         )
-        await self._repository.add(approval)
+        await self._repository.add(
+            approval,
+            self._audit_event(approval, action="approval.created", ctx=ctx),
+        )
         return approval
 
     async def decide(
@@ -279,12 +303,18 @@ class ApprovalService:
         )
         if authorization.policy_version != approval.policy_version:
             invalidated = self._terminalize(approval, status="invalidated")
-            await self._repository.replace(invalidated)
+            await self._repository.replace(
+                invalidated,
+                self._audit_event(invalidated, action="approval.invalidated", ctx=ctx),
+            )
             raise PermissionError("approval policy version changed")
         now = self._now()
         if now >= approval.expires_at:
             expired = self._terminalize(approval, status="expired")
-            await self._repository.replace(expired)
+            await self._repository.replace(
+                expired,
+                self._audit_event(expired, action="approval.expired", ctx=ctx),
+            )
             raise PermissionError("approval has expired")
         decided = Approval.model_validate(
             {
@@ -297,7 +327,10 @@ class ApprovalService:
                 "decided_at": now,
             }
         )
-        await self._repository.replace(decided)
+        await self._repository.replace(
+            decided,
+            self._audit_event(decided, action="approval.decided", ctx=ctx),
+        )
         return decided
 
     async def authorize_resume(
@@ -340,12 +373,18 @@ class ApprovalService:
         )
         if current != frozen or tool_policy.approval_action != request.approval_action:
             invalidated = self._terminalize(approval, status="invalidated")
-            await self._repository.replace(invalidated)
+            await self._repository.replace(
+                invalidated,
+                self._audit_event(invalidated, action="approval.invalidated", ctx=ctx),
+            )
             raise PermissionError("approval binding no longer matches the execution")
         now = self._now()
         if now >= approval.expires_at:
             expired = self._terminalize(approval, status="expired")
-            await self._repository.replace(expired)
+            await self._repository.replace(
+                expired,
+                self._audit_event(expired, action="approval.expired", ctx=ctx),
+            )
             raise PermissionError("approval has expired")
         if approval.status != "approved":
             raise PermissionError("approval is not approved")
@@ -401,4 +440,33 @@ class ApprovalService:
                 "status": status,
                 "updated_at": self._now(),
             }
+        )
+
+    def _audit_event(
+        self,
+        approval: Approval,
+        *,
+        action: str,
+        ctx: Context,
+    ) -> EventEnvelope:
+        return EventEnvelope(
+            event_id=self._event_id_factory(),
+            occurred_at=approval.updated_at,
+            tenant_id=approval.tenant_id,
+            actor=ctx.actor.subject_id,
+            action=action,
+            resource=ResourceRef(
+                resource_type="approval",
+                resource_id=approval.approval_id,
+                tenant_id=approval.tenant_id,
+            ),
+            decision="allow",
+            policy_version=approval.policy_version,
+            args_hash=approval.canonical_args_hash,
+            result="success",
+            correlation_id=ctx.correlation_id,
+            payload={
+                "approval_action": approval.approval_action,
+                "status": approval.status,
+            },
         )

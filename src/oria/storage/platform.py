@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from oria.core.approvals import Approval
 from oria.core.integration_events import ExternalWait, IntegrationInboxRecord
+from oria.core.types import EventEnvelope
+from oria.permission.audit import redact_audit_payload
 
 
 class PlatformRepositoryError(RuntimeError):
@@ -22,7 +24,11 @@ class SQLiteApprovalRepository:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
 
-    async def add(self, approval: Approval) -> None:
+    async def add(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+    ) -> None:
         try:
             async with self._sessions.begin() as session:
                 await session.execute(
@@ -37,6 +43,8 @@ class SQLiteApprovalRepository:
                     ),
                     approval.model_dump(),
                 )
+                if audit_event is not None:
+                    await self._append_approval_events(session, approval, audit_event)
         except IntegrityError as exc:
             raise ValueError("approval already exists") from exc
         except SQLAlchemyError as exc:
@@ -59,7 +67,11 @@ class SQLiteApprovalRepository:
             raise PlatformRepositoryError("approval read failed") from exc
         return None if row is None else Approval.model_validate(dict(row))
 
-    async def replace(self, approval: Approval) -> None:
+    async def replace(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+    ) -> None:
         try:
             async with self._sessions.begin() as session:
                 result = await session.execute(
@@ -73,10 +85,61 @@ class SQLiteApprovalRepository:
                 )
                 if not isinstance(result, CursorResult) or result.rowcount != 1:
                     raise LookupError("approval is unavailable")
+                if audit_event is not None:
+                    await self._append_approval_events(session, approval, audit_event)
         except LookupError:
             raise
+        except IntegrityError as exc:
+            raise ValueError("approval event already exists") from exc
         except SQLAlchemyError as exc:
             raise PlatformRepositoryError("approval update failed") from exc
+
+    async def _append_approval_events(
+        self,
+        session: AsyncSession,
+        approval: Approval,
+        event: EventEnvelope,
+    ) -> None:
+        if (
+            event.tenant_id != approval.tenant_id
+            or event.resource.tenant_id != approval.tenant_id
+            or event.resource.resource_type != "approval"
+            or event.resource.resource_id != approval.approval_id
+        ):
+            raise ValueError("approval event binding is invalid")
+        sanitized_payload = redact_audit_payload(event.payload)
+        payload_json = json.dumps(
+            sanitized_payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        await session.execute(
+            text(
+                "INSERT INTO audit_events (event_id, occurred_at, tenant_id, actor, action, "
+                "resource_type, resource_id, resource_tenant_id, decision, policy_version, "
+                "args_hash, result, correlation_id, payload_json) VALUES (:event_id, "
+                ":occurred_at, :tenant_id, :actor, :action, 'approval', :resource_id, "
+                ":tenant_id, :decision, :policy_version, :args_hash, :result, :correlation_id, "
+                ":payload_json)"
+            ),
+            event.model_dump(exclude={"resource", "payload"})
+            | {"resource_id": approval.approval_id, "payload_json": payload_json},
+        )
+        await session.execute(
+            text(
+                "INSERT INTO outbox (event_id, tenant_id, topic, payload_json, occurred_at, "
+                "available_at, published_at, attempt_count, last_error_code) VALUES (:event_id, "
+                ":tenant_id, 'platform.approval.status_changed', :payload_json, :occurred_at, "
+                ":occurred_at, NULL, 0, NULL)"
+            ),
+            {
+                "event_id": event.event_id,
+                "tenant_id": event.tenant_id,
+                "payload_json": payload_json,
+                "occurred_at": event.occurred_at,
+            },
+        )
 
 
 class SQLiteIntegrationEventInboxRepository:

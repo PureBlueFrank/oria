@@ -12,6 +12,7 @@ import pytest
 from oria.config import resolve_runtime_config
 from oria.core.approvals import Approval
 from oria.core.integration_events import ExternalWait, IntegrationEventInboxService
+from oria.core.types import EventEnvelope, ResourceRef
 from oria.data import initialize_data
 from oria.storage.database import DatabaseResources
 from oria.storage.platform import SQLiteApprovalRepository, SQLiteIntegrationEventInboxRepository
@@ -38,13 +39,56 @@ async def test_sqlite_approval_repository_round_trips_tenant_bound_state(tmp_pat
         created_at=NOW,
         updated_at=NOW,
     )
+    audit_event = EventEnvelope(
+        event_id="audit-approval-1",
+        occurred_at=NOW,
+        tenant_id="tenant-a",
+        actor="requester-a",
+        action="approval.created",
+        resource=ResourceRef(
+            resource_type="approval",
+            resource_id="approval-1",
+            tenant_id="tenant-a",
+        ),
+        decision="allow",
+        policy_version="policy-v1",
+        args_hash="sha256:" + "a" * 64,
+        result="success",
+        correlation_id="correlation-1",
+        payload={"status": "pending", "api_key": "must-not-persist"},
+    )
 
     async with DatabaseResources(config) as databases:
         repository = SQLiteApprovalRepository(databases.platform_sessions)
-        await repository.add(approval)
+        await repository.add(approval, audit_event)
 
         assert await repository.get("tenant-a", "approval-1") == approval
         assert await repository.get("tenant-b", "approval-1") is None
+
+        decided = Approval.model_validate(
+            approval.model_dump()
+            | {
+                "status": "approved",
+                "decider": "approver-a",
+                "decision": "approve",
+                "updated_at": NOW + timedelta(minutes=1),
+                "decided_at": NOW + timedelta(minutes=1),
+            }
+        )
+        with pytest.raises(ValueError, match="event already exists"):
+            await repository.replace(decided, audit_event)
+        assert await repository.get("tenant-a", "approval-1") == approval
+
+    with sqlite3.connect(config.data_paths.platform_db) as connection:
+        audit_payload = connection.execute(
+            "SELECT payload_json FROM audit_events WHERE event_id = 'audit-approval-1'"
+        ).fetchone()
+        outbox_payload = connection.execute(
+            "SELECT payload_json FROM outbox WHERE event_id = 'audit-approval-1'"
+        ).fetchone()
+    assert audit_payload is not None and outbox_payload is not None
+    assert audit_payload == outbox_payload
+    assert "must-not-persist" not in str(audit_payload)
 
 
 @pytest.mark.asyncio
