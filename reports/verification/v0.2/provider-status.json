@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "task_id": "V0.2-T01",
-  "executed_at": "2026-08-29T20:33:00+08:00",
-  "verification_scope": "fixture_contract_only",
+  "task_id": "V0.2-T01,V0.2-T06",
+  "executed_at": "2026-08-30T17:12:11+08:00",
+  "verification_scope": "fixture_contract_plus_deepseek_live",
   "contract_result": "passed",
   "commands": [
     {
@@ -12,6 +12,18 @@
     {
       "command": "uv run pytest -m \"unit or contract\" -q",
       "result": "189 passed, 74 deselected"
+    },
+    {
+      "command": "python scripts/run_eval_nightly.py --target deepseek",
+      "result": "passed; 12/12 requests completed"
+    },
+    {
+      "command": "python scripts/run_provider_live.py --target deepseek",
+      "result": "passed; text, stream, tool call, and authentication mapping passed"
+    },
+    {
+      "command": "python scripts/diagnose_deepseek_responses_tools.py",
+      "result": "passed; official string and Oria message inputs both produced tool calls"
     }
   ],
   "profiles": {
@@ -28,8 +40,11 @@
       "api_dialect": "responses",
       "structured_output_mode": "native_json_schema",
       "fixture_contract_verified": true,
-      "network_executed": false,
-      "live_verified": false
+      "network_executed": true,
+      "live_verified": true,
+      "live_result": "passed",
+      "nightly_verified": true,
+      "last_live_report": "reports/verification/v0.2/20260830T171211+0800/summary.md"
     },
     "kimi": {
       "provider": "kimi",

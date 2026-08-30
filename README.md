@@ -45,11 +45,11 @@ Golden 评测是 30 条已人工批准的离线场景 A 样本；安全、schema
 | BGE Embedder | 锁定 revision 的 safetensors 首次加载与离线复跑通过 |
 | V0.1-T10 DeepSeek + BGE Live | `passed`；详见 [T10 Live 报告](reports/verification/v0.1/20260829T145723+0800/summary.md) |
 | V0.1 Agent 审计修复 | usage/request ID、提示词隔离、候选上限和业务库指纹已修复并完成真实双跑；[验证报告](reports/verification/v0.1/20260829T160420+0800/summary.md) |
-| V0.2 Provider 契约 | Mock、DeepSeek、Kimi、智谱、OpenAI、Anthropic 的统一 Fixture CT 已实现；[状态卡](reports/verification/v0.2/provider-status.json) 均为 `live_verified=false` |
+| V0.2 Provider 契约 | 六家统一 Fixture CT 已实现；DeepSeek Nightly 与必需 Live 卡通过，[状态卡](reports/verification/v0.2/provider-status.json) 为 `live_verified=true`；其余 Provider 未 Live 验证 |
 | 企业 Adapter | 未实现、未验证 |
 | 远程 GitHub Actions | 当前未提交变更尚未在远程实跑 |
 
-V0.1-T10 及后续 Agent 审计修复已完成真实 DeepSeek + 锁定 BGE 双跑，当前口径是“V0.1 Core 与必需 Live 卡均通过”；V0.2 新增 Provider 只完成无网络 Fixture CT，不包含其他 Provider 的 Live 验证，也不包含企业 Adapter。Live 与 Enterprise 测试默认不运行；显式运行时必须同时提供开关和非空已知 target，否则以非零状态拒绝而不是冒充通过。
+V0.1-T10 及后续 Agent 审计修复已完成真实 DeepSeek + 锁定 BGE 双跑；V0.2 Core、真实 DeepSeek Nightly 与必需 Provider Live 卡均已通过。Kimi、智谱、OpenAI、Anthropic 仍只有无网络 Fixture CT，不包含这些 Provider 的 Live 验证，也不包含企业 Adapter。Live 与 Enterprise 测试默认不运行；显式运行时必须同时提供开关和非空已知 target，否则以非零状态拒绝而不是冒充通过。
 
 ## 设计与安全
 

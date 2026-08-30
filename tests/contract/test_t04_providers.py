@@ -167,6 +167,55 @@ async def test_deepseek_responses_maps_native_schema_tools_and_usage(tmp_path: P
 
 
 @pytest.mark.asyncio
+async def test_deepseek_responses_disables_thinking_for_explicit_tool_choice(
+    tmp_path: Path,
+) -> None:
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(
+            200,
+            json=_response(
+                {
+                    "type": "function_call",
+                    "call_id": "call-1",
+                    "name": "oria_health_probe",
+                    "arguments": "{}",
+                }
+            ),
+        )
+
+    runtime, ctx = await _runtime_context(tmp_path)
+    async with httpx.AsyncClient(
+        base_url="https://api.deepseek.com",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        try:
+            provider = OpenAICompatProvider(_profile(), client)
+            result = await provider.chat(
+                [Message(role="user", content="调用健康检查")],
+                ctx,
+                tools=[
+                    ToolSpec(
+                        name="oria_health_probe",
+                        schema_version=1,
+                        description="执行健康检查",
+                        json_schema={"type": "object", "properties": {}},
+                    )
+                ],
+                options=ChatOptions(tool_choice="required", max_output_tokens=128),
+            )
+        finally:
+            await runtime.aclose()
+
+    assert result.tool_calls[0].name == "oria_health_probe"
+    payload = json.loads(captured[0].content)
+    assert payload["tool_choice"] == "required"
+    assert payload["reasoning"] == {"effort": "none"}
+
+
+@pytest.mark.asyncio
 async def test_native_structured_output_is_locally_validated(tmp_path: Path) -> None:
     def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(

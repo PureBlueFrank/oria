@@ -1,6 +1,6 @@
 # Oria 详细执行路线
 
-> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。仓库现已完成 `V0.1-T01–T10` 与 `V0.2-T01–T02`；`V0.1-Core` 与真实 DeepSeek + 锁定 BGE 必需 Live 卡均已通过。当前口径是“V0.1 Core 与必需 Live 卡通过，V0.2 T01–T02 的 Fixture/Community 门禁通过”，不包含 V0.2 Live、企业 Adapter 或其他 Provider Live。其余任务与验证状态以 §三总览和对应版本的“验证状态”小节为准。
+> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。仓库现已完成 `V0.1-T01–T10` 与 `V0.2-T01–T06`；`V0.1-Core`、`V0.2-Core`、真实 DeepSeek Nightly 和各自必需 Live 卡均已通过。当前口径是“V0.2 完成”，不包含 V0.2 企业 Adapter或 DeepSeek 以外 Provider Live。其余任务与验证状态以 §三总览和对应版本的“验证状态”小节为准。
 
 > **场景 A 设计评审记录（2026-08-26）**：已按“需求接入 → 规则快照 → 商家预筛/LLM 软排序 → 活动与券批次草案 → 运营审核/招商投放 → 自主报名或自动圈品 → 券关联 → 招后选品 → C 端投放 → 商家通知”同步架构与路线。此次只更新设计契约，未生成代码、未运行验证，版本状态仍为“未开始”。
 
@@ -171,7 +171,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 | 版本 | 目标 | 当前状态 | 必须包含的真实验证 |
 | --- | --- | --- | --- |
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 Live 卡均通过 | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
-| V0.2 | Provider/RAG 完整化 | 进行中（T01–T04 已完成） | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
+| V0.2 | Provider/RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡均通过 | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
 | V0.3 | 场景 A 完整 Workflow | 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
 | V0.5 | 多智能体、上下文和记忆 | 未开始 | 单/多 Agent 同集对照；跨会话记忆生命周期 |
@@ -372,7 +372,11 @@ T03 交付（已完成，Community）：新增 `platform_0004` document-version 
 
 T04 交付（已完成，Community）：自建纯 Python BM25 检索投影（标准 tf 饱和 + Robertson/Sparck Jones 正化 IDF + 文档长度归一化，无 numpy/rank-bm25 依赖），与 dense 投影同步 upsert/删除/重建，按 tenant 追踪 readiness 且未构建时显式抛错而非静默降级；新增 `ConfigurableRetriever` 提供 dense / dense+BM25（Reciprocal Rank Fusion）/ dense+BM25+reranker 三配置同一接口，新增 `Reranker` seam 与确定性 `FixtureReranker`，`AuthorizedBM25Retriever` 与 dense 一样复核 tenant/ACL/current version/content hash，检索结果仍标记 `untrusted_data`。runtime 默认装配 dense 管线（保持 demo 行为），bm25/reranker 组件已就位可切换。三配置真实运行、无静默 fallback、BM25 评分/ACL/生命周期契约测试已用本地 SQLite + Chroma + 合成 Fixture 通过；完整社区套件 `282 passed, 1 deselected`，静态检查与隔离 wheel 验证通过。本任务未接入真实 cross-encoder reranker，未运行真实 BGE 三管线 Recall@K/MRR 对照（留 T05），也未设性能阈值（仅原始延迟基线）。
 
-Core Gate：V0.2-T01–T05、真实 BGE 对照、ACL/删除和安全测试通过后可实施 V0.3。必需 Live 卡：DeepSeek；未通过时 V0.2 只能标“Core 完成，DeepSeek Live blocked/失败”。Anthropic 及其他 Provider 使用独立可选 adapter card，不阻塞 V0.3，但未 Live 验证的厂商不得进入“已验证支持”列表。
+T05 交付（已完成，Fixture/Community）：60 条全合成 RAG v1 已人工批准（42 development / 18 holdout，六类各 10 条，12 条 critical 按两个 split 各 6 条）并冻结 holdout；跨类别、源文档不可回答和直接复述 chunk 标题的问法已修订，空 critical split 与虚假实例标签均 fail closed。Fixture 首次 baseline 与 `rag-gates.yaml` 已提交，`eval_fingerprint` 绑定 dataset/model/pipeline/gate/`uv.lock`，PR `eval-golden` 与定时 Nightly 零请求预检已接入。锁定 `BAAI/bge-small-zh-v1.5@a7ec…e9d` 与 `BAAI/bge-reranker-base@2cfc…a70` 在冻结 60 条上完成离线复跑：dense、hybrid、hybrid+rerank 的 Recall@3/MRR 分别为 `0.9333/0.8389`、`0.9667/0.8778`、`0.9833/0.9222`，引用命中率和 critical pass rate 均为 `1.0`。完整套件 `310 passed, 1 deselected`，静态检查、构建和安装态 wheel 门禁通过。证据：[`reports/verification/v0.2/20260830T152625+0800/summary.md`](../reports/verification/v0.2/20260830T152625+0800/summary.md)。
+
+T06 交付（真实本机 Live，passed）：带五项硬预算的 Provider Nightly 已在冻结 holdout 6 条 critical case × 2 次上完成 `12/12` 请求，模型均为 `deepseek-v4-flash`，总 input/output 为 `2446/465` tokens，按冻结 peak 价格估算成本 `$0.001090232`。独立诊断定位到 DeepSeek V4 默认思考模式拒绝显式 `tool_choice`；适配层仅对 DeepSeek Responses 的显式工具选择发送 `reasoning.effort=none`。修复后二次诊断的官方字符串与 Oria 消息输入均成功调用工具，最终 Provider Live 的文本、语义流式、工具调用和 401 错误映射全部通过，卡片更新为 `live_verified=true`。失败历史证据保留于 [`20260830T163443+0800`](../reports/verification/v0.2/20260830T163443+0800/summary.md)，修复后通过证据：[`reports/verification/v0.2/20260830T171211+0800/summary.md`](../reports/verification/v0.2/20260830T171211+0800/summary.md)。
+
+Core Gate：V0.2-T01–T06、真实 BGE 对照、ACL/删除、安全测试、真实 DeepSeek Nightly 与必需 Live 卡均已通过，V0.2 完成并允许实施 V0.3。Anthropic 及其他 Provider 使用独立可选 adapter card，不阻塞 V0.3，但未 Live 验证的厂商不得进入“已验证支持”列表。
 
 ## 六、V0.3 场景 A 完整 Workflow
 

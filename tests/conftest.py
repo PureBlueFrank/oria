@@ -1,5 +1,8 @@
+import hashlib
+import json
 import os
 from collections.abc import Iterable
+from pathlib import Path
 
 import pytest
 
@@ -9,6 +12,36 @@ from oria._internal.target_selection import (
     TargetSelectionError,
     require_explicit_targets,
 )
+
+
+@pytest.fixture
+def pending_rag_manifest(tmp_path: Path) -> Path:
+    """Create an integrity-valid, explicitly unreviewed copy of RAG v1."""
+
+    source = Path(__file__).resolve().parents[1] / "eval" / "datasets" / "rag"
+    destination = tmp_path / "eval" / "datasets" / "rag"
+    destination.mkdir(parents=True)
+    cases = [json.loads(line) for line in (source / "v1.jsonl").read_text().splitlines()]
+    for case in cases:
+        case["review"] = {"status": "pending_human_review"}
+    payload = "".join(
+        json.dumps(case, ensure_ascii=False, separators=(",", ":")) + "\n" for case in cases
+    ).encode()
+    (destination / "v1.jsonl").write_bytes(payload)
+    manifest = json.loads((source / "v1.manifest.json").read_text())
+    manifest.update(
+        dataset_sha256=hashlib.sha256(payload).hexdigest(),
+        review_status="pending_human_review",
+        human_review_complete=False,
+        holdout_frozen=False,
+        baseline_created=False,
+    )
+    manifest_path = destination / "v1.manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return manifest_path
 
 
 def _has_marker(item: pytest.Item, marker: str) -> bool:

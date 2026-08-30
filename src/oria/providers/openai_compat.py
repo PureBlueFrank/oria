@@ -617,6 +617,9 @@ class OpenAICompatProvider:
             payload["max_output_tokens"] = options.max_output_tokens
         if options.tool_choice is not None:
             payload["tool_choice"] = options.tool_choice
+            if self._profile.provider == "deepseek":
+                # DeepSeek V4 enables thinking by default but rejects explicit tool_choice there.
+                payload["reasoning"] = {"effort": "none"}
         if options.parallel_tool_calls is not None:
             payload["parallel_tool_calls"] = options.parallel_tool_calls
         if stream:

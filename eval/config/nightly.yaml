@@ -1,0 +1,17 @@
+schema_version: 1
+targets:
+  - target_id: deepseek
+    provider: deepseek
+    model: deepseek-v4-flash
+    credential_env: DEEPSEEK_API_KEY
+    dataset_manifest: datasets/rag/v1.manifest.json
+    dataset_version: "1"
+    repetitions: 2
+    pricing_snapshot_id: deepseek-20260830
+    rate_tier: peak
+    budget:
+      max_cases: 12
+      max_input_tokens: 150000
+      max_output_tokens: 30000
+      max_cost_usd: 1.0
+      max_wall_seconds: 1800

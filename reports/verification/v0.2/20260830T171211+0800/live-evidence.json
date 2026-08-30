@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "task_id": "V0.2-T06",
+  "executed_at": "2026-08-30T17:12:11+08:00",
+  "result": "passed",
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "api_dialect": "responses",
+  "config_fingerprint": "sha256:ae596784f83ac37d02ecc599443461d1cb9039738c0224b059865cc00544cff6",
+  "compatibility_diagnostic": {
+    "status": "passed",
+    "conclusion": "both_accepted",
+    "request_count": 2,
+    "successful_request_count": 2,
+    "request_ids": [
+      "f08be5be-40a9-4cb4-b2a3-cb328d58fcae",
+      "a44961db-58ee-423a-9956-8ef0c9bab430"
+    ],
+    "usage": {
+      "input_tokens": 564,
+      "output_tokens": 46
+    },
+    "checks": {
+      "official_string_input": true,
+      "oria_message_input": true
+    }
+  },
+  "provider_live": {
+    "status": "passed",
+    "request_count": 4,
+    "successful_request_count": 3,
+    "request_ids": [
+      "64a82d28-5da9-4612-847d-6f2f410bfd43",
+      "b2b6a939-cd6c-42f3-baec-c9c25178569c",
+      "8efae1ec-9aa2-4d70-91f5-21b1d10aa95a"
+    ],
+    "usage": {
+      "input_tokens": 462,
+      "output_tokens": 96,
+      "reasoning_tokens": 61,
+      "cache_read_tokens": 256
+    },
+    "checks": {
+      "text": true,
+      "stream": true,
+      "tool_call": true,
+      "authentication_error_mapping": true
+    },
+    "elapsed_ms": 2101.6095829982078
+  },
+  "nightly": {
+    "status": "passed",
+    "request_count": 12,
+    "completed_request_count": 12,
+    "evidence_ref": "reports/verification/v0.2/20260830T163443+0800/live-evidence.json"
+  },
+  "root_cause": "DeepSeek V4 default thinking mode rejected explicit tool_choice; explicit DeepSeek Responses tool selection now disables thinking for that request",
+  "secret_persisted": false,
+  "prompt_or_output_persisted": false
+}

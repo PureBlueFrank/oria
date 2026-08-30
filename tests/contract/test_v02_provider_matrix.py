@@ -772,7 +772,7 @@ def test_default_real_profiles_resolve_to_explicit_dialect_and_strategy(
     assert resolved.llm.structured_output_mode == expected_mode
 
 
-def test_v02_provider_status_cards_are_initialized_without_live_claims() -> None:
+def test_v02_provider_status_cards_record_only_deepseek_live_as_verified() -> None:
     path = Path("reports/verification/v0.2/provider-status.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
 
@@ -784,6 +784,18 @@ def test_v02_provider_status_cards_are_initialized_without_live_claims() -> None
         "openai",
         "anthropic",
     }
-    assert all(card["live_verified"] is False for card in payload["profiles"].values())
-    assert all(card["network_executed"] is False for card in payload["profiles"].values())
+    assert payload["profiles"]["deepseek"]["network_executed"] is True
+    assert payload["profiles"]["deepseek"]["live_verified"] is True
+    assert payload["profiles"]["deepseek"]["live_result"] == "passed"
+    assert payload["profiles"]["deepseek"]["nightly_verified"] is True
+    assert all(
+        card["live_verified"] is False
+        for name, card in payload["profiles"].items()
+        if name != "deepseek"
+    )
+    assert all(
+        card["network_executed"] is False
+        for name, card in payload["profiles"].items()
+        if name != "deepseek"
+    )
     assert all(card["fixture_contract_verified"] is True for card in payload["profiles"].values())

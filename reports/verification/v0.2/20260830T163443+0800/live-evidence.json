@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "task_id": "V0.2-T06",
+  "executed_at": "2026-08-30T16:34:09+08:00",
+  "result": "failed",
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "api_dialect": "responses",
+  "config_fingerprint": "sha256:ae596784f83ac37d02ecc599443461d1cb9039738c0224b059865cc00544cff6",
+  "nightly": {
+    "status": "passed",
+    "expected_request_count": 12,
+    "request_count": 12,
+    "completed_request_count": 12,
+    "dataset_version": "1",
+    "case_ids": ["rag-v1-008", "rag-v1-018", "rag-v1-028", "rag-v1-038", "rag-v1-048", "rag-v1-058"],
+    "repetitions": 2,
+    "request_ids": [
+      "fe6b92b7-0bf7-44bd-88e5-dc1a3470177f",
+      "5358506c-74e9-4d1b-a18d-bafdb651598b",
+      "e33ca911-170a-432c-bfe4-7e2149558e5a",
+      "ed3b068f-0363-423c-bb94-97cf3c693465",
+      "5e46fd11-9108-4c20-9d74-056e02639f85",
+      "9080fa45-0096-4a6c-b22a-c7a7a51aa8b3",
+      "29e8b57b-b61f-45c1-95d2-d0097cadf5c0",
+      "0376b854-3034-4c72-b75f-8178307e1f03",
+      "76de9662-a109-4c2a-bf68-a651affde943",
+      "dbacd778-4e66-4be0-ae0e-9925784ab381",
+      "1cf25875-1cbe-4c5b-bf3b-c62b59636c0a",
+      "3bdda996-f76c-436f-8f2b-1f82f531992c"
+    ],
+    "usage": {
+      "input_tokens": 2446,
+      "output_tokens": 465,
+      "cost_usd": 0.001090232
+    },
+    "latency_ms": {
+      "min": 671.3480100006564,
+      "p50": 879.6455449919449,
+      "p95": 1188.492375993519,
+      "max": 1188.492375993519
+    }
+  },
+  "provider_live": {
+    "status": "failed",
+    "request_count": 3,
+    "successful_request_count": 2,
+    "request_ids": [
+      "011c2f17-0000-4ab4-bb1f-f565c685742b",
+      "dc58f93f-0d4c-443e-889c-8def05a0834c"
+    ],
+    "usage": {
+      "input_tokens": 180,
+      "output_tokens": 61,
+      "reasoning_tokens": 49,
+      "cache_read_tokens": 0
+    },
+    "checks": {
+      "text": true,
+      "stream": true,
+      "tool_call": false,
+      "authentication_error_mapping": false
+    },
+    "failure": "DeepSeek Responses tool call returned HTTP 400 / InvalidRequestError"
+  },
+  "secret_persisted": false,
+  "prompt_or_output_persisted": false
+}
