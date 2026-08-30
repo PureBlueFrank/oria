@@ -193,7 +193,7 @@ async def test_stamped_head_cannot_skip_schema_creation(tmp_path: Path) -> None:
     config.data_paths.platform_db.parent.mkdir(parents=True)
     with sqlite3.connect(config.data_paths.platform_db) as connection:
         connection.execute("CREATE TABLE alembic_version_platform (version_num TEXT NOT NULL)")
-        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0004')")
+        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0005')")
         connection.commit()
 
     with pytest.raises(DataInitializationError, match="failed closed"):
@@ -209,7 +209,7 @@ async def test_stamped_head_with_lookalike_tables_cannot_skip_schema_creation(
     config.data_paths.platform_db.parent.mkdir(parents=True)
     with sqlite3.connect(config.data_paths.platform_db) as connection:
         connection.execute("CREATE TABLE alembic_version_platform (version_num TEXT NOT NULL)")
-        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0004')")
+        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0005')")
         connection.execute("CREATE TABLE documents (wrong TEXT)")
         connection.execute("CREATE TABLE document_versions (wrong TEXT)")
         connection.execute("CREATE TABLE ingestion_runs (wrong TEXT)")

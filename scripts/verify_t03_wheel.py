@@ -54,7 +54,7 @@ def main() -> None:
     bundle = load_demo_data()
     if manifest.rule_categories != RULE_CATEGORIES or len(RULE_CATEGORIES) != 6:
         raise AssertionError("installed wheel does not contain the six-rule manifest")
-    if heads != {"platform": "platform_0004", "business": "business_0002"}:
+    if heads != {"platform": "platform_0005", "business": "business_0002"}:
         raise AssertionError("installed wheel migration heads are incorrect")
     if len(bundle.merchants.merchants) != 12:
         raise AssertionError("installed wheel merchant resource is incomplete")
