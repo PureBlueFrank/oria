@@ -347,6 +347,14 @@ class ToolPolicy(ValueModel):
     approval_action: str | None = None
     business_confirmation: bool = False
 
+    @model_validator(mode="after")
+    def validate_approval_configuration(self) -> ToolPolicy:
+        if self.approval_mode != "none" and not self.side_effect:
+            raise ValueError("read-only tools cannot require approval")
+        if self.approval_mode != "none" and not self.approval_action:
+            raise ValueError("approval action is required when approval may be needed")
+        return self
+
 
 class ToolError(ValueModel):
     code: str

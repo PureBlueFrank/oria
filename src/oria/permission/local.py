@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -29,20 +30,34 @@ _LOCAL_ACTIONS = frozenset(
         "campaign:read",
         "config:read",
         "document:read",
-        "ingress:submit",
-        "knowledge:delete",
-        "knowledge:write",
         "merchant:read",
         "rule:read",
     }
 )
 _DOCUMENT_READ_ACTIONS = frozenset({"document:read", "rule:read"})
+_WRITE_ACTION_ROLES: dict[str, frozenset[str]] = {
+    "ingress:submit": frozenset({"operator"}),
+    "knowledge:delete": frozenset({"operator"}),
+    "knowledge:write": frozenset({"operator"}),
+    "campaign:draft:write": frozenset({"campaign_admin"}),
+    "campaign:launch:request": frozenset({"campaign_admin"}),
+    "approval:launch:request": frozenset({"campaign_admin"}),
+    "approval:launch:decide": frozenset({"launch_approver"}),
+    "approval:consumer_publish:request": frozenset({"campaign_admin"}),
+    "approval:consumer_publish:decide": frozenset({"consumer_publish_approver"}),
+    "confirmation:merchant:decide": frozenset({"merchant"}),
+    "confirmation:sales:decide": frozenset({"sales"}),
+    "confirmation:sales_manager:decide": frozenset({"sales_manager"}),
+    "integration:event:ingest": frozenset({"integration_adapter"}),
+}
 _DENIAL_REASONS = {
     "missing_principals": "authorization principals are required",
     "context_mismatch": "authorization principals do not match the trusted context",
     "untrusted_principal": "principal is not the trusted community identity",
     "cross_tenant": "cross-tenant access is denied",
-    "unknown_action": "action is not allowed by the local read policy",
+    "unknown_action": "action is not allowed by the local policy",
+    "role_denied": "actor role is not authorized for the write action",
+    "assignment_denied": "confirmation task is not assigned to the actor",
 }
 
 
@@ -69,10 +84,24 @@ def local_cli_executor() -> Principal:
 
 
 class LocalPolicyEngine:
-    """Authorize the narrow local read surface and reject all spoofed identities."""
+    """Authorize trusted local identities with deny-by-default read/write RBAC."""
 
-    def __init__(self, audit: AuditService | None = None) -> None:
+    def __init__(
+        self,
+        audit: AuditService | None = None,
+        *,
+        trusted_actors: Iterable[Principal] | None = None,
+        trusted_executors: Iterable[Principal] | None = None,
+        confirmation_assignments: Mapping[str, str] | None = None,
+    ) -> None:
         self._audit = audit
+        actors = tuple(trusted_actors) if trusted_actors is not None else (local_operator(),)
+        executors = (
+            tuple(trusted_executors) if trusted_executors is not None else (local_cli_executor(),)
+        )
+        self._trusted_actors = frozenset(actors)
+        self._trusted_executors = frozenset(executors)
+        self._confirmation_assignments = dict(confirmation_assignments or {})
 
     async def authorize(self, request: AuthorizationRequest, ctx: Context) -> PolicyDecision:
         denial_code = self._denial_code(request, ctx)
@@ -80,14 +109,14 @@ class LocalPolicyEngine:
         acl_filter = None
         if allowed and request.action in _DOCUMENT_READ_ACTIONS:
             acl_filter = ACLFilter(
-                tenant_id=LOCAL_TENANT_ID,
+                tenant_id=request.actor.tenant_id,
                 allowed_subject_ids=(request.actor.subject_id,),
                 allowed_roles=request.actor.roles,
                 classifications=("public", "internal", "restricted"),
             )
         decision = PolicyDecision(
             allow=allowed,
-            constraints={"tenant_id": LOCAL_TENANT_ID} if allowed else {},
+            constraints={"tenant_id": request.actor.tenant_id} if allowed else {},
             policy_version=LOCAL_POLICY_VERSION,
             reason=(
                 "allowed by trusted local profile"
@@ -103,8 +132,7 @@ class LocalPolicyEngine:
             )
         return decision
 
-    @staticmethod
-    def _denial_code(request: AuthorizationRequest, ctx: Context) -> str | None:
+    def _denial_code(self, request: AuthorizationRequest, ctx: Context) -> str | None:
         actor = getattr(request, "actor", None)
         executor = getattr(request, "executor", None)
         context_actor = getattr(ctx, "actor", None)
@@ -113,11 +141,18 @@ class LocalPolicyEngine:
             return "missing_principals"
         if actor != context_actor or executor != context_executor:
             return "context_mismatch"
-        if actor != local_operator() or executor != local_cli_executor():
+        if actor not in self._trusted_actors or executor not in self._trusted_executors:
             return "untrusted_principal"
-        if request.resource.tenant_id != LOCAL_TENANT_ID:
+        if actor.tenant_id != executor.tenant_id or request.resource.tenant_id != actor.tenant_id:
             return "cross_tenant"
-        if request.action not in _LOCAL_ACTIONS:
+        required_roles = _WRITE_ACTION_ROLES.get(request.action)
+        if required_roles is not None and not required_roles.intersection(actor.roles):
+            return "role_denied"
+        if request.action.startswith("confirmation:"):
+            assigned = self._confirmation_assignments.get(request.resource.resource_id)
+            if assigned != actor.subject_id:
+                return "assignment_denied"
+        if request.action not in _LOCAL_ACTIONS and required_roles is None:
             return "unknown_action"
         return None
 
