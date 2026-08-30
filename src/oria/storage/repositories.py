@@ -679,3 +679,41 @@ class SQLiteConsumerPlacementRepository(SQLiteBusinessRepository[ConsumerPlaceme
 class SQLiteMerchantNotificationRepository(SQLiteBusinessRepository[MerchantNotification]):
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         super().__init__(sessions, _MERCHANT_NOTIFICATION)
+
+
+class SQLiteCampaignDraftRepository:
+    """Persist all validated draft facts in one Business DB transaction."""
+
+    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
+        self._sessions = sessions
+        self._rule_refs = SQLiteCampaignRuleSnapshotRefRepository(sessions)
+        self._campaigns = SQLiteCampaignRepository(sessions)
+        self._coupons = SQLiteCouponBatchRepository(sessions)
+        self._publications = SQLiteRecruitmentPublicationRepository(sessions)
+
+    async def create_bundle(
+        self,
+        *,
+        rule_snapshot_ref: CampaignRuleSnapshotRef,
+        campaign: Campaign,
+        coupon_batch: CouponBatch,
+        recruitment_publication: RecruitmentPublication,
+        ctx: Context,
+    ) -> None:
+        tenant_id = getattr(ctx, "tenant_id", None)
+        entities = (rule_snapshot_ref, campaign, coupon_batch, recruitment_publication)
+        if not isinstance(tenant_id, str) or not tenant_id:
+            raise BusinessRepositoryError("trusted tenant context is required")
+        if any(entity.tenant_id != tenant_id for entity in entities):
+            raise BusinessRepositoryError("cross-tenant business write is forbidden")
+        campaign.validate_tenant_links(rule_snapshot_ref, coupon_batch, recruitment_publication)
+        try:
+            async with self._sessions.begin() as session:
+                await self._rule_refs._insert(session, rule_snapshot_ref)
+                await self._campaigns._insert(session, campaign)
+                await self._coupons._insert(session, coupon_batch)
+                await self._publications._insert(session, recruitment_publication)
+        except BusinessRepositoryError:
+            raise
+        except SQLAlchemyError as exc:
+            raise BusinessRepositoryError("campaign draft persistence failed") from exc

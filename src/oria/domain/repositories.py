@@ -39,6 +39,20 @@ class MerchantRepository(Protocol):
     async def seed(self, seed_set: MerchantSeedSet) -> int: ...
 
 
+class CampaignDraftRepository(Protocol):
+    """Atomic persistence boundary for a validated local campaign draft."""
+
+    async def create_bundle(
+        self,
+        *,
+        rule_snapshot_ref: CampaignRuleSnapshotRef,
+        campaign: Campaign,
+        coupon_batch: CouponBatch,
+        recruitment_publication: RecruitmentPublication,
+        ctx: Context,
+    ) -> None: ...
+
+
 EntityT = TypeVar("EntityT", bound=BusinessEntity)
 
 

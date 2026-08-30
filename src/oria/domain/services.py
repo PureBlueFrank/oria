@@ -13,6 +13,7 @@ from oria.core.types import (
     ServiceHealth,
 )
 from oria.domain.eligibility import EligibilityPolicy
+from oria.domain.launch import CampaignLaunchService
 from oria.domain.models import (
     CampaignRuleSet,
     EligibilityCriteria,
@@ -202,3 +203,4 @@ class DomainServiceRegistry:
 
     campaign_rules: CampaignRuleService
     merchants: MerchantService
+    campaign_launch: CampaignLaunchService

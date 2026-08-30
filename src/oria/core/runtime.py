@@ -23,6 +23,7 @@ from oria.core.protocols import (
 )
 from oria.core.registry import ServiceRegistry
 from oria.domain.eligibility import EligibilityPolicy
+from oria.domain.launch import DefaultCampaignLaunchService
 from oria.domain.services import (
     DefaultMerchantService,
     DomainServiceRegistry,
@@ -49,7 +50,7 @@ from oria.rag.service import (
 from oria.rag.snapshots import LocalRuleSnapshotStore
 from oria.resources.loader import load_demo_data
 from oria.storage.database import DatabaseResources
-from oria.storage.repositories import SQLiteMerchantRepository
+from oria.storage.repositories import SQLiteCampaignDraftRepository, SQLiteMerchantRepository
 from oria.tools.builtin import QueryMerchantsTool, SearchCampaignRulesTool
 from oria.tools.registry import ToolRegistry
 
@@ -166,6 +167,9 @@ async def build_runtime(
         domain = DomainServiceRegistry(
             campaign_rules=campaign_rules,
             merchants=merchant_service,
+            campaign_launch=DefaultCampaignLaunchService(
+                SQLiteCampaignDraftRepository(database_resources.business_sessions)
+            ),
         )
 
         tools = ToolRegistry(allowlist=frozenset({"search_campaign_rules", "query_merchants"}))
