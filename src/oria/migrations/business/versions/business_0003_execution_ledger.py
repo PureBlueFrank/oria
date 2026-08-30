@@ -26,9 +26,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("executed_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("execution_id"),
-        sa.CheckConstraint(
-            "status IN ('reserved', 'executing', 'succeeded', 'failed', 'unknown')"
-        ),
+        sa.CheckConstraint("status IN ('reserved', 'executing', 'succeeded', 'failed', 'unknown')"),
         sa.CheckConstraint("attempt_count >= 0"),
         sa.CheckConstraint(
             "(status = 'succeeded' AND receipt_id IS NOT NULL) OR "

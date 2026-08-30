@@ -124,20 +124,24 @@ def test_cli_auto_initializes_repeats_offline_and_emits_correlated_json(
     assert first.validation.business_tables == (
         "alembic_version_business",
         "assortment_submissions",
+        "audit_events",
         "campaign_rule_snapshot_refs",
         "campaigns",
         "confirmation_tasks",
         "consumer_placements",
         "coupon_batches",
+        "domain_events",
         "enrollment_coupon_links",
         "enrollment_items",
         "enrollments",
         "launch_saga_states",
         "merchant_notifications",
         "merchants",
+        "outbox",
         "product_snapshots",
         "recruitment_publications",
         "selection_decisions",
+        "tool_executions",
     )
 
 
