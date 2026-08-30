@@ -177,8 +177,7 @@ def test_business_0004_enforces_and_downgrades_launch_saga_states(tmp_path: Path
         ).fetchone()
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute(
-                "UPDATE launch_saga_states SET status = 'planned' "
-                "WHERE launch_saga_id = 'saga_1'"
+                "UPDATE launch_saga_states SET status = 'planned' WHERE launch_saga_id = 'saga_1'"
             )
 
     assert status == ("pending",)
