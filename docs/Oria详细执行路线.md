@@ -1,6 +1,6 @@
 # Oria 详细执行路线
 
-> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。仓库现已完成 `V0.1-T01–T10` 与 `V0.2-T01–T06`；`V0.1-Core`、`V0.2-Core`、真实 DeepSeek Nightly 和各自必需 Live 卡均已通过。当前口径是“V0.2 完成”，不包含 V0.2 企业 Adapter或 DeepSeek 以外 Provider Live。其余任务与验证状态以 §三总览和对应版本的“验证状态”小节为准。
+> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。仓库现已完成 `V0.1-T01–T10`、`V0.2-T01–T06` 与 `V0.3-T01`；`V0.1-Core`、`V0.2-Core`、真实 DeepSeek Nightly 和各自必需 Live 卡均已通过。当前口径是“V0.3 进行中（T01 完成）”，不包含 V0.2 企业 Adapter、DeepSeek 以外 Provider Live 或 V0.3 完整 Workflow。其余任务与验证状态以 §三总览和对应版本的“验证状态”小节为准。
 
 > **场景 A 设计评审记录（2026-08-26）**：已按“需求接入 → 规则快照 → 商家预筛/LLM 软排序 → 活动与券批次草案 → 运营审核/招商投放 → 自主报名或自动圈品 → 券关联 → 招后选品 → C 端投放 → 商家通知”同步架构与路线。此次只更新设计契约，未生成代码、未运行验证，版本状态仍为“未开始”。
 
@@ -172,7 +172,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 | --- | --- | --- | --- |
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 Live 卡均通过 | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
 | V0.2 | Provider/RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡均通过 | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
-| V0.3 | 场景 A 完整 Workflow | 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
+| V0.3 | 场景 A 完整 Workflow | 进行中；T01 已完成，T02–T09 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
 | V0.5 | 多智能体、上下文和记忆 | 未开始 | 单/多 Agent 同集对照；跨会话记忆生命周期 |
 | V0.6 | API 与 Durable Job | 未开始 | SQLite 单 worker社区链路；PostgreSQL 双 worker、杀进程恢复、SSE 与真实 HTTP webhook |
@@ -395,6 +395,8 @@ Core Gate：V0.2-T01–T06、真实 BGE 对照、ACL/删除、安全测试、真
 | V0.3-T09 | V0.3-T08,V0.2-T01 | 执行真实 DeepSeek 草案/软排序必需 Live 卡；如有 V0.1 Live 证据则引用但不作构建前置 | L report passed/failed/blocked；LLM 不改硬资格且无直接写路径 |
 
 V0.3 Community Core 以 CLI + Mock Feishu/DingTalk ingress、Mock 券/商家侧/选品/C 端/通知 Adapter 跑完整业务语义；真实 IM 和企业系统逐 Adapter 保存 E 卡，缺环境不得冒充已接入。禁止用启动时 `create_all` 代替 migration，也禁止在 Graph node 内直接拼 SQL；LLM 只在 EligibilityPolicy 候选集内做软排序并生成草案，所有写入经领域 Service。
+
+T01 交付（已完成，Fixture/Community）：新增 14 个不可变招商业务值模型、Campaign/CouponBatch 集中式状态机、tenant 复合唯一键与 `merchant|auto|hybrid` 双来源幂等汇聚；`business_0002` 在 merchants 基线上新增 14 张表，所有外键含 tenant，并支持空库/V0.1 升级及回滚。14 个具名 Repository Protocol 与 SQLite 实现只接受业务 ID/复合唯一键，写路径强制 tenant 与乐观锁，Campaign/CouponBatch 状态不能经通用 upsert 裸改。完整社区套件 `359 passed, 1 deselected`，静态检查、构建与隔离安装 wheel 验证通过。证据：[`reports/verification/v0.3/20260830T204753+0800/summary.md`](../reports/verification/v0.3/20260830T204753+0800/summary.md)。本任务未实现 T02–T09 的审批、事件恢复、业务 Service/Tool/Graph、完整 S1–S6 或企业 Adapter，也未运行 Live/Enterprise/Performance。
 
 ### 6.2 真实验证场景
 

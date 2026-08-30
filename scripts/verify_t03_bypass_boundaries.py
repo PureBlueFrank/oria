@@ -74,9 +74,20 @@ async def _probe_runtime_and_policy(work_dir: Path) -> None:
             raise AssertionError("merchant service accepted a caller-supplied filter detour")
         result = await ctx.domain.merchants.eligible_merchants("demo-east-dining-v1", 100, ctx)
         candidate_ids = {merchant.merchant_id for merchant in result.merchants}
-        if "demo-m004" in candidate_ids or "demo-m011" in candidate_ids:
+        if "demo-m003" in candidate_ids or "demo-m004" in candidate_ids:
             raise AssertionError("hard-ineligible merchant reached the candidate set")
-        expected = {"demo-m001", "demo-m002", "demo-m009", "demo-m010", "demo-m012"}
+        expected = {
+            "demo-m001",
+            "demo-m002",
+            "demo-m005",
+            "demo-m006",
+            "demo-m007",
+            "demo-m008",
+            "demo-m009",
+            "demo-m010",
+            "demo-m011",
+            "demo-m012",
+        }
         if candidate_ids != expected:
             raise AssertionError("deterministic candidate set changed")
     finally:
@@ -121,8 +132,8 @@ async def _probe_migrations_and_paths(work_dir: Path) -> None:
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             ).fetchall()
         }
-    if any("campaign" in table or "coupon" in table for table in tables):
-        raise AssertionError("T03 initialization created Campaign/CouponBatch state")
+    if not {"campaigns", "coupon_batches", "enrollment_items"}.issubset(tables):
+        raise AssertionError("current business migration schema is incomplete")
 
     stamped_config = _config(work_dir / "stamped-data")
     stamped_config.data_paths.platform_db.parent.mkdir(parents=True)

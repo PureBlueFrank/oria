@@ -142,8 +142,8 @@ def main() -> int:
     if first["run_id"] == second["run_id"] or first["correlation_id"] == second["correlation_id"]:
         raise AssertionError("installed demo repeated execution metadata")
     business_tables = _business_tables(data_dir / "sqlite" / "business.db")
-    if any("campaign" in table.lower() or "coupon" in table.lower() for table in business_tables):
-        raise AssertionError("installed demo created Campaign/CouponBatch state")
+    if not {"campaigns", "coupon_batches", "enrollment_items"}.issubset(business_tables):
+        raise AssertionError("installed demo is missing the current business schema")
     print(
         json.dumps(
             {

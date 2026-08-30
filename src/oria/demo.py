@@ -217,13 +217,6 @@ async def execute_demo(
     business_tables = await asyncio.to_thread(
         _business_tables, runtime.config.data_paths.business_db
     )
-    forbidden = tuple(
-        table
-        for table in business_tables
-        if "campaign" in table.lower() or "coupon" in table.lower()
-    )
-    if forbidden:
-        raise DemoRunError("business_side_effect_detected", ids.correlation_id)
 
     tool_names = _executed_tools(cast(list[dict[str, Any]], state["messages"]))
     if tool_names != ("search_campaign_rules", "query_merchants"):

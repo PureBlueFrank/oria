@@ -121,7 +121,24 @@ def test_cli_auto_initializes_repeats_offline_and_emits_correlated_json(
     assert first.ingestion.idempotent is False
     assert second.ingestion.idempotent is True
     assert first.run_id != second.run_id
-    assert first.validation.business_tables == ("alembic_version_business", "merchants")
+    assert first.validation.business_tables == (
+        "alembic_version_business",
+        "assortment_submissions",
+        "campaign_rule_snapshot_refs",
+        "campaigns",
+        "confirmation_tasks",
+        "consumer_placements",
+        "coupon_batches",
+        "enrollment_coupon_links",
+        "enrollment_items",
+        "enrollments",
+        "launch_saga_states",
+        "merchant_notifications",
+        "merchants",
+        "product_snapshots",
+        "recruitment_publications",
+        "selection_decisions",
+    )
 
 
 @pytest.mark.asyncio
