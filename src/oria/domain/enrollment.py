@@ -94,6 +94,7 @@ class UpsertEnrollmentItemsResult(ValueModel):
     confirmation_tasks: tuple[ConfirmationTask, ...]
     execution_id: str
     idempotency_key: str
+    request_idempotency_key: str
 
 
 class LinkCouponBatchArgs(ValueModel):
@@ -117,6 +118,7 @@ class LinkCouponBatchResult(ValueModel):
     links: tuple[EnrollmentCouponLink, ...]
     execution_id: str
     idempotency_key: str
+    request_idempotency_key: str
 
 
 class ConfirmationSubjectDirectory(Protocol):
@@ -190,6 +192,55 @@ class EnrollmentService:
         new_enrollment_version: bool = False,
     ) -> UpsertEnrollmentItemsResult:
         await _authorize("enrollment:item:write", "campaign", request.campaign_id, ctx)
+        ordered_items = tuple(
+            sorted(
+                request.items,
+                key=lambda item: (item.merchant_id, item.product_ref, item.product_version),
+            )
+        )
+        canonical_args = request.model_copy(
+            update={"items": ordered_items, "idempotency_key": "[request-key]"}
+        ).model_dump()
+        stable_business_id = ":".join(
+            (
+                request.campaign_id,
+                request.source,
+                *(
+                    f"{item.merchant_id}/{item.product_ref}/{item.product_version}"
+                    for item in ordered_items
+                ),
+            )
+        )
+        execution = await self._ledger.reserve_for_args(
+            execution_id=f"tool_execution_{uuid.uuid4().hex}",
+            tenant_id=ctx.tenant_id,
+            tool_name="upsert_enrollment_items",
+            tool_schema_version=1,
+            schema=UpsertEnrollmentItemsArgs,
+            args=canonical_args,
+            stable_business_id=stable_business_id,
+            checkpoint_id=ctx.run_id,
+            request_idempotency_key=request.idempotency_key,
+        )
+        item_ids = tuple(
+            _stable_id(
+                "enrollment_item",
+                ctx.tenant_id,
+                request.campaign_id,
+                item.merchant_id,
+                item.product_ref,
+                item.product_version,
+            )
+            for item in ordered_items
+        )
+        if execution.status == "succeeded":
+            return await self._upsert_result(
+                request=request,
+                execution=execution,
+                item_ids=item_ids,
+            )
+        if execution.status != "reserved":
+            raise RuntimeError("prior enrollment execution is not retryable")
         campaign, snapshot = await self._campaign_snapshot(request.campaign_id, ctx)
         rule = snapshot.enrollment_policy
         if campaign.status != "recruiting":
@@ -213,7 +264,7 @@ class EnrollmentService:
                 raise PermissionError("enrollment merchant is not eligible")
         product_criteria = ProductEligibilityCriteria.from_snapshot(snapshot)
         catalog_snapshot_id, products = await self._load_products(
-            request.items,
+            ordered_items,
             product_criteria,
             ctx,
         )
@@ -227,7 +278,7 @@ class EnrollmentService:
                 tuple[ConfirmationTask, ...],
             ]
         ] = []
-        for item_request in request.items:
+        for item_request in ordered_items:
             key = (
                 item_request.merchant_id,
                 item_request.product_ref,
@@ -307,52 +358,50 @@ class EnrollmentService:
                 due_at=now + self._confirmation_ttl,
             )
             bundles.append((business_snapshot, enrollment, enrollment_item, tasks))
-        execution = await self._ledger.reserve_for_args(
-            execution_id=f"tool_execution_{uuid.uuid4().hex}",
-            tenant_id=ctx.tenant_id,
-            tool_name="upsert_enrollment_items",
-            tool_schema_version=1,
-            schema=UpsertEnrollmentItemsArgs,
-            args=request.model_dump(),
-            stable_business_id=f"{request.campaign_id}:{request.idempotency_key}",
-            checkpoint_id=ctx.run_id,
+        await _authorize("enrollment:item:write", "campaign", request.campaign_id, ctx)
+
+        async def write(session: AsyncSession) -> None:
+            await self._repository.upsert_enrollment_items(
+                session,
+                tenant_id=ctx.tenant_id,
+                campaign_id=request.campaign_id,
+                rule_snapshot_ref_id=campaign.rule_snapshot_ref_id,
+                source=request.source,
+                bundles=tuple(bundles),
+                new_enrollment_version=new_enrollment_version,
+            )
+
+        events = self._events(
+            execution=execution,
+            aggregate_type="campaign",
+            aggregate_id=request.campaign_id,
+            event_type="enrollment.items_upserted",
+            count=len(ordered_items),
+            ctx=ctx,
         )
-        if execution.status == "reserved":
-            await _authorize("enrollment:item:write", "campaign", request.campaign_id, ctx)
-            executing = await self._ledger.mark_executing(execution)
+        execution = await self._ledger.record_local_success(
+            execution,
+            receipt_id=_stable_id("receipt", execution.idempotency_key),
+            business_write=write,
+            domain_events=events.domain_events,
+            audit_events=events.audit_events,
+            outbox_records=events.outbox_records,
+        )
+        return await self._upsert_result(
+            request=request,
+            execution=execution,
+            item_ids=item_ids,
+        )
 
-            async def write(session: AsyncSession) -> None:
-                await self._repository.upsert_enrollment_items(
-                    session,
-                    tenant_id=ctx.tenant_id,
-                    campaign_id=request.campaign_id,
-                    rule_snapshot_ref_id=campaign.rule_snapshot_ref_id,
-                    source=request.source,
-                    bundles=tuple(bundles),
-                    new_enrollment_version=new_enrollment_version,
-                )
-
-            events = self._events(
-                execution=executing,
-                aggregate_type="campaign",
-                aggregate_id=request.campaign_id,
-                event_type="enrollment.items_upserted",
-                count=len(request.items),
-                ctx=ctx,
-            )
-            execution = await self._ledger.record_success(
-                executing,
-                receipt_id=_stable_id("receipt", executing.idempotency_key),
-                business_write=write,
-                domain_events=events.domain_events,
-                audit_events=events.audit_events,
-                outbox_records=events.outbox_records,
-            )
-        elif execution.status != "succeeded":
-            raise RuntimeError("prior enrollment execution has not completed successfully")
-        item_ids = tuple(bundle[2].enrollment_item_id for bundle in bundles)
+    async def _upsert_result(
+        self,
+        *,
+        request: UpsertEnrollmentItemsArgs,
+        execution: ToolExecution,
+        item_ids: tuple[str, ...],
+    ) -> UpsertEnrollmentItemsResult:
         items, tasks = await self._repository.load_enrollment_items(
-            tenant_id=ctx.tenant_id,
+            tenant_id=execution.tenant_id,
             enrollment_item_ids=item_ids,
         )
         return UpsertEnrollmentItemsResult(
@@ -361,7 +410,8 @@ class EnrollmentService:
             enrollment_items=items,
             confirmation_tasks=tasks,
             execution_id=execution.execution_id,
-            idempotency_key=request.idempotency_key,
+            idempotency_key=execution.idempotency_key,
+            request_idempotency_key=request.idempotency_key,
         )
 
     async def _campaign_snapshot(
@@ -502,6 +552,41 @@ class CouponLinkService:
         ctx: Context,
     ) -> LinkCouponBatchResult:
         await _authorize("enrollment:coupon:link", "coupon_batch", request.coupon_batch_id, ctx)
+        ordered_ids = tuple(sorted(request.enrollment_item_ids))
+        canonical_request = request.model_copy(
+            update={"enrollment_item_ids": ordered_ids, "idempotency_key": "[request-key]"}
+        )
+        stable_business_id = ":".join(
+            (
+                request.coupon_batch_id,
+                *(f"{item_id}/{request.tier_mapping[item_id]}" for item_id in ordered_ids),
+            )
+        )
+        execution = await self._ledger.reserve_for_args(
+            execution_id=f"tool_execution_{uuid.uuid4().hex}",
+            tenant_id=ctx.tenant_id,
+            tool_name="link_coupon_batch",
+            tool_schema_version=1,
+            schema=LinkCouponBatchArgs,
+            args=canonical_request.model_dump(),
+            stable_business_id=stable_business_id,
+            checkpoint_id=ctx.run_id,
+            request_idempotency_key=request.idempotency_key,
+        )
+        link_ids = tuple(
+            _stable_id(
+                "enrollment_coupon_link",
+                ctx.tenant_id,
+                item_id,
+                request.coupon_batch_id,
+                request.tier_mapping[item_id],
+            )
+            for item_id in ordered_ids
+        )
+        if execution.status == "succeeded":
+            return await self._link_result(request, execution, link_ids)
+        if execution.status != "reserved":
+            raise RuntimeError("prior coupon-link execution is not retryable")
         coupon = await self._coupons.get(request.coupon_batch_id, ctx)
         if coupon is None or coupon.status != "ready":
             raise LookupError("ready coupon batch is unavailable")
@@ -540,61 +625,56 @@ class CouponLinkService:
                 created_at=now,
                 updated_at=now,
             )
-            for item_id in request.enrollment_item_ids
+            for item_id in ordered_ids
         )
-        execution = await self._ledger.reserve_for_args(
-            execution_id=f"tool_execution_{uuid.uuid4().hex}",
-            tenant_id=ctx.tenant_id,
-            tool_name="link_coupon_batch",
-            tool_schema_version=1,
-            schema=LinkCouponBatchArgs,
-            args=request.model_dump(),
-            stable_business_id=f"{request.coupon_batch_id}:{request.idempotency_key}",
-            checkpoint_id=ctx.run_id,
+        await _authorize("enrollment:coupon:link", "coupon_batch", request.coupon_batch_id, ctx)
+
+        async def write(session: AsyncSession) -> None:
+            await self._repository.link_coupon_batch(
+                session,
+                tenant_id=ctx.tenant_id,
+                coupon_batch_id=request.coupon_batch_id,
+                coupon_batch_version=coupon.version,
+                rule_snapshot_ref_id=campaign.rule_snapshot_ref_id,
+                allowed_tiers=allowed_tiers,
+                links=candidates,
+            )
+
+        events = _execution_events(
+            now=self._now(),
+            execution=execution,
+            aggregate_type="coupon_batch",
+            aggregate_id=request.coupon_batch_id,
+            event_type="enrollment.coupon_batch_linked",
+            count=len(candidates),
+            ctx=ctx,
         )
-        if execution.status == "reserved":
-            await _authorize("enrollment:coupon:link", "coupon_batch", request.coupon_batch_id, ctx)
-            executing = await self._ledger.mark_executing(execution)
+        execution = await self._ledger.record_local_success(
+            execution,
+            receipt_id=_stable_id("receipt", execution.idempotency_key),
+            business_write=write,
+            domain_events=events.domain_events,
+            audit_events=events.audit_events,
+            outbox_records=events.outbox_records,
+        )
+        return await self._link_result(request, execution, link_ids)
 
-            async def write(session: AsyncSession) -> None:
-                await self._repository.link_coupon_batch(
-                    session,
-                    tenant_id=ctx.tenant_id,
-                    coupon_batch_id=request.coupon_batch_id,
-                    coupon_batch_version=coupon.version,
-                    rule_snapshot_ref_id=campaign.rule_snapshot_ref_id,
-                    allowed_tiers=allowed_tiers,
-                    links=candidates,
-                )
-
-            events = _execution_events(
-                now=self._now(),
-                execution=executing,
-                aggregate_type="coupon_batch",
-                aggregate_id=request.coupon_batch_id,
-                event_type="enrollment.coupon_batch_linked",
-                count=len(candidates),
-                ctx=ctx,
-            )
-            execution = await self._ledger.record_success(
-                executing,
-                receipt_id=_stable_id("receipt", executing.idempotency_key),
-                business_write=write,
-                domain_events=events.domain_events,
-                audit_events=events.audit_events,
-                outbox_records=events.outbox_records,
-            )
-        elif execution.status != "succeeded":
-            raise RuntimeError("prior coupon-link execution has not completed successfully")
+    async def _link_result(
+        self,
+        request: LinkCouponBatchArgs,
+        execution: ToolExecution,
+        link_ids: tuple[str, ...],
+    ) -> LinkCouponBatchResult:
         links = await self._repository.load_coupon_links(
-            tenant_id=ctx.tenant_id,
-            link_ids=tuple(item.enrollment_coupon_link_id for item in candidates),
+            tenant_id=execution.tenant_id,
+            link_ids=link_ids,
         )
         return LinkCouponBatchResult(
             coupon_batch_id=request.coupon_batch_id,
             links=links,
             execution_id=execution.execution_id,
-            idempotency_key=request.idempotency_key,
+            idempotency_key=execution.idempotency_key,
+            request_idempotency_key=request.idempotency_key,
         )
 
     def _now(self) -> datetime:

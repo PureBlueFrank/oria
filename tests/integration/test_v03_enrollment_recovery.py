@@ -112,3 +112,64 @@ async def test_coupon_link_partial_validation_failure_rolls_back_every_link(
             count = await session.scalar(text("SELECT COUNT(*) FROM enrollment_coupon_links"))
 
     assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_local_write_failure_leaves_retryable_reservation_and_retry_converges(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async with enrollment_harness(tmp_path, confirmation_steps=()) as harness:
+        upserted = await harness.enrollments.upsert_items(
+            UpsertEnrollmentItemsArgs(
+                campaign_id="campaign-1",
+                source="auto",
+                items=(
+                    EnrollmentItemInput(
+                        merchant_id="demo-m001",
+                        product_ref="product-1",
+                        product_version="v1",
+                    ),
+                ),
+                idempotency_key="auto-before-transient-link",
+            ),
+            harness.ctx,  # type: ignore[arg-type]
+        )
+        item_id = upserted.enrollment_items[0].enrollment_item_id
+        request = LinkCouponBatchArgs(
+            enrollment_item_ids=(item_id,),
+            coupon_batch_id="coupon-1",
+            tier_mapping={item_id: "base"},
+            idempotency_key="transient-link",
+        )
+        original = harness.workflow_repository.link_coupon_batch
+
+        async def fail_once(*args: object, **kwargs: object) -> None:
+            del args, kwargs
+            raise BusinessRepositoryError("injected business write failure")
+
+        monkeypatch.setattr(harness.workflow_repository, "link_coupon_batch", fail_once)
+        with pytest.raises(BusinessRepositoryError, match="injected"):
+            await harness.links.link(request, harness.ctx)  # type: ignore[arg-type]
+        async with harness.databases.business_sessions() as session:
+            failed_counts = (
+                await session.execute(
+                    text(
+                        "SELECT (SELECT status FROM tool_executions WHERE "
+                        "tool_name = 'link_coupon_batch'), "
+                        "(SELECT COUNT(*) FROM enrollment_coupon_links), "
+                        "(SELECT COUNT(*) FROM domain_events WHERE "
+                        "event_type = 'enrollment.coupon_batch_linked'), "
+                        "(SELECT COUNT(*) FROM audit_events WHERE "
+                        "action = 'link_coupon_batch'), "
+                        "(SELECT COUNT(*) FROM outbox WHERE "
+                        "topic = 'enrollment.coupon_batch_linked')"
+                    )
+                )
+            ).one()
+
+        monkeypatch.setattr(harness.workflow_repository, "link_coupon_batch", original)
+        recovered = await harness.links.link(request, harness.ctx)  # type: ignore[arg-type]
+
+    assert failed_counts == ("reserved", 0, 0, 0, 0)
+    assert len(recovered.links) == 1

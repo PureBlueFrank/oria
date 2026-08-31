@@ -104,6 +104,84 @@ class SQLiteToolExecutionRepository:
         except SQLAlchemyError as exc:
             raise LedgerRepositoryError("execution reservation failed") from exc
 
+    async def reserve_for_request(
+        self,
+        execution: ToolExecution,
+        request_idempotency_key: str,
+    ) -> ToolExecution:
+        """Atomically bind one caller request key to one canonical business execution."""
+        if not request_idempotency_key:
+            raise ValueError("request idempotency key is required")
+        try:
+            async with self._sessions.begin() as session:
+                result = await session.execute(
+                    text(
+                        "SELECT canonical_args_hash, execution_id FROM tool_execution_requests "
+                        "WHERE tenant_id = :tenant_id AND tool_name = :tool_name "
+                        "AND request_idempotency_key = :request_key"
+                    ),
+                    {
+                        "tenant_id": execution.tenant_id,
+                        "tool_name": execution.tool_name,
+                        "request_key": request_idempotency_key,
+                    },
+                )
+                request_row = result.mappings().one_or_none()
+                if request_row is not None:
+                    if str(request_row["canonical_args_hash"]) != execution.canonical_args_hash:
+                        raise ValueError("request idempotency key conflicts with canonical payload")
+                    history = await self._find_by_id(
+                        session,
+                        execution.tenant_id,
+                        str(request_row["execution_id"]),
+                    )
+                    if history is None:
+                        raise LedgerRepositoryError("request execution binding is unavailable")
+                    return history
+                history = await self._find_by_idempotency(
+                    session,
+                    execution.tenant_id,
+                    execution.tool_name,
+                    execution.idempotency_key,
+                )
+                if history is None:
+                    await session.execute(
+                        text(
+                            f"INSERT INTO tool_executions ({_TOOL_COLUMNS}) VALUES "
+                            "(:execution_id, :tenant_id, :tool_name, :idempotency_key, "
+                            ":canonical_args_hash, :checkpoint_id, :status, :receipt_id, "
+                            ":compensation_status, :attempt_count, :created_at, :updated_at, "
+                            ":executed_at)"
+                        ),
+                        execution.model_dump(),
+                    )
+                    history = execution
+                elif history.canonical_args_hash != execution.canonical_args_hash:
+                    raise ValueError("business idempotency scope conflicts with canonical payload")
+                await session.execute(
+                    text(
+                        "INSERT INTO tool_execution_requests (tenant_id, tool_name, "
+                        "request_idempotency_key, canonical_args_hash, execution_id, created_at) "
+                        "VALUES (:tenant_id, :tool_name, :request_key, :args_hash, "
+                        ":execution_id, :created_at)"
+                    ),
+                    {
+                        "tenant_id": execution.tenant_id,
+                        "tool_name": execution.tool_name,
+                        "request_key": request_idempotency_key,
+                        "args_hash": execution.canonical_args_hash,
+                        "execution_id": history.execution_id,
+                        "created_at": execution.created_at,
+                    },
+                )
+                return history
+        except (ValueError, LedgerRepositoryError):
+            raise
+        except IntegrityError as exc:
+            raise ValueError("execution request identity already exists") from exc
+        except SQLAlchemyError as exc:
+            raise LedgerRepositoryError("execution request reservation failed") from exc
+
     async def reserve(self, execution: ToolExecution) -> ToolExecution:
         record, _ = await self._reserve_with_status(execution)
         return record

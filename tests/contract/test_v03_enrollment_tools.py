@@ -96,6 +96,104 @@ async def test_coupon_link_replays_one_unique_active_link(tmp_path: Path) -> Non
 
 
 @pytest.mark.asyncio
+async def test_upsert_history_precedes_changed_catalog_merchant_and_request_key_conflicts(
+    tmp_path: Path,
+) -> None:
+    async with enrollment_harness(tmp_path) as harness:
+        request = _upsert("auto", "request-key-1")
+        first = await harness.enrollments.upsert_items(
+            request,
+            harness.ctx,  # type: ignore[arg-type]
+        )
+        harness.catalog.install_snapshot("catalog-snapshot-v2", {"local-community": ()})
+        async with harness.databases.business_sessions.begin() as session:
+            await session.execute(
+                text(
+                    "UPDATE merchants SET active = 0 WHERE tenant_id = 'local-community' "
+                    "AND merchant_id = 'demo-m001'"
+                )
+            )
+
+        replayed = await harness.enrollments.upsert_items(
+            request,
+            harness.ctx,  # type: ignore[arg-type]
+        )
+        same_business_new_key = await harness.enrollments.upsert_items(
+            request.model_copy(update={"idempotency_key": "request-key-2"}),
+            harness.ctx,  # type: ignore[arg-type]
+        )
+        with pytest.raises(ValueError, match="conflicts with canonical payload"):
+            await harness.enrollments.upsert_items(
+                _upsert("auto", "request-key-1").model_copy(
+                    update={
+                        "items": (
+                            EnrollmentItemInput(
+                                merchant_id="demo-m001",
+                                product_ref="product-2",
+                                product_version="v1",
+                            ),
+                        )
+                    }
+                ),
+                harness.ctx,  # type: ignore[arg-type]
+            )
+        async with harness.databases.business_sessions() as session:
+            counts = (
+                await session.execute(
+                    text(
+                        "SELECT (SELECT COUNT(*) FROM tool_executions WHERE "
+                        "tool_name = 'upsert_enrollment_items'), "
+                        "(SELECT COUNT(*) FROM tool_execution_requests WHERE "
+                        "tool_name = 'upsert_enrollment_items'), "
+                        "(SELECT COUNT(*) FROM domain_events WHERE "
+                        "event_type = 'enrollment.items_upserted'), "
+                        "(SELECT COUNT(*) FROM audit_events WHERE "
+                        "action = 'upsert_enrollment_items'), "
+                        "(SELECT COUNT(*) FROM outbox WHERE "
+                        "topic = 'enrollment.items_upserted')"
+                    )
+                )
+            ).one()
+
+    assert replayed.execution_id == first.execution_id == same_business_new_key.execution_id
+    assert counts == (1, 2, 1, 1, 1)
+
+
+@pytest.mark.asyncio
+async def test_coupon_link_history_precedes_expiry_and_same_request_key_rejects_new_tier(
+    tmp_path: Path,
+) -> None:
+    async with enrollment_harness(tmp_path, confirmation_steps=()) as harness:
+        upserted = await harness.enrollments.upsert_items(
+            _upsert("auto", "auto-link-history"),
+            harness.ctx,  # type: ignore[arg-type]
+        )
+        item_id = upserted.enrollment_items[0].enrollment_item_id
+        request = LinkCouponBatchArgs(
+            enrollment_item_ids=(item_id,),
+            coupon_batch_id="coupon-1",
+            tier_mapping={item_id: "base"},
+            idempotency_key="link-history",
+        )
+        first = await harness.links.link(request, harness.ctx)  # type: ignore[arg-type]
+        async with harness.databases.business_sessions.begin() as session:
+            await session.execute(
+                text(
+                    "UPDATE coupon_batches SET status = 'expired' "
+                    "WHERE coupon_batch_id = 'coupon-1'"
+                )
+            )
+        replayed = await harness.links.link(request, harness.ctx)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="conflicts with canonical payload"):
+            await harness.links.link(
+                request.model_copy(update={"tier_mapping": {item_id: "boosted"}}),
+                harness.ctx,  # type: ignore[arg-type]
+            )
+
+    assert replayed == first
+
+
+@pytest.mark.asyncio
 async def test_t05_tool_contracts_return_schema_valid_results_without_fixed_hitl(
     tmp_path: Path,
 ) -> None:

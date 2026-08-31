@@ -88,6 +88,7 @@ class ExecutionLedger:
         args: Mapping[str, object],
         stable_business_id: str,
         checkpoint_id: str,
+        request_idempotency_key: str | None = None,
         created_at: datetime | None = None,
     ) -> ToolExecution:
         """Validate/hash tool args and atomically reserve their stable idempotency key."""
@@ -108,6 +109,11 @@ class ExecutionLedger:
             created_at=now,
             updated_at=now,
         )
+        if request_idempotency_key is not None:
+            return await self._tools.reserve_for_request(
+                reservation,
+                request_idempotency_key,
+            )
         return await self.reserve(reservation)
 
     async def reserve(self, reservation: ToolExecution) -> ToolExecution:
@@ -148,6 +154,59 @@ class ExecutionLedger:
             audit_events=audit_events,
             outbox_records=outbox_records,
         )
+
+    async def record_local_success(
+        self,
+        execution: ToolExecution,
+        receipt_id: str,
+        *,
+        business_write: BusinessMutation,
+        domain_events: Sequence[DomainEvent] = (),
+        audit_events: Sequence[EventEnvelope] = (),
+        outbox_records: Sequence[OutboxRecord] = (),
+    ) -> ToolExecution:
+        """Commit a pure database mutation without exposing an executing crash window."""
+        if execution.status != "reserved":
+            raise ValueError("local execution requires a reserved ledger value")
+        self._validate_tenant_bundle(
+            execution,
+            domain_events=domain_events,
+            audit_events=audit_events,
+            outbox_records=outbox_records,
+        )
+        try:
+            async with self._sessions.begin() as session:
+                await self._tools._transition(
+                    session,
+                    tenant_id=execution.tenant_id,
+                    execution_id=execution.execution_id,
+                    target="executing",
+                    expected_status="reserved",
+                    updated_at=self._now(),
+                )
+                await business_write(session)
+                succeeded = await self._tools._transition(
+                    session,
+                    tenant_id=execution.tenant_id,
+                    execution_id=execution.execution_id,
+                    target="succeeded",
+                    expected_status="executing",
+                    updated_at=self._now(),
+                    receipt_id=receipt_id,
+                )
+                for domain_event in domain_events:
+                    await self._domain_events._append(session, domain_event)
+                for audit_event in audit_events:
+                    await self._audit_events._append(session, audit_event)
+                for outbox_record in outbox_records:
+                    await self._outbox._append(session, outbox_record)
+                return succeeded
+        except (LookupError, ValueError, LedgerRepositoryError):
+            raise
+        except IntegrityError as exc:
+            raise ValueError("business outcome event already exists") from exc
+        except SQLAlchemyError as exc:
+            raise LedgerRepositoryError("business execution outcome persistence failed") from exc
 
     async def record_failure(
         self,

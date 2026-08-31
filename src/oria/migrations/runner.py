@@ -289,6 +289,14 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("updated_at", "DATETIME", 1, 0),
             ("executed_at", "DATETIME", 0, 0),
         ),
+        "tool_execution_requests": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("tool_name", "VARCHAR", 1, 2),
+            ("request_idempotency_key", "VARCHAR", 1, 3),
+            ("canonical_args_hash", "VARCHAR", 1, 0),
+            ("execution_id", "VARCHAR", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+        ),
         "domain_events": (
             ("event_id", "VARCHAR", 1, 1),
             ("tenant_id", "VARCHAR", 1, 0),
@@ -484,6 +492,14 @@ _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
             }
         ),
         "tool_executions": frozenset(),
+        "tool_execution_requests": frozenset(
+            {
+                (
+                    "tool_executions",
+                    (("tenant_id", "tenant_id"), ("execution_id", "execution_id")),
+                )
+            }
+        ),
         "domain_events": frozenset(),
         "audit_events": frozenset(),
         "outbox": frozenset(),
