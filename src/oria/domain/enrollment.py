@@ -43,8 +43,10 @@ from oria.domain.eligibility import EligibilityPolicy
 from oria.domain.ledger import DomainEvent, OutboxRecord, ToolExecution
 from oria.domain.models import EligibilityCriteria
 from oria.domain.product_eligibility import (
+    EnrollmentEligibilityAttestation,
     ProductEligibilityCriteria,
     ProductEligibilityPolicy,
+    ProductSellabilityAttestation,
     ProductSnapshot,
 )
 from oria.domain.repositories import (
@@ -447,6 +449,14 @@ class EnrollmentService:
             or expected_auto_binding.catalog_snapshot_id != catalog_snapshot_id
         ):
             raise PermissionError("auto enrollment frozen source binding does not match")
+        eligibility_attestation = EnrollmentEligibilityAttestation.create(
+            campaign_id=campaign_id,
+            rule_snapshot_ref_id=campaign.rule_snapshot_ref_id,
+            catalog_snapshot_id=catalog_snapshot_id,
+            merchant_criteria=merchant_criteria,
+            product_criteria=product_criteria,
+            item_business_keys_hash=_item_business_keys_hash(ordered_items),
+        )
         now = self._now()
         confirmation_policy = BusinessConfirmationPolicy.from_snapshot(snapshot)
         bundles: list[
@@ -492,7 +502,7 @@ class EnrollmentService:
                 product_ref=product.product_ref,
                 product_version=product.product_version,
                 catalog_snapshot_id=catalog_snapshot_id,
-                attributes=self._redacted_attributes(product),
+                attributes=self._redacted_attributes(product, eligibility_attestation),
                 version=1,
                 created_at=now,
                 updated_at=now,
@@ -550,6 +560,9 @@ class EnrollmentService:
                 new_enrollment_version=new_enrollment_version,
                 expected_approval_binding=current_approval_binding,
                 updated_approval_binding=updated_approval_binding,
+                merchant_criteria=merchant_criteria,
+                product_criteria=product_criteria,
+                eligibility_attestation=eligibility_attestation,
             )
 
         events = self._events(
@@ -692,12 +705,25 @@ class EnrollmentService:
         return catalog_snapshot_id, {key: found[key] for key in requested_keys}
 
     @staticmethod
-    def _redacted_attributes(product: ProductSnapshot) -> dict[str, JsonValue]:
+    def _redacted_attributes(
+        product: ProductSnapshot,
+        attestation: EnrollmentEligibilityAttestation,
+    ) -> dict[str, JsonValue]:
         return {
             "captured_at": product.captured_at.isoformat(),
             "category": product.category,
             "currency": product.currency,
+            "eligibility_attestation": attestation.model_dump(mode="json"),
+            "eligibility_facts": product.eligibility_facts,
+            "keyword_labels": list(product.keyword_labels),
             "normalized_price": str(product.normalized_price),
+            "normalized_title": product.normalized_title,
+            "sellability_snapshot": {
+                "available": product.eligibility_facts.get("available"),
+                "catalog_snapshot_id": attestation.catalog_snapshot_id,
+                "product_version": product.product_version,
+                "status": product.eligibility_facts.get("status"),
+            },
             "source_ref_hash": "sha256:"
             + hashlib.sha256(product.source_ref.encode("utf-8")).hexdigest(),
         }
@@ -788,6 +814,7 @@ class CouponLinkService:
         coupons: CouponBatchRepository,
         rule_refs: CampaignRuleSnapshotRefRepository,
         rule_snapshots: RuleSnapshotReader,
+        catalog: ProductCatalogAdapter,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._repository = repository
@@ -796,6 +823,7 @@ class CouponLinkService:
         self._coupons = coupons
         self._rule_refs = rule_refs
         self._rule_snapshots = rule_snapshots
+        self._catalog = catalog
         self._clock = clock
 
     async def link(
@@ -858,6 +886,42 @@ class CouponLinkService:
         allowed_tiers = frozenset(snapshot.benefit_policy.tiers)
         if any(tier not in allowed_tiers for tier in request.tier_mapping.values()):
             raise ValueError("coupon benefit tier is not allowed by the frozen rule")
+        merchant_criteria = EnrollmentService._merchant_criteria(snapshot)
+        product_criteria = ProductEligibilityCriteria.from_snapshot(snapshot)
+        enrollment_items, _ = await self._repository.load_enrollment_items(
+            tenant_id=ctx.tenant_id,
+            enrollment_item_ids=ordered_ids,
+        )
+        current_catalog_snapshot_id, current_product_map = await self._load_current_products(
+            enrollment_items,
+            product_criteria,
+            ctx,
+        )
+        current_products = tuple(
+            current_product_map[(item.merchant_id, item.product_ref, item.product_version)]
+            for item in enrollment_items
+        )
+        if any(
+            not ProductEligibilityPolicy().evaluate(product, product_criteria).eligible
+            for product in current_products
+        ):
+            raise ValueError("coupon link product is not currently sellable under hard policy")
+        sellability_attestation = ProductSellabilityAttestation.create(
+            catalog_snapshot_id=current_catalog_snapshot_id,
+            products=current_products,
+        )
+        current_approval_binding = await self._repository.get_approval_binding(
+            tenant_id=ctx.tenant_id,
+            campaign_id=campaign.campaign_id,
+        )
+        if (
+            current_approval_binding is None
+            or current_approval_binding.rule_snapshot_hash != snapshot.snapshot_hash
+        ):
+            raise PermissionError("coupon link approval business binding does not match")
+        updated_approval_binding = current_approval_binding.model_copy(
+            update={"link_version": current_approval_binding.link_version + 1}
+        )
         now = self._now()
         candidates = tuple(
             EnrollmentCouponLink(
@@ -889,6 +953,13 @@ class CouponLinkService:
                 coupon_batch_version=coupon.version,
                 rule_snapshot_ref_id=campaign.rule_snapshot_ref_id,
                 allowed_tiers=allowed_tiers,
+                merchant_criteria=merchant_criteria,
+                product_criteria=product_criteria,
+                rule_snapshot_hash=snapshot.snapshot_hash,
+                expected_approval_binding=current_approval_binding,
+                updated_approval_binding=updated_approval_binding,
+                current_products=current_products,
+                sellability_attestation=sellability_attestation,
                 links=candidates,
             )
 
@@ -928,6 +999,46 @@ class CouponLinkService:
             idempotency_key=execution.idempotency_key,
             request_idempotency_key=request.idempotency_key,
         )
+
+    async def _load_current_products(
+        self,
+        items: tuple[EnrollmentItem, ...],
+        criteria: ProductEligibilityCriteria,
+        ctx: Context,
+    ) -> tuple[str, dict[tuple[str, str, str], ProductSnapshot]]:
+        merchants = tuple(sorted({item.merchant_id for item in items}))
+        binding = ProductCatalogPolicyBinding(
+            policy_ref=criteria.policy_ref,
+            policy_version=criteria.policy_version,
+        )
+        cursor: str | None = None
+        catalog_snapshot_id: str | None = None
+        found: dict[tuple[str, str, str], ProductSnapshot] = {}
+        while True:
+            page = await self._catalog.list_products(
+                tenant_id=ctx.tenant_id,
+                merchant_ids=merchants,
+                policy=binding,
+                cursor=cursor,
+                limit=100,
+            )
+            if catalog_snapshot_id is None:
+                catalog_snapshot_id = page.catalog_snapshot_id
+            elif page.catalog_snapshot_id != catalog_snapshot_id:
+                raise RuntimeError("current product catalog pagination changed snapshots")
+            for product in page.products:
+                found[(product.merchant_id, product.product_ref, product.product_version)] = product
+            if page.next_cursor is None:
+                break
+            cursor = page.next_cursor
+        requested_keys = {
+            (item.merchant_id, item.product_ref, item.product_version) for item in items
+        }
+        if not requested_keys.issubset(found):
+            raise LookupError("current coupon-link product snapshot is unavailable")
+        if catalog_snapshot_id is None:
+            raise LookupError("current coupon-link catalog snapshot is unavailable")
+        return catalog_snapshot_id, {key: found[key] for key in requested_keys}
 
     def _now(self) -> datetime:
         value = self._clock()

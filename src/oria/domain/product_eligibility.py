@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections import Counter
 from datetime import datetime
 from decimal import Decimal
@@ -10,6 +12,7 @@ from typing import Literal, TypeAlias
 from pydantic import Field, field_validator
 
 from oria.core.types import JsonValue, ValueModel
+from oria.domain.models import EligibilityCriteria
 from oria.rag.models import CampaignRuleSnapshot
 
 ProductEligibilityReason: TypeAlias = Literal[
@@ -20,6 +23,16 @@ ProductEligibilityReason: TypeAlias = Literal[
     "keyword_mismatch",
     "product_unavailable",
 ]
+
+
+def _value_hash(value: ValueModel) -> str:
+    payload = json.dumps(
+        value.model_dump(mode="json"),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return f"sha256:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
 
 
 class ProductSnapshot(ValueModel):
@@ -92,6 +105,99 @@ class ProductEligibilityCriteria(ValueModel):
                 sorted({keyword.strip().casefold() for keyword in policy.product_keywords})
             ),
         )
+
+
+class EnrollmentEligibilityAttestation(ValueModel):
+    """Frozen rule/policy hashes carried into the final Business transaction."""
+
+    campaign_id: str = Field(min_length=1)
+    rule_snapshot_ref_id: str = Field(min_length=1)
+    rule_snapshot_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    product_policy_ref: str = Field(min_length=1)
+    product_policy_version: str = Field(min_length=1)
+    catalog_snapshot_id: str = Field(min_length=1)
+    merchant_criteria_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    product_criteria_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    item_business_keys_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        catalog_snapshot_id: str,
+        merchant_criteria: EligibilityCriteria,
+        product_criteria: ProductEligibilityCriteria,
+        item_business_keys_hash: str,
+    ) -> EnrollmentEligibilityAttestation:
+        return cls(
+            campaign_id=campaign_id,
+            rule_snapshot_ref_id=rule_snapshot_ref_id,
+            rule_snapshot_hash=product_criteria.rule_snapshot_hash,
+            product_policy_ref=product_criteria.policy_ref,
+            product_policy_version=product_criteria.policy_version,
+            catalog_snapshot_id=catalog_snapshot_id,
+            merchant_criteria_hash=_value_hash(merchant_criteria),
+            product_criteria_hash=_value_hash(product_criteria),
+            item_business_keys_hash=item_business_keys_hash,
+        )
+
+    def verify(
+        self,
+        *,
+        merchant_criteria: EligibilityCriteria,
+        product_criteria: ProductEligibilityCriteria,
+        item_business_keys_hash: str,
+    ) -> None:
+        if (
+            self.rule_snapshot_hash != product_criteria.rule_snapshot_hash
+            or self.product_policy_ref != product_criteria.policy_ref
+            or self.product_policy_version != product_criteria.policy_version
+            or self.merchant_criteria_hash != _value_hash(merchant_criteria)
+            or self.product_criteria_hash != _value_hash(product_criteria)
+            or self.item_business_keys_hash != item_business_keys_hash
+        ):
+            raise ValueError("enrollment eligibility attestation does not match frozen criteria")
+
+
+class ProductSellabilityAttestation(ValueModel):
+    """Versioned current-catalog observation, separate from frozen enrollment eligibility."""
+
+    catalog_snapshot_id: str = Field(min_length=1)
+    product_states_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        catalog_snapshot_id: str,
+        products: tuple[ProductSnapshot, ...],
+    ) -> ProductSellabilityAttestation:
+        ordered = tuple(
+            sorted(
+                products,
+                key=lambda item: (item.merchant_id, item.product_ref, item.product_version),
+            )
+        )
+        payload = json.dumps(
+            [product.model_dump(mode="json") for product in ordered],
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return cls(
+            catalog_snapshot_id=catalog_snapshot_id,
+            product_states_hash=f"sha256:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}",
+        )
+
+    def verify(self, products: tuple[ProductSnapshot, ...]) -> None:
+        expected = self.create(
+            catalog_snapshot_id=self.catalog_snapshot_id,
+            products=products,
+        )
+        if expected != self:
+            raise ValueError("current product sellability attestation does not match products")
 
 
 class ProductEligibilityDecision(ValueModel):

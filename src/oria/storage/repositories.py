@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -34,7 +35,15 @@ from oria.domain.business import (
     RecruitmentPublication,
     SelectionDecision,
 )
-from oria.domain.models import MerchantRecord, MerchantSeedSet
+from oria.domain.eligibility import EligibilityPolicy
+from oria.domain.models import EligibilityCriteria, MerchantRecord, MerchantSeedSet
+from oria.domain.product_eligibility import (
+    EnrollmentEligibilityAttestation,
+    ProductEligibilityCriteria,
+    ProductEligibilityPolicy,
+    ProductSellabilityAttestation,
+)
+from oria.domain.product_eligibility import ProductSnapshot as CatalogProductSnapshot
 
 if TYPE_CHECKING:
     from oria.core.context import Context
@@ -149,6 +158,12 @@ class SQLiteMerchantRepository:
 
 def _canonical_json(values: tuple[str, ...]) -> str:
     return json.dumps(values, ensure_ascii=False, separators=(",", ":"))
+
+
+def _item_keys_hash(items: tuple[EnrollmentItem, ...]) -> str:
+    keys = sorted((item.merchant_id, item.product_ref, item.product_version) for item in items)
+    payload = json.dumps(keys, ensure_ascii=False, separators=(",", ":"))
+    return f"sha256:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
 
 
 BusinessEntityT = TypeVar("BusinessEntityT", bound=BusinessEntity)
@@ -715,6 +730,9 @@ class SQLiteEnrollmentWorkflowRepository:
         new_enrollment_version: bool,
         expected_approval_binding: ApprovalBusinessBinding | None,
         updated_approval_binding: ApprovalBusinessBinding,
+        merchant_criteria: EligibilityCriteria,
+        product_criteria: ProductEligibilityCriteria,
+        eligibility_attestation: EnrollmentEligibilityAttestation,
     ) -> None:
         campaign = await self._campaigns._find_by_id(session, campaign_id, tenant_id)
         if (
@@ -730,6 +748,19 @@ class SQLiteEnrollmentWorkflowRepository:
             raise BusinessRepositoryError("approval business binding optimistic lock conflict")
         if updated_approval_binding.campaign_id != campaign_id:
             raise BusinessRepositoryError("approval business binding campaign does not match")
+        items = tuple(item for _, _, item, _ in bundles)
+        eligibility_attestation.verify(
+            merchant_criteria=merchant_criteria,
+            product_criteria=product_criteria,
+            item_business_keys_hash=_item_keys_hash(items),
+        )
+        if (
+            eligibility_attestation.campaign_id != campaign_id
+            or eligibility_attestation.rule_snapshot_ref_id != rule_snapshot_ref_id
+            or eligibility_attestation.rule_snapshot_hash
+            != updated_approval_binding.rule_snapshot_hash
+        ):
+            raise BusinessRepositoryError("enrollment eligibility rule binding does not match")
         for product, enrollment, item, tasks in bundles:
             if any(entity.tenant_id != tenant_id for entity in (product, enrollment, item, *tasks)):
                 raise BusinessRepositoryError("cross-tenant enrollment write is forbidden")
@@ -741,15 +772,9 @@ class SQLiteEnrollmentWorkflowRepository:
                 or source not in item.sources
             ):
                 raise BusinessRepositoryError("enrollment bundle does not match its campaign")
-            merchant_exists = await session.scalar(
-                text(
-                    "SELECT 1 FROM merchants WHERE tenant_id = :tenant_id "
-                    "AND merchant_id = :merchant_id"
-                ),
-                {"tenant_id": tenant_id, "merchant_id": item.merchant_id},
-            )
-            if merchant_exists is None:
-                raise BusinessRepositoryError("enrollment merchant is unavailable")
+            merchant = await self._load_merchant(session, tenant_id, item.merchant_id)
+            if not EligibilityPolicy().evaluate(merchant, merchant_criteria).eligible:
+                raise BusinessRepositoryError("enrollment merchant no longer satisfies hard policy")
 
         await self._write_approval_binding(
             session,
@@ -762,6 +787,13 @@ class SQLiteEnrollmentWorkflowRepository:
         for product, enrollment, item, tasks in bundles:
             existing_product = await self._products._find_by_unique_key(
                 session, product.unique_key(), tenant_id
+            )
+            persisted_product = product if existing_product is None else existing_product
+            self._validate_product_bundle(
+                persisted_product,
+                item,
+                product_criteria=product_criteria,
+                attestation=eligibility_attestation,
             )
             if existing_product is None:
                 await self._products._insert(session, product)
@@ -915,6 +947,13 @@ class SQLiteEnrollmentWorkflowRepository:
         coupon_batch_version: int,
         rule_snapshot_ref_id: str,
         allowed_tiers: frozenset[str],
+        merchant_criteria: EligibilityCriteria,
+        product_criteria: ProductEligibilityCriteria,
+        rule_snapshot_hash: str,
+        expected_approval_binding: ApprovalBusinessBinding,
+        updated_approval_binding: ApprovalBusinessBinding,
+        current_products: tuple[CatalogProductSnapshot, ...],
+        sellability_attestation: ProductSellabilityAttestation,
         links: tuple[EnrollmentCouponLink, ...],
     ) -> None:
         coupon = await self._coupons._find_by_id(session, coupon_batch_id, tenant_id)
@@ -927,6 +966,27 @@ class SQLiteEnrollmentWorkflowRepository:
             or campaign.rule_snapshot_ref_id != rule_snapshot_ref_id
         ):
             raise BusinessRepositoryError("campaign is not eligible for coupon linking")
+        current_binding = await self._find_approval_binding(
+            session,
+            tenant_id,
+            coupon.campaign_id,
+        )
+        if (
+            current_binding != expected_approval_binding
+            or current_binding.rule_snapshot_hash != rule_snapshot_hash
+            or product_criteria.rule_snapshot_hash != rule_snapshot_hash
+        ):
+            raise BusinessRepositoryError("coupon link approval business binding is stale")
+        try:
+            sellability_attestation.verify(current_products)
+        except ValueError as exc:
+            raise BusinessRepositoryError(
+                "current product sellability attestation is invalid"
+            ) from exc
+        current_product_map = {
+            (product.merchant_id, product.product_ref, product.product_version): product
+            for product in current_products
+        }
         validated: list[tuple[EnrollmentCouponLink, EnrollmentCouponLink | None]] = []
         for link in links:
             if link.tenant_id != tenant_id or link.coupon_batch_id != coupon_batch_id:
@@ -938,6 +998,32 @@ class SQLiteEnrollmentWorkflowRepository:
                 raise BusinessRepositoryError("enrollment item does not match coupon campaign")
             if item.status != "confirmed":
                 raise BusinessRepositoryError("enrollment item confirmation is incomplete")
+            merchant = await self._load_merchant(session, tenant_id, item.merchant_id)
+            if not EligibilityPolicy().evaluate(merchant, merchant_criteria).eligible:
+                raise BusinessRepositoryError("coupon link merchant does not satisfy hard policy")
+            product = await self._products._find_by_id(
+                session,
+                item.product_snapshot_id,
+                tenant_id,
+            )
+            if product is None:
+                raise BusinessRepositoryError("coupon link product snapshot is unavailable")
+            self._validate_product_bundle(
+                product,
+                item,
+                product_criteria=product_criteria,
+                attestation=None,
+            )
+            current_product = current_product_map.get(
+                (item.merchant_id, item.product_ref, item.product_version)
+            )
+            if (
+                current_product is None
+                or not ProductEligibilityPolicy()
+                .evaluate(current_product, product_criteria)
+                .eligible
+            ):
+                raise BusinessRepositoryError("coupon link product is not currently sellable")
             existing = await self._links._find_by_unique_key(session, link.unique_key(), tenant_id)
             if existing is not None and (
                 existing.enrollment_coupon_link_id != link.enrollment_coupon_link_id
@@ -948,6 +1034,97 @@ class SQLiteEnrollmentWorkflowRepository:
         for link, existing in validated:
             if existing is None:
                 await self._links._insert(session, link)
+        await self._write_approval_binding(
+            session,
+            tenant_id=tenant_id,
+            current=current_binding,
+            updated=updated_approval_binding,
+        )
+
+    @staticmethod
+    async def _load_merchant(
+        session: AsyncSession,
+        tenant_id: str,
+        merchant_id: str,
+    ) -> MerchantRecord:
+        result = await session.execute(
+            text(
+                "SELECT tenant_id, merchant_id, version, display_name, categories_json, "
+                "cities_json, enrollment_systems_json, sales_org_code, active FROM merchants "
+                "WHERE tenant_id = :tenant_id AND merchant_id = :merchant_id"
+            ),
+            {"tenant_id": tenant_id, "merchant_id": merchant_id},
+        )
+        row = result.mappings().one_or_none()
+        if row is None:
+            raise BusinessRepositoryError("enrollment merchant is unavailable")
+        return MerchantRecord(
+            tenant_id=str(row["tenant_id"]),
+            merchant_id=str(row["merchant_id"]),
+            version=int(row["version"]),
+            display_name=str(row["display_name"]),
+            categories=tuple(json.loads(str(row["categories_json"]))),
+            cities=tuple(json.loads(str(row["cities_json"]))),
+            enrollment_systems=tuple(json.loads(str(row["enrollment_systems_json"]))),
+            sales_org_code=str(row["sales_org_code"]),
+            active=bool(row["active"]),
+        )
+
+    @staticmethod
+    def _validate_product_bundle(
+        product: ProductSnapshot,
+        item: EnrollmentItem,
+        *,
+        product_criteria: ProductEligibilityCriteria,
+        attestation: EnrollmentEligibilityAttestation | None,
+    ) -> None:
+        if (
+            product.product_snapshot_id != item.product_snapshot_id
+            or product.merchant_id != item.merchant_id
+            or product.product_ref != item.product_ref
+            or product.product_version != item.product_version
+        ):
+            raise BusinessRepositoryError("product snapshot does not match enrollment item")
+        attributes = product.attributes
+        try:
+            frozen_attestation = EnrollmentEligibilityAttestation.model_validate(
+                attributes["eligibility_attestation"]
+            )
+            catalog_product = CatalogProductSnapshot.model_validate(
+                {
+                    "product_ref": product.product_ref,
+                    "product_version": product.product_version,
+                    "merchant_id": product.merchant_id,
+                    "source_ref": attributes["source_ref_hash"],
+                    "captured_at": attributes["captured_at"],
+                    "category": attributes["category"],
+                    "normalized_price": attributes["normalized_price"],
+                    "currency": attributes["currency"],
+                    "normalized_title": attributes["normalized_title"],
+                    "keyword_labels": attributes["keyword_labels"],
+                    "eligibility_facts": attributes["eligibility_facts"],
+                }
+            )
+            sellability_value = attributes["sellability_snapshot"]
+            if not isinstance(sellability_value, dict):
+                raise TypeError("sellability snapshot must be an object")
+            sellability = sellability_value
+        except (KeyError, TypeError, ValueError) as exc:
+            raise BusinessRepositoryError("product eligibility snapshot is incomplete") from exc
+        if (
+            frozen_attestation.rule_snapshot_hash != product_criteria.rule_snapshot_hash
+            or frozen_attestation.product_policy_ref != product_criteria.policy_ref
+            or frozen_attestation.product_policy_version != product_criteria.policy_version
+            or frozen_attestation.catalog_snapshot_id != product.catalog_snapshot_id
+            or (attestation is not None and frozen_attestation != attestation)
+            or sellability.get("catalog_snapshot_id") != product.catalog_snapshot_id
+            or sellability.get("product_version") != product.product_version
+            or sellability.get("available") != catalog_product.eligibility_facts.get("available")
+            or sellability.get("status") != catalog_product.eligibility_facts.get("status")
+        ):
+            raise BusinessRepositoryError("product eligibility snapshot binding does not match")
+        if not ProductEligibilityPolicy().evaluate(catalog_product, product_criteria).eligible:
+            raise BusinessRepositoryError("enrollment product does not satisfy hard policy")
 
     async def load_coupon_links(
         self,

@@ -27,7 +27,15 @@ from oria.domain.business import (
     RecruitmentPublication,
     SelectionDecision,
 )
-from oria.domain.models import MerchantRecord, MerchantSeedSet
+from oria.domain.models import EligibilityCriteria, MerchantRecord, MerchantSeedSet
+from oria.domain.product_eligibility import (
+    EnrollmentEligibilityAttestation,
+    ProductEligibilityCriteria,
+    ProductSellabilityAttestation,
+)
+from oria.domain.product_eligibility import (
+    ProductSnapshot as CatalogProductSnapshot,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -154,6 +162,9 @@ class EnrollmentWorkflowRepository(Protocol):
         new_enrollment_version: bool,
         expected_approval_binding: ApprovalBusinessBinding | None,
         updated_approval_binding: ApprovalBusinessBinding,
+        merchant_criteria: EligibilityCriteria,
+        product_criteria: ProductEligibilityCriteria,
+        eligibility_attestation: EnrollmentEligibilityAttestation,
     ) -> None: ...
 
     async def load_enrollment_items(
@@ -172,6 +183,13 @@ class EnrollmentWorkflowRepository(Protocol):
         coupon_batch_version: int,
         rule_snapshot_ref_id: str,
         allowed_tiers: frozenset[str],
+        merchant_criteria: EligibilityCriteria,
+        product_criteria: ProductEligibilityCriteria,
+        rule_snapshot_hash: str,
+        expected_approval_binding: ApprovalBusinessBinding,
+        updated_approval_binding: ApprovalBusinessBinding,
+        current_products: tuple[CatalogProductSnapshot, ...],
+        sellability_attestation: ProductSellabilityAttestation,
         links: tuple[EnrollmentCouponLink, ...],
     ) -> None: ...
 

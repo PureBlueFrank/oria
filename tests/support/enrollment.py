@@ -300,6 +300,7 @@ async def enrollment_harness(
                 coupons=coupons,
                 rule_refs=rule_refs,
                 rule_snapshots=rule_store,
+                catalog=catalog,
                 clock=lambda: NOW,
             ),
             workflow_repository=workflow_repository,

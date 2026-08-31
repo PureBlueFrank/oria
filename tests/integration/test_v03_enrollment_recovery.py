@@ -93,7 +93,7 @@ async def test_coupon_link_partial_validation_failure_rolls_back_every_link(
             harness.ctx,  # type: ignore[arg-type]
         )
         valid_id = upserted.enrollment_items[0].enrollment_item_id
-        with pytest.raises(BusinessRepositoryError, match="does not match"):
+        with pytest.raises(BusinessRepositoryError, match="unavailable"):
             await harness.links.link(
                 LinkCouponBatchArgs(
                     enrollment_item_ids=(valid_id, "missing-item"),
