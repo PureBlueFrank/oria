@@ -12,6 +12,7 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from oria.core.approvals import ApprovalBusinessBinding
 from oria.domain.business import (
     AssortmentSubmission,
     BusinessEntity,
@@ -688,6 +689,18 @@ class SQLiteEnrollmentWorkflowRepository:
         self._links = SQLiteEnrollmentCouponLinkRepository(sessions)
         self._coupons = SQLiteCouponBatchRepository(sessions)
 
+    async def get_approval_binding(
+        self,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+    ) -> ApprovalBusinessBinding | None:
+        try:
+            async with self._sessions() as session:
+                return await self._find_approval_binding(session, tenant_id, campaign_id)
+        except (SQLAlchemyError, ValueError, TypeError) as exc:
+            raise BusinessRepositoryError("approval business binding read failed") from exc
+
     async def upsert_enrollment_items(
         self,
         session: AsyncSession,
@@ -700,6 +713,8 @@ class SQLiteEnrollmentWorkflowRepository:
             tuple[ProductSnapshot, Enrollment, EnrollmentItem, tuple[ConfirmationTask, ...]], ...
         ],
         new_enrollment_version: bool,
+        expected_approval_binding: ApprovalBusinessBinding | None,
+        updated_approval_binding: ApprovalBusinessBinding,
     ) -> None:
         campaign = await self._campaigns._find_by_id(session, campaign_id, tenant_id)
         if (
@@ -710,6 +725,11 @@ class SQLiteEnrollmentWorkflowRepository:
             raise BusinessRepositoryError("campaign is not accepting enrollment items")
         if source not in {"merchant", "auto"}:
             raise BusinessRepositoryError("enrollment source is invalid")
+        current_binding = await self._find_approval_binding(session, tenant_id, campaign_id)
+        if current_binding != expected_approval_binding:
+            raise BusinessRepositoryError("approval business binding optimistic lock conflict")
+        if updated_approval_binding.campaign_id != campaign_id:
+            raise BusinessRepositoryError("approval business binding campaign does not match")
         for product, enrollment, item, tasks in bundles:
             if any(entity.tenant_id != tenant_id for entity in (product, enrollment, item, *tasks)):
                 raise BusinessRepositoryError("cross-tenant enrollment write is forbidden")
@@ -730,6 +750,13 @@ class SQLiteEnrollmentWorkflowRepository:
             )
             if merchant_exists is None:
                 raise BusinessRepositoryError("enrollment merchant is unavailable")
+
+        await self._write_approval_binding(
+            session,
+            tenant_id=tenant_id,
+            current=current_binding,
+            updated=updated_approval_binding,
+        )
 
         bumped_enrollments: set[str] = set()
         for product, enrollment, item, tasks in bundles:
@@ -783,6 +810,69 @@ class SQLiteEnrollmentWorkflowRepository:
             merged = existing_item.merge_source(source, updated_at=item.updated_at)  # type: ignore[arg-type]
             if merged is not existing_item:
                 await self._items._update(session, existing_item, merged, allow_status_change=False)
+
+    @staticmethod
+    async def _find_approval_binding(
+        session: AsyncSession,
+        tenant_id: str,
+        campaign_id: str,
+    ) -> ApprovalBusinessBinding | None:
+        result = await session.execute(
+            text(
+                "SELECT campaign_id, enrollment_version, link_version, selection_version, "
+                "rule_snapshot_hash FROM campaign_approval_bindings WHERE tenant_id = "
+                ":tenant_id AND campaign_id = :campaign_id"
+            ),
+            {"tenant_id": tenant_id, "campaign_id": campaign_id},
+        )
+        row = result.mappings().one_or_none()
+        return None if row is None else ApprovalBusinessBinding.model_validate(dict(row))
+
+    @staticmethod
+    async def _write_approval_binding(
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        current: ApprovalBusinessBinding | None,
+        updated: ApprovalBusinessBinding,
+    ) -> None:
+        values = {"tenant_id": tenant_id, **updated.model_dump()}
+        if current is None:
+            await session.execute(
+                text(
+                    "INSERT INTO campaign_approval_bindings (tenant_id, campaign_id, "
+                    "enrollment_version, link_version, selection_version, rule_snapshot_hash) "
+                    "VALUES (:tenant_id, :campaign_id, :enrollment_version, :link_version, "
+                    ":selection_version, :rule_snapshot_hash)"
+                ),
+                values,
+            )
+            return
+        if current == updated:
+            return
+        result = cast(
+            CursorResult[Any],
+            await session.execute(
+                text(
+                    "UPDATE campaign_approval_bindings SET enrollment_version = "
+                    ":enrollment_version, link_version = :link_version, selection_version = "
+                    ":selection_version, rule_snapshot_hash = :rule_snapshot_hash WHERE "
+                    "tenant_id = :tenant_id AND campaign_id = :campaign_id AND "
+                    "enrollment_version = :expected_enrollment_version AND link_version = "
+                    ":expected_link_version AND selection_version = :expected_selection_version "
+                    "AND rule_snapshot_hash = :expected_rule_snapshot_hash"
+                ),
+                values
+                | {
+                    "expected_enrollment_version": current.enrollment_version,
+                    "expected_link_version": current.link_version,
+                    "expected_selection_version": current.selection_version,
+                    "expected_rule_snapshot_hash": current.rule_snapshot_hash,
+                },
+            ),
+        )
+        if result.rowcount != 1:
+            raise BusinessRepositoryError("approval business binding optimistic lock conflict")
 
     async def load_enrollment_items(
         self,

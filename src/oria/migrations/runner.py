@@ -129,6 +129,26 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("created_at", "DATETIME", 1, 0),
             ("updated_at", "DATETIME", 1, 0),
             ("decided_at", "DATETIME", 0, 0),
+            ("campaign_id", "VARCHAR", 0, 0),
+            ("enrollment_version", "INTEGER", 0, 0),
+            ("link_version", "INTEGER", 0, 0),
+            ("selection_version", "VARCHAR", 0, 0),
+            ("rule_snapshot_hash", "VARCHAR", 0, 0),
+        ),
+        "approval_binding_invalidations": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("event_id", "VARCHAR", 1, 2),
+            ("campaign_id", "VARCHAR", 1, 0),
+            ("enrollment_version", "INTEGER", 1, 0),
+            ("link_version", "INTEGER", 1, 0),
+            ("selection_version", "VARCHAR", 1, 0),
+            ("rule_snapshot_hash", "VARCHAR", 1, 0),
+            ("reason", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+            ("attempt_count", "INTEGER", 1, 0),
+            ("last_error_code", "VARCHAR", 0, 0),
+            ("created_at", "DATETIME", 1, 0),
+            ("updated_at", "DATETIME", 1, 0),
         ),
         "external_waits": (
             ("tenant_id", "VARCHAR", 1, 1),
@@ -236,6 +256,14 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("due_at", "DATETIME", 1, 0),
             ("timeout_action", "VARCHAR", 1, 0),
             ("status", "VARCHAR", 1, 0),
+        ),
+        "campaign_approval_bindings": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("campaign_id", "VARCHAR", 1, 2),
+            ("enrollment_version", "INTEGER", 1, 0),
+            ("link_version", "INTEGER", 1, 0),
+            ("selection_version", "VARCHAR", 1, 0),
+            ("rule_snapshot_hash", "VARCHAR", 1, 0),
         ),
         "assortment_submissions": _business_columns(
             "assortment_submission_id",
@@ -378,6 +406,7 @@ _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
         "audit_events": frozenset(),
         "outbox": frozenset(),
         "approvals": frozenset(),
+        "approval_binding_invalidations": frozenset(),
         "external_waits": frozenset(),
         "integration_event_inbox": frozenset(
             {
@@ -462,6 +491,9 @@ _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
                     (("tenant_id", "tenant_id"), ("enrollment_item_id", "enrollment_item_id")),
                 )
             }
+        ),
+        "campaign_approval_bindings": frozenset(
+            {("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id")))}
         ),
         "assortment_submissions": frozenset(
             {("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id")))}

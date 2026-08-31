@@ -3,14 +3,20 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from datetime import datetime
+from typing import Any, cast
 
 from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from oria.core.approvals import Approval
+from oria.core.approvals import (
+    Approval,
+    ApprovalBindingInvalidationFact,
+    ApprovalBusinessBinding,
+    ApprovalInvalidationStatus,
+)
 from oria.core.integration_events import ExternalWait, IntegrationInboxRecord
 from oria.core.types import EventEnvelope
 from oria.permission.audit import redact_audit_payload
@@ -18,6 +24,21 @@ from oria.permission.audit import redact_audit_payload
 
 class PlatformRepositoryError(RuntimeError):
     """Safe platform repository failure without SQL or event payload contents."""
+
+
+def _approval_values(approval: Approval) -> dict[str, Any]:
+    values = approval.model_dump(exclude={"business_binding"})
+    binding = approval.business_binding
+    values.update(
+        {
+            "campaign_id": None if binding is None else binding.campaign_id,
+            "enrollment_version": None if binding is None else binding.enrollment_version,
+            "link_version": None if binding is None else binding.link_version,
+            "selection_version": None if binding is None else binding.selection_version,
+            "rule_snapshot_hash": None if binding is None else binding.rule_snapshot_hash,
+        }
+    )
+    return values
 
 
 class SQLiteApprovalRepository:
@@ -36,12 +57,15 @@ class SQLiteApprovalRepository:
                         "INSERT INTO approvals (tenant_id, approval_id, approval_action, "
                         "tool_name, canonical_args_hash, checkpoint_id, policy_version, "
                         "expires_at, status, requester, decider, decision, reason, created_at, "
-                        "updated_at, decided_at) VALUES (:tenant_id, :approval_id, "
+                        "updated_at, decided_at, campaign_id, enrollment_version, link_version, "
+                        "selection_version, rule_snapshot_hash) VALUES (:tenant_id, :approval_id, "
                         ":approval_action, :tool_name, :canonical_args_hash, :checkpoint_id, "
                         ":policy_version, :expires_at, :status, :requester, :decider, :decision, "
-                        ":reason, :created_at, :updated_at, :decided_at)"
+                        ":reason, :created_at, :updated_at, :decided_at, :campaign_id, "
+                        ":enrollment_version, :link_version, :selection_version, "
+                        ":rule_snapshot_hash)"
                     ),
-                    approval.model_dump(),
+                    _approval_values(approval),
                 )
                 if audit_event is not None:
                     await self._append_approval_events(session, approval, audit_event)
@@ -58,6 +82,8 @@ class SQLiteApprovalRepository:
                         "SELECT tenant_id, approval_id, approval_action, tool_name, "
                         "canonical_args_hash, checkpoint_id, policy_version, expires_at, status, "
                         "requester, decider, decision, reason, created_at, updated_at, decided_at "
+                        ", campaign_id, enrollment_version, link_version, selection_version, "
+                        "rule_snapshot_hash "
                         "FROM approvals WHERE tenant_id = :tenant_id AND approval_id = :approval_id"
                     ),
                     {"tenant_id": tenant_id, "approval_id": approval_id},
@@ -65,7 +91,21 @@ class SQLiteApprovalRepository:
                 row = result.mappings().one_or_none()
         except SQLAlchemyError as exc:
             raise PlatformRepositoryError("approval read failed") from exc
-        return None if row is None else Approval.model_validate(dict(row))
+        if row is None:
+            return None
+        values = dict(row)
+        campaign_id = values.pop("campaign_id")
+        binding_values = {
+            "campaign_id": campaign_id,
+            "enrollment_version": values.pop("enrollment_version"),
+            "link_version": values.pop("link_version"),
+            "selection_version": values.pop("selection_version"),
+            "rule_snapshot_hash": values.pop("rule_snapshot_hash"),
+        }
+        values["business_binding"] = (
+            None if campaign_id is None else ApprovalBusinessBinding.model_validate(binding_values)
+        )
+        return Approval.model_validate(values)
 
     async def replace(
         self,
@@ -81,7 +121,7 @@ class SQLiteApprovalRepository:
                         "decided_at = :decided_at WHERE tenant_id = :tenant_id "
                         "AND approval_id = :approval_id"
                     ),
-                    approval.model_dump(),
+                    _approval_values(approval),
                 )
                 if not isinstance(result, CursorResult) or result.rowcount != 1:
                     raise LookupError("approval is unavailable")
@@ -93,6 +133,37 @@ class SQLiteApprovalRepository:
             raise ValueError("approval event already exists") from exc
         except SQLAlchemyError as exc:
             raise PlatformRepositoryError("approval update failed") from exc
+
+    async def invalidate_campaign_binding(
+        self,
+        *,
+        tenant_id: str,
+        binding: ApprovalBusinessBinding,
+        updated_at: datetime,
+    ) -> int:
+        try:
+            async with self._sessions.begin() as session:
+                result = cast(
+                    CursorResult[Any],
+                    await session.execute(
+                        text(
+                            "UPDATE approvals SET status = 'invalidated', updated_at = "
+                            ":updated_at WHERE tenant_id = :tenant_id AND campaign_id = "
+                            ":campaign_id AND status IN ('pending', 'approved') AND NOT "
+                            "(enrollment_version = :enrollment_version AND link_version = "
+                            ":link_version AND selection_version = :selection_version AND "
+                            "rule_snapshot_hash = :rule_snapshot_hash)"
+                        ),
+                        {
+                            "tenant_id": tenant_id,
+                            "updated_at": updated_at,
+                            **binding.model_dump(),
+                        },
+                    ),
+                )
+                return result.rowcount
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("campaign approval invalidation failed") from exc
 
     async def _append_approval_events(
         self,
@@ -140,6 +211,167 @@ class SQLiteApprovalRepository:
                 "occurred_at": event.occurred_at,
             },
         )
+
+
+class SQLiteApprovalInvalidationRepository:
+    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
+        self._sessions = sessions
+        self._approvals = SQLiteApprovalRepository(sessions)
+
+    async def record_pending(
+        self,
+        fact: ApprovalBindingInvalidationFact,
+    ) -> ApprovalInvalidationStatus:
+        existing = await self._get(fact)
+        if existing is not None:
+            return existing
+        values = self._fact_values(fact)
+        try:
+            async with self._sessions.begin() as session:
+                await session.execute(
+                    text(
+                        "INSERT INTO approval_binding_invalidations (tenant_id, event_id, "
+                        "campaign_id, enrollment_version, link_version, selection_version, "
+                        "rule_snapshot_hash, reason, status, attempt_count, last_error_code, "
+                        "created_at, updated_at) VALUES (:tenant_id, :event_id, :campaign_id, "
+                        ":enrollment_version, :link_version, :selection_version, "
+                        ":rule_snapshot_hash, :reason, 'pending', 0, NULL, :occurred_at, "
+                        ":occurred_at)"
+                    ),
+                    values,
+                )
+        except IntegrityError as exc:
+            existing = await self._get(fact)
+            if existing is None:
+                raise PlatformRepositoryError("approval invalidation persistence failed") from exc
+            return existing
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("approval invalidation persistence failed") from exc
+        return "pending"
+
+    async def apply(self, fact: ApprovalBindingInvalidationFact) -> int:
+        try:
+            async with self._sessions.begin() as session:
+                count = await self._invalidate(session, fact)
+                result = cast(
+                    CursorResult[Any],
+                    await session.execute(
+                        text(
+                            "UPDATE approval_binding_invalidations SET status = 'applied', "
+                            "attempt_count = attempt_count + 1, last_error_code = NULL, "
+                            "updated_at = :updated_at WHERE tenant_id = :tenant_id AND event_id = "
+                            ":event_id AND status IN ('pending', 'reconciliation')"
+                        ),
+                        {
+                            "tenant_id": fact.tenant_id,
+                            "event_id": fact.event_id,
+                            "updated_at": fact.occurred_at,
+                        },
+                    ),
+                )
+                if result.rowcount != 1:
+                    status = await self._get_in_session(session, fact)
+                    if status != "applied":
+                        raise PlatformRepositoryError("approval invalidation is unavailable")
+                return count
+        except PlatformRepositoryError:
+            raise
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("approval invalidation apply failed") from exc
+
+    async def mark_reconciliation(
+        self,
+        fact: ApprovalBindingInvalidationFact,
+        *,
+        error_code: str,
+    ) -> None:
+        try:
+            async with self._sessions.begin() as session:
+                await session.execute(
+                    text(
+                        "UPDATE approval_binding_invalidations SET status = 'reconciliation', "
+                        "attempt_count = attempt_count + 1, last_error_code = :error_code, "
+                        "updated_at = :updated_at WHERE tenant_id = :tenant_id AND event_id = "
+                        ":event_id AND status != 'applied'"
+                    ),
+                    {
+                        "tenant_id": fact.tenant_id,
+                        "event_id": fact.event_id,
+                        "error_code": error_code,
+                        "updated_at": fact.occurred_at,
+                    },
+                )
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("approval invalidation reconciliation failed") from exc
+
+    async def _invalidate(
+        self,
+        session: AsyncSession,
+        fact: ApprovalBindingInvalidationFact,
+    ) -> int:
+        binding = fact.binding
+        result = cast(
+            CursorResult[Any],
+            await session.execute(
+                text(
+                    "UPDATE approvals SET status = 'invalidated', updated_at = :updated_at "
+                    "WHERE tenant_id = :tenant_id AND campaign_id = :campaign_id AND status IN "
+                    "('pending', 'approved') AND NOT (enrollment_version = :enrollment_version "
+                    "AND link_version = :link_version AND selection_version = "
+                    ":selection_version AND rule_snapshot_hash = :rule_snapshot_hash)"
+                ),
+                {
+                    "tenant_id": fact.tenant_id,
+                    "updated_at": fact.occurred_at,
+                    **binding.model_dump(),
+                },
+            ),
+        )
+        return result.rowcount
+
+    async def _get(
+        self, fact: ApprovalBindingInvalidationFact
+    ) -> ApprovalInvalidationStatus | None:
+        try:
+            async with self._sessions() as session:
+                return await self._get_in_session(session, fact)
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("approval invalidation read failed") from exc
+
+    async def _get_in_session(
+        self,
+        session: AsyncSession,
+        fact: ApprovalBindingInvalidationFact,
+    ) -> ApprovalInvalidationStatus | None:
+        result = await session.execute(
+            text(
+                "SELECT campaign_id, enrollment_version, link_version, selection_version, "
+                "rule_snapshot_hash, reason, status FROM approval_binding_invalidations WHERE "
+                "tenant_id = :tenant_id AND event_id = :event_id"
+            ),
+            {"tenant_id": fact.tenant_id, "event_id": fact.event_id},
+        )
+        row = result.mappings().one_or_none()
+        if row is None:
+            return None
+        expected = {
+            **fact.binding.model_dump(),
+            "reason": fact.reason,
+        }
+        observed = {name: row[name] for name in expected}
+        if observed != expected:
+            raise ValueError("approval invalidation event conflicts with persisted payload")
+        return cast(ApprovalInvalidationStatus, row["status"])
+
+    @staticmethod
+    def _fact_values(fact: ApprovalBindingInvalidationFact) -> dict[str, Any]:
+        return {
+            "tenant_id": fact.tenant_id,
+            "event_id": fact.event_id,
+            "reason": fact.reason,
+            "occurred_at": fact.occurred_at,
+            **fact.binding.model_dump(),
+        }
 
 
 class SQLiteIntegrationEventInboxRepository:

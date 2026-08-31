@@ -13,6 +13,7 @@ from alembic.config import Config
 pytestmark = pytest.mark.integration
 
 V03_TABLES = {
+    "campaign_approval_bindings",
     "product_snapshots",
     "campaign_rule_snapshot_refs",
     "campaigns",
@@ -113,7 +114,7 @@ def test_empty_business_database_upgrades_to_v03_and_rolls_back_to_base(
 
     command.upgrade(config, "head")
 
-    assert _revision(database) == "business_0007"
+    assert _revision(database) == "business_0008"
     assert V03_TABLES | {"merchants"} <= _tables(database)
 
     command.downgrade(config, "base")

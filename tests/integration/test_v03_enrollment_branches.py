@@ -270,6 +270,9 @@ async def test_closed_window_late_event_is_rejected_or_creates_a_new_version(
         assert outcome.state.enrollment_version == 2
         assert outcome.state.downstream_approval_invalidated is True
         assert enrollment_count == 1 and enrollment_version == 2
-        assert invalidator.invalidations == [
-            ("local-community", "campaign-1", "late_enrollment_new_version")
-        ]
+        assert len(invalidator.invalidations) == 1
+        fact = invalidator.invalidations[0]
+        assert fact.tenant_id == "local-community"
+        assert fact.binding.campaign_id == "campaign-1"
+        assert fact.binding.enrollment_version == 2
+        assert fact.reason == "late_enrollment_new_version"

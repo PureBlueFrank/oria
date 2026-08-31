@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
 
+from oria.core.approvals import ApprovalBusinessBinding
 from oria.domain.business import (
     AssortmentSubmission,
     BusinessEntity,
@@ -132,6 +133,13 @@ class EnrollmentCouponLinkRepository(BusinessEntityRepository[EnrollmentCouponLi
 
 
 class EnrollmentWorkflowRepository(Protocol):
+    async def get_approval_binding(
+        self,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+    ) -> ApprovalBusinessBinding | None: ...
+
     async def upsert_enrollment_items(
         self,
         session: AsyncSession,
@@ -144,6 +152,8 @@ class EnrollmentWorkflowRepository(Protocol):
             tuple[ProductSnapshot, Enrollment, EnrollmentItem, tuple[ConfirmationTask, ...]], ...
         ],
         new_enrollment_version: bool,
+        expected_approval_binding: ApprovalBusinessBinding | None,
+        updated_approval_binding: ApprovalBusinessBinding,
     ) -> None: ...
 
     async def load_enrollment_items(

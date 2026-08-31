@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Literal, Protocol, TypeAlias
 from pydantic import Field, field_validator, model_validator
 
 from oria.adapters.products import ProductCatalogAdapter, ProductCatalogPolicyBinding
+from oria.core.approvals import ApprovalBusinessBinding, approval_binding_event_id
 from oria.core.execution_ledger import ExecutionEventBundle, ExecutionLedger
 from oria.core.integration_events import (
     IntegrationInboxRecord,
@@ -169,6 +170,7 @@ class UpsertEnrollmentItemsResult(ValueModel):
     execution_id: str
     idempotency_key: str
     request_idempotency_key: str
+    approval_binding: ApprovalBusinessBinding
 
 
 class LinkCouponBatchArgs(ValueModel):
@@ -385,6 +387,33 @@ class EnrollmentService:
         if execution.status != "reserved":
             raise RuntimeError("prior enrollment execution is not retryable")
         campaign, snapshot = await self._campaign_snapshot(campaign_id, ctx)
+        current_approval_binding = await self._repository.get_approval_binding(
+            tenant_id=ctx.tenant_id,
+            campaign_id=campaign_id,
+        )
+        if (
+            current_approval_binding is not None
+            and current_approval_binding.rule_snapshot_hash != snapshot.snapshot_hash
+        ):
+            raise PermissionError("campaign approval binding rule snapshot does not match")
+        updated_approval_binding = ApprovalBusinessBinding(
+            campaign_id=campaign_id,
+            enrollment_version=(
+                1
+                if current_approval_binding is None
+                else current_approval_binding.enrollment_version
+                + (1 if new_enrollment_version else 0)
+            ),
+            link_version=(
+                0 if current_approval_binding is None else current_approval_binding.link_version
+            ),
+            selection_version=(
+                "none"
+                if current_approval_binding is None
+                else current_approval_binding.selection_version
+            ),
+            rule_snapshot_hash=snapshot.snapshot_hash,
+        )
         rule = snapshot.enrollment_policy
         if campaign.status != "recruiting":
             raise ValueError("campaign is not accepting enrollment items")
@@ -519,6 +548,8 @@ class EnrollmentService:
                 source=source,
                 bundles=tuple(bundles),
                 new_enrollment_version=new_enrollment_version,
+                expected_approval_binding=current_approval_binding,
+                updated_approval_binding=updated_approval_binding,
             )
 
         events = self._events(
@@ -529,6 +560,17 @@ class EnrollmentService:
             count=len(ordered_items),
             ctx=ctx,
         )
+        if new_enrollment_version:
+            binding_events = self._approval_binding_events(
+                execution=execution,
+                binding=updated_approval_binding,
+                ctx=ctx,
+            )
+            events = ExecutionEventBundle(
+                domain_events=(*events.domain_events, *binding_events.domain_events),
+                audit_events=(*events.audit_events, *binding_events.audit_events),
+                outbox_records=(*events.outbox_records, *binding_events.outbox_records),
+            )
         execution = await self._ledger.record_local_success(
             execution,
             receipt_id=_stable_id("receipt", execution.idempotency_key),
@@ -558,6 +600,12 @@ class EnrollmentService:
             tenant_id=execution.tenant_id,
             enrollment_item_ids=item_ids,
         )
+        approval_binding = await self._repository.get_approval_binding(
+            tenant_id=execution.tenant_id,
+            campaign_id=campaign_id,
+        )
+        if approval_binding is None:
+            raise RuntimeError("campaign approval binding is unavailable")
         return UpsertEnrollmentItemsResult(
             campaign_id=campaign_id,
             source=source,
@@ -566,6 +614,7 @@ class EnrollmentService:
             execution_id=execution.execution_id,
             idempotency_key=execution.idempotency_key,
             request_idempotency_key=request_idempotency_key,
+            approval_binding=approval_binding,
         )
 
     async def _campaign_snapshot(
@@ -671,6 +720,55 @@ class EnrollmentService:
             event_type=event_type,
             count=count,
             ctx=ctx,
+        )
+
+    def _approval_binding_events(
+        self,
+        *,
+        execution: ToolExecution,
+        binding: ApprovalBusinessBinding,
+        ctx: Context,
+    ) -> ExecutionEventBundle:
+        now = self._now()
+        event_id = approval_binding_event_id(ctx.tenant_id, binding)
+        payload: dict[str, JsonValue] = {
+            "campaign_id": binding.campaign_id,
+            "enrollment_version": binding.enrollment_version,
+            "link_version": binding.link_version,
+            "selection_version": binding.selection_version,
+            "rule_snapshot_hash": binding.rule_snapshot_hash,
+            "execution_id": execution.execution_id,
+            "reason": "late_enrollment_new_version",
+        }
+        return ExecutionEventBundle(
+            domain_events=(
+                DomainEvent(
+                    event_id=event_id,
+                    tenant_id=ctx.tenant_id,
+                    aggregate_type="campaign",
+                    aggregate_id=binding.campaign_id,
+                    event_type="enrollment.version_created",
+                    event_version=binding.enrollment_version,
+                    payload=payload,
+                    occurred_at=now,
+                    correlation_id=ctx.correlation_id,
+                ),
+            ),
+            outbox_records=(
+                OutboxRecord(
+                    event_id=event_id,
+                    tenant_id=ctx.tenant_id,
+                    topic="enrollment.version_created",
+                    payload_json=json.dumps(
+                        payload,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                    occurred_at=now,
+                    available_at=now,
+                ),
+            ),
         )
 
     def _now(self) -> datetime:

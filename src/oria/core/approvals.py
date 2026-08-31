@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from oria.core.protocols import PolicyEngine
 
 ApprovalAction: TypeAlias = Literal["launch_approval", "consumer_publish_approval"]
+ApprovalInvalidationStatus: TypeAlias = Literal["pending", "applied", "reconciliation"]
 
 
 def _decimal_string(value: Decimal) -> str:
@@ -107,6 +108,66 @@ def canonical_args_hash(
     return f"sha256:{digest}"
 
 
+def approval_binding_event_id(tenant_id: str, binding: ApprovalBusinessBinding) -> str:
+    payload = _canonical_json({"tenant_id": tenant_id, **binding.model_dump(mode="json")})
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
+    return f"enrollment_version_created_{digest}"
+
+
+class ApprovalBusinessBinding(ValueModel):
+    """Current Business facts that a downstream approval must freeze."""
+
+    campaign_id: str = Field(min_length=1)
+    enrollment_version: int = Field(ge=1)
+    link_version: int = Field(ge=0)
+    selection_version: str = Field(min_length=1)
+    rule_snapshot_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+
+class ApprovalBindingInvalidationFact(ValueModel):
+    event_id: str = Field(min_length=1)
+    tenant_id: str = Field(min_length=1, repr=False)
+    binding: ApprovalBusinessBinding
+    reason: str = Field(min_length=1)
+    occurred_at: datetime
+
+    @field_validator("occurred_at")
+    @classmethod
+    def require_aware_occurred_at(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("approval invalidation occurrence must include a timezone")
+        return value
+
+    @classmethod
+    def from_outbox(
+        cls,
+        *,
+        event_id: str,
+        tenant_id: str,
+        payload_json: str,
+        occurred_at: datetime,
+    ) -> ApprovalBindingInvalidationFact:
+        payload = json.loads(payload_json)
+        if not isinstance(payload, dict):
+            raise ValueError("approval invalidation outbox payload must be an object")
+        binding_payload = {
+            name: payload[name] for name in ApprovalBusinessBinding.model_fields if name in payload
+        }
+        return cls(
+            event_id=event_id,
+            tenant_id=tenant_id,
+            binding=ApprovalBusinessBinding.model_validate(binding_payload),
+            reason=str(payload.get("reason", "")),
+            occurred_at=occurred_at,
+        )
+
+
+class ApprovalInvalidationResult(ValueModel):
+    event_id: str
+    status: ApprovalInvalidationStatus
+    invalidated_count: int = Field(ge=0)
+
+
 class Approval(ValueModel):
     """One immutable approval state bound to an exact execution resume point."""
 
@@ -126,6 +187,7 @@ class Approval(ValueModel):
     created_at: datetime
     updated_at: datetime
     decided_at: datetime | None = None
+    business_binding: ApprovalBusinessBinding | None = None
 
     @field_validator("expires_at", "created_at", "updated_at", "decided_at")
     @classmethod
@@ -163,6 +225,32 @@ class ApprovalResumeRequest(ValueModel):
     canonical_args_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     checkpoint_id: str = Field(min_length=1)
     approval_required: bool = False
+    business_binding: ApprovalBusinessBinding | None = None
+
+
+class ApprovalBindingReader(Protocol):
+    async def get_approval_binding(
+        self,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+    ) -> ApprovalBusinessBinding | None: ...
+
+
+class ApprovalInvalidationRepository(Protocol):
+    async def record_pending(
+        self,
+        fact: ApprovalBindingInvalidationFact,
+    ) -> ApprovalInvalidationStatus: ...
+
+    async def apply(self, fact: ApprovalBindingInvalidationFact) -> int: ...
+
+    async def mark_reconciliation(
+        self,
+        fact: ApprovalBindingInvalidationFact,
+        *,
+        error_code: str,
+    ) -> None: ...
 
 
 class ApprovalRepository(Protocol):
@@ -179,6 +267,14 @@ class ApprovalRepository(Protocol):
         approval: Approval,
         audit_event: EventEnvelope | None = None,
     ) -> None: ...
+
+    async def invalidate_campaign_binding(
+        self,
+        *,
+        tenant_id: str,
+        binding: ApprovalBusinessBinding,
+        updated_at: datetime,
+    ) -> int: ...
 
 
 class InMemoryApprovalRepository:
@@ -212,6 +308,29 @@ class InMemoryApprovalRepository:
             raise LookupError("approval is unavailable")
         self._items[key] = approval
 
+    async def invalidate_campaign_binding(
+        self,
+        *,
+        tenant_id: str,
+        binding: ApprovalBusinessBinding,
+        updated_at: datetime,
+    ) -> int:
+        count = 0
+        for key, approval in tuple(self._items.items()):
+            frozen = approval.business_binding
+            if (
+                key[0] == tenant_id
+                and approval.status in {"pending", "approved"}
+                and frozen is not None
+                and frozen.campaign_id == binding.campaign_id
+                and frozen != binding
+            ):
+                self._items[key] = approval.model_copy(
+                    update={"status": "invalidated", "updated_at": updated_at}
+                )
+                count += 1
+        return count
+
 
 _REQUEST_ACTIONS: dict[ApprovalAction, str] = {
     "launch_approval": "approval:launch:request",
@@ -234,12 +353,14 @@ class ApprovalService:
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         id_factory: Callable[[], str] = lambda: f"approval_{uuid.uuid4().hex}",
         event_id_factory: Callable[[], str] = lambda: f"audit_{uuid.uuid4().hex}",
+        binding_reader: ApprovalBindingReader | None = None,
     ) -> None:
         self._repository = repository
         self._policy = policy
         self._clock = clock
         self._id_factory = id_factory
         self._event_id_factory = event_id_factory
+        self._binding_reader = binding_reader
 
     async def create(
         self,
@@ -250,6 +371,7 @@ class ApprovalService:
         checkpoint_id: str,
         expires_at: datetime,
         ctx: Context,
+        business_binding: ApprovalBusinessBinding | None = None,
     ) -> Approval:
         now = self._now()
         if expires_at <= now:
@@ -271,6 +393,7 @@ class ApprovalService:
             requester=ctx.actor.subject_id,
             created_at=now,
             updated_at=now,
+            business_binding=business_binding,
         )
         await self._repository.add(
             approval,
@@ -388,7 +511,29 @@ class ApprovalService:
             raise PermissionError("approval has expired")
         if approval.status != "approved":
             raise PermissionError("approval is not approved")
+        if approval.business_binding is not None:
+            if self._binding_reader is None:
+                await self._invalidate_for_resume(approval, ctx)
+                raise PermissionError("approval business binding cannot be revalidated")
+            current_binding = await self._binding_reader.get_approval_binding(
+                tenant_id=ctx.tenant_id,
+                campaign_id=approval.business_binding.campaign_id,
+            )
+            if (
+                current_binding is None
+                or current_binding != approval.business_binding
+                or request.business_binding != current_binding
+            ):
+                await self._invalidate_for_resume(approval, ctx)
+                raise PermissionError("approval business binding is stale")
         return approval
+
+    async def _invalidate_for_resume(self, approval: Approval, ctx: Context) -> None:
+        invalidated = self._terminalize(approval, status="invalidated")
+        await self._repository.replace(
+            invalidated,
+            self._audit_event(invalidated, action="approval.invalidated", ctx=ctx),
+        )
 
     async def invalidate_binding(self, approval: Approval, *, ctx: Context) -> Approval:
         """Invalidate an otherwise approved record after a composite binding mismatch."""
@@ -485,4 +630,40 @@ class ApprovalService:
                 "approval_action": approval.approval_action,
                 "status": approval.status,
             },
+        )
+
+
+class ApprovalBindingInvalidationConsumer:
+    """Idempotently project a committed Business binding fact into Platform approvals."""
+
+    def __init__(self, repository: ApprovalInvalidationRepository) -> None:
+        self._repository = repository
+
+    async def consume(
+        self,
+        fact: ApprovalBindingInvalidationFact,
+    ) -> ApprovalInvalidationResult:
+        status = await self._repository.record_pending(fact)
+        if status == "applied":
+            return ApprovalInvalidationResult(
+                event_id=fact.event_id,
+                status="applied",
+                invalidated_count=0,
+            )
+        try:
+            count = await self._repository.apply(fact)
+        except Exception:
+            await self._repository.mark_reconciliation(
+                fact,
+                error_code="approval_invalidation_apply_failed",
+            )
+            return ApprovalInvalidationResult(
+                event_id=fact.event_id,
+                status="reconciliation",
+                invalidated_count=0,
+            )
+        return ApprovalInvalidationResult(
+            event_id=fact.event_id,
+            status="applied",
+            invalidated_count=count,
         )

@@ -12,7 +12,12 @@ from alembic.config import Config
 
 pytestmark = pytest.mark.integration
 
-V03_T02_TABLES = {"approvals", "external_waits", "integration_event_inbox"}
+V03_T02_TABLES = {
+    "approval_binding_invalidations",
+    "approvals",
+    "external_waits",
+    "integration_event_inbox",
+}
 
 
 def _config(database: Path) -> Config:
@@ -44,7 +49,7 @@ def _pk_columns(connection: sqlite3.Connection, table: str) -> tuple[str, ...]:
     return tuple(str(row[1]) for row in sorted(rows, key=lambda row: int(row[5])) if int(row[5]))
 
 
-def test_empty_platform_database_upgrades_to_0005_and_rolls_back_to_base(
+def test_empty_platform_database_upgrades_to_current_head_and_rolls_back_to_base(
     tmp_path: Path,
 ) -> None:
     database = tmp_path / "empty-platform.db"
@@ -52,7 +57,7 @@ def test_empty_platform_database_upgrades_to_0005_and_rolls_back_to_base(
 
     command.upgrade(config, "head")
 
-    assert _revision(database) == "platform_0005"
+    assert _revision(database) == "platform_0006"
     assert _tables(database) >= V03_T02_TABLES
 
     command.downgrade(config, "base")
@@ -71,7 +76,7 @@ def test_platform_0004_upgrades_and_0005_rolls_back_without_touching_prior_table
 
     command.upgrade(config, "platform_0005")
     assert _revision(database) == "platform_0005"
-    assert _tables(database) >= V03_T02_TABLES
+    assert _tables(database) >= V03_T02_TABLES - {"approval_binding_invalidations"}
 
     command.downgrade(config, "platform_0004")
     assert _revision(database) == "platform_0004"

@@ -8,6 +8,11 @@ from typing import TYPE_CHECKING, Literal, Protocol, Self
 
 from pydantic import Field, field_validator, model_validator
 
+from oria.core.approvals import (
+    ApprovalBindingInvalidationFact,
+    ApprovalInvalidationResult,
+    approval_binding_event_id,
+)
 from oria.core.integration_events import (
     EnrollmentWindowClosed,
     ExternalWait,
@@ -57,6 +62,7 @@ class EnrollmentBranchState(ValueModel):
     accepted_item_keys: tuple[str, ...] = ()
     late_rejected_event_ids: tuple[str, ...] = ()
     downstream_approval_invalidated: bool = False
+    downstream_approval_invalidation_pending: bool = False
 
     @field_validator("enrollment_window_start", "enrollment_window_end")
     @classmethod
@@ -107,27 +113,27 @@ class EnrollmentBranchOutcome(ValueModel):
 
 
 class DownstreamApprovalInvalidator(Protocol):
-    async def invalidate_campaign(
+    async def consume(
         self,
-        *,
-        tenant_id: str,
-        campaign_id: str,
-        reason: str,
-    ) -> None: ...
+        fact: ApprovalBindingInvalidationFact,
+    ) -> ApprovalInvalidationResult: ...
 
 
 class InMemoryDownstreamApprovalInvalidator:
     def __init__(self) -> None:
-        self.invalidations: list[tuple[str, str, str]] = []
+        self.invalidations: list[ApprovalBindingInvalidationFact] = []
 
-    async def invalidate_campaign(
+    async def consume(
         self,
-        *,
-        tenant_id: str,
-        campaign_id: str,
-        reason: str,
-    ) -> None:
-        self.invalidations.append((tenant_id, campaign_id, reason))
+        fact: ApprovalBindingInvalidationFact,
+    ) -> ApprovalInvalidationResult:
+        if fact not in self.invalidations:
+            self.invalidations.append(fact)
+        return ApprovalInvalidationResult(
+            event_id=fact.event_id,
+            status="applied",
+            invalidated_count=1,
+        )
 
 
 class EnrollmentBranchCoordinator:
@@ -209,17 +215,30 @@ class EnrollmentBranchCoordinator:
                 ctx,
                 new_enrollment_version=True,
             )
-            await self._approval_invalidator.invalidate_campaign(
+            binding = result.approval_binding
+            fact = ApprovalBindingInvalidationFact(
+                event_id=approval_binding_event_id(state.tenant_id, binding),
                 tenant_id=state.tenant_id,
-                campaign_id=state.campaign_id,
+                binding=binding,
                 reason="late_enrollment_new_version",
+                occurred_at=now,
             )
+            try:
+                invalidation = await self._approval_invalidator.consume(fact)
+            except Exception:
+                invalidation = ApprovalInvalidationResult(
+                    event_id=fact.event_id,
+                    status="reconciliation",
+                    invalidated_count=0,
+                )
+            applied = invalidation.status == "applied"
             return EnrollmentBranchOutcome(
                 status="new_version",
                 state=self._accept_key(state, event).model_copy(
                     update={
                         "enrollment_version": state.enrollment_version + 1,
-                        "downstream_approval_invalidated": True,
+                        "downstream_approval_invalidated": applied,
+                        "downstream_approval_invalidation_pending": not applied,
                     }
                 ),
                 write_result=result,

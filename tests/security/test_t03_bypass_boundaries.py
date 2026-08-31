@@ -134,7 +134,7 @@ def test_missing_or_modified_package_assets_fail_closed(tmp_path: Path) -> None:
     shutil.copytree(source_demo, demo_copy)
     shutil.copytree(source_migrations, migrations_copy)
     assert loader._verify_demo_tree(demo_copy).version == "1.0.0"
-    assert loader._verify_migration_tree(migrations_copy)["business"] == "business_0007"
+    assert loader._verify_migration_tree(migrations_copy)["business"] == "business_0008"
 
     (demo_copy / "campaign_rules.v1.json").write_text("{}\n", encoding="utf-8")
     with pytest.raises(PackageAssetError, match="integrity"):
@@ -193,7 +193,7 @@ async def test_stamped_head_cannot_skip_schema_creation(tmp_path: Path) -> None:
     config.data_paths.platform_db.parent.mkdir(parents=True)
     with sqlite3.connect(config.data_paths.platform_db) as connection:
         connection.execute("CREATE TABLE alembic_version_platform (version_num TEXT NOT NULL)")
-        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0005')")
+        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0006')")
         connection.commit()
 
     with pytest.raises(DataInitializationError, match="failed closed"):
@@ -209,7 +209,7 @@ async def test_stamped_head_with_lookalike_tables_cannot_skip_schema_creation(
     config.data_paths.platform_db.parent.mkdir(parents=True)
     with sqlite3.connect(config.data_paths.platform_db) as connection:
         connection.execute("CREATE TABLE alembic_version_platform (version_num TEXT NOT NULL)")
-        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0005')")
+        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0006')")
         connection.execute("CREATE TABLE documents (wrong TEXT)")
         connection.execute("CREATE TABLE document_versions (wrong TEXT)")
         connection.execute("CREATE TABLE ingestion_runs (wrong TEXT)")
@@ -232,4 +232,4 @@ async def test_revision_from_other_database_chain_is_rejected(tmp_path: Path) ->
         await initialize_data(config)
     with sqlite3.connect(config.data_paths.business_db) as connection:
         revision = connection.execute("SELECT version_num FROM alembic_version_business").fetchone()
-    assert revision == ("business_0007",)
+    assert revision == ("business_0008",)
