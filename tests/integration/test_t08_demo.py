@@ -125,6 +125,7 @@ def test_cli_auto_initializes_repeats_offline_and_emits_correlated_json(
         "alembic_version_business",
         "assortment_submissions",
         "audit_events",
+        "campaign_approval_bindings",
         "campaign_rule_snapshot_refs",
         "campaigns",
         "confirmation_tasks",
