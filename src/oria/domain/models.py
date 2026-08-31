@@ -72,6 +72,7 @@ class EnrollmentRule(ValueModel):
     customer_selection_rule: str = Field(min_length=1)
     linked_campaign_rules: tuple[str, ...] = Field(min_length=1)
     accepted_sources: tuple[Literal["merchant", "auto"], ...] = Field(min_length=1)
+    late_event_action: Literal["reject", "new_version"] = "reject"
     product_circle_policy_ref: str = Field(min_length=1)
     product_circle_policy_version: str = Field(min_length=1)
     product_price_min: Decimal = Field(ge=0)

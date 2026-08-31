@@ -12,6 +12,12 @@ from oria.resources.loader import load_demo_data
 def demo_rule_document() -> DocumentIngestRequest:
     rules = load_demo_data().rules
     scope = rules.recruitment_scope
+    enrollment_policy = rules.enrollment_policy.model_dump(mode="json")
+    if rules.enrollment_policy.late_event_action == "reject":
+        # The v1 synthetic source predates this explicit field and therefore uses the
+        # fail-closed default. Keep its retrieval projection byte-stable; the resolved
+        # immutable snapshot still includes and hashes the normalized default.
+        enrollment_policy.pop("late_event_action")
     payload: dict[str, JsonValue] = {
         "basic": rules.basic.model_dump(mode="json"),
         "recruitment_scope": {
@@ -20,7 +26,7 @@ def demo_rule_document() -> DocumentIngestRequest:
             "denylist_merchant_ids": list(scope.denylist_merchant_ids),
             "sales_org_scope": list(scope.sales_org_scope),
         },
-        "enrollment_policy": rules.enrollment_policy.model_dump(mode="json"),
+        "enrollment_policy": enrollment_policy,
         "benefit_policy": rules.benefit_policy.model_dump(mode="json"),
         "confirmation_policy": rules.confirmation_policy.model_dump(mode="json"),
         "merchant_material": rules.merchant_material.model_dump(mode="json"),

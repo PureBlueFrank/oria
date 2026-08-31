@@ -131,6 +131,48 @@ class EnrollmentCouponLinkRepository(BusinessEntityRepository[EnrollmentCouponLi
     pass
 
 
+class EnrollmentWorkflowRepository(Protocol):
+    async def upsert_enrollment_items(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        source: str,
+        bundles: tuple[
+            tuple[ProductSnapshot, Enrollment, EnrollmentItem, tuple[ConfirmationTask, ...]], ...
+        ],
+        new_enrollment_version: bool,
+    ) -> None: ...
+
+    async def load_enrollment_items(
+        self,
+        *,
+        tenant_id: str,
+        enrollment_item_ids: tuple[str, ...],
+    ) -> tuple[tuple[EnrollmentItem, ...], tuple[ConfirmationTask, ...]]: ...
+
+    async def link_coupon_batch(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        coupon_batch_id: str,
+        coupon_batch_version: int,
+        rule_snapshot_ref_id: str,
+        allowed_tiers: frozenset[str],
+        links: tuple[EnrollmentCouponLink, ...],
+    ) -> None: ...
+
+    async def load_coupon_links(
+        self,
+        *,
+        tenant_id: str,
+        link_ids: tuple[str, ...],
+    ) -> tuple[EnrollmentCouponLink, ...]: ...
+
+
 class ConfirmationTaskRepository(BusinessEntityRepository[ConfirmationTask], Protocol):
     pass
 

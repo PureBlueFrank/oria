@@ -22,6 +22,7 @@ from oria.domain.models import (
     EnrollmentRule,
     MerchantMaterialRule,
 )
+from oria.domain.product_eligibility import ProductEligibilityReason, ProductSnapshot
 
 
 class SearchCampaignRulesParams(ValueModel):
@@ -115,6 +116,48 @@ class QueryMerchantsResult(ValueModel):
             raise ValueError("merchant counts must partition evaluated_count")
         if sum(self.exclusion_reason_counts.values()) < self.excluded_count:
             raise ValueError("exclusion reason counts do not explain every exclusion")
+        return self
+
+
+class QueryEligibleProductsParams(ValueModel):
+    campaign_id: str = Field(min_length=1)
+    merchant_ids: tuple[str, ...] = Field(min_length=1)
+    rule_snapshot_id: str = Field(pattern=r"^rs_[A-Za-z0-9_-]{24,64}$")
+    product_circle_policy_ref: str = Field(min_length=1)
+    product_circle_policy_version: str = Field(min_length=1)
+    cursor: str | None = Field(default=None, min_length=1)
+    limit: int = Field(ge=1, le=100)
+
+    @field_validator("merchant_ids")
+    @classmethod
+    def require_unique_merchants(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if any(not item for item in value) or len(value) != len(set(value)):
+            raise ValueError("merchant_ids must be non-empty and unique")
+        return value
+
+
+class QueryEligibleProductsResult(ValueModel):
+    schema_version: Literal[1] = 1
+    campaign_id: str
+    rule_snapshot_id: str = Field(pattern=r"^rs_[A-Za-z0-9_-]{24,64}$")
+    product_circle_policy_ref: str
+    product_circle_policy_version: str
+    catalog_snapshot_id: str
+    evaluated_count: int = Field(ge=0)
+    eligible_count: int = Field(ge=0)
+    excluded_count: int = Field(ge=0)
+    products: tuple[ProductSnapshot, ...]
+    exclusion_reason_counts: dict[ProductEligibilityReason, int]
+    next_cursor: str | None = None
+
+    @model_validator(mode="after")
+    def validate_product_counts(self) -> Self:
+        if self.eligible_count != len(self.products):
+            raise ValueError("eligible_count must match the returned product snapshots")
+        if self.evaluated_count != self.eligible_count + self.excluded_count:
+            raise ValueError("product counts must partition evaluated_count")
+        if sum(self.exclusion_reason_counts.values()) < self.excluded_count:
+            raise ValueError("exclusion reasons must explain every excluded product")
         return self
 
 

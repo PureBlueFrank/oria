@@ -674,6 +674,211 @@ class SQLiteEnrollmentCouponLinkRepository(SQLiteBusinessRepository[EnrollmentCo
         super().__init__(sessions, _ENROLLMENT_COUPON_LINK)
 
 
+class SQLiteEnrollmentWorkflowRepository:
+    """Atomic T05 enrollment aggregation and coupon-link persistence."""
+
+    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
+        self._sessions = sessions
+        self._products = SQLiteProductSnapshotRepository(sessions)
+        self._campaigns = SQLiteCampaignRepository(sessions)
+        self._enrollments = SQLiteEnrollmentRepository(sessions)
+        self._items = SQLiteEnrollmentItemRepository(sessions)
+        self._tasks = SQLiteConfirmationTaskRepository(sessions)
+        self._links = SQLiteEnrollmentCouponLinkRepository(sessions)
+        self._coupons = SQLiteCouponBatchRepository(sessions)
+
+    async def upsert_enrollment_items(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        source: str,
+        bundles: tuple[
+            tuple[ProductSnapshot, Enrollment, EnrollmentItem, tuple[ConfirmationTask, ...]], ...
+        ],
+        new_enrollment_version: bool,
+    ) -> None:
+        campaign = await self._campaigns._find_by_id(session, campaign_id, tenant_id)
+        if (
+            campaign is None
+            or campaign.status != "recruiting"
+            or campaign.rule_snapshot_ref_id != rule_snapshot_ref_id
+        ):
+            raise BusinessRepositoryError("campaign is not accepting enrollment items")
+        if source not in {"merchant", "auto"}:
+            raise BusinessRepositoryError("enrollment source is invalid")
+        for product, enrollment, item, tasks in bundles:
+            if any(entity.tenant_id != tenant_id for entity in (product, enrollment, item, *tasks)):
+                raise BusinessRepositoryError("cross-tenant enrollment write is forbidden")
+            if (
+                enrollment.campaign_id != campaign_id
+                or item.campaign_id != campaign_id
+                or item.mode != campaign.enrollment_mode
+                or enrollment.mode != campaign.enrollment_mode
+                or source not in item.sources
+            ):
+                raise BusinessRepositoryError("enrollment bundle does not match its campaign")
+            merchant_exists = await session.scalar(
+                text(
+                    "SELECT 1 FROM merchants WHERE tenant_id = :tenant_id "
+                    "AND merchant_id = :merchant_id"
+                ),
+                {"tenant_id": tenant_id, "merchant_id": item.merchant_id},
+            )
+            if merchant_exists is None:
+                raise BusinessRepositoryError("enrollment merchant is unavailable")
+
+        bumped_enrollments: set[str] = set()
+        for product, enrollment, item, tasks in bundles:
+            existing_product = await self._products._find_by_unique_key(
+                session, product.unique_key(), tenant_id
+            )
+            if existing_product is None:
+                await self._products._insert(session, product)
+            elif (
+                existing_product.product_snapshot_id != product.product_snapshot_id
+                or existing_product.attributes != product.attributes
+            ):
+                raise BusinessRepositoryError("product snapshot version conflicts with history")
+
+            existing_enrollment = await self._enrollments._find_by_unique_key(
+                session, enrollment.unique_key(), tenant_id
+            )
+            if existing_enrollment is None:
+                await self._enrollments._insert(session, enrollment)
+            elif existing_enrollment.mode != campaign.enrollment_mode:
+                raise BusinessRepositoryError("enrollment mode conflicts with its campaign")
+            elif existing_enrollment.status not in {"open", "submitted"}:
+                raise BusinessRepositoryError("enrollment is not writable")
+            elif (
+                new_enrollment_version
+                and existing_enrollment.enrollment_id not in bumped_enrollments
+            ):
+                updated = existing_enrollment._next_version(
+                    updated_at=item.updated_at,
+                    status="submitted",
+                )
+                await self._enrollments._update(
+                    session, existing_enrollment, updated, allow_status_change=True
+                )
+                bumped_enrollments.add(existing_enrollment.enrollment_id)
+
+            existing_item = await self._items._find_by_unique_key(
+                session, item.unique_key(), tenant_id
+            )
+            if existing_item is None:
+                await self._items._insert(session, item)
+                for task in tasks:
+                    await self._tasks._insert(session, task)
+                continue
+            if (
+                existing_item.enrollment_id != item.enrollment_id
+                or existing_item.product_snapshot_id != item.product_snapshot_id
+                or existing_item.mode != item.mode
+            ):
+                raise BusinessRepositoryError("enrollment item business key conflicts")
+            merged = existing_item.merge_source(source, updated_at=item.updated_at)  # type: ignore[arg-type]
+            if merged is not existing_item:
+                await self._items._update(session, existing_item, merged, allow_status_change=False)
+
+    async def load_enrollment_items(
+        self,
+        *,
+        tenant_id: str,
+        enrollment_item_ids: tuple[str, ...],
+    ) -> tuple[tuple[EnrollmentItem, ...], tuple[ConfirmationTask, ...]]:
+        items: list[EnrollmentItem] = []
+        tasks: list[ConfirmationTask] = []
+        try:
+            async with self._sessions() as session:
+                for item_id in enrollment_item_ids:
+                    item = await self._items._find_by_id(session, item_id, tenant_id)
+                    if item is None:
+                        raise BusinessRepositoryError("enrollment item is unavailable")
+                    items.append(item)
+                    result = await session.execute(
+                        text(
+                            "SELECT tenant_id, confirmation_task_id, version, created_at, "
+                            "updated_at, enrollment_item_id, subject_type, subject_id, sequence, "
+                            "due_at, timeout_action, status FROM confirmation_tasks "
+                            "WHERE tenant_id = :tenant_id AND enrollment_item_id = :item_id "
+                            "ORDER BY sequence"
+                        ),
+                        {"tenant_id": tenant_id, "item_id": item_id},
+                    )
+                    tasks.extend(self._tasks._from_row(row) for row in result.mappings())
+            return tuple(items), tuple(tasks)
+        except BusinessRepositoryError:
+            raise
+        except (SQLAlchemyError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            raise BusinessRepositoryError("enrollment result read failed") from exc
+
+    async def link_coupon_batch(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        coupon_batch_id: str,
+        coupon_batch_version: int,
+        rule_snapshot_ref_id: str,
+        allowed_tiers: frozenset[str],
+        links: tuple[EnrollmentCouponLink, ...],
+    ) -> None:
+        coupon = await self._coupons._find_by_id(session, coupon_batch_id, tenant_id)
+        if coupon is None or coupon.status != "ready" or coupon.version != coupon_batch_version:
+            raise BusinessRepositoryError("ready coupon batch is unavailable")
+        campaign = await self._campaigns._find_by_id(session, coupon.campaign_id, tenant_id)
+        if (
+            campaign is None
+            or campaign.status not in {"recruiting", "selecting"}
+            or campaign.rule_snapshot_ref_id != rule_snapshot_ref_id
+        ):
+            raise BusinessRepositoryError("campaign is not eligible for coupon linking")
+        validated: list[tuple[EnrollmentCouponLink, EnrollmentCouponLink | None]] = []
+        for link in links:
+            if link.tenant_id != tenant_id or link.coupon_batch_id != coupon_batch_id:
+                raise BusinessRepositoryError("cross-tenant coupon link is forbidden")
+            if link.benefit_tier not in allowed_tiers:
+                raise BusinessRepositoryError("coupon benefit tier is not allowed")
+            item = await self._items._find_by_id(session, link.enrollment_item_id, tenant_id)
+            if item is None or item.campaign_id != coupon.campaign_id:
+                raise BusinessRepositoryError("enrollment item does not match coupon campaign")
+            if item.status != "confirmed":
+                raise BusinessRepositoryError("enrollment item confirmation is incomplete")
+            existing = await self._links._find_by_unique_key(session, link.unique_key(), tenant_id)
+            if existing is not None and (
+                existing.enrollment_coupon_link_id != link.enrollment_coupon_link_id
+                or existing.status != "active"
+            ):
+                raise BusinessRepositoryError("coupon link business key conflicts")
+            validated.append((link, existing))
+        for link, existing in validated:
+            if existing is None:
+                await self._links._insert(session, link)
+
+    async def load_coupon_links(
+        self,
+        *,
+        tenant_id: str,
+        link_ids: tuple[str, ...],
+    ) -> tuple[EnrollmentCouponLink, ...]:
+        links: list[EnrollmentCouponLink] = []
+        try:
+            async with self._sessions() as session:
+                for link_id in link_ids:
+                    link = await self._links._find_by_id(session, link_id, tenant_id)
+                    if link is None:
+                        raise BusinessRepositoryError("coupon link is unavailable")
+                    links.append(link)
+            return tuple(links)
+        except BusinessRepositoryError:
+            raise
+        except (SQLAlchemyError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            raise BusinessRepositoryError("coupon link result read failed") from exc
+
+
 class SQLiteConfirmationTaskRepository(SQLiteBusinessRepository[ConfirmationTask]):
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         super().__init__(sessions, _CONFIRMATION_TASK)

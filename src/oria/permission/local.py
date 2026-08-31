@@ -31,6 +31,7 @@ _LOCAL_ACTIONS = frozenset(
         "config:read",
         "document:read",
         "merchant:read",
+        "product:read",
         "rule:read",
     }
 )
@@ -41,6 +42,8 @@ _WRITE_ACTION_ROLES: dict[str, frozenset[str]] = {
     "knowledge:write": frozenset({"operator"}),
     "campaign:draft:write": frozenset({"campaign_admin"}),
     "campaign:launch:request": frozenset({"campaign_admin"}),
+    "enrollment:item:write": frozenset({"campaign_admin", "integration_adapter"}),
+    "enrollment:coupon:link": frozenset({"campaign_admin"}),
     "approval:launch:request": frozenset({"campaign_admin"}),
     "approval:launch:decide": frozenset({"launch_approver"}),
     "approval:consumer_publish:request": frozenset({"campaign_admin"}),
