@@ -28,7 +28,6 @@ pytestmark = pytest.mark.security
 def query_params(**updates: object) -> QueryEligibleProductsParams:
     values: dict[str, object] = {
         "campaign_id": "campaign-1",
-        "merchant_ids": ("demo-m001",),
         "rule_snapshot_id": "rs_123456789012345678901234",
         "product_circle_policy_ref": "synthetic-product-circle-policy",
         "product_circle_policy_version": "1.0.0",
@@ -144,9 +143,41 @@ def test_query_contract_forbids_caller_supplied_price_category_keyword_or_status
         ("product_categories", ["caller-category"]),
         ("keywords", ["caller-keyword"]),
         ("available", True),
+        ("merchant_ids", ["demo-m004"]),
     ):
         with pytest.raises(ValidationError, match="Extra inputs"):
             QueryEligibleProductsParams.model_validate(base | {field: value})
+
+
+@pytest.mark.asyncio
+async def test_product_query_uses_server_computed_merchant_eligibility_and_whitelist_projection(
+    tmp_path: Path,
+) -> None:
+    products = (
+        product(),
+        product("forged-product", merchant_id="demo-m004"),
+    )
+    async with enrollment_harness(tmp_path, products=products) as harness:
+        result = await harness.query.query(
+            query_params(),
+            harness.ctx,  # type: ignore[arg-type]
+        )
+
+    assert tuple(item.merchant_id for item in result.products) == ("demo-m001",)
+    visible_fields = set(result.products[0].model_dump())
+    assert visible_fields == {
+        "candidate_ref",
+        "merchant_id",
+        "product_ref",
+        "product_version",
+        "category",
+        "normalized_price",
+        "currency",
+        "normalized_title",
+        "keyword_labels",
+    }
+    assert "eligibility_facts" not in result.model_dump_json()
+    assert "source_ref" not in result.model_dump_json()
 
 
 @pytest.mark.asyncio

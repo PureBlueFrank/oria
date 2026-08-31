@@ -190,7 +190,6 @@ async def test_t05_tool_contracts_return_schema_valid_results_without_fixed_hitl
         query_result = await query_tool.run(
             {
                 "campaign_id": "campaign-1",
-                "merchant_ids": ["demo-m001"],
                 "rule_snapshot_id": harness.snapshot.snapshot_id,
                 "product_circle_policy_ref": "synthetic-product-circle-policy",
                 "product_circle_policy_version": "1.0.0",
@@ -217,6 +216,9 @@ async def test_t05_tool_contracts_return_schema_valid_results_without_fixed_hitl
         )
 
     assert query_result.ok and len(query_result.data["products"]) == 2  # type: ignore[arg-type]
+    serialized_products = str(query_result.data["products"])
+    assert "eligibility_facts" not in serialized_products
+    assert "source_ref" not in serialized_products
     assert upsert_result.ok and upsert_tool.policy.approval_mode == "none"
     assert link_result.ok and link_tool.policy.approval_mode == "none"
 

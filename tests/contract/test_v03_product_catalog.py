@@ -15,7 +15,6 @@ pytestmark = pytest.mark.contract
 def _request(*, cursor: str | None = None, limit: int = 1) -> QueryEligibleProductsParams:
     return QueryEligibleProductsParams(
         campaign_id="campaign-1",
-        merchant_ids=("demo-m001",),
         rule_snapshot_id="rs_123456789012345678901234",
         product_circle_policy_ref="synthetic-product-circle-policy",
         product_circle_policy_version="1.0.0",
@@ -60,19 +59,11 @@ async def test_product_pages_replay_one_catalog_snapshot_after_current_snapshot_
     )
 
 
-@pytest.mark.asyncio
-async def test_product_cursor_is_bound_to_merchants_and_frozen_policy(tmp_path: Path) -> None:
-    async with enrollment_harness(tmp_path) as harness:
-        first = await harness.query.query(_request(), harness.ctx)  # type: ignore[arg-type]
-        assert first.next_cursor is not None
-
-        with pytest.raises(ValueError, match="does not match"):
-            await harness.query.query(
-                _request(cursor=first.next_cursor).model_copy(
-                    update={"merchant_ids": ("demo-m002",)}
-                ),
-                harness.ctx,  # type: ignore[arg-type]
-            )
+def test_product_query_forbids_caller_controlled_merchant_candidates() -> None:
+    with pytest.raises(ValueError, match="Extra inputs"):
+        QueryEligibleProductsParams.model_validate(
+            _request().model_dump() | {"merchant_ids": ["demo-m004"]}
+        )
 
 
 @pytest.mark.asyncio

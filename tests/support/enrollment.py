@@ -17,6 +17,7 @@ from oria.core.execution_ledger import ExecutionLedger
 from oria.core.types import Principal
 from oria.data import initialize_data
 from oria.domain.business import Campaign, CampaignRuleSnapshotRef, CouponBatch
+from oria.domain.eligibility import EligibilityPolicy
 from oria.domain.enrollment import (
     AutoCircleRunBinding,
     AutoEnrollmentCommand,
@@ -291,6 +292,8 @@ async def enrollment_harness(
                 rule_snapshots=rule_store,
                 catalog=catalog,
                 eligibility=ProductEligibilityPolicy(),
+                merchants=merchants,
+                merchant_eligibility=EligibilityPolicy(),
             ),
             enrollments=enrollments,
             links=CouponLinkService(

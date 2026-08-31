@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Literal, Self
 
 from pydantic import Field, field_validator, model_validator
@@ -22,7 +23,7 @@ from oria.domain.models import (
     EnrollmentRule,
     MerchantMaterialRule,
 )
-from oria.domain.product_eligibility import ProductEligibilityReason, ProductSnapshot
+from oria.domain.product_eligibility import ProductEligibilityReason
 
 
 class SearchCampaignRulesParams(ValueModel):
@@ -121,19 +122,23 @@ class QueryMerchantsResult(ValueModel):
 
 class QueryEligibleProductsParams(ValueModel):
     campaign_id: str = Field(min_length=1)
-    merchant_ids: tuple[str, ...] = Field(min_length=1)
     rule_snapshot_id: str = Field(pattern=r"^rs_[A-Za-z0-9_-]{24,64}$")
     product_circle_policy_ref: str = Field(min_length=1)
     product_circle_policy_version: str = Field(min_length=1)
     cursor: str | None = Field(default=None, min_length=1)
     limit: int = Field(ge=1, le=100)
 
-    @field_validator("merchant_ids")
-    @classmethod
-    def require_unique_merchants(cls, value: tuple[str, ...]) -> tuple[str, ...]:
-        if any(not item for item in value) or len(value) != len(set(value)):
-            raise ValueError("merchant_ids must be non-empty and unique")
-        return value
+
+class EligibleProductProjection(ValueModel):
+    candidate_ref: str = Field(pattern=r"^product_candidate_[0-9a-f]{32}$")
+    merchant_id: str = Field(min_length=1)
+    product_ref: str = Field(min_length=1)
+    product_version: str = Field(min_length=1)
+    category: str = Field(min_length=1)
+    normalized_price: Decimal = Field(ge=0)
+    currency: str = Field(min_length=3, max_length=3)
+    normalized_title: str = Field(min_length=1)
+    keyword_labels: tuple[str, ...]
 
 
 class QueryEligibleProductsResult(ValueModel):
@@ -146,7 +151,7 @@ class QueryEligibleProductsResult(ValueModel):
     evaluated_count: int = Field(ge=0)
     eligible_count: int = Field(ge=0)
     excluded_count: int = Field(ge=0)
-    products: tuple[ProductSnapshot, ...]
+    products: tuple[EligibleProductProjection, ...]
     exclusion_reason_counts: dict[ProductEligibilityReason, int]
     next_cursor: str | None = None
 
