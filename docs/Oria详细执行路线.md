@@ -406,6 +406,17 @@ T04 交付（已完成，Fixture/Community）：实现了无外部副作用的 `
 
 T05 交付（已完成，Fixture/Community）：实现完整商品快照值、`ProductCatalogAdapter` 与保留历史 snapshot 的内存 Mock，`query_eligible_products` 强制交叉校验活动/规则快照/`product_circle_policy_ref/version`，且游标同时绑定 catalog snapshot、商家集合和策略版本。新增无 LLM 参与的 `ProductEligibilityPolicy`，硬过滤 Decimal 价格、类目、关键词与可用状态。`merchant|auto|hybrid` 协调器复用 T02 inbox 验签/去重，实现窗口、关窗/超时 join、`late_rejected|new_version` 和下游审批失效接口。`upsert_enrollment_items` 复用统一业务唯一键、`merge_source`、execution ledger 与动态 `BusinessConfirmationPolicy`；`link_coupon_batch` 在同一 Business 事务内复核活动规则引用、券版本/状态、冻结档位、报名项确认状态和 tenant，任一失败不留悬空关联。未新增 migration，head 保持 `platform_0005 / business_0004`。完整非 Live/Enterprise/Performance 套件 `506 passed, 1 deselected`，独立安全套件 `84 passed, 423 deselected`，`make lint` 与 migration asset 完整性通过。证据：[`reports/verification/v0.3/20260831T082337+0800/summary.md`](../reports/verification/v0.3/20260831T082337+0800/summary.md)。本任务仅验证本地 SQLite、合成数据和 Mock Adapter；T07 Graph/CLI 接线、真实商品库和企业 Adapter 仍未验证。
 
+T05 加固（代码审查修复，已完成，Fixture/Community）：对 T05 产出做独立代码审查，发现 6 个 P0 与 8 个 P1。已修复全部 6 个 P0 与安全相关 P1-1/P1-2：
+- P0-1/P0-2：幂等历史读取前移到所有可变状态之前，稳定业务键与 ToolPolicy 声明一致；caller `idempotency_key` 独立为 `tool_execution_requests` 表（`business_0006`），业务写失败可可靠写 `failed`、stale `executing` 可重领，重试确定性收敛。
+- P0-3：新增事务化 `ConfirmationService.decide/resolve_timeout`（`business_0007` 确认链状态），按冻结规则推进序列、禁止越级/重复决定、item 原子收敛到 confirmed/rejected，与 ledger/domain/audit/outbox 同事务。
+- P0-4：Business 提交写稳定 outbox 事实，Platform consumer 以唯一键幂等失效审批（`platform_0006 approval_binding_invalidations` + `business_0008 campaign_approval_bindings`），审批执行端重新比较 enrollment/link/selection version，投影延迟期间 fail closed。
+- P0-5：报名来源拆为 server-derived `AutoEnrollmentCommand`/`MerchantEnrollmentCommand`，merchant 必须携带 inbox 验签的 event reference/payload hash，auto 必须携带 server-generated circle-run binding，source 不再由调用者自由填写。
+- P0-6：最终事务写内重放 `EnrollmentEligibilityAttestation` 硬资格，link 插入前复核 campaign/rule/merchant/product snapshot/确认链版本。
+- P1-1：Business ProductSnapshot 唯一键加入 `merchant_id`（`business_0005`）。
+- P1-2：商品查询绑定 server-issued 资格候选集，模型可见结果用 `EligibleProductProjection` 白名单投影。
+
+head 升至 `platform_0006 / business_0008`。完整非 Live/Enterprise/Performance 套件 `526 passed, 1 deselected`，独立安全套件 `89 passed, 438 deselected`，`make lint` 与 migration asset 完整性通过。剩余 P1-3~P1-8 六项（adapter snapshot 回查、auto/window 状态约束、bundle 跨实体校验、审计 policy version、ToolResult ledger key、集成测试替身持久边界）标记为应修非必须，留待 T06/T07 顺带处理。
+
 ### 6.2 真实验证场景
 
 **V0.3-S1：10 步本地完整闭环（C）**：用真实 SQLite migration/事务和 Mock 外部 Adapter，从 CLI 提交需求，生成带引用的规则快照与硬资格候选；LLM 只做软排序/草案。另一授权运营批准 LaunchPlan 后物化一个券批次并投放商家侧；以 `hybrid` 模式注入一条商家自主报名和一批基于 ProductSnapshot 的确定性自动圈品结果，再注入关窗事件完成 join、确认链、券关联、选品提交/结果恢复，再由另一授权主体批准 C 端投放，最后按商家保存通知回执。逐表核对状态、版本、唯一键、execution ledger、outbox、audit 和 correlation ID。
