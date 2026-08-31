@@ -118,12 +118,8 @@ def downgrade() -> None:
     with op.batch_alter_table(
         "product_snapshots", recreate="always", naming_convention=_NAMING
     ) as batch:
-        batch.drop_constraint(
-            "uq_product_snapshots_enrollment_binding", type_="unique"
-        )
-        batch.drop_constraint(
-            "uq_product_snapshots_merchant_product_version", type_="unique"
-        )
+        batch.drop_constraint("uq_product_snapshots_enrollment_binding", type_="unique")
+        batch.drop_constraint("uq_product_snapshots_merchant_product_version", type_="unique")
         batch.create_unique_constraint(
             "uq_product_snapshots_tenant_id",
             ["tenant_id", "product_ref", "product_version"],

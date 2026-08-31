@@ -141,6 +141,7 @@ def test_cli_auto_initializes_repeats_offline_and_emits_correlated_json(
         "product_snapshots",
         "recruitment_publications",
         "selection_decisions",
+        "tool_execution_requests",
         "tool_executions",
     )
 

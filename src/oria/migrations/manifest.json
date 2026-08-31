@@ -20,7 +20,7 @@
         "business/versions/business_0002_recruitment_workflow.py": "1926ae8a09ac7f7ce8aff1c261f57554ec502ff7e40b1fd862dc2b72e07e5bf6",
         "business/versions/business_0003_execution_ledger.py": "6ff715591899b3365685b76857ed0419dc359ee6b83eccfc068df3afcab5c0ec",
         "business/versions/business_0004_launch_saga_states.py": "d3f838e83806890f151e1c4a107095bfab38ba4395a475021e2799ae3f19e532",
-        "business/versions/business_0005_product_snapshot_merchant_identity.py": "73489c6a8218ce98210df38b6533aa6147bb6ace713510811e1e50da3fa57d59",
+        "business/versions/business_0005_product_snapshot_merchant_identity.py": "a9beadadea8eb6b2616557b798b5535074a64ce0a9653ddf626d0a1c23b54a71",
         "business/versions/business_0006_execution_request_keys.py": "2d9ab04f57008c9b952ccf55bf92931fc773509b79123c684b581c38a22387ab"
       }
     }
