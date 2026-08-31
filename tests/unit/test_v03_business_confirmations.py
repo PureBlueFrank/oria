@@ -87,6 +87,7 @@ def test_snapshot_rule_generates_zero_or_ordered_multilevel_tasks() -> None:
 
     assert tuple(task.subject_type for task in tasks) == ("merchant", "sales", "sales_manager")
     assert tuple(task.sequence for task in tasks) == (1, 2, 3)
+    assert tuple(task.status for task in tasks) == ("pending", "waiting", "waiting")
     assert len({task.confirmation_task_id for task in tasks}) == 3
 
     with pytest.raises(ValidationError, match="ordered by responsibility"):

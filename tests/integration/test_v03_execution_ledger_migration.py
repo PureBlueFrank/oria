@@ -49,7 +49,7 @@ def test_business_0003_empty_upgrade_is_repeatable_and_downgrades_cleanly(
     command.upgrade(config, "head")
     command.upgrade(config, "head")
 
-    assert _revision(database) == "business_0006"
+    assert _revision(database) == "business_0007"
     assert _tables(database) >= LEDGER_TABLES
 
     command.downgrade(config, "business_0002")

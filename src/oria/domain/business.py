@@ -284,7 +284,7 @@ class ConfirmationTask(BusinessEntity):
     sequence: int = Field(ge=1)
     due_at: datetime
     timeout_action: Literal["reject", "escalate", "explicit_auto_confirm"]
-    status: Literal["pending", "confirmed", "rejected", "timed_out"]
+    status: Literal["waiting", "pending", "confirmed", "rejected", "timed_out", "cancelled"]
 
     @field_validator("due_at")
     @classmethod

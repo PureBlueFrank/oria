@@ -172,6 +172,24 @@ class EnrollmentWorkflowRepository(Protocol):
         link_ids: tuple[str, ...],
     ) -> tuple[EnrollmentCouponLink, ...]: ...
 
+    async def load_confirmation_chain(
+        self,
+        *,
+        tenant_id: str,
+        confirmation_task_id: str,
+    ) -> tuple[EnrollmentItem, tuple[ConfirmationTask, ...]]: ...
+
+    async def apply_confirmation_chain(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        expected_item: EnrollmentItem,
+        expected_tasks: tuple[ConfirmationTask, ...],
+        updated_item: EnrollmentItem,
+        updated_tasks: tuple[ConfirmationTask, ...],
+    ) -> None: ...
+
 
 class ConfirmationTaskRepository(BusinessEntityRepository[ConfirmationTask], Protocol):
     pass

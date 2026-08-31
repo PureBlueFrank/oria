@@ -879,6 +879,92 @@ class SQLiteEnrollmentWorkflowRepository:
         except (SQLAlchemyError, ValueError, TypeError, json.JSONDecodeError) as exc:
             raise BusinessRepositoryError("coupon link result read failed") from exc
 
+    async def load_confirmation_chain(
+        self,
+        *,
+        tenant_id: str,
+        confirmation_task_id: str,
+    ) -> tuple[EnrollmentItem, tuple[ConfirmationTask, ...]]:
+        try:
+            async with self._sessions() as session:
+                return await self._load_confirmation_chain(
+                    session,
+                    tenant_id=tenant_id,
+                    confirmation_task_id=confirmation_task_id,
+                )
+        except BusinessRepositoryError:
+            raise
+        except (SQLAlchemyError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            raise BusinessRepositoryError("confirmation chain read failed") from exc
+
+    async def apply_confirmation_chain(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        expected_item: EnrollmentItem,
+        expected_tasks: tuple[ConfirmationTask, ...],
+        updated_item: EnrollmentItem,
+        updated_tasks: tuple[ConfirmationTask, ...],
+    ) -> None:
+        current_item, current_tasks = await self._load_confirmation_chain(
+            session,
+            tenant_id=tenant_id,
+            confirmation_task_id=expected_tasks[0].confirmation_task_id,
+        )
+        if current_item != expected_item or current_tasks != expected_tasks:
+            raise BusinessRepositoryError("confirmation chain optimistic lock conflict")
+        if updated_item.tenant_id != tenant_id or any(
+            task.tenant_id != tenant_id for task in updated_tasks
+        ):
+            raise BusinessRepositoryError("cross-tenant confirmation write is forbidden")
+        if tuple(task.confirmation_task_id for task in updated_tasks) != tuple(
+            task.confirmation_task_id for task in expected_tasks
+        ):
+            raise BusinessRepositoryError("confirmation chain identity is immutable")
+        for existing, updated in zip(expected_tasks, updated_tasks, strict=True):
+            if existing != updated:
+                await self._tasks._update(
+                    session,
+                    existing,
+                    updated,
+                    allow_status_change=True,
+                )
+        if expected_item != updated_item:
+            await self._items._update(
+                session,
+                expected_item,
+                updated_item,
+                allow_status_change=True,
+            )
+
+    async def _load_confirmation_chain(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        confirmation_task_id: str,
+    ) -> tuple[EnrollmentItem, tuple[ConfirmationTask, ...]]:
+        requested = await self._tasks._find_by_id(session, confirmation_task_id, tenant_id)
+        if requested is None:
+            raise BusinessRepositoryError("confirmation task is unavailable")
+        item = await self._items._find_by_id(session, requested.enrollment_item_id, tenant_id)
+        if item is None:
+            raise BusinessRepositoryError("confirmation enrollment item is unavailable")
+        result = await session.execute(
+            text(
+                "SELECT tenant_id, confirmation_task_id, version, created_at, updated_at, "
+                "enrollment_item_id, subject_type, subject_id, sequence, due_at, "
+                "timeout_action, status FROM confirmation_tasks WHERE tenant_id = :tenant_id "
+                "AND enrollment_item_id = :item_id ORDER BY sequence"
+            ),
+            {"tenant_id": tenant_id, "item_id": item.enrollment_item_id},
+        )
+        tasks = tuple(self._tasks._from_row(row) for row in result.mappings())
+        if not tasks:
+            raise BusinessRepositoryError("confirmation chain is unavailable")
+        return item, tasks
+
 
 class SQLiteConfirmationTaskRepository(SQLiteBusinessRepository[ConfirmationTask]):
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:

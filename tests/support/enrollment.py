@@ -121,6 +121,7 @@ def snapshot(
         "sales",
         "sales_manager",
     ),
+    confirmation_timeout_action: Literal["reject", "escalate", "explicit_auto_confirm"] = "reject",
     benefit_tiers: tuple[Literal["base", "boosted"], ...] = ("base", "boosted"),
 ) -> CampaignRuleSnapshot:
     rules = load_demo_data().rules
@@ -158,7 +159,7 @@ def snapshot(
         benefit_policy=benefit,
         confirmation_policy=ConfirmationRule(
             ordered_steps=confirmation_steps,
-            timeout_action="reject",
+            timeout_action=confirmation_timeout_action,
         ),
         merchant_material=rules.merchant_material,
         field_evidence={},
@@ -190,6 +191,7 @@ async def enrollment_harness(
         "sales",
         "sales_manager",
     ),
+    confirmation_timeout_action: Literal["reject", "escalate", "explicit_auto_confirm"] = "reject",
     benefit_tiers: tuple[Literal["base", "boosted"], ...] = ("base", "boosted"),
     products: tuple[ProductSnapshot, ...] | None = None,
     actor: Principal = ADMIN,
@@ -200,6 +202,7 @@ async def enrollment_harness(
         mode=mode,
         late_event_action=late_event_action,
         confirmation_steps=confirmation_steps,
+        confirmation_timeout_action=confirmation_timeout_action,
         benefit_tiers=benefit_tiers,
     )
     policy = LocalPolicyEngine(trusted_actors=(actor,), trusted_executors=(EXECUTOR,))
