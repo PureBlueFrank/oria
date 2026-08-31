@@ -13,13 +13,14 @@
       }
     },
     "business": {
-      "head": "business_0004",
+      "head": "business_0005",
       "files": {
         "business/env.py": "7628d5dc806bcc58b2cfaf14f9100876ea6c706afedc24991ae80f02fe68c491",
         "business/versions/business_0001_merchants.py": "7cbcd8134a2345f9f9ac1de8a676a1158ab8f118038ed75d2cbdd8ec34e0ec07",
         "business/versions/business_0002_recruitment_workflow.py": "1926ae8a09ac7f7ce8aff1c261f57554ec502ff7e40b1fd862dc2b72e07e5bf6",
         "business/versions/business_0003_execution_ledger.py": "6ff715591899b3365685b76857ed0419dc359ee6b83eccfc068df3afcab5c0ec",
-        "business/versions/business_0004_launch_saga_states.py": "d3f838e83806890f151e1c4a107095bfab38ba4395a475021e2799ae3f19e532"
+        "business/versions/business_0004_launch_saga_states.py": "d3f838e83806890f151e1c4a107095bfab38ba4395a475021e2799ae3f19e532",
+        "business/versions/business_0005_product_snapshot_merchant_identity.py": "73489c6a8218ce98210df38b6533aa6147bb6ace713510811e1e50da3fa57d59"
       }
     }
   }

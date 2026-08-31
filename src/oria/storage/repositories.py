@@ -425,6 +425,7 @@ _PRODUCT_SNAPSHOT = _RepositorySpec(
     "product_snapshot_id",
     ProductSnapshot,
     (
+        ("merchant_id", "merchant_id"),
         ("product_ref", "product_ref"),
         ("product_version", "product_version"),
         ("catalog_snapshot_id", "catalog_snapshot_id"),

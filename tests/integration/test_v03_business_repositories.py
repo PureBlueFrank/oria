@@ -69,6 +69,7 @@ def _business_graph() -> tuple[object, ...]:
         ProductSnapshot(
             **common,
             product_snapshot_id="product-snapshot-1",
+            merchant_id="demo-m001",
             product_ref="product-1",
             product_version="v1",
             catalog_snapshot_id="catalog-v1",

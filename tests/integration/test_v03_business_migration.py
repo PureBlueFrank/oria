@@ -29,7 +29,7 @@ V03_TABLES = {
     "merchant_notifications",
 }
 EXPECTED_UNIQUE_KEYS = {
-    "product_snapshots": ("tenant_id", "product_ref", "product_version"),
+    "product_snapshots": ("tenant_id", "merchant_id", "product_ref", "product_version"),
     "coupon_batches": ("tenant_id", "campaign_id", "coupon_spec_hash"),
     "recruitment_publications": (
         "tenant_id",
@@ -113,7 +113,7 @@ def test_empty_business_database_upgrades_to_v03_and_rolls_back_to_base(
 
     command.upgrade(config, "head")
 
-    assert _revision(database) == "business_0004"
+    assert _revision(database) == "business_0005"
     assert V03_TABLES | {"merchants"} <= _tables(database)
 
     command.downgrade(config, "base")
@@ -175,3 +175,19 @@ def test_every_business_foreign_key_is_tenant_composite_and_unique_keys_match_ad
 
         for table, expected_key in EXPECTED_UNIQUE_KEYS.items():
             assert expected_key in _unique_indexes(connection, table)
+
+        product_item_fks = connection.execute(
+            'PRAGMA foreign_key_list("enrollment_items")'
+        ).fetchall()
+        product_fk = {
+            (str(row[3]), str(row[4]))
+            for row in product_item_fks
+            if str(row[2]) == "product_snapshots"
+        }
+        assert product_fk == {
+            ("tenant_id", "tenant_id"),
+            ("merchant_id", "merchant_id"),
+            ("product_ref", "product_ref"),
+            ("product_version", "product_version"),
+            ("product_snapshot_id", "product_snapshot_id"),
+        }

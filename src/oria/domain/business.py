@@ -119,9 +119,10 @@ class BusinessEntity(ValueModel):
 
 
 class ProductSnapshot(BusinessEntity):
-    unique_key_fields = ("tenant_id", "product_ref", "product_version")
+    unique_key_fields = ("tenant_id", "merchant_id", "product_ref", "product_version")
 
     product_snapshot_id: str = Field(min_length=1)
+    merchant_id: str = Field(min_length=1)
     product_ref: str = Field(min_length=1)
     product_version: str = Field(min_length=1)
     catalog_snapshot_id: str = Field(min_length=1)

@@ -240,6 +240,7 @@ class EnrollmentService:
             product_snapshot_id = _stable_id(
                 "product_snapshot",
                 ctx.tenant_id,
+                product.merchant_id,
                 product.product_ref,
                 product.product_version,
             )
@@ -257,6 +258,7 @@ class EnrollmentService:
             business_snapshot = BusinessProductSnapshot(
                 tenant_id=ctx.tenant_id,
                 product_snapshot_id=product_snapshot_id,
+                merchant_id=product.merchant_id,
                 product_ref=product.product_ref,
                 product_version=product.product_version,
                 catalog_snapshot_id=catalog_snapshot_id,

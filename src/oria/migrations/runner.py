@@ -167,6 +167,7 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("product_version", "VARCHAR", 1, 0),
             ("catalog_snapshot_id", "VARCHAR", 1, 0),
             ("attributes_json", "TEXT", 1, 0),
+            ("merchant_id", "VARCHAR", 1, 0),
         ),
         "campaign_rule_snapshot_refs": _business_columns(
             "campaign_rule_snapshot_ref_id",
@@ -424,7 +425,13 @@ _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
                 ),
                 (
                     "product_snapshots",
-                    (("tenant_id", "tenant_id"), ("product_snapshot_id", "product_snapshot_id")),
+                    (
+                        ("tenant_id", "tenant_id"),
+                        ("merchant_id", "merchant_id"),
+                        ("product_ref", "product_ref"),
+                        ("product_version", "product_version"),
+                        ("product_snapshot_id", "product_snapshot_id"),
+                    ),
                 ),
             }
         ),

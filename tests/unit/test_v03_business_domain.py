@@ -47,6 +47,7 @@ def _entities() -> tuple[object, ...]:
         ProductSnapshot(
             **common,
             product_snapshot_id="product-snapshot-1",
+            merchant_id="merchant-1",
             product_ref="product-1",
             product_version="v1",
             catalog_snapshot_id="catalog-v1",
@@ -356,7 +357,7 @@ def test_product_and_rule_snapshot_references_remain_reproducible() -> None:
     assert isinstance(product, ProductSnapshot)
     assert isinstance(rule, CampaignRuleSnapshotRef)
 
-    assert product.unique_key() == ("tenant-a", "product-1", "v1")
+    assert product.unique_key() == ("tenant-a", "merchant-1", "product-1", "v1")
     assert product.catalog_snapshot_id == "catalog-v1"
     assert rule.unique_key() == (
         "tenant-a",
