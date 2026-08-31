@@ -7,14 +7,13 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import text
-from tests.support.enrollment import NOW, enrollment_harness
+from tests.support.enrollment import NOW, auto_command, enrollment_harness
 
 from oria.domain.business import EnrollmentItem
 from oria.domain.confirmations import BusinessConfirmationPolicy
 from oria.domain.enrollment import (
     EnrollmentItemInput,
     LinkCouponBatchArgs,
-    UpsertEnrollmentItemsArgs,
 )
 from oria.domain.enrollment_branch import EnrollmentBranchCoordinator, EnrollmentBranchState
 from oria.storage.repositories import BusinessRepositoryError
@@ -82,19 +81,15 @@ async def test_coupon_link_partial_validation_failure_rolls_back_every_link(
     tmp_path: Path,
 ) -> None:
     async with enrollment_harness(tmp_path, confirmation_steps=()) as harness:
-        upserted = await harness.enrollments.upsert_items(
-            UpsertEnrollmentItemsArgs(
-                campaign_id="campaign-1",
-                source="auto",
-                items=(
-                    EnrollmentItemInput(
-                        merchant_id="demo-m001",
-                        product_ref="product-1",
-                        product_version="v1",
-                    ),
-                ),
-                idempotency_key="auto-1",
+        items = (
+            EnrollmentItemInput(
+                merchant_id="demo-m001",
+                product_ref="product-1",
+                product_version="v1",
             ),
+        )
+        upserted = await harness.enrollments.upsert_auto(
+            auto_command(items, circle_run_id="auto-1"),
             harness.ctx,  # type: ignore[arg-type]
         )
         valid_id = upserted.enrollment_items[0].enrollment_item_id
@@ -120,19 +115,15 @@ async def test_local_write_failure_leaves_retryable_reservation_and_retry_conver
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async with enrollment_harness(tmp_path, confirmation_steps=()) as harness:
-        upserted = await harness.enrollments.upsert_items(
-            UpsertEnrollmentItemsArgs(
-                campaign_id="campaign-1",
-                source="auto",
-                items=(
-                    EnrollmentItemInput(
-                        merchant_id="demo-m001",
-                        product_ref="product-1",
-                        product_version="v1",
-                    ),
-                ),
-                idempotency_key="auto-before-transient-link",
+        items = (
+            EnrollmentItemInput(
+                merchant_id="demo-m001",
+                product_ref="product-1",
+                product_version="v1",
             ),
+        )
+        upserted = await harness.enrollments.upsert_auto(
+            auto_command(items, circle_run_id="auto-before-transient-link"),
             harness.ctx,  # type: ignore[arg-type]
         )
         item_id = upserted.enrollment_items[0].enrollment_item_id

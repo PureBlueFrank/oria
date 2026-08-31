@@ -31,6 +31,26 @@ class _Repository:
         self.records.append(record)
         return True
 
+    async def get(
+        self,
+        tenant_id: str,
+        adapter_id: str,
+        source_event_id: str,
+    ) -> IntegrationInboxRecord | None:
+        return next(
+            (
+                record
+                for record in self.records
+                if (
+                    record.tenant_id,
+                    record.adapter_id,
+                    record.source_event_id,
+                )
+                == (tenant_id, adapter_id, source_event_id)
+            ),
+            None,
+        )
+
 
 def _event(
     *,

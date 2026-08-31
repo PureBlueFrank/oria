@@ -8,15 +8,18 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 from sqlalchemy import text
-from tests.support.enrollment import EXECUTOR, enrollment_harness, product
+from tests.support.enrollment import EXECUTOR, NOW, auto_command, enrollment_harness, product
 
+from oria.core.integration_events import IntegrationInboxRecord, parse_integration_event
 from oria.core.types import Principal
 from oria.domain.enrollment import (
     EnrollmentItemInput,
     LinkCouponBatchArgs,
+    MerchantEnrollmentCommand,
     UpsertEnrollmentItemsArgs,
 )
 from oria.permission.local import LocalPolicyEngine
+from oria.tools.enrollment import UpsertEnrollmentItemsTool
 from oria.tools.models import QueryEligibleProductsParams
 
 pytestmark = pytest.mark.security
@@ -38,7 +41,6 @@ def query_params(**updates: object) -> QueryEligibleProductsParams:
 def upsert_args() -> UpsertEnrollmentItemsArgs:
     return UpsertEnrollmentItemsArgs(
         campaign_id="campaign-1",
-        source="auto",
         items=(
             EnrollmentItemInput(
                 merchant_id="demo-m001",
@@ -46,8 +48,93 @@ def upsert_args() -> UpsertEnrollmentItemsArgs:
                 product_version="v1",
             ),
         ),
-        idempotency_key="auto-1",
     )
+
+
+def test_upsert_tool_contract_forbids_caller_controlled_source_and_idempotency_key() -> None:
+    payload = upsert_args().model_dump(mode="json")
+    for field, value in (("source", "merchant"), ("idempotency_key", "caller-key")):
+        with pytest.raises(ValidationError, match="Extra inputs"):
+            UpsertEnrollmentItemsArgs.model_validate(payload | {field: value})
+
+
+@pytest.mark.asyncio
+async def test_integration_adapter_cannot_forge_auto_circle_source(tmp_path: Path) -> None:
+    adapter = Principal(
+        subject_id="merchant-adapter",
+        tenant_id="local-community",
+        kind="service",
+        roles=("integration_adapter",),
+        authn_method="trusted-test-profile",
+    )
+    async with enrollment_harness(tmp_path, actor=adapter) as harness:
+        with pytest.raises(PermissionError, match="not authorized"):
+            await harness.enrollments.upsert_auto(
+                auto_command(upsert_args().items, circle_run_id="forged-auto"),
+                harness.ctx,  # type: ignore[arg-type]
+            )
+
+
+@pytest.mark.asyncio
+async def test_campaign_admin_cannot_forge_merchant_source_through_tool(tmp_path: Path) -> None:
+    async with enrollment_harness(tmp_path) as harness:
+        command = auto_command(upsert_args().items, circle_run_id="admin-circle")
+        tool = UpsertEnrollmentItemsTool(harness.enrollments, command.binding)
+        with pytest.raises(ValidationError, match="Extra inputs"):
+            await tool.run(
+                upsert_args().model_dump(mode="json") | {"source": "merchant"},
+                harness.ctx,  # type: ignore[arg-type]
+            )
+        async with harness.databases.business_sessions() as session:
+            count = await session.scalar(text("SELECT COUNT(*) FROM enrollment_items"))
+
+    assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_merchant_command_rejects_unpersisted_payload_hash_binding(tmp_path: Path) -> None:
+    event = parse_integration_event(
+        {
+            "schema_version": 1,
+            "event_type": "merchant.enrollment_upserted",
+            "tenant_id": "local-community",
+            "adapter_id": "merchant-adapter",
+            "source_event_id": "forged-merchant-event",
+            "signature_subject": "adapter-principal",
+            "version": 1,
+            "payload": {
+                "campaign_id": "campaign-1",
+                "enrollment_id": "caller-enrollment",
+                "merchant_id": "demo-m001",
+                "product_ref": "product-1",
+                "product_version": "v1",
+            },
+        }
+    )
+    record = IntegrationInboxRecord(
+        tenant_id="local-community",
+        adapter_id="merchant-adapter",
+        source_event_id="forged-merchant-event",
+        event_type="merchant.enrollment_upserted",
+        resource_version=1,
+        signature_subject="adapter-principal",
+        redacted_payload={},
+        payload_hash="sha256:" + "f" * 64,
+        processing_status="matched",
+        wait_id="trusted-wait",
+        received_at=NOW,
+        processed_at=NOW,
+    )
+    async with enrollment_harness(tmp_path) as harness:
+        with pytest.raises(PermissionError, match="source binding is not trusted"):
+            await harness.enrollments.upsert_merchant(
+                MerchantEnrollmentCommand(event=event, inbox_record=record),  # type: ignore[arg-type]
+                harness.ctx,  # type: ignore[arg-type]
+            )
+        async with harness.databases.business_sessions() as session:
+            count = await session.scalar(text("SELECT COUNT(*) FROM enrollment_items"))
+
+    assert count == 0
 
 
 def test_query_contract_forbids_caller_supplied_price_category_keyword_or_status_filters() -> None:
@@ -73,8 +160,8 @@ async def test_query_and_upsert_enforce_the_same_frozen_unavailable_product_rule
             harness.ctx,  # type: ignore[arg-type]
         )
         with pytest.raises(ValueError, match="hard policy"):
-            await harness.enrollments.upsert_items(
-                upsert_args(),
+            await harness.enrollments.upsert_auto(
+                auto_command(upsert_args().items, circle_run_id="auto-1"),
                 harness.ctx,  # type: ignore[arg-type]
             )
 
@@ -87,8 +174,8 @@ async def test_cross_tenant_campaign_product_enrollment_and_coupon_resources_are
     tmp_path: Path,
 ) -> None:
     async with enrollment_harness(tmp_path, confirmation_steps=()) as harness:
-        local = await harness.enrollments.upsert_items(
-            upsert_args(),
+        local = await harness.enrollments.upsert_auto(
+            auto_command(upsert_args().items, circle_run_id="auto-1"),
             harness.ctx,  # type: ignore[arg-type]
         )
         item_id = local.enrollment_items[0].enrollment_item_id
@@ -115,8 +202,8 @@ async def test_cross_tenant_campaign_product_enrollment_and_coupon_resources_are
         with pytest.raises(LookupError, match="campaign"):
             await harness.query.query(query_params(), other_ctx)  # type: ignore[arg-type]
         with pytest.raises(LookupError, match="campaign"):
-            await harness.enrollments.upsert_items(
-                upsert_args(),
+            await harness.enrollments.upsert_auto(
+                auto_command(upsert_args().items, circle_run_id="auto-other"),
                 other_ctx,  # type: ignore[arg-type]
             )
         with pytest.raises(LookupError, match="coupon batch"):

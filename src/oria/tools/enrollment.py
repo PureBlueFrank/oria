@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 from oria.core.types import RetryPolicy, ToolPolicy, ToolResult
 from oria.domain.enrollment import (
+    AutoCircleRunBinding,
+    AutoEnrollmentCommand,
     CouponLinkService,
     EnrollmentService,
     LinkCouponBatchArgs,
@@ -37,15 +39,22 @@ class UpsertEnrollmentItemsTool:
         approval_mode="none",
     )
 
-    def __init__(self, service: EnrollmentService) -> None:
+    def __init__(self, service: EnrollmentService, binding: AutoCircleRunBinding) -> None:
         self._service = service
+        self._binding = binding
 
     def validate_params(self, params: dict[str, Any]) -> None:
         UpsertEnrollmentItemsArgs.model_validate(params)
 
     async def run(self, params: dict[str, Any], ctx: Context) -> ToolResult:
-        result = await self._service.upsert_items(
-            UpsertEnrollmentItemsArgs.model_validate(params), ctx
+        request = UpsertEnrollmentItemsArgs.model_validate(params)
+        result = await self._service.upsert_auto(
+            AutoEnrollmentCommand(
+                campaign_id=request.campaign_id,
+                items=request.items,
+                binding=self._binding,
+            ),
+            ctx,
         )
         return ToolResult(
             ok=True,

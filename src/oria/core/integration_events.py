@@ -112,6 +112,12 @@ def parse_integration_event(value: object) -> IntegrationEventEnvelope:
     return INTEGRATION_EVENT_ADAPTER.validate_python(value)
 
 
+def integration_payload_hash(event: IntegrationEventEnvelope) -> str:
+    payload = event.payload.model_dump(mode="json")
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return f"sha256:{hashlib.sha256(canonical.encode('utf-8')).hexdigest()}"
+
+
 class ExternalWait(ValueModel):
     """Trusted wait binding; inbound requests cannot supply this value."""
 
@@ -182,6 +188,13 @@ class InboxProcessResult(ValueModel):
 class IntegrationEventInboxRepository(Protocol):
     async def add(self, record: IntegrationInboxRecord) -> bool: ...
 
+    async def get(
+        self,
+        tenant_id: str,
+        adapter_id: str,
+        source_event_id: str,
+    ) -> IntegrationInboxRecord | None: ...
+
 
 _REDACTED = "[REDACTED]"
 _SENSITIVE_PAYLOAD_FIELDS = frozenset(
@@ -244,12 +257,6 @@ class IntegrationEventInboxService:
         now = self._now()
         status = self._classify(event, wait, now)
         payload = cast(dict[str, JsonValue], event.payload.model_dump(mode="json"))
-        canonical_payload = json.dumps(
-            payload,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
         record = IntegrationInboxRecord(
             tenant_id=event.tenant_id,
             adapter_id=event.adapter_id,
@@ -258,7 +265,7 @@ class IntegrationEventInboxService:
             resource_version=event.version,
             signature_subject=event.signature_subject,
             redacted_payload=cast(dict[str, JsonValue], _redact_payload(payload)),
-            payload_hash=f"sha256:{hashlib.sha256(canonical_payload.encode('utf-8')).hexdigest()}",
+            payload_hash=integration_payload_hash(event),
             processing_status=status,
             wait_id=(
                 wait.wait_id if wait is not None and wait.tenant_id == event.tenant_id else None
@@ -269,10 +276,17 @@ class IntegrationEventInboxService:
         inserted = await self._repository.add(record)
         if not inserted:
             return InboxProcessResult(status="duplicate", resume_eligible=False)
+        persisted = await self._repository.get(
+            event.tenant_id,
+            event.adapter_id,
+            event.source_event_id,
+        )
+        if persisted is None:
+            raise RuntimeError("persisted integration event is unavailable")
         return InboxProcessResult(
             status=status,
             resume_eligible=status == "matched",
-            record=record,
+            record=persisted,
         )
 
     def _classify(

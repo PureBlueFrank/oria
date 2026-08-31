@@ -43,6 +43,7 @@ _WRITE_ACTION_ROLES: dict[str, frozenset[str]] = {
     "campaign:draft:write": frozenset({"campaign_admin"}),
     "campaign:launch:request": frozenset({"campaign_admin"}),
     "enrollment:item:write": frozenset({"campaign_admin", "integration_adapter"}),
+    "enrollment:item:auto:write": frozenset({"campaign_admin"}),
     "enrollment:coupon:link": frozenset({"campaign_admin"}),
     "approval:launch:request": frozenset({"campaign_admin"}),
     "approval:launch:decide": frozenset({"launch_approver"}),

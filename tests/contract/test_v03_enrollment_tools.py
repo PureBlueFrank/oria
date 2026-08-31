@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import text
-from tests.support.enrollment import enrollment_harness
+from tests.support.enrollment import auto_command, enrollment_harness
 
 from oria.domain.enrollment import (
     EnrollmentItemInput,
@@ -19,36 +19,35 @@ from oria.tools.product_catalog import QueryEligibleProductsTool
 pytestmark = pytest.mark.contract
 
 
-def _upsert(source: str, idempotency_key: str) -> UpsertEnrollmentItemsArgs:
+def _upsert(product_ref: str = "product-1") -> UpsertEnrollmentItemsArgs:
     return UpsertEnrollmentItemsArgs(
         campaign_id="campaign-1",
-        source=source,  # type: ignore[arg-type]
         items=(
             EnrollmentItemInput(
                 merchant_id="demo-m001",
-                product_ref="product-1",
+                product_ref=product_ref,
                 product_version="v1",
             ),
         ),
-        idempotency_key=idempotency_key,
     )
 
 
+def _auto(circle_run_id: str, product_ref: str = "product-1"):
+    request = _upsert(product_ref)
+    return auto_command(request.items, circle_run_id=circle_run_id)
+
+
 @pytest.mark.asyncio
-async def test_upsert_replays_same_execution_and_merges_two_sources_into_one_item(
+async def test_upsert_replays_same_execution_for_one_server_circle_run(
     tmp_path: Path,
 ) -> None:
     async with enrollment_harness(tmp_path) as harness:
-        auto = await harness.enrollments.upsert_items(
-            _upsert("auto", "auto-event-1"),
+        auto = await harness.enrollments.upsert_auto(
+            _auto("auto-event-1"),
             harness.ctx,  # type: ignore[arg-type]
         )
-        repeated = await harness.enrollments.upsert_items(
-            _upsert("auto", "auto-event-1"),
-            harness.ctx,  # type: ignore[arg-type]
-        )
-        merchant = await harness.enrollments.upsert_items(
-            _upsert("merchant", "merchant-event-1"),
+        repeated = await harness.enrollments.upsert_auto(
+            _auto("auto-event-1"),
             harness.ctx,  # type: ignore[arg-type]
         )
         async with harness.databases.business_sessions() as session:
@@ -66,15 +65,14 @@ async def test_upsert_replays_same_execution_and_merges_two_sources_into_one_ite
 
     assert auto.execution_id == repeated.execution_id
     assert auto.enrollment_items[0].sources == frozenset({"auto"})
-    assert merchant.enrollment_items[0].sources == frozenset({"auto", "merchant"})
-    assert counts == (1, 3, 1, 2)
+    assert counts == (1, 3, 1, 1)
 
 
 @pytest.mark.asyncio
 async def test_coupon_link_replays_one_unique_active_link(tmp_path: Path) -> None:
     async with enrollment_harness(tmp_path, confirmation_steps=()) as harness:
-        upserted = await harness.enrollments.upsert_items(
-            _upsert("auto", "auto-event-1"),
+        upserted = await harness.enrollments.upsert_auto(
+            _auto("auto-event-1"),
             harness.ctx,  # type: ignore[arg-type]
         )
         item_id = upserted.enrollment_items[0].enrollment_item_id
@@ -100,8 +98,8 @@ async def test_upsert_history_precedes_changed_catalog_merchant_and_request_key_
     tmp_path: Path,
 ) -> None:
     async with enrollment_harness(tmp_path) as harness:
-        request = _upsert("auto", "request-key-1")
-        first = await harness.enrollments.upsert_items(
+        request = _auto("request-key-1")
+        first = await harness.enrollments.upsert_auto(
             request,
             harness.ctx,  # type: ignore[arg-type]
         )
@@ -114,27 +112,17 @@ async def test_upsert_history_precedes_changed_catalog_merchant_and_request_key_
                 )
             )
 
-        replayed = await harness.enrollments.upsert_items(
+        replayed = await harness.enrollments.upsert_auto(
             request,
             harness.ctx,  # type: ignore[arg-type]
         )
-        same_business_new_key = await harness.enrollments.upsert_items(
-            request.model_copy(update={"idempotency_key": "request-key-2"}),
+        same_business_new_key = await harness.enrollments.upsert_auto(
+            _auto("request-key-2"),
             harness.ctx,  # type: ignore[arg-type]
         )
         with pytest.raises(ValueError, match="conflicts with canonical payload"):
-            await harness.enrollments.upsert_items(
-                _upsert("auto", "request-key-1").model_copy(
-                    update={
-                        "items": (
-                            EnrollmentItemInput(
-                                merchant_id="demo-m001",
-                                product_ref="product-2",
-                                product_version="v1",
-                            ),
-                        )
-                    }
-                ),
+            await harness.enrollments.upsert_auto(
+                _auto("request-key-1", "product-2"),
                 harness.ctx,  # type: ignore[arg-type]
             )
         async with harness.databases.business_sessions() as session:
@@ -164,8 +152,8 @@ async def test_coupon_link_history_precedes_expiry_and_same_request_key_rejects_
     tmp_path: Path,
 ) -> None:
     async with enrollment_harness(tmp_path, confirmation_steps=()) as harness:
-        upserted = await harness.enrollments.upsert_items(
-            _upsert("auto", "auto-link-history"),
+        upserted = await harness.enrollments.upsert_auto(
+            _auto("auto-link-history"),
             harness.ctx,  # type: ignore[arg-type]
         )
         item_id = upserted.enrollment_items[0].enrollment_item_id
@@ -210,9 +198,10 @@ async def test_t05_tool_contracts_return_schema_valid_results_without_fixed_hitl
             },
             harness.ctx,  # type: ignore[arg-type]
         )
-        upsert_tool = UpsertEnrollmentItemsTool(harness.enrollments)
+        command = _auto("auto-tool-event")
+        upsert_tool = UpsertEnrollmentItemsTool(harness.enrollments, command.binding)
         upsert_result = await upsert_tool.run(
-            _upsert("auto", "auto-tool-event").model_dump(mode="json"),
+            _upsert().model_dump(mode="json"),
             harness.ctx,  # type: ignore[arg-type]
         )
         item_id = str(upsert_result.data["enrollment_items"][0]["enrollment_item_id"])  # type: ignore[index]
@@ -239,8 +228,8 @@ async def test_coupon_link_rejects_tier_not_present_in_frozen_benefit_policy(
     async with enrollment_harness(
         tmp_path, confirmation_steps=(), benefit_tiers=("base",)
     ) as harness:
-        upserted = await harness.enrollments.upsert_items(
-            _upsert("auto", "auto-base-only"),
+        upserted = await harness.enrollments.upsert_auto(
+            _auto("auto-base-only"),
             harness.ctx,  # type: ignore[arg-type]
         )
         item_id = upserted.enrollment_items[0].enrollment_item_id

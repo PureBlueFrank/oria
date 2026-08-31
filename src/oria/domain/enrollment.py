@@ -13,6 +13,11 @@ from pydantic import Field, field_validator, model_validator
 
 from oria.adapters.products import ProductCatalogAdapter, ProductCatalogPolicyBinding
 from oria.core.execution_ledger import ExecutionEventBundle, ExecutionLedger
+from oria.core.integration_events import (
+    IntegrationInboxRecord,
+    MerchantEnrollmentUpserted,
+    integration_payload_hash,
+)
 from oria.core.types import (
     AuthorizationContext,
     AuthorizationRequest,
@@ -63,6 +68,27 @@ def _stable_id(prefix: str, *parts: str) -> str:
     return f"{prefix}_{digest}"
 
 
+def _item_business_keys_hash(items: tuple[EnrollmentItemInput, ...]) -> str:
+    keys = sorted((item.merchant_id, item.product_ref, item.product_version) for item in items)
+    payload = json.dumps(keys, ensure_ascii=False, separators=(",", ":"))
+    return f"sha256:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
+
+
+def _binding_hash(value: ValueModel) -> str:
+    payload = value.model_dump_json(exclude_none=False)
+    return f"sha256:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
+
+
+def _auto_policy_binding_hash(binding: AutoCircleRunBinding) -> str:
+    payload = json.dumps(
+        binding.model_dump(mode="json", exclude={"circle_run_id"}),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return f"sha256:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
+
+
 class EnrollmentItemInput(ValueModel):
     merchant_id: str = Field(min_length=1)
     product_ref: str = Field(min_length=1)
@@ -70,10 +96,10 @@ class EnrollmentItemInput(ValueModel):
 
 
 class UpsertEnrollmentItemsArgs(ValueModel):
+    """Model-visible auto-circle selection; source binding is injected by the node."""
+
     campaign_id: str = Field(min_length=1)
-    source: EnrollmentSource
     items: tuple[EnrollmentItemInput, ...] = Field(min_length=1, max_length=100)
-    idempotency_key: str = Field(min_length=1, max_length=256)
 
     @field_validator("items")
     @classmethod
@@ -84,6 +110,54 @@ class UpsertEnrollmentItemsArgs(ValueModel):
         if len(keys) != len(value):
             raise ValueError("enrollment item business keys must be unique within one request")
         return value
+
+
+class AutoCircleRunBinding(ValueModel):
+    campaign_id: str = Field(min_length=1)
+    circle_run_id: str = Field(min_length=1)
+    product_circle_policy_ref: str = Field(min_length=1)
+    product_circle_policy_version: str = Field(min_length=1)
+    catalog_snapshot_id: str = Field(min_length=1)
+    item_business_keys_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+    @classmethod
+    def for_items(
+        cls,
+        *,
+        campaign_id: str,
+        circle_run_id: str,
+        product_circle_policy_ref: str,
+        product_circle_policy_version: str,
+        catalog_snapshot_id: str,
+        items: tuple[EnrollmentItemInput, ...],
+    ) -> AutoCircleRunBinding:
+        return cls(
+            campaign_id=campaign_id,
+            circle_run_id=circle_run_id,
+            product_circle_policy_ref=product_circle_policy_ref,
+            product_circle_policy_version=product_circle_policy_version,
+            catalog_snapshot_id=catalog_snapshot_id,
+            item_business_keys_hash=_item_business_keys_hash(items),
+        )
+
+
+class AutoEnrollmentCommand(ValueModel):
+    campaign_id: str = Field(min_length=1)
+    items: tuple[EnrollmentItemInput, ...] = Field(min_length=1, max_length=100)
+    binding: AutoCircleRunBinding
+
+
+class MerchantEnrollmentCommand(ValueModel):
+    event: MerchantEnrollmentUpserted
+    inbox_record: IntegrationInboxRecord
+
+
+class _EnrollmentWriteCanonicalArgs(ValueModel):
+    campaign_id: str
+    source: EnrollmentSource
+    items: tuple[EnrollmentItemInput, ...]
+    source_binding_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    new_enrollment_version: bool
 
 
 class UpsertEnrollmentItemsResult(ValueModel):
@@ -184,27 +258,94 @@ class EnrollmentService:
         self._clock = clock
         self._confirmation_ttl = confirmation_ttl
 
-    async def upsert_items(
+    async def upsert_merchant(
         self,
-        request: UpsertEnrollmentItemsArgs,
+        command: MerchantEnrollmentCommand,
         ctx: Context,
         *,
         new_enrollment_version: bool = False,
     ) -> UpsertEnrollmentItemsResult:
-        await _authorize("enrollment:item:write", "campaign", request.campaign_id, ctx)
+        event = command.event
+        record = command.inbox_record
+        if (
+            event.tenant_id != ctx.tenant_id
+            or record.tenant_id != ctx.tenant_id
+            or record.adapter_id != event.adapter_id
+            or record.source_event_id != event.source_event_id
+            or record.event_type != event.event_type
+            or record.payload_hash != integration_payload_hash(event)
+            or record.processing_status
+            in {"unauthorized", "type_mismatch", "resource_mismatch", "stale", "out_of_order"}
+        ):
+            raise PermissionError("merchant enrollment source binding is not trusted")
+        item = EnrollmentItemInput(
+            merchant_id=event.payload.merchant_id,
+            product_ref=event.payload.product_ref,
+            product_version=event.payload.product_version,
+        )
+        source_binding_hash = _binding_hash(record)
+        return await self._upsert_items(
+            campaign_id=event.payload.campaign_id,
+            source="merchant",
+            items=(item,),
+            request_idempotency_key=f"integration:{event.adapter_id}:{event.source_event_id}",
+            source_binding_hash=source_binding_hash,
+            ctx=ctx,
+            new_enrollment_version=new_enrollment_version,
+        )
+
+    async def upsert_auto(
+        self,
+        command: AutoEnrollmentCommand,
+        ctx: Context,
+    ) -> UpsertEnrollmentItemsResult:
+        await _authorize("enrollment:item:auto:write", "campaign", command.campaign_id, ctx)
+        binding = command.binding
+        if (
+            binding.campaign_id != command.campaign_id
+            or binding.item_business_keys_hash != _item_business_keys_hash(command.items)
+        ):
+            raise PermissionError("auto enrollment circle-run binding does not match")
+        return await self._upsert_items(
+            campaign_id=command.campaign_id,
+            source="auto",
+            items=command.items,
+            request_idempotency_key=f"circle-run:{binding.circle_run_id}",
+            source_binding_hash=_auto_policy_binding_hash(binding),
+            ctx=ctx,
+            expected_auto_binding=binding,
+        )
+
+    async def _upsert_items(
+        self,
+        *,
+        campaign_id: str,
+        source: EnrollmentSource,
+        items: tuple[EnrollmentItemInput, ...],
+        request_idempotency_key: str,
+        source_binding_hash: str,
+        ctx: Context,
+        new_enrollment_version: bool = False,
+        expected_auto_binding: AutoCircleRunBinding | None = None,
+    ) -> UpsertEnrollmentItemsResult:
+        await _authorize("enrollment:item:write", "campaign", campaign_id, ctx)
         ordered_items = tuple(
             sorted(
-                request.items,
+                items,
                 key=lambda item: (item.merchant_id, item.product_ref, item.product_version),
             )
         )
-        canonical_args = request.model_copy(
-            update={"items": ordered_items, "idempotency_key": "[request-key]"}
-        ).model_dump()
+        canonical_args = _EnrollmentWriteCanonicalArgs(
+            campaign_id=campaign_id,
+            source=source,
+            items=ordered_items,
+            source_binding_hash=source_binding_hash,
+            new_enrollment_version=new_enrollment_version,
+        )
         stable_business_id = ":".join(
             (
-                request.campaign_id,
-                request.source,
+                campaign_id,
+                source,
                 *(
                     f"{item.merchant_id}/{item.product_ref}/{item.product_version}"
                     for item in ordered_items
@@ -216,17 +357,17 @@ class EnrollmentService:
             tenant_id=ctx.tenant_id,
             tool_name="upsert_enrollment_items",
             tool_schema_version=1,
-            schema=UpsertEnrollmentItemsArgs,
-            args=canonical_args,
+            schema=_EnrollmentWriteCanonicalArgs,
+            args=canonical_args.model_dump(),
             stable_business_id=stable_business_id,
             checkpoint_id=ctx.run_id,
-            request_idempotency_key=request.idempotency_key,
+            request_idempotency_key=request_idempotency_key,
         )
         item_ids = tuple(
             _stable_id(
                 "enrollment_item",
                 ctx.tenant_id,
-                request.campaign_id,
+                campaign_id,
                 item.merchant_id,
                 item.product_ref,
                 item.product_version,
@@ -235,27 +376,29 @@ class EnrollmentService:
         )
         if execution.status == "succeeded":
             return await self._upsert_result(
-                request=request,
+                campaign_id=campaign_id,
+                source=source,
+                request_idempotency_key=request_idempotency_key,
                 execution=execution,
                 item_ids=item_ids,
             )
         if execution.status != "reserved":
             raise RuntimeError("prior enrollment execution is not retryable")
-        campaign, snapshot = await self._campaign_snapshot(request.campaign_id, ctx)
+        campaign, snapshot = await self._campaign_snapshot(campaign_id, ctx)
         rule = snapshot.enrollment_policy
         if campaign.status != "recruiting":
             raise ValueError("campaign is not accepting enrollment items")
-        if request.source not in rule.accepted_sources:
+        if source not in rule.accepted_sources:
             raise PermissionError("enrollment source is not accepted by the frozen rule")
-        if request.source == "merchant" and campaign.enrollment_mode == "auto":
+        if source == "merchant" and campaign.enrollment_mode == "auto":
             raise PermissionError("merchant source is incompatible with auto enrollment mode")
-        if request.source == "auto" and campaign.enrollment_mode == "merchant":
+        if source == "auto" and campaign.enrollment_mode == "merchant":
             raise PermissionError("auto source is incompatible with merchant enrollment mode")
         merchant_records = {
             record.merchant_id: record for record in await self._merchants.list_for_eligibility(ctx)
         }
         merchant_criteria = self._merchant_criteria(snapshot)
-        for merchant_id in {item.merchant_id for item in request.items}:
+        for merchant_id in {item.merchant_id for item in ordered_items}:
             record = merchant_records.get(merchant_id)
             if (
                 record is None
@@ -268,6 +411,13 @@ class EnrollmentService:
             product_criteria,
             ctx,
         )
+        if expected_auto_binding is not None and (
+            expected_auto_binding.product_circle_policy_ref != product_criteria.policy_ref
+            or expected_auto_binding.product_circle_policy_version
+            != product_criteria.policy_version
+            or expected_auto_binding.catalog_snapshot_id != catalog_snapshot_id
+        ):
+            raise PermissionError("auto enrollment frozen source binding does not match")
         now = self._now()
         confirmation_policy = BusinessConfirmationPolicy.from_snapshot(snapshot)
         bundles: list[
@@ -339,7 +489,7 @@ class EnrollmentService:
                 product_version=product.product_version,
                 product_snapshot_id=product_snapshot_id,
                 mode=campaign.enrollment_mode,
-                sources=frozenset({request.source}),
+                sources=frozenset({source}),
                 status=(
                     "pending_confirmation" if confirmation_policy.ordered_steps else "confirmed"
                 ),
@@ -358,15 +508,15 @@ class EnrollmentService:
                 due_at=now + self._confirmation_ttl,
             )
             bundles.append((business_snapshot, enrollment, enrollment_item, tasks))
-        await _authorize("enrollment:item:write", "campaign", request.campaign_id, ctx)
+        await _authorize("enrollment:item:write", "campaign", campaign_id, ctx)
 
         async def write(session: AsyncSession) -> None:
             await self._repository.upsert_enrollment_items(
                 session,
                 tenant_id=ctx.tenant_id,
-                campaign_id=request.campaign_id,
+                campaign_id=campaign_id,
                 rule_snapshot_ref_id=campaign.rule_snapshot_ref_id,
-                source=request.source,
+                source=source,
                 bundles=tuple(bundles),
                 new_enrollment_version=new_enrollment_version,
             )
@@ -374,7 +524,7 @@ class EnrollmentService:
         events = self._events(
             execution=execution,
             aggregate_type="campaign",
-            aggregate_id=request.campaign_id,
+            aggregate_id=campaign_id,
             event_type="enrollment.items_upserted",
             count=len(ordered_items),
             ctx=ctx,
@@ -388,7 +538,9 @@ class EnrollmentService:
             outbox_records=events.outbox_records,
         )
         return await self._upsert_result(
-            request=request,
+            campaign_id=campaign_id,
+            source=source,
+            request_idempotency_key=request_idempotency_key,
             execution=execution,
             item_ids=item_ids,
         )
@@ -396,7 +548,9 @@ class EnrollmentService:
     async def _upsert_result(
         self,
         *,
-        request: UpsertEnrollmentItemsArgs,
+        campaign_id: str,
+        source: EnrollmentSource,
+        request_idempotency_key: str,
         execution: ToolExecution,
         item_ids: tuple[str, ...],
     ) -> UpsertEnrollmentItemsResult:
@@ -405,13 +559,13 @@ class EnrollmentService:
             enrollment_item_ids=item_ids,
         )
         return UpsertEnrollmentItemsResult(
-            campaign_id=request.campaign_id,
-            source=request.source,
+            campaign_id=campaign_id,
+            source=source,
             enrollment_items=items,
             confirmation_tasks=tasks,
             execution_id=execution.execution_id,
             idempotency_key=execution.idempotency_key,
-            request_idempotency_key=request.idempotency_key,
+            request_idempotency_key=request_idempotency_key,
         )
 
     async def _campaign_snapshot(

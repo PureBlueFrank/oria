@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import text
-from tests.support.enrollment import NOW, enrollment_harness
+from tests.support.enrollment import NOW, auto_command, enrollment_harness
 
 from oria.core.integration_events import (
     ExternalWait,
@@ -27,6 +27,7 @@ pytestmark = pytest.mark.integration
 class InboxRepository:
     def __init__(self) -> None:
         self.records: list[IntegrationInboxRecord] = []
+        self.get_calls: list[tuple[str, str, str]] = []
 
     async def add(self, record: IntegrationInboxRecord) -> bool:
         key = (record.tenant_id, record.adapter_id, record.source_event_id)
@@ -36,6 +37,27 @@ class InboxRepository:
             return False
         self.records.append(record)
         return True
+
+    async def get(
+        self,
+        tenant_id: str,
+        adapter_id: str,
+        source_event_id: str,
+    ) -> IntegrationInboxRecord | None:
+        self.get_calls.append((tenant_id, adapter_id, source_event_id))
+        return next(
+            (
+                record
+                for record in self.records
+                if (
+                    record.tenant_id,
+                    record.adapter_id,
+                    record.source_event_id,
+                )
+                == (tenant_id, adapter_id, source_event_id)
+            ),
+            None,
+        )
 
 
 def event(
@@ -101,7 +123,8 @@ async def test_merchant_mode_waits_for_window_close_before_join(tmp_path: Path) 
         state = EnrollmentBranchState.from_snapshot(
             campaign_id="campaign-1", snapshot=harness.snapshot
         )
-        branch = coordinator(harness, InboxRepository(), InMemoryDownstreamApprovalInvalidator())
+        repository = InboxRepository()
+        branch = coordinator(harness, repository, InMemoryDownstreamApprovalInvalidator())
 
         accepted = await branch.process_event(
             state,
@@ -118,6 +141,10 @@ async def test_merchant_mode_waits_for_window_close_before_join(tmp_path: Path) 
 
     assert accepted.status == "accepted" and accepted.state.join_complete is False
     assert closed.status == "window_closed" and closed.state.join_complete is True
+    assert repository.get_calls == [
+        ("local-community", "merchant-adapter", "merchant-1"),
+        ("local-community", "merchant-adapter", "closed-1"),
+    ]
 
 
 @pytest.mark.asyncio
@@ -130,14 +157,14 @@ async def test_auto_mode_finishes_immediately_after_deterministic_circle(tmp_pat
 
         completed = await branch.complete_auto(
             state,
-            (
+            items := (
                 EnrollmentItemInput(
                     merchant_id="demo-m001",
                     product_ref="product-1",
                     product_version="v1",
                 ),
             ),
-            idempotency_key="auto-circle-v1",
+            binding=auto_command(items, circle_run_id="auto-circle-v1").binding,
             ctx=harness.ctx,  # type: ignore[arg-type]
         )
 
@@ -157,14 +184,14 @@ async def test_hybrid_waits_for_both_branches_and_deduplicates_the_business_key(
         branch = coordinator(harness, repository, InMemoryDownstreamApprovalInvalidator())
         auto = await branch.complete_auto(
             state,
-            (
+            items := (
                 EnrollmentItemInput(
                     merchant_id="demo-m001",
                     product_ref="product-1",
                     product_version="v1",
                 ),
             ),
-            idempotency_key="auto-circle-v1",
+            binding=auto_command(items, circle_run_id="auto-circle-v1").binding,
             ctx=harness.ctx,  # type: ignore[arg-type]
         )
         merchant = await branch.process_event(

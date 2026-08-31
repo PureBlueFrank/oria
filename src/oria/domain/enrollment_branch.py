@@ -12,15 +12,18 @@ from oria.core.integration_events import (
     EnrollmentWindowClosed,
     ExternalWait,
     IntegrationEventInboxService,
+    IntegrationInboxRecord,
     MerchantEnrollmentUpserted,
     parse_integration_event,
 )
 from oria.core.types import ValueModel
 from oria.domain.business import EnrollmentMode
 from oria.domain.enrollment import (
+    AutoCircleRunBinding,
+    AutoEnrollmentCommand,
     EnrollmentItemInput,
     EnrollmentService,
-    UpsertEnrollmentItemsArgs,
+    MerchantEnrollmentCommand,
     UpsertEnrollmentItemsResult,
 )
 from oria.rag.models import CampaignRuleSnapshot
@@ -200,7 +203,12 @@ class EnrollmentBranchCoordinator:
                     state=rejected,
                     inbox_status=inbox_result.status,
                 )
-            result = await self._write_event(event, ctx, new_enrollment_version=True)
+            result = await self._write_event(
+                event,
+                inbox_result.record,
+                ctx,
+                new_enrollment_version=True,
+            )
             await self._approval_invalidator.invalidate_campaign(
                 tenant_id=state.tenant_id,
                 campaign_id=state.campaign_id,
@@ -225,7 +233,12 @@ class EnrollmentBranchCoordinator:
             return EnrollmentBranchOutcome(
                 status="ignored", state=state, inbox_status=inbox_result.status
             )
-        result = await self._write_event(event, ctx, new_enrollment_version=False)
+        result = await self._write_event(
+            event,
+            inbox_result.record,
+            ctx,
+            new_enrollment_version=False,
+        )
         return EnrollmentBranchOutcome(
             status="accepted",
             state=self._accept_key(state, event),
@@ -238,17 +251,16 @@ class EnrollmentBranchCoordinator:
         state: EnrollmentBranchState,
         items: tuple[EnrollmentItemInput, ...],
         *,
-        idempotency_key: str,
+        binding: AutoCircleRunBinding,
         ctx: Context,
     ) -> EnrollmentBranchOutcome:
         if state.mode == "merchant":
             raise ValueError("merchant enrollment mode has no auto branch")
-        result = await self._enrollments.upsert_items(
-            UpsertEnrollmentItemsArgs(
+        result = await self._enrollments.upsert_auto(
+            AutoEnrollmentCommand(
                 campaign_id=state.campaign_id,
-                source="auto",
                 items=items,
-                idempotency_key=idempotency_key,
+                binding=binding,
             ),
             ctx,
         )
@@ -281,24 +293,13 @@ class EnrollmentBranchCoordinator:
     async def _write_event(
         self,
         event: MerchantEnrollmentUpserted,
+        inbox_record: IntegrationInboxRecord,
         ctx: Context,
         *,
         new_enrollment_version: bool,
     ) -> UpsertEnrollmentItemsResult:
-        payload = event.payload
-        return await self._enrollments.upsert_items(
-            UpsertEnrollmentItemsArgs(
-                campaign_id=payload.campaign_id,
-                source="merchant",
-                items=(
-                    EnrollmentItemInput(
-                        merchant_id=payload.merchant_id,
-                        product_ref=payload.product_ref,
-                        product_version=payload.product_version,
-                    ),
-                ),
-                idempotency_key=(f"integration:{event.adapter_id}:{event.source_event_id}"),
-            ),
+        return await self._enrollments.upsert_merchant(
+            MerchantEnrollmentCommand(event=event, inbox_record=inbox_record),
             ctx,
             new_enrollment_version=new_enrollment_version,
         )

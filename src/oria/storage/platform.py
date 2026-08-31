@@ -195,6 +195,37 @@ class SQLiteIntegrationEventInboxRepository:
             raise PlatformRepositoryError("integration event persistence failed") from exc
         return True
 
+    async def get(
+        self,
+        tenant_id: str,
+        adapter_id: str,
+        source_event_id: str,
+    ) -> IntegrationInboxRecord | None:
+        try:
+            async with self._sessions() as session:
+                result = await session.execute(
+                    text(
+                        "SELECT tenant_id, adapter_id, source_event_id, schema_version, "
+                        "event_type, resource_version, signature_subject, redacted_payload_json, "
+                        "payload_hash, processing_status, wait_id, received_at, processed_at "
+                        "FROM integration_event_inbox WHERE tenant_id = :tenant_id "
+                        "AND adapter_id = :adapter_id AND source_event_id = :source_event_id"
+                    ),
+                    {
+                        "tenant_id": tenant_id,
+                        "adapter_id": adapter_id,
+                        "source_event_id": source_event_id,
+                    },
+                )
+                row = result.mappings().one_or_none()
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("integration event read failed") from exc
+        if row is None:
+            return None
+        values = dict(row)
+        values["redacted_payload"] = json.loads(values.pop("redacted_payload_json"))
+        return IntegrationInboxRecord.model_validate(values)
+
     async def _exists(self, record: IntegrationInboxRecord) -> bool:
         try:
             async with self._sessions() as session:

@@ -18,7 +18,10 @@ from oria.core.types import Principal
 from oria.data import initialize_data
 from oria.domain.business import Campaign, CampaignRuleSnapshotRef, CouponBatch
 from oria.domain.enrollment import (
+    AutoCircleRunBinding,
+    AutoEnrollmentCommand,
     CouponLinkService,
+    EnrollmentItemInput,
     EnrollmentService,
     InMemoryConfirmationSubjectDirectory,
 )
@@ -89,6 +92,24 @@ def product(
         keyword_labels=labels,
         eligibility_facts={"available": available, "status": "available" if available else "off"},
     )
+
+
+def auto_command(
+    items: tuple[EnrollmentItemInput, ...],
+    *,
+    circle_run_id: str,
+    campaign_id: str = "campaign-1",
+    catalog_snapshot_id: str = "catalog-snapshot-v1",
+) -> AutoEnrollmentCommand:
+    binding = AutoCircleRunBinding.for_items(
+        campaign_id=campaign_id,
+        circle_run_id=circle_run_id,
+        product_circle_policy_ref="synthetic-product-circle-policy",
+        product_circle_policy_version="1.0.0",
+        catalog_snapshot_id=catalog_snapshot_id,
+        items=items,
+    )
+    return AutoEnrollmentCommand(campaign_id=campaign_id, items=items, binding=binding)
 
 
 def snapshot(
