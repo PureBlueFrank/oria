@@ -26,7 +26,7 @@
         "business/versions/business_0006_execution_request_keys.py": "2d9ab04f57008c9b952ccf55bf92931fc773509b79123c684b581c38a22387ab",
         "business/versions/business_0007_confirmation_chain_states.py": "0c0e37c5b29f1880249e653b04cef545b5ad2cc34d73b2e6e326280fc2cd4877",
         "business/versions/business_0008_campaign_approval_bindings.py": "a3aeaf952d9b8d7200cb7d1a5ff3b360d16966683bc265fb69ef85d09e032565",
-        "business/versions/business_0009_assortment_submission_items.py": "ef024b3e84bf6ff848d2e9b922b8c4f100fc18591700a2850255f3f8fb24cbea"
+        "business/versions/business_0009_assortment_submission_items.py": "018b4e1e7d2b45e2ce4e83b9544e92a74b29860c365238f2235ee3918d94bfde"
       }
     }
   }

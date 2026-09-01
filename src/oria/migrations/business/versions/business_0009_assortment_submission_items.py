@@ -10,6 +10,12 @@ depends_on = None
 
 
 def upgrade() -> None:
+    op.create_index(
+        "uq_enrollment_items_tenant_campaign_item",
+        "enrollment_items",
+        ["tenant_id", "campaign_id", "enrollment_item_id"],
+        unique=True,
+    )
     op.create_table(
         "assortment_submission_items",
         sa.Column("tenant_id", sa.String(), nullable=False),
@@ -32,11 +38,19 @@ def upgrade() -> None:
             ],
         ),
         sa.ForeignKeyConstraint(
-            ["tenant_id", "enrollment_item_id"],
-            ["enrollment_items.tenant_id", "enrollment_items.enrollment_item_id"],
+            ["tenant_id", "campaign_id", "enrollment_item_id"],
+            [
+                "enrollment_items.tenant_id",
+                "enrollment_items.campaign_id",
+                "enrollment_items.enrollment_item_id",
+            ],
         ),
     )
 
 
 def downgrade() -> None:
     op.drop_table("assortment_submission_items")
+    op.drop_index(
+        "uq_enrollment_items_tenant_campaign_item",
+        table_name="enrollment_items",
+    )

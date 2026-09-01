@@ -518,7 +518,11 @@ _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
                 ),
                 (
                     "enrollment_items",
-                    (("tenant_id", "tenant_id"), ("enrollment_item_id", "enrollment_item_id")),
+                    (
+                        ("tenant_id", "tenant_id"),
+                        ("campaign_id", "campaign_id"),
+                        ("enrollment_item_id", "enrollment_item_id"),
+                    ),
                 ),
             }
         ),

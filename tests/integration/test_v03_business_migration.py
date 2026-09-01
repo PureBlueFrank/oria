@@ -193,3 +193,16 @@ def test_every_business_foreign_key_is_tenant_composite_and_unique_keys_match_ad
             ("product_version", "product_version"),
             ("product_snapshot_id", "product_snapshot_id"),
         }
+        membership_fks = connection.execute(
+            'PRAGMA foreign_key_list("assortment_submission_items")'
+        ).fetchall()
+        enrollment_membership_fk = {
+            (str(row[3]), str(row[4]))
+            for row in membership_fks
+            if str(row[2]) == "enrollment_items"
+        }
+        assert enrollment_membership_fk == {
+            ("tenant_id", "tenant_id"),
+            ("campaign_id", "campaign_id"),
+            ("enrollment_item_id", "enrollment_item_id"),
+        }

@@ -12,7 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from oria.core.approvals import ApprovalBusinessBinding
 from oria.core.execution_ledger import ExecutionOutcome
-from oria.domain.assortment import AssortmentSelection, MerchantNotificationMessage
+from oria.domain.assortment import (
+    AssortmentCandidateSet,
+    AssortmentSelection,
+    MerchantNotificationMessage,
+)
 from oria.domain.business import (
     AssortmentSubmission,
     ConsumerPlacement,
@@ -21,6 +25,7 @@ from oria.domain.business import (
     MerchantNotification,
     SelectionDecision,
 )
+from oria.domain.product_eligibility import ProductEligibilityCriteria
 from oria.storage.repositories import (
     BusinessRepositoryError,
     SQLiteAssortmentSubmissionRepository,
@@ -28,7 +33,9 @@ from oria.storage.repositories import (
     SQLiteConsumerPlacementRepository,
     SQLiteEnrollmentCouponLinkRepository,
     SQLiteEnrollmentItemRepository,
+    SQLiteEnrollmentWorkflowRepository,
     SQLiteMerchantNotificationRepository,
+    SQLiteProductSnapshotRepository,
     SQLiteSelectionDecisionRepository,
 )
 
@@ -42,6 +49,7 @@ class SQLiteAssortmentWorkflowRepository:
         self._submissions = SQLiteAssortmentSubmissionRepository(sessions)
         self._decisions = SQLiteSelectionDecisionRepository(sessions)
         self._items = SQLiteEnrollmentItemRepository(sessions)
+        self._products = SQLiteProductSnapshotRepository(sessions)
         self._links = SQLiteEnrollmentCouponLinkRepository(sessions)
         self._placements = SQLiteConsumerPlacementRepository(sessions)
         self._notifications = SQLiteMerchantNotificationRepository(sessions)
@@ -55,12 +63,42 @@ class SQLiteAssortmentWorkflowRepository:
         except (SQLAlchemyError, ValueError, TypeError) as exc:
             raise BusinessRepositoryError("approval business binding read failed") from exc
 
+    async def load_submission_candidates(
+        self,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        product_criteria: ProductEligibilityCriteria,
+        assortment_policy_ref: str,
+        assortment_policy_version: str,
+        approval_binding: ApprovalBusinessBinding,
+    ) -> AssortmentCandidateSet:
+        try:
+            async with self._sessions() as session:
+                return await self._candidate_set(
+                    session,
+                    tenant_id=tenant_id,
+                    campaign_id=campaign_id,
+                    rule_snapshot_ref_id=rule_snapshot_ref_id,
+                    product_criteria=product_criteria,
+                    assortment_policy_ref=assortment_policy_ref,
+                    assortment_policy_version=assortment_policy_version,
+                    approval_binding=approval_binding,
+                )
+        except BusinessRepositoryError:
+            raise
+        except (SQLAlchemyError, ValueError, TypeError) as exc:
+            raise BusinessRepositoryError("assortment candidate read failed") from exc
+
     async def persist_submission_outcome(
         self,
         session: AsyncSession,
         *,
         submission: AssortmentSubmission,
         enrollment_item_ids: tuple[str, ...],
+        candidate_set: AssortmentCandidateSet,
+        product_criteria: ProductEligibilityCriteria,
         expected_campaign_version: int,
         outcome: ExecutionOutcome,
     ) -> None:
@@ -69,6 +107,20 @@ class SQLiteAssortmentWorkflowRepository:
             "failed": "failed",
             "unknown": "unknown",
         }[outcome]
+        observed_candidates = await self._candidate_set(
+            session,
+            tenant_id=submission.tenant_id,
+            campaign_id=submission.campaign_id,
+            rule_snapshot_ref_id=candidate_set.rule_snapshot_ref_id,
+            product_criteria=product_criteria,
+            assortment_policy_ref=submission.assortment_policy_ref,
+            assortment_policy_version=submission.assortment_policy_version,
+            approval_binding=candidate_set.approval_binding,
+        )
+        if observed_candidates != candidate_set or not set(enrollment_item_ids).issubset(
+            observed_candidates.enrollment_item_ids
+        ):
+            raise BusinessRepositoryError("assortment candidate set changed before commit")
         campaign = await self._campaigns._find_by_id(
             session, submission.campaign_id, submission.tenant_id
         )
@@ -101,6 +153,69 @@ class SQLiteAssortmentWorkflowRepository:
                     "created_at": submission.created_at,
                 },
             )
+
+    async def _candidate_set(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        product_criteria: ProductEligibilityCriteria,
+        assortment_policy_ref: str,
+        assortment_policy_version: str,
+        approval_binding: ApprovalBusinessBinding,
+    ) -> AssortmentCandidateSet:
+        campaign = await self._campaigns._find_by_id(session, campaign_id, tenant_id)
+        current_binding = await self._find_binding(session, tenant_id, campaign_id)
+        if (
+            campaign is None
+            or campaign.rule_snapshot_ref_id != rule_snapshot_ref_id
+            or campaign.status not in {"recruiting", "selecting"}
+            or current_binding != approval_binding
+            or approval_binding.rule_snapshot_hash != product_criteria.rule_snapshot_hash
+        ):
+            raise BusinessRepositoryError("assortment candidate policy binding is stale")
+        result = await session.execute(
+            text(
+                "SELECT i.enrollment_item_id FROM enrollment_items AS i WHERE i.tenant_id = "
+                ":tenant_id AND i.campaign_id = :campaign_id AND i.status = 'confirmed' AND "
+                "NOT EXISTS (SELECT 1 FROM confirmation_tasks AS t WHERE t.tenant_id = "
+                "i.tenant_id AND t.enrollment_item_id = i.enrollment_item_id AND t.status != "
+                "'confirmed') AND EXISTS (SELECT 1 FROM enrollment_coupon_links AS l JOIN "
+                "coupon_batches AS c ON c.tenant_id = l.tenant_id AND c.coupon_batch_id = "
+                "l.coupon_batch_id WHERE l.tenant_id = i.tenant_id AND l.enrollment_item_id = "
+                "i.enrollment_item_id AND l.status = 'active' AND c.campaign_id = :campaign_id "
+                "AND c.status = 'ready') ORDER BY i.enrollment_item_id"
+            ),
+            {"tenant_id": tenant_id, "campaign_id": campaign_id},
+        )
+        item_ids = tuple(str(row[0]) for row in result)
+        if not item_ids:
+            raise BusinessRepositoryError("assortment has no eligible server candidates")
+        for item_id in item_ids:
+            item = await self._items._find_by_id(session, item_id, tenant_id)
+            if item is None or item.campaign_id != campaign_id:
+                raise BusinessRepositoryError("assortment candidate item is unavailable")
+            product = await self._products._find_by_id(session, item.product_snapshot_id, tenant_id)
+            if product is None:
+                raise BusinessRepositoryError("assortment candidate product is unavailable")
+            SQLiteEnrollmentWorkflowRepository._validate_product_bundle(
+                product,
+                item,
+                product_criteria=product_criteria,
+                attestation=None,
+            )
+        return AssortmentCandidateSet.create(
+            tenant_id=tenant_id,
+            campaign_id=campaign_id,
+            rule_snapshot_ref_id=rule_snapshot_ref_id,
+            product_criteria=product_criteria,
+            assortment_policy_ref=assortment_policy_ref,
+            assortment_policy_version=assortment_policy_version,
+            approval_binding=approval_binding,
+            enrollment_item_ids=item_ids,
+        )
 
     async def load_submission(
         self, *, tenant_id: str, campaign_id: str, submission_version: str

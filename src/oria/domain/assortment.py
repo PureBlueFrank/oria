@@ -9,7 +9,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal, Protocol
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from oria.core.approvals import (
     Approval,
@@ -52,6 +52,7 @@ from oria.domain.business import (
     SelectionDecision,
 )
 from oria.domain.ledger import DomainEvent, OutboxRecord, Receipt, ToolExecution
+from oria.domain.product_eligibility import ProductEligibilityCriteria
 from oria.domain.repositories import CampaignRepository, CampaignRuleSnapshotRefRepository
 
 if TYPE_CHECKING:
@@ -278,10 +279,125 @@ class AssortmentSelection(ValueModel):
         )
 
 
+class AssortmentCandidateSet(ValueModel):
+    """Server-derived frozen candidate projection used again in the commit transaction."""
+
+    tenant_id: str = Field(min_length=1, repr=False)
+    campaign_id: str = Field(min_length=1)
+    rule_snapshot_ref_id: str = Field(min_length=1)
+    rule_snapshot_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    product_policy_ref: str = Field(min_length=1)
+    product_policy_version: str = Field(min_length=1)
+    assortment_policy_ref: str = Field(min_length=1)
+    assortment_policy_version: str = Field(min_length=1)
+    approval_binding: ApprovalBusinessBinding
+    enrollment_item_ids: tuple[str, ...] = Field(min_length=1, repr=False)
+    candidate_set_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        product_criteria: ProductEligibilityCriteria,
+        assortment_policy_ref: str,
+        assortment_policy_version: str,
+        approval_binding: ApprovalBusinessBinding,
+        enrollment_item_ids: tuple[str, ...],
+    ) -> AssortmentCandidateSet:
+        ordered_ids = tuple(sorted(set(enrollment_item_ids)))
+        payload = cls._hash_payload(
+            tenant_id=tenant_id,
+            campaign_id=campaign_id,
+            rule_snapshot_ref_id=rule_snapshot_ref_id,
+            rule_snapshot_hash=product_criteria.rule_snapshot_hash,
+            product_policy_ref=product_criteria.policy_ref,
+            product_policy_version=product_criteria.policy_version,
+            assortment_policy_ref=assortment_policy_ref,
+            assortment_policy_version=assortment_policy_version,
+            approval_binding=approval_binding,
+            enrollment_item_ids=ordered_ids,
+        )
+        return cls(
+            tenant_id=tenant_id,
+            campaign_id=campaign_id,
+            rule_snapshot_ref_id=rule_snapshot_ref_id,
+            rule_snapshot_hash=product_criteria.rule_snapshot_hash,
+            product_policy_ref=product_criteria.policy_ref,
+            product_policy_version=product_criteria.policy_version,
+            assortment_policy_ref=assortment_policy_ref,
+            assortment_policy_version=assortment_policy_version,
+            approval_binding=approval_binding,
+            enrollment_item_ids=ordered_ids,
+            candidate_set_hash=_hash(payload),
+        )
+
+    @staticmethod
+    def _hash_payload(
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        rule_snapshot_hash: str,
+        product_policy_ref: str,
+        product_policy_version: str,
+        assortment_policy_ref: str,
+        assortment_policy_version: str,
+        approval_binding: ApprovalBusinessBinding,
+        enrollment_item_ids: tuple[str, ...],
+    ) -> dict[str, object]:
+        return {
+            "approval_binding": approval_binding.model_dump(mode="json"),
+            "assortment_policy_ref": assortment_policy_ref,
+            "assortment_policy_version": assortment_policy_version,
+            "campaign_id": campaign_id,
+            "enrollment_item_ids": enrollment_item_ids,
+            "product_policy_ref": product_policy_ref,
+            "product_policy_version": product_policy_version,
+            "rule_snapshot_hash": rule_snapshot_hash,
+            "rule_snapshot_ref_id": rule_snapshot_ref_id,
+            "tenant_id": tenant_id,
+        }
+
+    @model_validator(mode="after")
+    def verify_candidate_hash(self) -> AssortmentCandidateSet:
+        payload = self._hash_payload(
+            tenant_id=self.tenant_id,
+            campaign_id=self.campaign_id,
+            rule_snapshot_ref_id=self.rule_snapshot_ref_id,
+            rule_snapshot_hash=self.rule_snapshot_hash,
+            product_policy_ref=self.product_policy_ref,
+            product_policy_version=self.product_policy_version,
+            assortment_policy_ref=self.assortment_policy_ref,
+            assortment_policy_version=self.assortment_policy_version,
+            approval_binding=self.approval_binding,
+            enrollment_item_ids=self.enrollment_item_ids,
+        )
+        if self.enrollment_item_ids != tuple(sorted(set(self.enrollment_item_ids))):
+            raise ValueError("assortment candidate IDs must be unique and ordered")
+        if _hash(payload) != self.candidate_set_hash:
+            raise ValueError("assortment candidate set hash does not match")
+        return self
+
+
 class AssortmentWorkflowRepository(Protocol):
     async def get_approval_binding(
         self, *, tenant_id: str, campaign_id: str
     ) -> ApprovalBusinessBinding | None: ...
+
+    async def load_submission_candidates(
+        self,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        rule_snapshot_ref_id: str,
+        product_criteria: ProductEligibilityCriteria,
+        assortment_policy_ref: str,
+        assortment_policy_version: str,
+        approval_binding: ApprovalBusinessBinding,
+    ) -> AssortmentCandidateSet: ...
 
     async def persist_submission_outcome(
         self,
@@ -289,6 +405,8 @@ class AssortmentWorkflowRepository(Protocol):
         *,
         submission: AssortmentSubmission,
         enrollment_item_ids: tuple[str, ...],
+        candidate_set: AssortmentCandidateSet,
+        product_criteria: ProductEligibilityCriteria,
         expected_campaign_version: int,
         outcome: ExecutionOutcome,
     ) -> None: ...
@@ -427,8 +545,8 @@ class AssortmentService:
         expires_at: datetime,
         ctx: Context,
     ) -> Approval:
-        _, args_hash, binding = await self._assortment_precheck(request, ctx)
-        reasons = self._assortment_adapter.capabilities.approval_reasons(request)
+        canonical, args_hash, binding, _ = await self._assortment_precheck(request, ctx)
+        reasons = self._assortment_adapter.capabilities.approval_reasons(canonical)
         if not reasons:
             raise ValueError("assortment submission does not require conditional approval")
         return await self._approvals.create(
@@ -474,7 +592,7 @@ class AssortmentService:
         )
         if execution.status != "reserved":
             return await self._submission_result(request, execution, submission_version)
-        _, args_hash, binding = await self._assortment_precheck(request, ctx)
+        _, args_hash, binding, candidate_set = await self._assortment_precheck(request, ctx)
         if args_hash != execution.canonical_args_hash:
             raise RuntimeError("assortment canonical binding changed during execution")
         reasons = self._assortment_adapter.capabilities.approval_reasons(request)
@@ -492,6 +610,11 @@ class AssortmentService:
             ctx=ctx,
         )
         campaign = await self._required_campaign(request.campaign_id, ctx)
+        rule_ref = await self._rule_refs.get(campaign.rule_snapshot_ref_id, ctx)
+        if rule_ref is None:
+            raise LookupError("campaign rule snapshot is unavailable")
+        snapshot = await self._rule_snapshots.get(rule_ref.snapshot_id, ctx)
+        product_criteria = ProductEligibilityCriteria.from_snapshot(snapshot)
         policy_version = await _authorize("assortment:submit", request.campaign_id, ctx)
         now = self._now()
 
@@ -524,6 +647,8 @@ class AssortmentService:
                     session,
                     submission=submission,
                     enrollment_item_ids=ordered_ids,
+                    candidate_set=candidate_set,
+                    product_criteria=product_criteria,
                     expected_campaign_version=campaign.version,
                     outcome=outcome,
                 )
@@ -967,7 +1092,12 @@ class AssortmentService:
         self,
         request: SubmitAssortmentArgs,
         ctx: Context,
-    ) -> tuple[SubmitAssortmentArgs, str, ApprovalBusinessBinding]:
+    ) -> tuple[
+        SubmitAssortmentArgs,
+        str,
+        ApprovalBusinessBinding,
+        AssortmentCandidateSet,
+    ]:
         campaign = await self._required_campaign(request.campaign_id, ctx)
         if campaign.status not in {"recruiting", "selecting"}:
             raise ValueError("campaign is not accepting assortment submissions")
@@ -998,7 +1128,19 @@ class AssortmentService:
             args=canonical.model_dump(),
         )
         binding = await self._required_binding(request.campaign_id, ctx)
-        return canonical, args_hash, binding
+        product_criteria = ProductEligibilityCriteria.from_snapshot(snapshot)
+        candidate_set = await self._repository.load_submission_candidates(
+            tenant_id=ctx.tenant_id,
+            campaign_id=request.campaign_id,
+            rule_snapshot_ref_id=campaign.rule_snapshot_ref_id,
+            product_criteria=product_criteria,
+            assortment_policy_ref=request.assortment_policy_ref,
+            assortment_policy_version=request.assortment_policy_version,
+            approval_binding=binding,
+        )
+        if not set(request.enrollment_item_ids).issubset(candidate_set.enrollment_item_ids):
+            raise PermissionError("assortment items are outside the server candidate set")
+        return canonical, args_hash, binding, candidate_set
 
     async def _required_campaign(self, campaign_id: str, ctx: Context) -> Campaign:
         campaign = await self._campaigns.get(campaign_id, ctx)
