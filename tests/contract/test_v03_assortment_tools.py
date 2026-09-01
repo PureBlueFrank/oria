@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ import pytest
 from oria.config import resolve_runtime_config
 from oria.core.runtime import build_runtime
 from oria.data import initialize_data
+from oria.permission.local import local_cli_executor, local_operator
 
 pytestmark = pytest.mark.contract
 
@@ -47,3 +49,39 @@ async def test_runtime_registers_strict_redacted_t06_tools_and_separate_event_se
         assert runtime.domain.selection_events is not None
     finally:
         await runtime.aclose()
+
+
+@pytest.mark.asyncio
+async def test_side_effect_tool_checkpoint_is_trusted_context_only_and_fails_closed(
+    tmp_path: Path,
+) -> None:
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
+    await initialize_data(config)
+    runtime = await build_runtime(config)
+    ctx = runtime.new_context(
+        actor=local_operator(),
+        executor=local_cli_executor(),
+        session_id="checkpoint-session",
+        thread_id="checkpoint-thread",
+        run_id="run-is-not-checkpoint",
+    )
+    try:
+        tool = runtime.tools.get("submit_assortment")
+        assert "checkpoint_id" not in tool.json_schema["properties"]
+        with pytest.raises(RuntimeError, match="trusted checkpoint_id"):
+            await tool.run(
+                {
+                    "campaign_id": "campaign-a",
+                    "enrollment_item_ids": ["item-a"],
+                    "assortment_policy_ref": "policy-a",
+                    "assortment_policy_version": "v1",
+                    "idempotency_key": "request-a",
+                },
+                ctx,
+            )
+    finally:
+        await runtime.aclose()
+
+    with sqlite3.connect(config.data_paths.business_db) as connection:
+        execution_count = connection.execute("SELECT COUNT(*) FROM tool_executions").fetchone()
+    assert execution_count == (0,)

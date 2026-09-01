@@ -75,7 +75,11 @@ class SubmitAssortmentTool:
         SubmitAssortmentArgs.model_validate(params)
 
     async def run(self, params: dict[str, Any], ctx: Context) -> ToolResult:
-        result = await self._service.submit(SubmitAssortmentArgs.model_validate(params), ctx)
+        result = await self._service.submit(
+            SubmitAssortmentArgs.model_validate(params),
+            checkpoint_id=ctx.require_checkpoint_id(),
+            ctx=ctx,
+        )
         data = SubmitAssortmentToolResult(
             submission_id=result.submission.assortment_submission_id,
             campaign_id=result.submission.campaign_id,
@@ -108,7 +112,9 @@ class PublishConsumerPlacementTool:
 
     async def run(self, params: dict[str, Any], ctx: Context) -> ToolResult:
         result = await self._service.publish_consumer_placement(
-            PublishConsumerPlacementArgs.model_validate(params), ctx
+            PublishConsumerPlacementArgs.model_validate(params),
+            checkpoint_id=ctx.require_checkpoint_id(),
+            ctx=ctx,
         )
         data = PublishConsumerPlacementToolResult(
             placement_id=result.placement.consumer_placement_id,
@@ -142,7 +148,9 @@ class SendMerchantNotificationTool:
 
     async def run(self, params: dict[str, Any], ctx: Context) -> ToolResult:
         result = await self._service.send_merchant_notification(
-            SendMerchantNotificationArgs.model_validate(params), ctx
+            SendMerchantNotificationArgs.model_validate(params),
+            checkpoint_id=ctx.require_checkpoint_id(),
+            ctx=ctx,
         )
         data = SendMerchantNotificationToolResult(
             notification_id=result.notification.merchant_notification_id,

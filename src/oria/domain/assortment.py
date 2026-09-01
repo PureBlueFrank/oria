@@ -621,9 +621,11 @@ class AssortmentService:
         self,
         request: SubmitAssortmentArgs,
         *,
+        checkpoint_id: str,
         expires_at: datetime,
         ctx: Context,
     ) -> Approval:
+        checkpoint_id = _require_trusted_checkpoint_id(checkpoint_id)
         canonical, args_hash, binding, _, _, _ = await self._assortment_precheck(request, ctx)
         reasons = self._assortment_adapter.capabilities.approval_reasons(canonical)
         if not reasons:
@@ -632,7 +634,7 @@ class AssortmentService:
             approval_action="assortment_submission_approval",
             tool_name=SUBMIT_ASSORTMENT_TOOL_NAME,
             canonical_args_hash=args_hash,
-            checkpoint_id=ctx.run_id,
+            checkpoint_id=checkpoint_id,
             expires_at=expires_at,
             ctx=ctx,
             business_binding=binding,
@@ -641,8 +643,11 @@ class AssortmentService:
     async def submit(
         self,
         request: SubmitAssortmentArgs,
+        *,
+        checkpoint_id: str,
         ctx: Context,
     ) -> SubmitAssortmentResult:
+        checkpoint_id = _require_trusted_checkpoint_id(checkpoint_id)
         (
             canonical,
             args_hash,
@@ -666,7 +671,7 @@ class AssortmentService:
                 approval_action="assortment_submission_approval",
                 tool_name=SUBMIT_ASSORTMENT_TOOL_NAME,
                 canonical_args_hash=args_hash,
-                checkpoint_id=ctx.run_id,
+                checkpoint_id=checkpoint_id,
                 approval_required=bool(reasons),
                 business_binding=binding,
             ),
@@ -682,7 +687,7 @@ class AssortmentService:
             schema=SubmitAssortmentArgs,
             args=canonical.model_dump(),
             stable_business_id=f"{request.campaign_id}:{submission_version}",
-            checkpoint_id=ctx.run_id,
+            checkpoint_id=checkpoint_id,
             request_idempotency_key=request.idempotency_key,
         )
         if args_hash != execution.canonical_args_hash:
@@ -950,9 +955,11 @@ class AssortmentService:
         self,
         request: PublishConsumerPlacementArgs,
         *,
+        checkpoint_id: str,
         expires_at: datetime,
         ctx: Context,
     ) -> Approval:
+        checkpoint_id = _require_trusted_checkpoint_id(checkpoint_id)
         canonical = _canonical_publish_request(request)
         args_hash = canonical_args_hash(
             tool_name=PUBLISH_CONSUMER_TOOL_NAME,
@@ -970,7 +977,7 @@ class AssortmentService:
             approval_action="consumer_publish_approval",
             tool_name=PUBLISH_CONSUMER_TOOL_NAME,
             canonical_args_hash=args_hash,
-            checkpoint_id=ctx.run_id,
+            checkpoint_id=checkpoint_id,
             expires_at=expires_at,
             ctx=ctx,
             business_binding=selection.binding,
@@ -979,8 +986,11 @@ class AssortmentService:
     async def publish_consumer_placement(
         self,
         request: PublishConsumerPlacementArgs,
+        *,
+        checkpoint_id: str,
         ctx: Context,
     ) -> PublishConsumerPlacementResult:
+        checkpoint_id = _require_trusted_checkpoint_id(checkpoint_id)
         canonical = _canonical_publish_request(request)
         spec_hash = _hash(request.placement_spec)
         placement_id = _stable_id(
@@ -1008,7 +1018,7 @@ class AssortmentService:
                 approval_action="consumer_publish_approval",
                 tool_name=PUBLISH_CONSUMER_TOOL_NAME,
                 canonical_args_hash=args_hash,
-                checkpoint_id=ctx.run_id,
+                checkpoint_id=checkpoint_id,
                 approval_required=True,
                 business_binding=selection.binding,
             ),
@@ -1024,7 +1034,7 @@ class AssortmentService:
             schema=PublishConsumerPlacementArgs,
             args=canonical.model_dump(),
             stable_business_id=(f"{request.campaign_id}:{request.selection_version}:{spec_hash}"),
-            checkpoint_id=ctx.run_id,
+            checkpoint_id=checkpoint_id,
             request_idempotency_key=request.idempotency_key,
         )
         if args_hash != execution.canonical_args_hash:
@@ -1123,9 +1133,11 @@ class AssortmentService:
         self,
         request: SendMerchantNotificationArgs,
         *,
+        checkpoint_id: str,
         expires_at: datetime,
         ctx: Context,
     ) -> Approval:
+        checkpoint_id = _require_trusted_checkpoint_id(checkpoint_id)
         reasons = self._notification_adapter.capabilities.approval_reasons(request.template_id)
         if not reasons:
             raise ValueError("merchant notification does not require conditional approval")
@@ -1141,7 +1153,7 @@ class AssortmentService:
             approval_action="merchant_notification_approval",
             tool_name=SEND_NOTIFICATION_TOOL_NAME,
             canonical_args_hash=args_hash,
-            checkpoint_id=ctx.run_id,
+            checkpoint_id=checkpoint_id,
             expires_at=expires_at,
             ctx=ctx,
             business_binding=binding,
@@ -1150,8 +1162,11 @@ class AssortmentService:
     async def send_merchant_notification(
         self,
         request: SendMerchantNotificationArgs,
+        *,
+        checkpoint_id: str,
         ctx: Context,
     ) -> SendMerchantNotificationResult:
+        checkpoint_id = _require_trusted_checkpoint_id(checkpoint_id)
         canonical = _canonical_notification_request(request)
         notification_id = _stable_id(
             "merchant_notification",
@@ -1184,7 +1199,7 @@ class AssortmentService:
                 approval_action="merchant_notification_approval",
                 tool_name=SEND_NOTIFICATION_TOOL_NAME,
                 canonical_args_hash=args_hash,
-                checkpoint_id=ctx.run_id,
+                checkpoint_id=checkpoint_id,
                 approval_required=bool(reasons),
                 business_binding=binding,
             ),
@@ -1200,7 +1215,7 @@ class AssortmentService:
             schema=SendMerchantNotificationArgs,
             args=canonical.model_dump(),
             stable_business_id=notification_id,
-            checkpoint_id=ctx.run_id,
+            checkpoint_id=checkpoint_id,
             request_idempotency_key=request.idempotency_key,
         )
         if args_hash != execution.canonical_args_hash:
@@ -1535,6 +1550,12 @@ def _canonical_publish_request(
     request: PublishConsumerPlacementArgs,
 ) -> PublishConsumerPlacementArgs:
     return request.model_copy(update={"idempotency_key": "[request-key]", "approval_id": None})
+
+
+def _require_trusted_checkpoint_id(checkpoint_id: str) -> str:
+    if not checkpoint_id:
+        raise ValueError("trusted checkpoint_id must be non-empty")
+    return checkpoint_id
 
 
 def _replay_status(

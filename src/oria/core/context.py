@@ -169,6 +169,7 @@ class RuntimeServices:
         run_id: str,
         correlation_id: str | None = None,
         job_id: str | None = None,
+        checkpoint_id: str | None = None,
     ) -> Context:
         if not self.ready:
             raise RuntimeError("runtime is not ready")
@@ -183,6 +184,7 @@ class RuntimeServices:
             run_id=run_id,
             correlation_id=run_id if correlation_id is None else correlation_id,
             job_id=job_id,
+            checkpoint_id=checkpoint_id,
         )
 
     async def aclose(self) -> None:
@@ -214,12 +216,20 @@ class Context:
     run_id: str
     correlation_id: str
     job_id: str | None = None
+    checkpoint_id: str | None = None
 
     def __post_init__(self) -> None:
         if not all((self.session_id, self.thread_id, self.run_id, self.correlation_id)):
             raise ValueError("session_id, thread_id, run_id and correlation_id must be non-empty")
         if self.actor.tenant_id != self.executor.tenant_id:
             raise ValueError("actor and executor must belong to the same tenant")
+        if self.checkpoint_id == "":
+            raise ValueError("checkpoint_id must be non-empty when provided")
+
+    def require_checkpoint_id(self) -> str:
+        if self.checkpoint_id is None:
+            raise RuntimeError("a trusted checkpoint_id is required for side-effect execution")
+        return self.checkpoint_id
 
     @property
     def tenant_id(self) -> str:

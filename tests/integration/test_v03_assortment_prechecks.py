@@ -60,8 +60,10 @@ class _WaitingLedger:
     def __init__(self) -> None:
         self.recovery_calls = 0
         self.execute_calls = 0
+        self.reservation_checkpoints: list[str] = []
 
     async def reserve_for_args(self, **kwargs: object) -> ToolExecution:
+        self.reservation_checkpoints.append(str(kwargs["checkpoint_id"]))
         args_hash = canonical_args_hash(
             tool_name=str(kwargs["tool_name"]),
             tool_schema_version=int(kwargs["tool_schema_version"]),
@@ -239,7 +241,8 @@ async def test_all_t06_precheck_denials_happen_before_reservation(tmp_path: Path
                     assortment_policy_version="v1",
                     idempotency_key="submit-request-a",
                 ),
-                context,
+                checkpoint_id="checkpoint-a",
+                ctx=context,
             ),
             service.publish_consumer_placement(
                 PublishConsumerPlacementArgs(
@@ -248,7 +251,8 @@ async def test_all_t06_precheck_denials_happen_before_reservation(tmp_path: Path
                     placement_spec={"target": "consumer"},
                     idempotency_key="publish-request-a",
                 ),
-                context,
+                checkpoint_id="checkpoint-a",
+                ctx=context,
             ),
             service.send_merchant_notification(
                 SendMerchantNotificationArgs(
@@ -259,7 +263,8 @@ async def test_all_t06_precheck_denials_happen_before_reservation(tmp_path: Path
                     channel="mock-im",
                     idempotency_key="notify-request-a",
                 ),
-                context,
+                checkpoint_id="checkpoint-a",
+                ctx=context,
             ),
         )
         for call in calls:
@@ -375,7 +380,10 @@ async def test_all_t06_fresh_executing_replays_return_waiting_without_adapter_ca
     assortment_adapter = InMemoryAssortmentAdapter()
     placement_adapter = InMemoryConsumerPlacementAdapter()
     notification_adapter = InMemoryMerchantNotificationAdapter()
-    approvals = SimpleNamespace(authorize_resume=AsyncMock(return_value=None))
+    approvals = SimpleNamespace(
+        authorize_resume=AsyncMock(return_value=None),
+        create=AsyncMock(return_value=SimpleNamespace(approval_id="approval-a")),
+    )
     repository = SimpleNamespace(
         load_selection=AsyncMock(return_value=_selection()),
         get_approval_binding=AsyncMock(return_value=_binding()),
@@ -411,7 +419,7 @@ async def test_all_t06_fresh_executing_replays_return_waiting_without_adapter_ca
     )
     context = SimpleNamespace(
         tenant_id=TENANT,
-        run_id="run-a",
+        run_id="run-is-not-a-checkpoint",
         correlation_id="correlation-a",
         actor=actor,
         executor=executor,
@@ -457,7 +465,17 @@ async def test_all_t06_fresh_executing_replays_return_waiting_without_adapter_ca
         )
     )
 
-    submit = await service.submit(submit_request, context)
+    approval = await service.request_assortment_approval(
+        submit_request,
+        checkpoint_id="checkpoint-a",
+        expires_at=NOW + timedelta(hours=1),
+        ctx=context,
+    )
+    submit = await service.submit(
+        submit_request,
+        checkpoint_id="checkpoint-a",
+        ctx=context,
+    )
     placement = await service.publish_consumer_placement(
         PublishConsumerPlacementArgs(
             campaign_id="campaign-a",
@@ -465,7 +483,8 @@ async def test_all_t06_fresh_executing_replays_return_waiting_without_adapter_ca
             placement_spec={"target": "consumer"},
             idempotency_key="publish-request-a",
         ),
-        context,
+        checkpoint_id="checkpoint-a",
+        ctx=context,
     )
     notification = await service.send_merchant_notification(
         SendMerchantNotificationArgs(
@@ -476,7 +495,8 @@ async def test_all_t06_fresh_executing_replays_return_waiting_without_adapter_ca
             channel="mock-im",
             idempotency_key="notify-request-a",
         ),
-        context,
+        checkpoint_id="checkpoint-a",
+        ctx=context,
     )
 
     assert (submit.replay_status, submit.submission.status) == ("waiting", "pending")
@@ -490,3 +510,10 @@ async def test_all_t06_fresh_executing_replays_return_waiting_without_adapter_ca
     assert assortment_adapter.calls == []
     assert placement_adapter.calls == []
     assert notification_adapter.calls == []
+    assert approval.approval_id == "approval-a"
+    assert approvals.create.await_args.kwargs["checkpoint_id"] == "checkpoint-a"
+    assert {
+        call.kwargs["request"].checkpoint_id for call in approvals.authorize_resume.await_args_list
+    } == {"checkpoint-a"}
+    assert ledger.reservation_checkpoints == ["checkpoint-a"] * 3
+    assert context.run_id != "checkpoint-a"
