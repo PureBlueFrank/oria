@@ -54,6 +54,7 @@ async def test_context_has_no_repository_engine_session_or_second_domain_path(
             "campaign_launch",
             "campaign_rules",
             "merchants",
+            "scenario_a",
             "selection_events",
         }
         parameters = inspect.signature(ctx.domain.merchants.eligible_merchants).parameters

@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 import pytest
+from click import Group
 from pydantic import SecretStr, ValidationError
 from typer.main import get_command
 from typer.testing import CliRunner
@@ -218,12 +220,24 @@ def test_outputs_and_serializations_do_not_leak_secrets(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_cli_and_local_identities_cannot_be_impersonated(tmp_path: Path) -> None:
     """tenant/roles 不可冒充: the CLI offers no identity flags and forged principals are denied."""
-    root_command = get_command(app)
-    config_command = root_command.commands["config"]
+    root_command = cast(Group, get_command(app))
+    config_command = cast(Group, root_command.commands["config"])
     doctor_command = config_command.commands["doctor"]
     option_names = {
         option for parameter in doctor_command.params for option in getattr(parameter, "opts", ())
     }
+    scenario_groups = [
+        cast(Group, root_command.commands[name]) for name in ("workflow", "approval", "mock")
+    ]
+    scenario_commands = [
+        command for group in scenario_groups for command in group.commands.values()
+    ]
+    option_names.update(
+        option
+        for command in scenario_commands
+        for parameter in command.params
+        for option in getattr(parameter, "opts", ())
+    )
     for forbidden_flag in ("--tenant", "--roles", "--subject", "--actor"):
         assert forbidden_flag not in option_names
 

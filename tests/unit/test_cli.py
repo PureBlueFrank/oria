@@ -1,6 +1,9 @@
 from pathlib import Path
+from typing import cast
 
 import pytest
+from click import Group
+from typer.main import get_command
 from typer.testing import CliRunner
 
 from oria import __version__
@@ -14,6 +17,22 @@ def test_version_option_reports_package_version() -> None:
 
     assert result.exit_code == 0
     assert result.stdout.strip() == __version__
+
+
+def test_scenario_a_cli_exposes_start_resume_approval_and_mock_events() -> None:
+    root = cast(Group, get_command(app))
+
+    workflow = cast(Group, root.commands["workflow"])
+    approval = cast(Group, root.commands["approval"])
+    mock = cast(Group, root.commands["mock"])
+    assert set(workflow.commands) == {"start", "resume"}
+    assert set(approval.commands) == {"approve", "reject"}
+    assert set(mock.commands) == {
+        "enrollment",
+        "window-close",
+        "selection-decision",
+        "selection-complete",
+    }
 
 
 def test_rag_eval_fails_closed_before_unreviewed_dataset_runs(
