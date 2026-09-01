@@ -49,6 +49,33 @@ def _pk_columns(connection: sqlite3.Connection, table: str) -> tuple[str, ...]:
     return tuple(str(row[1]) for row in sorted(rows, key=lambda row: int(row[5])) if int(row[5]))
 
 
+def _approval_values(action: str, status: str = "pending") -> tuple[object, ...]:
+    timestamp = "2026-09-01T00:00:00+00:00"
+    return (
+        "tenant-a",
+        f"approval-{action}",
+        action,
+        "tool-a",
+        f"sha256:{'a' * 64}",
+        "checkpoint-a",
+        "policy-v1",
+        "2026-09-02T00:00:00+00:00",
+        status,
+        "requester-a",
+        None,
+        None,
+        None,
+        timestamp,
+        timestamp,
+        None,
+        "campaign-a",
+        1,
+        1,
+        "selection-v1",
+        f"sha256:{'b' * 64}",
+    )
+
+
 def test_empty_platform_database_upgrades_to_current_head_and_rolls_back_to_base(
     tmp_path: Path,
 ) -> None:
@@ -57,7 +84,7 @@ def test_empty_platform_database_upgrades_to_current_head_and_rolls_back_to_base
 
     command.upgrade(config, "head")
 
-    assert _revision(database) == "platform_0006"
+    assert _revision(database) == "platform_0007"
     assert _tables(database) >= V03_T02_TABLES
 
     command.downgrade(config, "base")
@@ -102,3 +129,66 @@ def test_platform_0005_uses_tenant_scoped_keys_and_wait_foreign_key(tmp_path: Pa
             ("tenant_id", "tenant_id"),
             ("wait_id", "wait_id"),
         }
+
+
+def test_platform_0007_preserves_data_checks_and_indexes(tmp_path: Path) -> None:
+    database = tmp_path / "platform-0007.db"
+    config = _config(database)
+    command.upgrade(config, "platform_0006")
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+            "?, ?, ?, ?, ?)",
+            _approval_values("launch_approval"),
+        )
+        connection.commit()
+
+    command.upgrade(config, "platform_0007")
+
+    with sqlite3.connect(database) as connection:
+        preserved = connection.execute(
+            "SELECT approval_action, checkpoint_id, selection_version FROM approvals"
+        ).fetchone()
+        assert preserved == ("launch_approval", "checkpoint-a", "selection-v1")
+        connection.execute(
+            "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+            "?, ?, ?, ?, ?)",
+            _approval_values("assortment_submission_approval"),
+        )
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+                "?, ?, ?, ?, ?, ?)",
+                _approval_values("unsupported_approval"),
+            )
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+                "?, ?, ?, ?, ?, ?)",
+                _approval_values("merchant_notification_approval", "unsupported"),
+            )
+        indexes = {
+            str(row[1]) for row in connection.execute('PRAGMA index_list("approvals")').fetchall()
+        }
+        assert {
+            "ix_approvals_tenant_status_expires",
+            "ix_approvals_tenant_campaign_status",
+        } <= indexes
+
+
+def test_platform_0007_invalidated_t06_approval_blocks_downgrade(tmp_path: Path) -> None:
+    database = tmp_path / "platform-0007-downgrade.db"
+    config = _config(database)
+    command.upgrade(config, "platform_0007")
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+            "?, ?, ?, ?, ?)",
+            _approval_values("merchant_notification_approval", "invalidated"),
+        )
+        connection.commit()
+
+    with pytest.raises(RuntimeError, match="conditional T06 approvals"):
+        command.downgrade(config, "platform_0006")
+
+    assert _revision(database) == "platform_0007"

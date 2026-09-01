@@ -12,6 +12,7 @@ import pytest
 from pydantic import ValidationError
 
 import oria.data as data_module
+import oria.migrations.runner as migration_runner
 from oria.config import resolve_runtime_config
 from oria.core.runtime import build_runtime
 from oria.data import DataInitializationError, initialize_data
@@ -134,7 +135,7 @@ def test_missing_or_modified_package_assets_fail_closed(tmp_path: Path) -> None:
     shutil.copytree(source_demo, demo_copy)
     shutil.copytree(source_migrations, migrations_copy)
     assert loader._verify_demo_tree(demo_copy).version == "1.0.0"
-    assert loader._verify_migration_tree(migrations_copy)["business"] == "business_0008"
+    assert loader._verify_migration_tree(migrations_copy)["business"] == "business_0009"
 
     (demo_copy / "campaign_rules.v1.json").write_text("{}\n", encoding="utf-8")
     with pytest.raises(PackageAssetError, match="integrity"):
@@ -143,6 +144,35 @@ def test_missing_or_modified_package_assets_fail_closed(tmp_path: Path) -> None:
     (migrations_copy / "business" / "versions" / "business_0001_merchants.py").unlink()
     with pytest.raises(PackageAssetError, match="unavailable"):
         loader._verify_migration_tree(migrations_copy)
+
+
+def test_unlisted_migration_file_fails_exact_tree_verification(tmp_path: Path) -> None:
+    source_migrations = Path(str(loader.resources.files("oria.migrations")))
+    migrations_copy = tmp_path / "migrations"
+    shutil.copytree(source_migrations, migrations_copy)
+    (migrations_copy / "business" / "versions" / "business_9999_unlisted.py").write_text(
+        "revision = 'business_9999'\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PackageAssetError, match="exact installed tree"):
+        loader._verify_migration_tree(migrations_copy)
+
+
+def test_manifest_head_mismatch_fails_before_database_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = _config(tmp_path)
+    monkeypatch.setattr(
+        migration_runner,
+        "_installed_migration_heads",
+        lambda: {"platform": "platform_0006", "business": "business_0009"},
+    )
+
+    with pytest.raises(migration_runner.MigrationError, match="verified manifest"):
+        migration_runner.upgrade_databases(config)
+
+    assert not config.data_dir.exists()
 
 
 @pytest.mark.asyncio
@@ -193,7 +223,7 @@ async def test_stamped_head_cannot_skip_schema_creation(tmp_path: Path) -> None:
     config.data_paths.platform_db.parent.mkdir(parents=True)
     with sqlite3.connect(config.data_paths.platform_db) as connection:
         connection.execute("CREATE TABLE alembic_version_platform (version_num TEXT NOT NULL)")
-        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0006')")
+        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0007')")
         connection.commit()
 
     with pytest.raises(DataInitializationError, match="failed closed"):
@@ -209,7 +239,7 @@ async def test_stamped_head_with_lookalike_tables_cannot_skip_schema_creation(
     config.data_paths.platform_db.parent.mkdir(parents=True)
     with sqlite3.connect(config.data_paths.platform_db) as connection:
         connection.execute("CREATE TABLE alembic_version_platform (version_num TEXT NOT NULL)")
-        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0006')")
+        connection.execute("INSERT INTO alembic_version_platform VALUES ('platform_0007')")
         connection.execute("CREATE TABLE documents (wrong TEXT)")
         connection.execute("CREATE TABLE document_versions (wrong TEXT)")
         connection.execute("CREATE TABLE ingestion_runs (wrong TEXT)")
@@ -232,4 +262,4 @@ async def test_revision_from_other_database_chain_is_rejected(tmp_path: Path) ->
         await initialize_data(config)
     with sqlite3.connect(config.data_paths.business_db) as connection:
         revision = connection.execute("SELECT version_num FROM alembic_version_business").fetchone()
-    assert revision == ("business_0008",)
+    assert revision == ("business_0009",)

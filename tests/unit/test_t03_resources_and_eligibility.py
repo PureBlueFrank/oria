@@ -53,7 +53,7 @@ def test_installed_resource_contract_declares_six_synthetic_rule_categories() ->
     assert len(manifest.rule_categories) == 6
     assert manifest.dataset_id == "oria-synthetic-merchant-recruitment"
     assert manifest.version == bundle.rules.version == bundle.merchants.version == "1.0.0"
-    assert heads == {"platform": "platform_0006", "business": "business_0008"}
+    assert heads == {"platform": "platform_0007", "business": "business_0009"}
     assert len(bundle.merchants.merchants) == 12
 
 

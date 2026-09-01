@@ -12,7 +12,7 @@ from typing import Any
 from oria.domain.models import CampaignRuleSet, MerchantSeedSet
 
 _DEMO_MANIFEST_SHA256 = "6bd1a51f62fb7244f1cf1584d3e139c21425c826be9268cefdcb2e64190539fc"
-_MIGRATION_MANIFEST_SHA256 = "756a0105726b331a0dd3dfccc2d8abf3e4946f85a9cf7f54b3510614d9cb353f"
+_MIGRATION_MANIFEST_SHA256 = "eb9c456a19eb2bcdc1a2d2e07ffa5834b44f84849ac61ffc44bb3d9b869f475f"
 RULE_CATEGORIES = (
     "basic",
     "recruitment_scope",
@@ -89,6 +89,23 @@ def _verify_files(root: Traversable, files: object, label: str) -> tuple[str, ..
     return tuple(verified)
 
 
+def _migration_tree_files(root: Traversable, target: str) -> frozenset[str]:
+    chain_root = root.joinpath(target)
+    versions_root = chain_root.joinpath("versions")
+    try:
+        files = {f"{target}/env.py"} if chain_root.joinpath("env.py").is_file() else set()
+        files.update(
+            f"{target}/versions/{path.name}"
+            for path in versions_root.iterdir()
+            if path.is_file() and path.name.endswith(".py") and path.name != "__init__.py"
+        )
+    except OSError as exc:
+        raise PackageAssetError(
+            f"required package asset is unavailable: migrations/{target}"
+        ) from exc
+    return frozenset(files)
+
+
 def _verify_demo_tree(root: Traversable) -> VerifiedAssetManifest:
     manifest = _verified_manifest(
         root,
@@ -135,7 +152,11 @@ def _verify_migration_tree(root: Traversable) -> dict[str, str]:
         head = chain.get("head")
         if not isinstance(head, str) or not head.startswith(f"{target}_"):
             raise PackageAssetError(f"migration chain head has the wrong namespace: {target}")
-        _verify_files(root, chain.get("files"), f"migrations/{target}")
+        files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+        if frozenset(files) != _migration_tree_files(root, target):
+            raise PackageAssetError(
+                f"migration manifest does not match the exact installed tree: {target}"
+            )
         heads[target] = head
     return heads
 

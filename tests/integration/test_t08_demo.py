@@ -123,6 +123,7 @@ def test_cli_auto_initializes_repeats_offline_and_emits_correlated_json(
     assert first.run_id != second.run_id
     assert first.validation.business_tables == (
         "alembic_version_business",
+        "assortment_submission_items",
         "assortment_submissions",
         "audit_events",
         "campaign_approval_bindings",

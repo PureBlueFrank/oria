@@ -25,6 +25,7 @@ V03_TABLES = {
     "enrollment_coupon_links",
     "confirmation_tasks",
     "assortment_submissions",
+    "assortment_submission_items",
     "selection_decisions",
     "consumer_placements",
     "merchant_notifications",
@@ -114,7 +115,7 @@ def test_empty_business_database_upgrades_to_v03_and_rolls_back_to_base(
 
     command.upgrade(config, "head")
 
-    assert _revision(database) == "business_0008"
+    assert _revision(database) == "business_0009"
     assert V03_TABLES | {"merchants"} <= _tables(database)
 
     command.downgrade(config, "base")

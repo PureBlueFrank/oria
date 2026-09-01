@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "chains": {
     "platform": {
-      "head": "platform_0006",
+      "head": "platform_0007",
       "files": {
         "platform/env.py": "f8d7eec2019cd15696294fbe56ee24c23c0b9bc57aa22c78b5133b9bb43e83af",
         "platform/versions/platform_0001_catalog.py": "231ecf5361e84a3ba0a4d2861405bd6cd02a30dc62fd2d9212d77cff8a6e1771",
@@ -10,11 +10,12 @@
         "platform/versions/platform_0003_acl_audit_outbox.py": "404e347b15be9d4cc84856cab32fa64d1c7773120f161ecc710d4c2271b4920c",
         "platform/versions/platform_0004_document_version_lifecycle.py": "c92dc84e9ef20f0e0882f2da58013dbea2a0acb456d3c16afc7ad298c808e7ee",
         "platform/versions/platform_0005_approval_event_inbox.py": "04aa520731ab8b823bf81b6368efda0a52dc5e90c2fb7c91c7ea2091ea6cd6d0",
-        "platform/versions/platform_0006_approval_binding_invalidations.py": "381f6d973a8a1f17817ce3501e807ca209581a7fa4130d6d674ff054416f009e"
+        "platform/versions/platform_0006_approval_binding_invalidations.py": "381f6d973a8a1f17817ce3501e807ca209581a7fa4130d6d674ff054416f009e",
+        "platform/versions/platform_0007_conditional_tool_approvals.py": "381006ffdedca1539a23951a74194d238ea140e8077a8f740aa754c13d511ee6"
       }
     },
     "business": {
-      "head": "business_0008",
+      "head": "business_0009",
       "files": {
         "business/env.py": "7628d5dc806bcc58b2cfaf14f9100876ea6c706afedc24991ae80f02fe68c491",
         "business/versions/business_0001_merchants.py": "7cbcd8134a2345f9f9ac1de8a676a1158ab8f118038ed75d2cbdd8ec34e0ec07",
@@ -24,7 +25,8 @@
         "business/versions/business_0005_product_snapshot_merchant_identity.py": "a9beadadea8eb6b2616557b798b5535074a64ce0a9653ddf626d0a1c23b54a71",
         "business/versions/business_0006_execution_request_keys.py": "2d9ab04f57008c9b952ccf55bf92931fc773509b79123c684b581c38a22387ab",
         "business/versions/business_0007_confirmation_chain_states.py": "0c0e37c5b29f1880249e653b04cef545b5ad2cc34d73b2e6e326280fc2cd4877",
-        "business/versions/business_0008_campaign_approval_bindings.py": "a3aeaf952d9b8d7200cb7d1a5ff3b360d16966683bc265fb69ef85d09e032565"
+        "business/versions/business_0008_campaign_approval_bindings.py": "a3aeaf952d9b8d7200cb7d1a5ff3b360d16966683bc265fb69ef85d09e032565",
+        "business/versions/business_0009_assortment_submission_items.py": "ef024b3e84bf6ff848d2e9b922b8c4f100fc18591700a2850255f3f8fb24cbea"
       }
     }
   }

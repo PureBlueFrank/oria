@@ -51,8 +51,8 @@ async def test_two_empty_databases_upgrade_seed_and_repeat_idempotently(tmp_path
 
     assert first.merchants_inserted == 12
     assert second.merchants_inserted == 0
-    assert first.platform_revision == second.platform_revision == "platform_0006"
-    assert first.business_revision == second.business_revision == "business_0008"
+    assert first.platform_revision == second.platform_revision == "platform_0007"
+    assert first.business_revision == second.business_revision == "business_0009"
     assert first.saver_setup is second.saver_setup is True
     platform_tables = _tables(config.data_paths.platform_db)
     business_tables = _tables(config.data_paths.business_db)
@@ -77,8 +77,8 @@ async def test_two_empty_databases_upgrade_seed_and_repeat_idempotently(tmp_path
     }.issubset(business_tables)
     assert "merchants" not in platform_tables
     assert not {"documents", "document_versions", "ingestion_runs"}.intersection(business_tables)
-    assert _revision(config.data_paths.platform_db, "alembic_version_platform") == "platform_0006"
-    assert _revision(config.data_paths.business_db, "alembic_version_business") == "business_0008"
+    assert _revision(config.data_paths.platform_db, "alembic_version_platform") == "platform_0007"
+    assert _revision(config.data_paths.business_db, "alembic_version_business") == "business_0009"
 
 
 @pytest.mark.asyncio

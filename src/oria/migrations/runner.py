@@ -8,6 +8,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from alembic.util.exc import CommandError
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -273,6 +274,13 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("assortment_policy_version", "VARCHAR", 1, 0),
             ("status", "VARCHAR", 1, 0),
         ),
+        "assortment_submission_items": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("campaign_id", "VARCHAR", 1, 2),
+            ("submission_version", "VARCHAR", 1, 3),
+            ("enrollment_item_id", "VARCHAR", 1, 4),
+            ("created_at", "DATETIME", 1, 0),
+        ),
         "selection_decisions": _business_columns(
             "selection_decision_id",
             ("campaign_id", "VARCHAR", 1, 0),
@@ -498,6 +506,22 @@ _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
         "assortment_submissions": frozenset(
             {("campaigns", (("tenant_id", "tenant_id"), ("campaign_id", "campaign_id")))}
         ),
+        "assortment_submission_items": frozenset(
+            {
+                (
+                    "assortment_submissions",
+                    (
+                        ("tenant_id", "tenant_id"),
+                        ("campaign_id", "campaign_id"),
+                        ("submission_version", "submission_version"),
+                    ),
+                ),
+                (
+                    "enrollment_items",
+                    (("tenant_id", "tenant_id"), ("enrollment_item_id", "enrollment_item_id")),
+                ),
+            }
+        ),
         "selection_decisions": frozenset(
             {
                 (
@@ -584,6 +608,22 @@ def _upgrade_target(target: str, database_path: Path) -> None:
         raise MigrationError(f"{target} database migration failed") from exc
 
 
+def _installed_migration_heads() -> dict[str, str]:
+    heads: dict[str, str] = {}
+    for target in ("platform", "business"):
+        script = resources.files(f"oria.migrations.{target}")
+        config = Config()
+        config.set_main_option("script_location", str(script))
+        try:
+            actual_heads = ScriptDirectory.from_config(config).get_heads()
+        except (CommandError, OSError) as exc:
+            raise MigrationError(f"{target} migration tree verification failed") from exc
+        if len(actual_heads) != 1:
+            raise MigrationError(f"{target} migration tree must have exactly one head")
+        heads[target] = actual_heads[0]
+    return heads
+
+
 def _column_signature(connection: sqlite3.Connection, table: str) -> tuple[ColumnSignature, ...]:
     rows = connection.execute(f'PRAGMA table_info("{table}")').fetchall()
     return tuple((str(row[1]), str(row[2]).upper(), int(row[3]), int(row[5])) for row in rows)
@@ -644,12 +684,20 @@ def upgrade_databases(config: ResolvedRuntimeConfig) -> MigrationResult:
         heads = verify_migration_assets()
     except PackageAssetError as exc:
         raise MigrationError("installed migration assets failed verification") from exc
+    if _installed_migration_heads() != heads:
+        raise MigrationError("installed migration heads do not match the verified manifest")
     platform_db, business_db = _assert_paths(config)
     platform_db.parent.mkdir(parents=True, exist_ok=True)
     _upgrade_target("platform", platform_db)
     _validate_target("platform", platform_db, heads["platform"])
-    _upgrade_target("business", business_db)
-    _validate_target("business", business_db, heads["business"])
+    try:
+        _upgrade_target("business", business_db)
+        _validate_target("business", business_db, heads["business"])
+    except MigrationError as exc:
+        raise MigrationError(
+            "business migration failed after platform upgrade; correct the failure and rerun "
+            "initialization to converge both databases"
+        ) from exc
     return MigrationResult(
         platform_revision=heads["platform"],
         business_revision=heads["business"],
