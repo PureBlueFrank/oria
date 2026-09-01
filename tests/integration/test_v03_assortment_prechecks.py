@@ -183,6 +183,9 @@ async def test_all_t06_precheck_denials_happen_before_reservation(tmp_path: Path
     repository = SimpleNamespace(
         load_selection=AsyncMock(return_value=_selection()),
         get_approval_binding=AsyncMock(return_value=_binding()),
+        submission_outcome_projection=lambda **_: object(),
+        placement_outcome_projection=lambda **_: object(),
+        notification_outcome_projection=lambda **_: object(),
         notification_message=AsyncMock(
             return_value=MerchantNotificationMessage(
                 merchant_id="merchant-a",
@@ -376,6 +379,9 @@ async def test_all_t06_fresh_executing_replays_return_waiting_without_adapter_ca
     repository = SimpleNamespace(
         load_selection=AsyncMock(return_value=_selection()),
         get_approval_binding=AsyncMock(return_value=_binding()),
+        submission_outcome_projection=lambda **_: object(),
+        placement_outcome_projection=lambda **_: object(),
+        notification_outcome_projection=lambda **_: object(),
         notification_message=AsyncMock(
             return_value=MerchantNotificationMessage(
                 merchant_id="merchant-a",

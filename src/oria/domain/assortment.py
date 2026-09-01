@@ -24,6 +24,8 @@ from oria.core.execution_ledger import (
     ExecutionEventBundle,
     ExecutionLedger,
     ExecutionOutcome,
+    OutcomeProjectionMutation,
+    ProjectionOutcome,
 )
 from oria.core.integration_events import (
     ConsumedIntegrationInbox,
@@ -440,6 +442,13 @@ class AssortmentWorkflowRepository(Protocol):
         outcome: ExecutionOutcome,
     ) -> None: ...
 
+    def submission_outcome_projection(
+        self,
+        *,
+        execution_id: str,
+        submission: AssortmentSubmission,
+    ) -> OutcomeProjectionMutation: ...
+
     async def load_submission(
         self, *, tenant_id: str, campaign_id: str, submission_version: str
     ) -> tuple[AssortmentSubmission, tuple[str, ...]]: ...
@@ -487,6 +496,13 @@ class AssortmentWorkflowRepository(Protocol):
         outcome: ExecutionOutcome,
     ) -> None: ...
 
+    def placement_outcome_projection(
+        self,
+        *,
+        execution_id: str,
+        placement: ConsumerPlacement,
+    ) -> OutcomeProjectionMutation: ...
+
     async def load_placement(self, *, tenant_id: str, placement_id: str) -> ConsumerPlacement: ...
 
     async def notification_message(
@@ -506,6 +522,14 @@ class AssortmentWorkflowRepository(Protocol):
         *,
         notification: MerchantNotification,
     ) -> None: ...
+
+    def notification_outcome_projection(
+        self,
+        *,
+        execution_id: str,
+        notification: MerchantNotification,
+        outcome: ProjectionOutcome,
+    ) -> OutcomeProjectionMutation: ...
 
     async def load_notification(
         self, *, tenant_id: str, notification_id: str
@@ -665,9 +689,9 @@ class AssortmentService:
             raise RuntimeError("assortment canonical binding changed during execution")
         now = self._now()
 
-        def write_for(outcome: ExecutionOutcome) -> BusinessMutation:
+        def submission_for(outcome: ExecutionOutcome) -> AssortmentSubmission:
             status = {"succeeded": "submitted", "failed": "failed", "unknown": "unknown"}[outcome]
-            submission = AssortmentSubmission(
+            return AssortmentSubmission(
                 tenant_id=ctx.tenant_id,
                 assortment_submission_id=_stable_id(
                     "assortment_submission", ctx.tenant_id, request.campaign_id, submission_version
@@ -682,6 +706,9 @@ class AssortmentService:
                 updated_at=now,
             )
 
+        def success_write() -> BusinessMutation:
+            submission = submission_for("succeeded")
+
             async def write(session: AsyncSession) -> None:
                 await self._repository.persist_submission_outcome(
                     session,
@@ -690,10 +717,16 @@ class AssortmentService:
                     candidate_set=candidate_set,
                     product_criteria=product_criteria,
                     expected_campaign_version=campaign.version,
-                    outcome=outcome,
+                    outcome="succeeded",
                 )
 
             return write
+
+        def projection_for(outcome: ProjectionOutcome) -> OutcomeProjectionMutation:
+            return self._repository.submission_outcome_projection(
+                execution_id=execution.execution_id,
+                submission=submission_for(outcome),
+            )
 
         def events_for(outcome: ExecutionOutcome) -> ExecutionEventBundle:
             return _execution_events(
@@ -712,7 +745,7 @@ class AssortmentService:
             events = events_for("unknown")
             execution = await self._ledger.recover_stale_executing(
                 execution,
-                business_write=write_for("unknown"),
+                outcome_projection=projection_for("unknown"),
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
                 outbox_records=events.outbox_records,
@@ -740,7 +773,8 @@ class AssortmentService:
         execution = await self._ledger.execute(
             execution,
             invoke,
-            outcome_business_write=write_for,
+            business_write=success_write(),
+            outcome_projection=projection_for,
             outcome_events=events_for,
         )
         return await self._submission_result(request, execution, submission_version)
@@ -997,9 +1031,9 @@ class AssortmentService:
             raise RuntimeError("consumer placement canonical binding changed during execution")
         now = self._now()
 
-        def write_for(outcome: ExecutionOutcome) -> BusinessMutation:
+        def placement_for(outcome: ExecutionOutcome) -> ConsumerPlacement:
             status = {"succeeded": "published", "failed": "failed", "unknown": "unknown"}[outcome]
-            placement = ConsumerPlacement(
+            return ConsumerPlacement(
                 tenant_id=ctx.tenant_id,
                 consumer_placement_id=placement_id,
                 campaign_id=request.campaign_id,
@@ -1013,16 +1047,25 @@ class AssortmentService:
                 updated_at=now,
             )
 
+        def success_write() -> BusinessMutation:
+            placement = placement_for("succeeded")
+
             async def write(session: AsyncSession) -> None:
                 await self._repository.persist_placement_outcome(
                     session,
                     placement=placement,
                     expected_binding=selection.binding,
                     selected_item_ids=selected_ids,
-                    outcome=outcome,
+                    outcome="succeeded",
                 )
 
             return write
+
+        def projection_for(outcome: ProjectionOutcome) -> OutcomeProjectionMutation:
+            return self._repository.placement_outcome_projection(
+                execution_id=execution.execution_id,
+                placement=placement_for(outcome),
+            )
 
         def events_for(outcome: ExecutionOutcome) -> ExecutionEventBundle:
             return _execution_events(
@@ -1041,7 +1084,7 @@ class AssortmentService:
             events = events_for("unknown")
             execution = await self._ledger.recover_stale_executing(
                 execution,
-                business_write=write_for("unknown"),
+                outcome_projection=projection_for("unknown"),
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
                 outbox_records=events.outbox_records,
@@ -1070,7 +1113,8 @@ class AssortmentService:
         execution = await self._ledger.execute(
             execution,
             invoke,
-            outcome_business_write=write_for,
+            business_write=success_write(),
+            outcome_projection=projection_for,
             outcome_events=events_for,
         )
         return await self._placement_result(request, execution, placement_id)
@@ -1164,8 +1208,8 @@ class AssortmentService:
         now = self._now()
         attempts = [0]
 
-        def write_for(outcome: ExecutionOutcome) -> BusinessMutation:
-            notification = MerchantNotification(
+        def notification_for(outcome: ExecutionOutcome) -> MerchantNotification:
+            return MerchantNotification(
                 tenant_id=ctx.tenant_id,
                 merchant_notification_id=notification_id,
                 merchant_id=request.merchant_id,
@@ -1181,6 +1225,9 @@ class AssortmentService:
                 updated_at=now,
             )
 
+        def success_write() -> BusinessMutation:
+            notification = notification_for("succeeded")
+
             async def write(session: AsyncSession) -> None:
                 await self._repository.persist_notification_outcome(
                     session,
@@ -1188,6 +1235,13 @@ class AssortmentService:
                 )
 
             return write
+
+        def projection_for(outcome: ProjectionOutcome) -> OutcomeProjectionMutation:
+            return self._repository.notification_outcome_projection(
+                execution_id=execution.execution_id,
+                notification=notification_for(outcome),
+                outcome=outcome,
+            )
 
         def events_for(outcome: ExecutionOutcome) -> ExecutionEventBundle:
             return _execution_events(
@@ -1206,7 +1260,7 @@ class AssortmentService:
             events = events_for("unknown")
             execution = await self._ledger.recover_stale_executing(
                 execution,
-                business_write=write_for("unknown"),
+                outcome_projection=projection_for("unknown"),
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
                 outbox_records=events.outbox_records,
@@ -1241,7 +1295,8 @@ class AssortmentService:
         execution = await self._ledger.execute(
             execution,
             invoke,
-            outcome_business_write=write_for,
+            business_write=success_write(),
+            outcome_projection=projection_for,
             outcome_events=events_for,
         )
         return await self._notification_result(request, execution, notification_id)

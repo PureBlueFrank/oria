@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Literal
 
 import pytest
 from sqlalchemy import text
@@ -24,6 +26,24 @@ NOW = datetime(2026, 8, 30, 16, 0, tzinfo=UTC)
 HASH_A = f"sha256:{'a' * 64}"
 HASH_B = f"sha256:{'b' * 64}"
 TENANT = "local-community"
+
+
+@dataclass(frozen=True, slots=True)
+class _MerchantReconciliationProjection:
+    tenant_id: str
+    execution_id: str
+    aggregate_type: str
+    aggregate_id: str
+    outcome: Literal["failed", "unknown"]
+
+    async def apply(self, session: AsyncSession) -> None:
+        await session.execute(
+            text(
+                "UPDATE merchants SET version = version + 1 WHERE tenant_id = :tenant_id "
+                "AND merchant_id = 'demo-m001'"
+            ),
+            {"tenant_id": self.tenant_id},
+        )
 
 
 class _Clock:
@@ -170,15 +190,6 @@ async def test_stale_executing_is_atomically_moved_to_reconciliation_without_rei
             adapter_calls += 1
             raise AssertionError("stale recovery must not invoke the adapter")
 
-        async def write_reconciliation_projection(session: AsyncSession) -> None:
-            await session.execute(
-                text(
-                    "UPDATE merchants SET version = version + 1 WHERE tenant_id = :tenant_id "
-                    "AND merchant_id = 'demo-m001'"
-                ),
-                {"tenant_id": TENANT},
-            )
-
         outbox = OutboxRecord(
             event_id="event_stale_unknown",
             tenant_id=TENANT,
@@ -189,7 +200,13 @@ async def test_stale_executing_is_atomically_moved_to_reconciliation_without_rei
         )
         unknown = await ledger.recover_stale_executing(
             executing,
-            business_write=write_reconciliation_projection,
+            outcome_projection=_MerchantReconciliationProjection(
+                tenant_id=TENANT,
+                execution_id=executing.execution_id,
+                aggregate_type="consumer_placement",
+                aggregate_id="placement_1",
+                outcome="unknown",
+            ),
             audit_events=[_unknown_audit().model_copy(update={"event_id": "audit_stale_unknown"})],
             outbox_records=[outbox],
         )

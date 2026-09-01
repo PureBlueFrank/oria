@@ -6,7 +6,7 @@ import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Literal, TypeAlias
+from typing import Literal, Protocol, TypeAlias
 
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -26,6 +26,19 @@ from oria.storage.ledger import (
 BusinessMutation: TypeAlias = Callable[[AsyncSession], Awaitable[None]]
 ExternalInvocation: TypeAlias = Callable[[str], Awaitable[Receipt]]
 ExecutionOutcome: TypeAlias = Literal["succeeded", "failed", "unknown"]
+ProjectionOutcome: TypeAlias = Literal["failed", "unknown"]
+
+
+class OutcomeProjectionMutation(Protocol):
+    """A failed/unknown projection bound to one exact execution aggregate."""
+
+    tenant_id: str
+    execution_id: str
+    aggregate_type: str
+    aggregate_id: str
+    outcome: ProjectionOutcome
+
+    async def apply(self, session: AsyncSession) -> None: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,7 +49,7 @@ class ExecutionEventBundle:
 
 
 OutcomeEventFactory: TypeAlias = Callable[[ExecutionOutcome], ExecutionEventBundle]
-OutcomeBusinessWriteFactory: TypeAlias = Callable[[ExecutionOutcome], BusinessMutation | None]
+OutcomeProjectionFactory: TypeAlias = Callable[[ProjectionOutcome], OutcomeProjectionMutation]
 
 _HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -143,7 +156,7 @@ class ExecutionLedger:
         self,
         execution: ToolExecution,
         *,
-        business_write: BusinessMutation | None = None,
+        outcome_projection: OutcomeProjectionMutation | None = None,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
         outbox_records: Sequence[OutboxRecord] = (),
@@ -159,7 +172,7 @@ class ExecutionLedger:
                 execution,
                 "unknown",
                 expected_status="executing",
-                business_write=business_write,
+                outcome_projection=outcome_projection,
                 compensation_status="reconciliation_required",
                 domain_events=domain_events,
                 audit_events=audit_events,
@@ -254,6 +267,7 @@ class ExecutionLedger:
         execution: ToolExecution,
         *,
         business_write: BusinessMutation | None = None,
+        outcome_projection: OutcomeProjectionMutation | None = None,
         compensation_status: str | None = None,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
@@ -264,6 +278,7 @@ class ExecutionLedger:
             "failed",
             expected_status="executing",
             business_write=business_write,
+            outcome_projection=outcome_projection,
             compensation_status=compensation_status,
             domain_events=domain_events,
             audit_events=audit_events,
@@ -275,6 +290,7 @@ class ExecutionLedger:
         execution: ToolExecution,
         *,
         business_write: BusinessMutation | None = None,
+        outcome_projection: OutcomeProjectionMutation | None = None,
         receipt_id: str | None = None,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
@@ -285,6 +301,7 @@ class ExecutionLedger:
             "unknown",
             expected_status="executing",
             business_write=business_write,
+            outcome_projection=outcome_projection,
             receipt_id=receipt_id,
             compensation_status="reconciliation_required",
             domain_events=domain_events,
@@ -300,6 +317,7 @@ class ExecutionLedger:
         receipt_id: str | None = None,
         compensation_status: str | None = None,
         business_write: BusinessMutation | None = None,
+        outcome_projection: OutcomeProjectionMutation | None = None,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
         outbox_records: Sequence[OutboxRecord] = (),
@@ -312,6 +330,7 @@ class ExecutionLedger:
             receipt_id=receipt_id,
             compensation_status=compensation_status,
             business_write=business_write,
+            outcome_projection=outcome_projection,
             domain_events=domain_events,
             audit_events=audit_events,
             outbox_records=outbox_records,
@@ -327,7 +346,7 @@ class ExecutionLedger:
         audit_events: Sequence[EventEnvelope] = (),
         outbox_records: Sequence[OutboxRecord] = (),
         outcome_events: OutcomeEventFactory | None = None,
-        outcome_business_write: OutcomeBusinessWriteFactory | None = None,
+        outcome_projection: OutcomeProjectionFactory | None = None,
     ) -> ToolExecution:
         """Run one reserved side effect; retries return history without reinvocation."""
         if reservation.status != "reserved":
@@ -360,8 +379,8 @@ class ExecutionLedger:
             )
             return await self.record_unknown(
                 executing,
-                business_write=(
-                    None if outcome_business_write is None else outcome_business_write("unknown")
+                outcome_projection=(
+                    None if outcome_projection is None else outcome_projection("unknown")
                 ),
                 receipt_id=exc.receipt_id,
                 domain_events=events.domain_events,
@@ -378,8 +397,8 @@ class ExecutionLedger:
             )
             await self.record_failure(
                 executing,
-                business_write=(
-                    None if outcome_business_write is None else outcome_business_write("failed")
+                outcome_projection=(
+                    None if outcome_projection is None else outcome_projection("failed")
                 ),
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
@@ -397,11 +416,7 @@ class ExecutionLedger:
             return await self.record_success(
                 executing,
                 receipt.receipt_id,
-                business_write=(
-                    business_write
-                    if outcome_business_write is None
-                    else outcome_business_write("succeeded")
-                ),
+                business_write=business_write,
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
                 outbox_records=events.outbox_records,
@@ -416,8 +431,8 @@ class ExecutionLedger:
             )
             return await self.record_unknown(
                 executing,
-                business_write=(
-                    None if outcome_business_write is None else outcome_business_write("unknown")
+                outcome_projection=(
+                    None if outcome_projection is None else outcome_projection("unknown")
                 ),
                 receipt_id=receipt.receipt_id,
                 domain_events=events.domain_events,
@@ -433,8 +448,8 @@ class ExecutionLedger:
         )
         return await self.record_failure(
             executing,
-            business_write=(
-                None if outcome_business_write is None else outcome_business_write("failed")
+            outcome_projection=(
+                None if outcome_projection is None else outcome_projection("failed")
             ),
             domain_events=events.domain_events,
             audit_events=events.audit_events,
@@ -462,10 +477,17 @@ class ExecutionLedger:
         receipt_id: str | None = None,
         compensation_status: str | None = None,
         business_write: BusinessMutation | None = None,
+        outcome_projection: OutcomeProjectionMutation | None = None,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
         outbox_records: Sequence[OutboxRecord] = (),
     ) -> ToolExecution:
+        if outcome == "succeeded" and outcome_projection is not None:
+            raise ValueError("successful outcomes cannot apply a failure projection")
+        if outcome != "succeeded" and business_write is not None:
+            raise ValueError("business state writes require a confirmed successful outcome")
+        if outcome_projection is not None:
+            self._validate_outcome_projection(execution, outcome, outcome_projection)
         self._validate_tenant_bundle(
             execution,
             domain_events=domain_events,
@@ -476,6 +498,8 @@ class ExecutionLedger:
             async with self._sessions.begin() as session:
                 if business_write is not None:
                     await business_write(session)
+                if outcome_projection is not None:
+                    await outcome_projection.apply(session)
                 transitioned = await self._tools._transition(
                     session,
                     tenant_id=execution.tenant_id,
@@ -499,6 +523,21 @@ class ExecutionLedger:
             raise ValueError("business outcome event already exists") from exc
         except SQLAlchemyError as exc:
             raise LedgerRepositoryError("business execution outcome persistence failed") from exc
+
+    @staticmethod
+    def _validate_outcome_projection(
+        execution: ToolExecution,
+        outcome: ExecutionOutcome,
+        projection: OutcomeProjectionMutation,
+    ) -> None:
+        if outcome not in {"failed", "unknown"} or projection.outcome != outcome:
+            raise ValueError("outcome projection does not match the terminal outcome")
+        if projection.tenant_id != execution.tenant_id:
+            raise ValueError("cross-tenant outcome projection is forbidden")
+        if projection.execution_id != execution.execution_id:
+            raise ValueError("outcome projection execution binding does not match")
+        if not projection.aggregate_type or not projection.aggregate_id:
+            raise ValueError("outcome projection aggregate identity is required")
 
     @staticmethod
     def _validate_tenant_bundle(

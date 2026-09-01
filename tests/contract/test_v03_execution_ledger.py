@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import Literal
 
 import pytest
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import oria.domain.ledger as _domain_ledger  # noqa: F401  # Initialize domain package first.
 from oria.config import resolve_runtime_config
 from oria.core.execution_ledger import ExecutionLedger
 from oria.core.types import EventEnvelope, ResourceRef
@@ -39,6 +42,18 @@ class _Clock:
 class _ToolArgs(BaseModel):
     campaign_id: str
     amount: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class _NoopOutcomeProjection:
+    tenant_id: str
+    execution_id: str
+    aggregate_type: str
+    aggregate_id: str
+    outcome: Literal["failed", "unknown"]
+
+    async def apply(self, session: AsyncSession) -> None:
+        del session
 
 
 def _config(tmp_path: Path):
@@ -292,3 +307,64 @@ async def test_business_state_ledger_and_events_roll_back_as_one_transaction(
 
     assert row == ("executing", 1)
     assert outbox_count == 0
+
+
+@pytest.mark.asyncio
+async def test_failed_outcomes_reject_business_writes_and_validate_narrow_projection(
+    tmp_path: Path,
+) -> None:
+    config = _config(tmp_path)
+    await initialize_data(config)
+
+    async with DatabaseResources(config) as databases:
+        ledger = ExecutionLedger(databases.business_sessions, clock=_Clock())
+        executing = await ledger.mark_executing(await ledger.reserve(_reservation("exec_guard")))
+
+        async def forbidden_success_write(session: AsyncSession) -> None:
+            await session.execute(
+                text(
+                    "UPDATE merchants SET version = version + 1 WHERE tenant_id = :tenant_id "
+                    "AND merchant_id = 'demo-m001'"
+                ),
+                {"tenant_id": TENANT},
+            )
+
+        with pytest.raises(
+            ValueError, match="business state writes require a confirmed successful outcome"
+        ):
+            await ledger.record_failure(executing, business_write=forbidden_success_write)
+        with pytest.raises(ValueError, match="execution binding does not match"):
+            await ledger.record_failure(
+                executing,
+                outcome_projection=_NoopOutcomeProjection(
+                    tenant_id=TENANT,
+                    execution_id="another-execution",
+                    aggregate_type="consumer_placement",
+                    aggregate_id="placement-a",
+                    outcome="failed",
+                ),
+            )
+        failed = await ledger.record_failure(
+            executing,
+            outcome_projection=_NoopOutcomeProjection(
+                tenant_id=TENANT,
+                execution_id=executing.execution_id,
+                aggregate_type="consumer_placement",
+                aggregate_id="placement-a",
+                outcome="failed",
+            ),
+        )
+        async with databases.business_sessions() as session:
+            row = (
+                await session.execute(
+                    text(
+                        "SELECT status, (SELECT version FROM merchants WHERE tenant_id = "
+                        ":tenant_id AND merchant_id = 'demo-m001') FROM tool_executions "
+                        "WHERE execution_id = 'exec_guard'"
+                    ),
+                    {"tenant_id": TENANT},
+                )
+            ).one()
+
+    assert failed.status == "failed"
+    assert row == ("failed", 1)

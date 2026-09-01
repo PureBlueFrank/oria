@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, cast
 
@@ -11,7 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from oria.core.approvals import ApprovalBusinessBinding
-from oria.core.execution_ledger import ExecutionOutcome
+from oria.core.execution_ledger import ExecutionOutcome, ProjectionOutcome
 from oria.domain.assortment import (
     AssortmentCandidateSet,
     AssortmentSelection,
@@ -39,6 +40,20 @@ from oria.storage.repositories import (
     SQLiteProductSnapshotRepository,
     SQLiteSelectionDecisionRepository,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class _SQLiteAssortmentOutcomeProjection:
+    repository: SQLiteAssortmentWorkflowRepository
+    tenant_id: str
+    execution_id: str
+    aggregate_type: str
+    aggregate_id: str
+    outcome: ProjectionOutcome
+    entity: AssortmentSubmission | ConsumerPlacement | MerchantNotification
+
+    async def apply(self, session: AsyncSession) -> None:
+        await self.repository._persist_outcome_projection(session, self)
 
 
 class SQLiteAssortmentWorkflowRepository:
@@ -103,6 +118,10 @@ class SQLiteAssortmentWorkflowRepository:
         expected_campaign_version: int,
         outcome: ExecutionOutcome,
     ) -> None:
+        if outcome != "succeeded" or submission.status != "submitted":
+            raise BusinessRepositoryError(
+                "ordinary submission mutation requires a successful execution"
+            )
         expected_status = {
             "succeeded": "submitted",
             "failed": "failed",
@@ -154,6 +173,24 @@ class SQLiteAssortmentWorkflowRepository:
                     "created_at": submission.created_at,
                 },
             )
+
+    def submission_outcome_projection(
+        self,
+        *,
+        execution_id: str,
+        submission: AssortmentSubmission,
+    ) -> _SQLiteAssortmentOutcomeProjection:
+        if submission.status not in {"failed", "unknown"}:
+            raise ValueError("submission outcome projection cannot contain a success state")
+        return _SQLiteAssortmentOutcomeProjection(
+            repository=self,
+            tenant_id=submission.tenant_id,
+            execution_id=execution_id,
+            aggregate_type="assortment_submission",
+            aggregate_id=submission.submission_version,
+            outcome=cast(ProjectionOutcome, submission.status),
+            entity=submission,
+        )
 
     async def _candidate_set(
         self,
@@ -379,6 +416,10 @@ class SQLiteAssortmentWorkflowRepository:
         selected_item_ids: tuple[str, ...],
         outcome: ExecutionOutcome,
     ) -> None:
+        if outcome != "succeeded" or placement.status != "published":
+            raise BusinessRepositoryError(
+                "ordinary placement mutation requires a successful execution"
+            )
         selection = await self._load_selection(
             session,
             tenant_id=placement.tenant_id,
@@ -414,6 +455,26 @@ class SQLiteAssortmentWorkflowRepository:
                 campaign.transition_to("active", updated_at=placement.updated_at),
                 allow_status_change=True,
             )
+
+    def placement_outcome_projection(
+        self,
+        *,
+        execution_id: str,
+        placement: ConsumerPlacement,
+    ) -> _SQLiteAssortmentOutcomeProjection:
+        if placement.status not in {"failed", "unknown"}:
+            raise ValueError("placement outcome projection cannot contain a success state")
+        if placement.request_id != execution_id:
+            raise ValueError("placement outcome projection execution does not match")
+        return _SQLiteAssortmentOutcomeProjection(
+            repository=self,
+            tenant_id=placement.tenant_id,
+            execution_id=execution_id,
+            aggregate_type="consumer_placement",
+            aggregate_id=placement.consumer_placement_id,
+            outcome=cast(ProjectionOutcome, placement.status),
+            entity=placement,
+        )
 
     async def load_placement(self, *, tenant_id: str, placement_id: str) -> ConsumerPlacement:
         try:
@@ -495,6 +556,10 @@ class SQLiteAssortmentWorkflowRepository:
         *,
         notification: MerchantNotification,
     ) -> None:
+        if notification.status != "sent":
+            raise BusinessRepositoryError(
+                "ordinary notification mutation requires a successful execution"
+            )
         existing = await self._notifications._find_by_unique_key(
             session, notification.unique_key(), notification.tenant_id
         )
@@ -502,6 +567,69 @@ class SQLiteAssortmentWorkflowRepository:
             await self._notifications._insert(session, notification)
         elif existing != notification:
             raise BusinessRepositoryError("merchant notification conflicts with persisted outcome")
+
+    def notification_outcome_projection(
+        self,
+        *,
+        execution_id: str,
+        notification: MerchantNotification,
+        outcome: ProjectionOutcome,
+    ) -> _SQLiteAssortmentOutcomeProjection:
+        if notification.status != "dead_letter":
+            raise ValueError("notification outcome projection cannot contain a success state")
+        return _SQLiteAssortmentOutcomeProjection(
+            repository=self,
+            tenant_id=notification.tenant_id,
+            execution_id=execution_id,
+            aggregate_type="merchant_notification",
+            aggregate_id=notification.merchant_notification_id,
+            outcome=outcome,
+            entity=notification,
+        )
+
+    async def _persist_outcome_projection(
+        self,
+        session: AsyncSession,
+        projection: _SQLiteAssortmentOutcomeProjection,
+    ) -> None:
+        entity = projection.entity
+        if isinstance(entity, AssortmentSubmission):
+            existing_submission = await self._submissions._find_by_unique_key(
+                session, entity.unique_key(), entity.tenant_id
+            )
+            if existing_submission is None:
+                await self._submissions._insert(session, entity)
+            elif existing_submission != entity or existing_submission.status not in {
+                "failed",
+                "unknown",
+            }:
+                raise BusinessRepositoryError(
+                    "submission outcome projection cannot overwrite business success"
+                )
+            return
+        if isinstance(entity, ConsumerPlacement):
+            existing_placement = await self._placements._find_by_unique_key(
+                session, entity.unique_key(), entity.tenant_id
+            )
+            if existing_placement is None:
+                await self._placements._insert(session, entity)
+            elif existing_placement != entity or existing_placement.status not in {
+                "failed",
+                "unknown",
+            }:
+                raise BusinessRepositoryError(
+                    "placement outcome projection cannot overwrite business success"
+                )
+            return
+        existing_notification = await self._notifications._find_by_unique_key(
+            session, entity.unique_key(), entity.tenant_id
+        )
+        if existing_notification is None:
+            await self._notifications._insert(session, entity)
+        elif existing_notification != entity or existing_notification.status != "dead_letter":
+            raise BusinessRepositoryError(
+                "notification outcome projection cannot overwrite business success"
+            )
 
     async def load_notification(
         self, *, tenant_id: str, notification_id: str

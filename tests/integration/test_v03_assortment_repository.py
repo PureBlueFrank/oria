@@ -12,7 +12,12 @@ from sqlalchemy.exc import IntegrityError
 
 from oria.config import resolve_runtime_config
 from oria.data import initialize_data
-from oria.domain.business import AssortmentSubmission, SelectionDecision
+from oria.domain.business import (
+    AssortmentSubmission,
+    ConsumerPlacement,
+    MerchantNotification,
+    SelectionDecision,
+)
 from oria.domain.product_eligibility import (
     EnrollmentEligibilityAttestation,
     ProductEligibilityCriteria,
@@ -463,6 +468,95 @@ async def test_selection_completion_rejects_cross_version_decisions(tmp_path: Pa
             submission_version="selection-input-v1",
         )
         assert loaded.status == "submitted"
+
+
+@pytest.mark.asyncio
+async def test_narrow_outcome_projections_only_persist_failed_or_unknown_aggregates(
+    tmp_path: Path,
+) -> None:
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
+    await initialize_data(config)
+    async with DatabaseResources(config) as databases:
+        await _seed_submission_prerequisites(databases)
+        repository = SQLiteAssortmentWorkflowRepository(databases.business_sessions)
+        failed_submission = _submission("projection-failed").model_copy(update={"status": "failed"})
+        unknown_placement = ConsumerPlacement(
+            tenant_id=_TENANT,
+            consumer_placement_id="placement-unknown",
+            campaign_id="campaign-a",
+            selection_version="selection-v1",
+            placement_spec_hash=f"sha256:{'9' * 64}",
+            status="unknown",
+            request_id="execution-placement",
+            version=1,
+            created_at=_NOW,
+            updated_at=_NOW,
+        )
+        failed_notification = MerchantNotification(
+            tenant_id=_TENANT,
+            merchant_notification_id="notification-failed",
+            merchant_id="demo-m001",
+            campaign_id="campaign-a",
+            result_version="selection-v1",
+            template_id="selection-result-v1",
+            channel="mock-im",
+            status="dead_letter",
+            attempt_count=1,
+            version=1,
+            created_at=_NOW,
+            updated_at=_NOW,
+        )
+        projections = (
+            repository.submission_outcome_projection(
+                execution_id="execution-submission",
+                submission=failed_submission,
+            ),
+            repository.placement_outcome_projection(
+                execution_id="execution-placement",
+                placement=unknown_placement,
+            ),
+            repository.notification_outcome_projection(
+                execution_id="execution-notification",
+                notification=failed_notification,
+                outcome="failed",
+            ),
+        )
+        with pytest.raises(BusinessRepositoryError, match="requires a successful execution"):
+            async with databases.business_sessions.begin() as session:
+                await repository.persist_notification_outcome(
+                    session,
+                    notification=failed_notification,
+                )
+        async with databases.business_sessions.begin() as session:
+            for projection in projections:
+                await projection.apply(session)
+        async with databases.business_sessions() as session:
+            rows = (
+                await session.execute(
+                    text(
+                        "SELECT (SELECT status FROM assortment_submissions WHERE "
+                        "submission_version = 'projection-failed'), "
+                        "(SELECT status FROM consumer_placements WHERE consumer_placement_id = "
+                        "'placement-unknown'), (SELECT status FROM merchant_notifications WHERE "
+                        "merchant_notification_id = 'notification-failed'), "
+                        "(SELECT COUNT(*) FROM assortment_submission_items WHERE "
+                        "submission_version = 'projection-failed')"
+                    )
+                )
+            ).one()
+
+        with pytest.raises(ValueError, match="cannot contain a success state"):
+            repository.submission_outcome_projection(
+                execution_id="execution-success",
+                submission=_submission("projection-success"),
+            )
+
+    assert tuple(projection.outcome for projection in projections) == (
+        "failed",
+        "unknown",
+        "failed",
+    )
+    assert rows == ("failed", "unknown", "dead_letter", 0)
 
 
 @pytest.mark.parametrize(
