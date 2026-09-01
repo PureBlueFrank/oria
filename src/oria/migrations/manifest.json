@@ -9,7 +9,7 @@
         "platform/versions/platform_0002_knowledge_projection.py": "d6ddf39ebf57a745760ca9faeb45ad669ad9d712c67bc0edd65a64a9cbfbbcbf",
         "platform/versions/platform_0003_acl_audit_outbox.py": "404e347b15be9d4cc84856cab32fa64d1c7773120f161ecc710d4c2271b4920c",
         "platform/versions/platform_0004_document_version_lifecycle.py": "c92dc84e9ef20f0e0882f2da58013dbea2a0acb456d3c16afc7ad298c808e7ee",
-        "platform/versions/platform_0005_approval_event_inbox.py": "04aa520731ab8b823bf81b6368efda0a52dc5e90c2fb7c91c7ea2091ea6cd6d0",
+        "platform/versions/platform_0005_approval_event_inbox.py": "2b22a39eafca734fa0ca0f2f55d21ca784ab3f91b7e06b301da35cd5580388db",
         "platform/versions/platform_0006_approval_binding_invalidations.py": "381f6d973a8a1f17817ce3501e807ca209581a7fa4130d6d674ff054416f009e",
         "platform/versions/platform_0007_conditional_tool_approvals.py": "381006ffdedca1539a23951a74194d238ea140e8077a8f740aa754c13d511ee6"
       }

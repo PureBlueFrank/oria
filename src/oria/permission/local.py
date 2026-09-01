@@ -46,7 +46,6 @@ _WRITE_ACTION_ROLES: dict[str, frozenset[str]] = {
     "enrollment:item:auto:write": frozenset({"campaign_admin"}),
     "enrollment:coupon:link": frozenset({"campaign_admin"}),
     "assortment:submit": frozenset({"campaign_admin"}),
-    "selection:event:apply": frozenset({"campaign_admin", "integration_adapter"}),
     "consumer:publish": frozenset({"campaign_admin"}),
     "notification:send": frozenset({"campaign_admin"}),
     "approval:launch:request": frozenset({"campaign_admin"}),
@@ -63,6 +62,9 @@ _WRITE_ACTION_ROLES: dict[str, frozenset[str]] = {
     "confirmation:timeout:resolve": frozenset({"confirmation_automation"}),
     "confirmation:timeout:auto_confirm": frozenset({"confirmation_automation"}),
     "integration:event:ingest": frozenset({"integration_adapter"}),
+}
+_EXECUTOR_ACTION_ROLES: dict[str, frozenset[str]] = {
+    "selection:event:apply": frozenset({"integration_adapter"}),
 }
 _DENIAL_REASONS = {
     "missing_principals": "authorization principals are required",
@@ -159,6 +161,9 @@ class LocalPolicyEngine:
             return "untrusted_principal"
         if actor.tenant_id != executor.tenant_id or request.resource.tenant_id != actor.tenant_id:
             return "cross_tenant"
+        executor_roles = _EXECUTOR_ACTION_ROLES.get(request.action)
+        if executor_roles is not None and not executor_roles.intersection(executor.roles):
+            return "role_denied"
         required_roles = _WRITE_ACTION_ROLES.get(request.action)
         if required_roles is not None and not required_roles.intersection(actor.roles):
             return "role_denied"
@@ -166,7 +171,11 @@ class LocalPolicyEngine:
             assigned = self._confirmation_assignments.get(request.resource.resource_id)
             if assigned != actor.subject_id:
                 return "assignment_denied"
-        if request.action not in _LOCAL_ACTIONS and required_roles is None:
+        if (
+            request.action not in _LOCAL_ACTIONS
+            and required_roles is None
+            and executor_roles is None
+        ):
             return "unknown_action"
         return None
 

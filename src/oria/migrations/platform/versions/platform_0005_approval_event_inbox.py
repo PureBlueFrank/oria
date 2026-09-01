@@ -92,7 +92,7 @@ def upgrade() -> None:
         sa.CheckConstraint("schema_version = 1"),
         sa.CheckConstraint("resource_version >= 1"),
         sa.CheckConstraint(
-            "processing_status IN ('matched', 'unauthorized', 'no_wait', 'type_mismatch', "
+            "processing_status IN ('matched', 'consumed', 'unauthorized', 'no_wait', 'type_mismatch', "
             "'resource_mismatch', 'stale', 'out_of_order', 'wait_expired')"
         ),
     )

@@ -17,7 +17,14 @@ from oria.core.approvals import (
     ApprovalBusinessBinding,
     ApprovalInvalidationStatus,
 )
-from oria.core.integration_events import ExternalWait, IntegrationInboxRecord
+from oria.core.integration_events import (
+    ConsumedIntegrationInbox,
+    ExternalWait,
+    IntegrationEventEnvelope,
+    IntegrationInboxIdentity,
+    IntegrationInboxRecord,
+    integration_payload_hash,
+)
 from oria.core.types import EventEnvelope
 from oria.permission.audit import redact_audit_payload
 
@@ -457,6 +464,128 @@ class SQLiteIntegrationEventInboxRepository:
         values = dict(row)
         values["redacted_payload"] = json.loads(values.pop("redacted_payload_json"))
         return IntegrationInboxRecord.model_validate(values)
+
+    async def consume_matched(
+        self,
+        identity: IntegrationInboxIdentity,
+        event: IntegrationEventEnvelope,
+        *,
+        consumed_at: datetime,
+    ) -> ConsumedIntegrationInbox:
+        if consumed_at.tzinfo is None or consumed_at.utcoffset() is None:
+            raise ValueError("inbox consumption time must include a timezone")
+        try:
+            async with self._sessions.begin() as session:
+                result = await session.execute(
+                    text(
+                        "SELECT i.tenant_id, i.adapter_id, i.source_event_id, i.schema_version, "
+                        "i.event_type, i.resource_version, i.signature_subject, "
+                        "i.redacted_payload_json, i.payload_hash, i.processing_status, i.wait_id, "
+                        "i.received_at, i.processed_at, w.event_type AS wait_event_type, "
+                        "w.resource_type, w.resource_id, w.expected_version, w.checkpoint_id, "
+                        "w.expires_at, w.timeout_action, w.status AS wait_status, "
+                        "w.created_at AS wait_created_at, w.resolved_at FROM "
+                        "integration_event_inbox AS i JOIN external_waits AS w ON w.tenant_id = "
+                        "i.tenant_id AND w.wait_id = i.wait_id WHERE i.tenant_id = :tenant_id "
+                        "AND i.adapter_id = :adapter_id AND i.source_event_id = :source_event_id"
+                    ),
+                    identity.model_dump(),
+                )
+                row = result.mappings().one_or_none()
+                if row is None:
+                    raise PermissionError("selection event is not present in the trusted inbox")
+                record = IntegrationInboxRecord.model_validate(
+                    {
+                        "tenant_id": row["tenant_id"],
+                        "adapter_id": row["adapter_id"],
+                        "source_event_id": row["source_event_id"],
+                        "schema_version": row["schema_version"],
+                        "event_type": row["event_type"],
+                        "resource_version": row["resource_version"],
+                        "signature_subject": row["signature_subject"],
+                        "redacted_payload": json.loads(row["redacted_payload_json"]),
+                        "payload_hash": row["payload_hash"],
+                        "processing_status": row["processing_status"],
+                        "wait_id": row["wait_id"],
+                        "received_at": row["received_at"],
+                        "processed_at": row["processed_at"],
+                    }
+                )
+                wait = ExternalWait.model_validate(
+                    {
+                        "tenant_id": row["tenant_id"],
+                        "wait_id": row["wait_id"],
+                        "event_type": row["wait_event_type"],
+                        "resource_type": row["resource_type"],
+                        "resource_id": row["resource_id"],
+                        "expected_version": row["expected_version"],
+                        "checkpoint_id": row["checkpoint_id"],
+                        "expires_at": row["expires_at"],
+                        "timeout_action": row["timeout_action"],
+                        "status": row["wait_status"],
+                        "created_at": row["wait_created_at"],
+                        "resolved_at": row["resolved_at"],
+                    }
+                )
+                if (
+                    identity.tenant_id != event.tenant_id
+                    or record.tenant_id != event.tenant_id
+                    or record.adapter_id != event.adapter_id
+                    or record.source_event_id != event.source_event_id
+                    or record.schema_version != event.schema_version
+                    or record.event_type != event.event_type
+                    or record.resource_version != event.version
+                    or record.signature_subject != event.signature_subject
+                    or record.payload_hash != integration_payload_hash(event)
+                    or record.processing_status != "matched"
+                    or wait.status != "waiting"
+                    or wait.event_type != event.event_type
+                    or wait.resource_type != "campaign"
+                    or wait.resource_id != event.payload.campaign_id
+                    or wait.expected_version != event.version
+                ):
+                    raise PermissionError("selection event does not match its persisted inbox wait")
+                inbox_update = cast(
+                    CursorResult[Any],
+                    await session.execute(
+                        text(
+                            "UPDATE integration_event_inbox SET processing_status = 'consumed', "
+                            "processed_at = :consumed_at WHERE tenant_id = :tenant_id AND "
+                            "adapter_id = :adapter_id AND source_event_id = :source_event_id AND "
+                            "processing_status = 'matched' AND wait_id = :wait_id"
+                        ),
+                        identity.model_dump()
+                        | {"consumed_at": consumed_at, "wait_id": wait.wait_id},
+                    ),
+                )
+                wait_update = cast(
+                    CursorResult[Any],
+                    await session.execute(
+                        text(
+                            "UPDATE external_waits SET status = 'matched', resolved_at = "
+                            ":consumed_at WHERE tenant_id = :tenant_id AND wait_id = :wait_id "
+                            "AND status = 'waiting' AND checkpoint_id = :checkpoint_id"
+                        ),
+                        {
+                            "tenant_id": identity.tenant_id,
+                            "wait_id": wait.wait_id,
+                            "checkpoint_id": wait.checkpoint_id,
+                            "consumed_at": consumed_at,
+                        },
+                    ),
+                )
+                if inbox_update.rowcount != 1 or wait_update.rowcount != 1:
+                    raise PermissionError("selection inbox event was already consumed")
+                return ConsumedIntegrationInbox(
+                    record=record.model_copy(
+                        update={"processing_status": "consumed", "processed_at": consumed_at}
+                    ),
+                    wait=wait.model_copy(update={"status": "matched", "resolved_at": consumed_at}),
+                )
+        except PermissionError:
+            raise
+        except (SQLAlchemyError, ValueError, TypeError) as exc:
+            raise PlatformRepositoryError("integration event consumption failed") from exc
 
     async def _exists(self, record: IntegrationInboxRecord) -> bool:
         try:

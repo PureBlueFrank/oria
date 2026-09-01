@@ -8,10 +8,16 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from sqlalchemy import text
 
 from oria.config import resolve_runtime_config
 from oria.core.approvals import Approval
-from oria.core.integration_events import ExternalWait, IntegrationEventInboxService
+from oria.core.integration_events import (
+    ExternalWait,
+    IntegrationEventInboxService,
+    IntegrationInboxIdentity,
+    parse_integration_event,
+)
 from oria.core.types import EventEnvelope, ResourceRef
 from oria.data import initialize_data
 from oria.storage.database import DatabaseResources
@@ -148,3 +154,95 @@ async def test_sqlite_inbox_enforces_dedup_and_persists_only_redacted_payload(
     assert "synthetic-sensitive-merchant" not in str(row)
     assert str(row[1]).startswith("sha256:")
     assert row[2] == "matched"
+
+
+@pytest.mark.asyncio
+async def test_sqlite_inbox_atomically_validates_wait_and_consumes_selection_event(
+    tmp_path: Path,
+) -> None:
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
+    await initialize_data(config)
+    wait = ExternalWait(
+        tenant_id="tenant-a",
+        wait_id="selection-wait-1",
+        event_type="selection.completed",
+        resource_type="campaign",
+        resource_id="campaign-1",
+        expected_version=2,
+        checkpoint_id="checkpoint-selection-1",
+        expires_at=NOW + timedelta(hours=1),
+        timeout_action="fail",
+        created_at=NOW,
+    )
+    event_value = {
+        "schema_version": 1,
+        "event_type": "selection.completed",
+        "tenant_id": "tenant-a",
+        "adapter_id": "selection-adapter-a",
+        "source_event_id": "selection-event-1",
+        "signature_subject": "selection-principal-a",
+        "version": 2,
+        "payload": {
+            "campaign_id": "campaign-1",
+            "submission_version": "submission-1",
+            "selection_version": "selection-1",
+        },
+    }
+    event = parse_integration_event(event_value)
+    identity = IntegrationInboxIdentity(
+        tenant_id="tenant-a",
+        adapter_id="selection-adapter-a",
+        source_event_id="selection-event-1",
+    )
+
+    async with DatabaseResources(config) as databases:
+        repository = SQLiteIntegrationEventInboxRepository(databases.platform_sessions)
+        await repository.add_wait(wait)
+        service = IntegrationEventInboxService(
+            repository,
+            authorized_subjects={
+                ("tenant-a", "selection-adapter-a"): frozenset({"selection-principal-a"})
+            },
+            clock=lambda: NOW + timedelta(minutes=1),
+        )
+        assert (await service.process(event_value, wait=wait)).resume_eligible is True
+
+        forged = event.model_copy(update={"signature_subject": "forged-principal"})
+        with pytest.raises(PermissionError, match="does not match"):
+            await repository.consume_matched(
+                identity,
+                forged,
+                consumed_at=NOW + timedelta(minutes=2),
+            )
+        consumed = await repository.consume_matched(
+            identity,
+            event,
+            consumed_at=NOW + timedelta(minutes=2),
+        )
+        assert consumed.record.processing_status == "consumed"
+        assert consumed.wait.checkpoint_id == "checkpoint-selection-1"
+        assert consumed.wait.status == "matched"
+        with pytest.raises(PermissionError, match="does not match"):
+            await repository.consume_matched(
+                identity,
+                event,
+                consumed_at=NOW + timedelta(minutes=3),
+            )
+
+        async with databases.platform_sessions() as session:
+            inbox_status = await session.scalar(
+                text(
+                    "SELECT processing_status FROM integration_event_inbox WHERE source_event_id "
+                    "= 'selection-event-1'"
+                )
+            )
+            wait_row = (
+                await session.execute(
+                    text(
+                        "SELECT status, checkpoint_id FROM external_waits WHERE wait_id = "
+                        "'selection-wait-1'"
+                    )
+                )
+            ).one()
+        assert inbox_status == "consumed"
+        assert wait_row == ("matched", "checkpoint-selection-1")

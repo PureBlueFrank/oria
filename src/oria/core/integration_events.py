@@ -20,6 +20,7 @@ IntegrationEventType: TypeAlias = Literal[
 ]
 InboxProcessingStatus: TypeAlias = Literal[
     "matched",
+    "consumed",
     "unauthorized",
     "no_wait",
     "type_mismatch",
@@ -173,6 +174,31 @@ class IntegrationInboxRecord(ValueModel):
         return value
 
 
+class IntegrationInboxIdentity(ValueModel):
+    """Opaque lookup identity passed from the trusted integration service."""
+
+    tenant_id: str = Field(min_length=1, repr=False)
+    adapter_id: str = Field(min_length=1)
+    source_event_id: str = Field(min_length=1)
+
+
+class ConsumedIntegrationInbox(ValueModel):
+    """Persisted inbox and wait binding after an atomic matched-to-consumed CAS."""
+
+    record: IntegrationInboxRecord
+    wait: ExternalWait
+
+    @model_validator(mode="after")
+    def require_consumed_binding(self) -> ConsumedIntegrationInbox:
+        if (
+            self.record.processing_status != "consumed"
+            or self.record.tenant_id != self.wait.tenant_id
+            or self.record.wait_id != self.wait.wait_id
+        ):
+            raise ValueError("consumed inbox does not match its trusted wait")
+        return self
+
+
 class InboxProcessResult(ValueModel):
     status: InboxResultStatus
     resume_eligible: bool
@@ -194,6 +220,18 @@ class IntegrationEventInboxRepository(Protocol):
         adapter_id: str,
         source_event_id: str,
     ) -> IntegrationInboxRecord | None: ...
+
+
+class TrustedIntegrationEventInboxRepository(IntegrationEventInboxRepository, Protocol):
+    """Inbox repository capable of atomically claiming a matched trusted event."""
+
+    async def consume_matched(
+        self,
+        identity: IntegrationInboxIdentity,
+        event: IntegrationEventEnvelope,
+        *,
+        consumed_at: datetime,
+    ) -> ConsumedIntegrationInbox: ...
 
 
 _REDACTED = "[REDACTED]"

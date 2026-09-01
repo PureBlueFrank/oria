@@ -26,10 +26,11 @@ from oria.core.execution_ledger import (
     ExecutionOutcome,
 )
 from oria.core.integration_events import (
-    IntegrationEventInboxRepository,
-    IntegrationInboxRecord,
+    ConsumedIntegrationInbox,
+    IntegrationInboxIdentity,
     SelectionCompleted,
     SelectionDecisionRecorded,
+    TrustedIntegrationEventInboxRepository,
     integration_payload_hash,
 )
 from oria.core.types import (
@@ -483,29 +484,46 @@ class DownstreamApprovalInvalidator(Protocol):
 
 
 class TrustedSelectionEventService:
-    """Load the persisted inbox record before applying a selection event."""
+    """Authorize the integration executor and atomically consume a persisted inbox event."""
 
     def __init__(
         self,
-        inbox: IntegrationEventInboxRepository,
+        inbox: TrustedIntegrationEventInboxRepository,
         assortment: AssortmentService,
+        *,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._inbox = inbox
         self._assortment = assortment
+        self._clock = clock
 
     async def apply(
         self,
         event: SelectionDecisionRecorded | SelectionCompleted,
         ctx: Context,
     ) -> SelectionEventResult:
-        record = await self._inbox.get(
-            event.tenant_id,
-            event.adapter_id,
-            event.source_event_id,
+        policy_version = await self._assortment._authorize_selection_event(event, ctx)
+        consumed = await self._inbox.consume_matched(
+            IntegrationInboxIdentity(
+                tenant_id=event.tenant_id,
+                adapter_id=event.adapter_id,
+                source_event_id=event.source_event_id,
+            ),
+            event,
+            consumed_at=self._now(),
         )
-        if record is None:
-            raise PermissionError("selection event is not present in the trusted inbox")
-        return await self._assortment.record_selection_event(event, record, ctx)
+        return await self._assortment._record_selection_event(
+            event,
+            consumed,
+            policy_version=policy_version,
+            ctx=ctx,
+        )
+
+    def _now(self) -> datetime:
+        now = self._clock()
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("selection inbox clock must return a timezone-aware timestamp")
+        return now
 
 
 class AssortmentService:
@@ -673,23 +691,38 @@ class AssortmentService:
         )
         return await self._submission_result(request, execution, submission_version)
 
-    async def record_selection_event(
+    async def _authorize_selection_event(
         self,
         event: SelectionDecisionRecorded | SelectionCompleted,
-        record: IntegrationInboxRecord,
+        ctx: Context,
+    ) -> str:
+        if event.tenant_id != ctx.tenant_id:
+            raise PermissionError("selection event tenant does not match the trusted context")
+        return await _authorize("selection:event:apply", event.payload.campaign_id, ctx)
+
+    async def _record_selection_event(
+        self,
+        event: SelectionDecisionRecorded | SelectionCompleted,
+        consumed: ConsumedIntegrationInbox,
+        *,
+        policy_version: str,
         ctx: Context,
     ) -> SelectionEventResult:
+        record = consumed.record
         if (
             event.tenant_id != ctx.tenant_id
             or record.tenant_id != ctx.tenant_id
             or record.adapter_id != event.adapter_id
             or record.source_event_id != event.source_event_id
             or record.event_type != event.event_type
-            or record.processing_status != "matched"
+            or record.processing_status != "consumed"
             or record.payload_hash != integration_payload_hash(event)
+            or consumed.wait.resource_type != "campaign"
+            or consumed.wait.resource_id != event.payload.campaign_id
+            or consumed.wait.expected_version != event.version
+            or consumed.wait.event_type != event.event_type
         ):
             raise PermissionError("selection event source binding is not trusted")
-        policy_version = await _authorize("selection:event:apply", event.payload.campaign_id, ctx)
         execution = await self._ledger.reserve_for_args(
             execution_id=f"tool_execution_{uuid.uuid4().hex}",
             tenant_id=ctx.tenant_id,
@@ -702,7 +735,7 @@ class AssortmentService:
             schema=type(event.payload),
             args=event.payload.model_dump(),
             stable_business_id=f"{event.adapter_id}:{event.source_event_id}",
-            checkpoint_id=ctx.run_id,
+            checkpoint_id=consumed.wait.checkpoint_id,
             request_idempotency_key=f"integration:{event.adapter_id}:{event.source_event_id}",
         )
         if execution.status == "succeeded":

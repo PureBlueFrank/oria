@@ -45,6 +45,13 @@ EXECUTOR = Principal(
     roles=("runtime",),
     authn_method="trusted-test-profile",
 )
+INTEGRATION_EXECUTOR = Principal(
+    subject_id="integration-worker-a",
+    tenant_id="tenant-a",
+    kind="service",
+    roles=("integration_adapter",),
+    authn_method="trusted-test-profile",
+)
 ADMIN = _principal("admin-a", "campaign_admin")
 DUAL_ROLE_ADMIN = _principal("dual-role-admin", "campaign_admin", "launch_approver")
 LAUNCH_APPROVER = _principal("launch-approver-a", "launch_approver")
@@ -138,6 +145,43 @@ async def test_write_policy_denies_by_default_wrong_role_cross_tenant_and_contex
     allowed = await policy.authorize(_request(ADMIN, "campaign:draft:write"), _context(ADMIN))
     assert allowed.allow is True
     assert allowed.policy_version == LOCAL_POLICY_VERSION
+
+
+@pytest.mark.asyncio
+async def test_selection_event_apply_requires_trusted_integration_executor() -> None:
+    policy = LocalPolicyEngine(
+        trusted_actors=(ADMIN,),
+        trusted_executors=(EXECUTOR, INTEGRATION_EXECUTOR),
+    )
+    resource = ResourceRef(
+        resource_type="campaign",
+        resource_id="campaign-1",
+        tenant_id="tenant-a",
+    )
+
+    denied = await policy.authorize(
+        AuthorizationRequest(
+            actor=ADMIN,
+            executor=EXECUTOR,
+            action="selection:event:apply",
+            resource=resource,
+            context=AuthorizationContext(correlation_id="correlation-a"),
+        ),
+        _context(ADMIN),  # type: ignore[arg-type]
+    )
+    allowed = await policy.authorize(
+        AuthorizationRequest(
+            actor=ADMIN,
+            executor=INTEGRATION_EXECUTOR,
+            action="selection:event:apply",
+            resource=resource,
+            context=AuthorizationContext(correlation_id="correlation-a"),
+        ),
+        _context(ADMIN, executor=INTEGRATION_EXECUTOR),  # type: ignore[arg-type]
+    )
+
+    assert denied.allow is False
+    assert allowed.allow is True
 
 
 @pytest.mark.asyncio
