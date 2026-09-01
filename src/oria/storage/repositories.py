@@ -570,6 +570,8 @@ _ASSORTMENT_SUBMISSION = _RepositorySpec(
         ("assortment_policy_ref", "assortment_policy_ref"),
         ("assortment_policy_version", "assortment_policy_version"),
         ("status", "status"),
+        ("selection_version", "selection_version"),
+        ("selection_hash", "selection_hash"),
     ),
     AssortmentSubmission.unique_key_fields,
 )

@@ -10,6 +10,17 @@ depends_on = None
 
 
 def upgrade() -> None:
+    with op.batch_alter_table("assortment_submissions") as batch:
+        batch.add_column(sa.Column("selection_version", sa.String(), nullable=True))
+        batch.add_column(sa.Column("selection_hash", sa.String(), nullable=True))
+        batch.create_check_constraint(
+            "ck_assortment_submission_selection_seal",
+            "(status = 'completed' AND selection_version IS NOT NULL AND selection_hash IS NOT "
+            "NULL) OR (status != 'completed' AND selection_version IS NULL AND selection_hash "
+            "IS NULL)",
+        )
+    with op.batch_alter_table("campaign_approval_bindings") as batch:
+        batch.add_column(sa.Column("selection_hash", sa.String(), nullable=True))
     op.create_index(
         "uq_enrollment_items_tenant_campaign_item",
         "enrollment_items",
@@ -54,3 +65,9 @@ def downgrade() -> None:
         "uq_enrollment_items_tenant_campaign_item",
         table_name="enrollment_items",
     )
+    with op.batch_alter_table("campaign_approval_bindings") as batch:
+        batch.drop_column("selection_hash")
+    with op.batch_alter_table("assortment_submissions") as batch:
+        batch.drop_constraint("ck_assortment_submission_selection_seal", type_="check")
+        batch.drop_column("selection_hash")
+        batch.drop_column("selection_version")

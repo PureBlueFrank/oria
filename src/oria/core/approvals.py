@@ -126,6 +126,7 @@ class ApprovalBusinessBinding(ValueModel):
     enrollment_version: int = Field(ge=1)
     link_version: int = Field(ge=0)
     selection_version: str = Field(min_length=1)
+    selection_hash: str | None = Field(default=None, pattern=r"^sha256:[0-9a-f]{64}$")
     rule_snapshot_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
 
 

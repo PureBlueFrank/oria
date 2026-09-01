@@ -12,7 +12,7 @@ _COLUMNS = (
     "tenant_id, approval_id, approval_action, tool_name, canonical_args_hash, "
     "checkpoint_id, policy_version, expires_at, status, requester, decider, decision, "
     "reason, created_at, updated_at, decided_at, campaign_id, enrollment_version, "
-    "link_version, selection_version, rule_snapshot_hash"
+    "link_version, selection_version, selection_hash, rule_snapshot_hash"
 )
 _BASE_ACTIONS = ("launch_approval", "consumer_publish_approval")
 _T06_ACTIONS = (
@@ -46,6 +46,7 @@ def _create_approvals(actions: tuple[str, ...]) -> None:
         sa.Column("enrollment_version", sa.Integer(), nullable=True),
         sa.Column("link_version", sa.Integer(), nullable=True),
         sa.Column("selection_version", sa.String(), nullable=True),
+        sa.Column("selection_hash", sa.String(), nullable=True),
         sa.Column("rule_snapshot_hash", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("tenant_id", "approval_id"),
         sa.CheckConstraint(f"approval_action IN ({allowed})"),
@@ -79,12 +80,16 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    count = op.get_bind().execute(
-        sa.text(
-            "SELECT COUNT(*) FROM approvals WHERE approval_action IN "
-            "('assortment_submission_approval', 'merchant_notification_approval')"
+    count = (
+        op.get_bind()
+        .execute(
+            sa.text(
+                "SELECT COUNT(*) FROM approvals WHERE approval_action IN "
+                "('assortment_submission_approval', 'merchant_notification_approval')"
+            )
         )
-    ).scalar_one()
+        .scalar_one()
+    )
     if int(count) != 0:
         raise RuntimeError("conditional T06 approvals must be resolved before downgrade")
     _rebuild(_BASE_ACTIONS)

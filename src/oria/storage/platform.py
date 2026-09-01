@@ -42,6 +42,7 @@ def _approval_values(approval: Approval) -> dict[str, Any]:
             "enrollment_version": None if binding is None else binding.enrollment_version,
             "link_version": None if binding is None else binding.link_version,
             "selection_version": None if binding is None else binding.selection_version,
+            "selection_hash": None if binding is None else binding.selection_hash,
             "rule_snapshot_hash": None if binding is None else binding.rule_snapshot_hash,
         }
     )
@@ -65,11 +66,12 @@ class SQLiteApprovalRepository:
                         "tool_name, canonical_args_hash, checkpoint_id, policy_version, "
                         "expires_at, status, requester, decider, decision, reason, created_at, "
                         "updated_at, decided_at, campaign_id, enrollment_version, link_version, "
-                        "selection_version, rule_snapshot_hash) VALUES (:tenant_id, :approval_id, "
+                        "selection_version, selection_hash, rule_snapshot_hash) VALUES "
+                        "(:tenant_id, :approval_id, "
                         ":approval_action, :tool_name, :canonical_args_hash, :checkpoint_id, "
                         ":policy_version, :expires_at, :status, :requester, :decider, :decision, "
                         ":reason, :created_at, :updated_at, :decided_at, :campaign_id, "
-                        ":enrollment_version, :link_version, :selection_version, "
+                        ":enrollment_version, :link_version, :selection_version, :selection_hash, "
                         ":rule_snapshot_hash)"
                     ),
                     _approval_values(approval),
@@ -90,7 +92,7 @@ class SQLiteApprovalRepository:
                         "canonical_args_hash, checkpoint_id, policy_version, expires_at, status, "
                         "requester, decider, decision, reason, created_at, updated_at, decided_at "
                         ", campaign_id, enrollment_version, link_version, selection_version, "
-                        "rule_snapshot_hash "
+                        "selection_hash, rule_snapshot_hash "
                         "FROM approvals WHERE tenant_id = :tenant_id AND approval_id = :approval_id"
                     ),
                     {"tenant_id": tenant_id, "approval_id": approval_id},
@@ -107,6 +109,7 @@ class SQLiteApprovalRepository:
             "enrollment_version": values.pop("enrollment_version"),
             "link_version": values.pop("link_version"),
             "selection_version": values.pop("selection_version"),
+            "selection_hash": values.pop("selection_hash"),
             "rule_snapshot_hash": values.pop("rule_snapshot_hash"),
         }
         values["business_binding"] = (
@@ -159,6 +162,7 @@ class SQLiteApprovalRepository:
                             ":campaign_id AND status IN ('pending', 'approved') AND NOT "
                             "(enrollment_version = :enrollment_version AND link_version = "
                             ":link_version AND selection_version = :selection_version AND "
+                            "selection_hash IS :selection_hash AND "
                             "rule_snapshot_hash = :rule_snapshot_hash)"
                         ),
                         {
@@ -239,9 +243,10 @@ class SQLiteApprovalInvalidationRepository:
                     text(
                         "INSERT INTO approval_binding_invalidations (tenant_id, event_id, "
                         "campaign_id, enrollment_version, link_version, selection_version, "
-                        "rule_snapshot_hash, reason, status, attempt_count, last_error_code, "
+                        "selection_hash, rule_snapshot_hash, reason, status, attempt_count, "
+                        "last_error_code, "
                         "created_at, updated_at) VALUES (:tenant_id, :event_id, :campaign_id, "
-                        ":enrollment_version, :link_version, :selection_version, "
+                        ":enrollment_version, :link_version, :selection_version, :selection_hash, "
                         ":rule_snapshot_hash, :reason, 'pending', 0, NULL, :occurred_at, "
                         ":occurred_at)"
                     ),
@@ -325,7 +330,8 @@ class SQLiteApprovalInvalidationRepository:
                     "WHERE tenant_id = :tenant_id AND campaign_id = :campaign_id AND status IN "
                     "('pending', 'approved') AND NOT (enrollment_version = :enrollment_version "
                     "AND link_version = :link_version AND selection_version = "
-                    ":selection_version AND rule_snapshot_hash = :rule_snapshot_hash)"
+                    ":selection_version AND selection_hash IS :selection_hash AND "
+                    "rule_snapshot_hash = :rule_snapshot_hash)"
                 ),
                 {
                     "tenant_id": fact.tenant_id,
@@ -353,7 +359,8 @@ class SQLiteApprovalInvalidationRepository:
         result = await session.execute(
             text(
                 "SELECT campaign_id, enrollment_version, link_version, selection_version, "
-                "rule_snapshot_hash, reason, status FROM approval_binding_invalidations WHERE "
+                "selection_hash, rule_snapshot_hash, reason, status FROM "
+                "approval_binding_invalidations WHERE "
                 "tenant_id = :tenant_id AND event_id = :event_id"
             ),
             {"tenant_id": fact.tenant_id, "event_id": fact.event_id},

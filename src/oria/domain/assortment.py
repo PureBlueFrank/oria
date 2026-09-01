@@ -111,6 +111,31 @@ def _hash(value: object) -> str:
     return f"sha256:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
 
 
+def selection_result_hash(
+    *,
+    campaign_id: str,
+    submission_version: str,
+    selection_version: str,
+    decisions: tuple[SelectionDecision, ...],
+) -> str:
+    """Hash the complete ordered selection result sealed at completion."""
+    return _hash(
+        {
+            "campaign_id": campaign_id,
+            "decisions": [
+                {
+                    "decision": decision.decision,
+                    "enrollment_item_id": decision.enrollment_item_id,
+                    "reason_code": decision.reason_code,
+                }
+                for decision in sorted(decisions, key=lambda item: item.enrollment_item_id)
+            ],
+            "selection_version": selection_version,
+            "submission_version": submission_version,
+        }
+    )
+
+
 class SubmitAssortmentArgs(ValueModel):
     campaign_id: str = Field(min_length=1)
     enrollment_item_ids: tuple[str, ...] = Field(min_length=1, max_length=100)
@@ -435,6 +460,15 @@ class AssortmentWorkflowRepository(Protocol):
         updated_binding: ApprovalBusinessBinding,
         updated_at: datetime,
     ) -> None: ...
+
+    async def selection_completion_hash(
+        self,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        submission_version: str,
+        selection_version: str,
+    ) -> str: ...
 
     async def load_selection(
         self, *, tenant_id: str, campaign_id: str, selection_version: str
@@ -782,8 +816,17 @@ class AssortmentService:
         else:
             completion_payload = event.payload
             binding = await self._required_binding(completion_payload.campaign_id, ctx)
+            selection_hash = await self._repository.selection_completion_hash(
+                tenant_id=ctx.tenant_id,
+                campaign_id=completion_payload.campaign_id,
+                submission_version=completion_payload.submission_version,
+                selection_version=completion_payload.selection_version,
+            )
             updated_binding = binding.model_copy(
-                update={"selection_version": completion_payload.selection_version}
+                update={
+                    "selection_version": completion_payload.selection_version,
+                    "selection_hash": selection_hash,
+                }
             )
             invalidation_fact = ApprovalBindingInvalidationFact(
                 event_id=_stable_id(
@@ -1271,8 +1314,30 @@ def _canonical_notification_request(
 def _require_publishable_selection(selection: AssortmentSelection) -> tuple[str, ...]:
     if selection.campaign.status != "pending_consumer_publish":
         raise ValueError("campaign is not ready for consumer publication")
-    if selection.binding.selection_version != selection.decisions[0].selection_version:
+    if selection.submission.status != "completed":
+        raise ValueError("assortment submission is not completed")
+    if not selection.decisions:
+        raise ValueError("selection result has no decisions")
+    decision_versions = {decision.selection_version for decision in selection.decisions}
+    if decision_versions != {selection.binding.selection_version}:
         raise PermissionError("selection binding is stale")
+    decision_item_ids = tuple(decision.enrollment_item_id for decision in selection.decisions)
+    if len(decision_item_ids) != len(set(decision_item_ids)):
+        raise ValueError("selection result contains duplicate item decisions")
+    if set(decision_item_ids) != set(selection.enrollment_item_ids):
+        raise ValueError("selection result does not cover the submitted item set")
+    sealed_hash = selection_result_hash(
+        campaign_id=selection.campaign.campaign_id,
+        submission_version=selection.submission.submission_version,
+        selection_version=selection.binding.selection_version,
+        decisions=selection.decisions,
+    )
+    if (
+        selection.submission.selection_version != selection.binding.selection_version
+        or selection.submission.selection_hash != sealed_hash
+        or selection.binding.selection_hash != sealed_hash
+    ):
+        raise PermissionError("selection result seal is stale")
     selected = selection.selected_item_ids
     if not selected:
         raise ValueError("consumer placement requires at least one selected item")

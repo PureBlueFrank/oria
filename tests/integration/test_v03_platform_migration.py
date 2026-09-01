@@ -72,6 +72,7 @@ def _approval_values(action: str, status: str = "pending") -> tuple[object, ...]
         1,
         1,
         "selection-v1",
+        f"sha256:{'c' * 64}",
         f"sha256:{'b' * 64}",
     )
 
@@ -138,7 +139,7 @@ def test_platform_0007_preserves_data_checks_and_indexes(tmp_path: Path) -> None
     with sqlite3.connect(database) as connection:
         connection.execute(
             "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-            "?, ?, ?, ?, ?)",
+            "?, ?, ?, ?, ?, ?)",
             _approval_values("launch_approval"),
         )
         connection.commit()
@@ -147,24 +148,30 @@ def test_platform_0007_preserves_data_checks_and_indexes(tmp_path: Path) -> None
 
     with sqlite3.connect(database) as connection:
         preserved = connection.execute(
-            "SELECT approval_action, checkpoint_id, selection_version FROM approvals"
+            "SELECT approval_action, checkpoint_id, selection_version, selection_hash FROM "
+            "approvals"
         ).fetchone()
-        assert preserved == ("launch_approval", "checkpoint-a", "selection-v1")
+        assert preserved == (
+            "launch_approval",
+            "checkpoint-a",
+            "selection-v1",
+            f"sha256:{'c' * 64}",
+        )
         connection.execute(
             "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-            "?, ?, ?, ?, ?)",
+            "?, ?, ?, ?, ?, ?)",
             _approval_values("assortment_submission_approval"),
         )
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute(
                 "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-                "?, ?, ?, ?, ?, ?)",
+                "?, ?, ?, ?, ?, ?, ?)",
                 _approval_values("unsupported_approval"),
             )
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute(
                 "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-                "?, ?, ?, ?, ?, ?)",
+                "?, ?, ?, ?, ?, ?, ?)",
                 _approval_values("merchant_notification_approval", "unsupported"),
             )
         indexes = {
@@ -183,7 +190,7 @@ def test_platform_0007_invalidated_t06_approval_blocks_downgrade(tmp_path: Path)
     with sqlite3.connect(database) as connection:
         connection.execute(
             "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-            "?, ?, ?, ?, ?)",
+            "?, ?, ?, ?, ?, ?)",
             _approval_values("merchant_notification_approval", "invalidated"),
         )
         connection.commit()

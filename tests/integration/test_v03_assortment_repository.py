@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from oria.config import resolve_runtime_config
 from oria.data import initialize_data
-from oria.domain.business import AssortmentSubmission
+from oria.domain.business import AssortmentSubmission, SelectionDecision
 from oria.domain.product_eligibility import (
     EnrollmentEligibilityAttestation,
     ProductEligibilityCriteria,
@@ -159,6 +159,23 @@ def _submission(version: str) -> AssortmentSubmission:
     )
 
 
+def _decision(
+    *, item_id: str = "item-a", selection_version: str = "selection-v1"
+) -> SelectionDecision:
+    return SelectionDecision(
+        tenant_id=_TENANT,
+        selection_decision_id=f"decision-{selection_version}-{item_id}",
+        campaign_id="campaign-a",
+        submission_version="selection-input-v1",
+        selection_version=selection_version,
+        enrollment_item_id=item_id,
+        decision="selected",
+        version=1,
+        created_at=_NOW,
+        updated_at=_NOW,
+    )
+
+
 @pytest.mark.asyncio
 async def test_submission_and_membership_commit_atomically_and_rollback_together(
     tmp_path: Path,
@@ -288,6 +305,164 @@ async def test_database_rejects_cross_campaign_submission_membership(tmp_path: P
                 )
                 == 0
             )
+
+
+@pytest.mark.asyncio
+async def test_selection_completion_requires_exact_membership_and_seals_hash_atomically(
+    tmp_path: Path,
+) -> None:
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
+    await initialize_data(config)
+    async with DatabaseResources(config) as databases:
+        await _seed_submission_prerequisites(databases)
+        repository = SQLiteAssortmentWorkflowRepository(databases.business_sessions)
+        binding = await repository.get_approval_binding(
+            tenant_id=_TENANT,
+            campaign_id="campaign-a",
+        )
+        assert binding is not None
+        candidate_set = await repository.load_submission_candidates(
+            tenant_id=_TENANT,
+            campaign_id="campaign-a",
+            rule_snapshot_ref_id="rule-ref",
+            product_criteria=_PRODUCT_CRITERIA,
+            assortment_policy_ref="policy-a",
+            assortment_policy_version="v1",
+            approval_binding=binding,
+        )
+        async with databases.business_sessions.begin() as session:
+            await repository.persist_submission_outcome(
+                session,
+                submission=_submission("selection-input-v1"),
+                enrollment_item_ids=("item-a",),
+                candidate_set=candidate_set,
+                product_criteria=_PRODUCT_CRITERIA,
+                expected_campaign_version=1,
+                outcome="succeeded",
+            )
+
+        with pytest.raises(BusinessRepositoryError, match="requires item decisions"):
+            await repository.selection_completion_hash(
+                tenant_id=_TENANT,
+                campaign_id="campaign-a",
+                submission_version="selection-input-v1",
+                selection_version="selection-v1",
+            )
+        with pytest.raises(BusinessRepositoryError, match="outside the submission"):
+            async with databases.business_sessions.begin() as session:
+                await repository.record_selection_decision(
+                    session,
+                    decision=_decision(item_id="item-forged"),
+                )
+
+        async with databases.business_sessions.begin() as session:
+            await repository.record_selection_decision(session, decision=_decision())
+        selection_hash = await repository.selection_completion_hash(
+            tenant_id=_TENANT,
+            campaign_id="campaign-a",
+            submission_version="selection-input-v1",
+            selection_version="selection-v1",
+        )
+        updated_binding = binding.model_copy(
+            update={"selection_version": "selection-v1", "selection_hash": selection_hash}
+        )
+        async with databases.business_sessions.begin() as session:
+            await repository.complete_selection(
+                session,
+                tenant_id=_TENANT,
+                campaign_id="campaign-a",
+                submission_version="selection-input-v1",
+                selection_version="selection-v1",
+                expected_binding=binding,
+                updated_binding=updated_binding,
+                updated_at=_NOW,
+            )
+
+        loaded, _ = await repository.load_submission(
+            tenant_id=_TENANT,
+            campaign_id="campaign-a",
+            submission_version="selection-input-v1",
+        )
+        assert loaded.status == "completed"
+        assert loaded.selection_version == "selection-v1"
+        assert loaded.selection_hash == selection_hash
+        assert (
+            await repository.get_approval_binding(
+                tenant_id=_TENANT,
+                campaign_id="campaign-a",
+            )
+            == updated_binding
+        )
+        with pytest.raises(BusinessRepositoryError, match="not accepting decisions"):
+            async with databases.business_sessions.begin() as session:
+                await repository.record_selection_decision(session, decision=_decision())
+
+        async with databases.business_sessions() as session:
+            campaign_status = await session.scalar(
+                text("SELECT status FROM campaigns WHERE campaign_id = 'campaign-a'")
+            )
+            seals = (
+                await session.execute(
+                    text(
+                        "SELECT selection_version, selection_hash FROM assortment_submissions "
+                        "WHERE submission_version = 'selection-input-v1'"
+                    )
+                )
+            ).one()
+        assert campaign_status == "pending_consumer_publish"
+        assert seals == ("selection-v1", selection_hash)
+
+
+@pytest.mark.asyncio
+async def test_selection_completion_rejects_cross_version_decisions(tmp_path: Path) -> None:
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
+    await initialize_data(config)
+    async with DatabaseResources(config) as databases:
+        await _seed_submission_prerequisites(databases)
+        repository = SQLiteAssortmentWorkflowRepository(databases.business_sessions)
+        binding = await repository.get_approval_binding(
+            tenant_id=_TENANT,
+            campaign_id="campaign-a",
+        )
+        assert binding is not None
+        candidate_set = await repository.load_submission_candidates(
+            tenant_id=_TENANT,
+            campaign_id="campaign-a",
+            rule_snapshot_ref_id="rule-ref",
+            product_criteria=_PRODUCT_CRITERIA,
+            assortment_policy_ref="policy-a",
+            assortment_policy_version="v1",
+            approval_binding=binding,
+        )
+        async with databases.business_sessions.begin() as session:
+            await repository.persist_submission_outcome(
+                session,
+                submission=_submission("selection-input-v1"),
+                enrollment_item_ids=("item-a",),
+                candidate_set=candidate_set,
+                product_criteria=_PRODUCT_CRITERIA,
+                expected_campaign_version=1,
+                outcome="succeeded",
+            )
+            await repository.record_selection_decision(session, decision=_decision())
+            await repository.record_selection_decision(
+                session,
+                decision=_decision(selection_version="selection-v2"),
+            )
+
+        with pytest.raises(BusinessRepositoryError, match="cross-version"):
+            await repository.selection_completion_hash(
+                tenant_id=_TENANT,
+                campaign_id="campaign-a",
+                submission_version="selection-input-v1",
+                selection_version="selection-v2",
+            )
+        loaded, _ = await repository.load_submission(
+            tenant_id=_TENANT,
+            campaign_id="campaign-a",
+            submission_version="selection-input-v1",
+        )
+        assert loaded.status == "submitted"
 
 
 @pytest.mark.parametrize(

@@ -307,6 +307,15 @@ class AssortmentSubmission(BusinessEntity):
     assortment_policy_ref: str = Field(min_length=1)
     assortment_policy_version: str = Field(min_length=1)
     status: Literal["pending", "submitted", "completed", "failed", "unknown"]
+    selection_version: str | None = Field(default=None, min_length=1)
+    selection_hash: str | None = Field(default=None, pattern=r"^sha256:[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def require_completed_selection_seal(self) -> Self:
+        sealed = self.selection_version is not None and self.selection_hash is not None
+        if sealed != (self.status == "completed"):
+            raise ValueError("only a completed assortment submission has a selection seal")
+        return self
 
 
 class SelectionDecision(BusinessEntity):

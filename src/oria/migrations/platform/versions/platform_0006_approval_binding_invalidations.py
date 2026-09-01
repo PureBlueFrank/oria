@@ -15,6 +15,7 @@ def upgrade() -> None:
         batch.add_column(sa.Column("enrollment_version", sa.Integer(), nullable=True))
         batch.add_column(sa.Column("link_version", sa.Integer(), nullable=True))
         batch.add_column(sa.Column("selection_version", sa.String(), nullable=True))
+        batch.add_column(sa.Column("selection_hash", sa.String(), nullable=True))
         batch.add_column(sa.Column("rule_snapshot_hash", sa.String(), nullable=True))
         batch.create_index(
             "ix_approvals_tenant_campaign_status",
@@ -29,6 +30,7 @@ def upgrade() -> None:
         sa.Column("enrollment_version", sa.Integer(), nullable=False),
         sa.Column("link_version", sa.Integer(), nullable=False),
         sa.Column("selection_version", sa.String(), nullable=False),
+        sa.Column("selection_hash", sa.String(), nullable=True),
         sa.Column("rule_snapshot_hash", sa.String(), nullable=False),
         sa.Column("reason", sa.String(), nullable=False),
         sa.Column("status", sa.String(), nullable=False),
@@ -47,6 +49,7 @@ def downgrade() -> None:
     with op.batch_alter_table("approvals") as batch:
         batch.drop_index("ix_approvals_tenant_campaign_status")
         batch.drop_column("rule_snapshot_hash")
+        batch.drop_column("selection_hash")
         batch.drop_column("selection_version")
         batch.drop_column("link_version")
         batch.drop_column("enrollment_version")

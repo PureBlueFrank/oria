@@ -16,6 +16,7 @@ from oria.domain.assortment import (
     AssortmentCandidateSet,
     AssortmentSelection,
     MerchantNotificationMessage,
+    selection_result_hash,
 )
 from oria.domain.business import (
     AssortmentSubmission,
@@ -251,6 +252,21 @@ class SQLiteAssortmentWorkflowRepository:
         )
         if submission is None or submission.status != "submitted":
             raise BusinessRepositoryError("assortment submission is not accepting decisions")
+        membership = await session.scalar(
+            text(
+                "SELECT 1 FROM assortment_submission_items WHERE tenant_id = :tenant_id AND "
+                "campaign_id = :campaign_id AND submission_version = :submission_version AND "
+                "enrollment_item_id = :enrollment_item_id"
+            ),
+            {
+                "tenant_id": decision.tenant_id,
+                "campaign_id": decision.campaign_id,
+                "submission_version": decision.submission_version,
+                "enrollment_item_id": decision.enrollment_item_id,
+            },
+        )
+        if membership is None:
+            raise BusinessRepositoryError("selection decision item is outside the submission")
         existing = await self._decisions._find_by_unique_key(
             session, decision.unique_key(), decision.tenant_id
         )
@@ -278,24 +294,27 @@ class SQLiteAssortmentWorkflowRepository:
         )
         if submission is None or submission.status != "submitted":
             raise BusinessRepositoryError("assortment submission is not completable")
-        decision_versions = await session.execute(
-            text(
-                "SELECT DISTINCT selection_version FROM selection_decisions WHERE tenant_id = "
-                ":tenant_id AND campaign_id = :campaign_id AND submission_version = "
-                ":submission_version"
-            ),
-            {
-                "tenant_id": tenant_id,
-                "campaign_id": campaign_id,
-                "submission_version": submission_version,
-            },
+        selection_hash = await self._validated_selection_hash(
+            session,
+            tenant_id=tenant_id,
+            campaign_id=campaign_id,
+            submission_version=submission_version,
+            selection_version=selection_version,
         )
-        if {str(row[0]) for row in decision_versions} != {selection_version}:
-            raise BusinessRepositoryError("selection completion version does not match decisions")
         current_binding = await self._find_binding(session, tenant_id, campaign_id)
-        if current_binding != expected_binding:
+        if current_binding != expected_binding or updated_binding != expected_binding.model_copy(
+            update={
+                "selection_version": selection_version,
+                "selection_hash": selection_hash,
+            }
+        ):
             raise BusinessRepositoryError("selection approval binding optimistic lock conflict")
-        completed = submission._next_version(updated_at=updated_at, status="completed")
+        completed = submission._next_version(
+            updated_at=updated_at,
+            status="completed",
+            selection_version=selection_version,
+            selection_hash=selection_hash,
+        )
         await self._submissions._update(session, submission, completed, allow_status_change=True)
         campaign = await self._campaigns._find_by_id(session, campaign_id, tenant_id)
         if campaign is None or campaign.status != "selecting":
@@ -312,6 +331,28 @@ class SQLiteAssortmentWorkflowRepository:
             current=expected_binding,
             updated=updated_binding,
         )
+
+    async def selection_completion_hash(
+        self,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        submission_version: str,
+        selection_version: str,
+    ) -> str:
+        try:
+            async with self._sessions() as session:
+                return await self._validated_selection_hash(
+                    session,
+                    tenant_id=tenant_id,
+                    campaign_id=campaign_id,
+                    submission_version=submission_version,
+                    selection_version=selection_version,
+                )
+        except BusinessRepositoryError:
+            raise
+        except (SQLAlchemyError, ValueError, TypeError) as exc:
+            raise BusinessRepositoryError("selection completion validation failed") from exc
 
     async def load_selection(
         self, *, tenant_id: str, campaign_id: str, selection_version: str
@@ -544,6 +585,51 @@ class SQLiteAssortmentWorkflowRepository:
             links=tuple(links),
         )
 
+    async def _validated_selection_hash(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        submission_version: str,
+        selection_version: str,
+    ) -> str:
+        item_ids = await self._submission_item_ids(
+            session, tenant_id, campaign_id, submission_version
+        )
+        decision_result = await session.execute(
+            text(
+                "SELECT tenant_id, selection_decision_id, version, created_at, updated_at, "
+                "campaign_id, submission_version, selection_version, enrollment_item_id, "
+                "decision, reason_code FROM selection_decisions WHERE tenant_id = :tenant_id "
+                "AND campaign_id = :campaign_id AND submission_version = :submission_version "
+                "ORDER BY selection_version, enrollment_item_id"
+            ),
+            {
+                "tenant_id": tenant_id,
+                "campaign_id": campaign_id,
+                "submission_version": submission_version,
+            },
+        )
+        decisions = tuple(self._decisions._from_row(row) for row in decision_result.mappings())
+        decision_item_ids = tuple(decision.enrollment_item_id for decision in decisions)
+        if not item_ids or not decisions:
+            raise BusinessRepositoryError("selection completion requires item decisions")
+        if {decision.selection_version for decision in decisions} != {selection_version}:
+            raise BusinessRepositoryError("selection completion contains cross-version decisions")
+        if len(decision_item_ids) != len(set(decision_item_ids)) or set(decision_item_ids) != set(
+            item_ids
+        ):
+            raise BusinessRepositoryError(
+                "selection completion must decide every submitted item exactly once"
+            )
+        return selection_result_hash(
+            campaign_id=campaign_id,
+            submission_version=submission_version,
+            selection_version=selection_version,
+            decisions=decisions,
+        )
+
     @staticmethod
     async def _submission_item_ids(
         session: AsyncSession,
@@ -574,7 +660,8 @@ class SQLiteAssortmentWorkflowRepository:
         result = await session.execute(
             text(
                 "SELECT campaign_id, enrollment_version, link_version, selection_version, "
-                "rule_snapshot_hash FROM campaign_approval_bindings WHERE tenant_id = "
+                "selection_hash, rule_snapshot_hash FROM campaign_approval_bindings WHERE "
+                "tenant_id = "
                 ":tenant_id AND campaign_id = :campaign_id"
             ),
             {"tenant_id": tenant_id, "campaign_id": campaign_id},
@@ -598,11 +685,13 @@ class SQLiteAssortmentWorkflowRepository:
                 text(
                     "UPDATE campaign_approval_bindings SET enrollment_version = "
                     ":enrollment_version, link_version = :link_version, selection_version = "
-                    ":selection_version, rule_snapshot_hash = :rule_snapshot_hash WHERE "
+                    ":selection_version, selection_hash = :selection_hash, rule_snapshot_hash = "
+                    ":rule_snapshot_hash WHERE "
                     "tenant_id = :tenant_id AND campaign_id = :campaign_id AND "
                     "enrollment_version = :expected_enrollment_version AND link_version = "
                     ":expected_link_version AND selection_version = :expected_selection_version "
-                    "AND rule_snapshot_hash = :expected_rule_snapshot_hash"
+                    "AND selection_hash IS :expected_selection_hash AND rule_snapshot_hash = "
+                    ":expected_rule_snapshot_hash"
                 ),
                 {
                     "tenant_id": tenant_id,
@@ -610,6 +699,7 @@ class SQLiteAssortmentWorkflowRepository:
                     "expected_enrollment_version": current.enrollment_version,
                     "expected_link_version": current.link_version,
                     "expected_selection_version": current.selection_version,
+                    "expected_selection_hash": current.selection_hash,
                     "expected_rule_snapshot_hash": current.rule_snapshot_hash,
                 },
             ),

@@ -134,6 +134,7 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("enrollment_version", "INTEGER", 0, 0),
             ("link_version", "INTEGER", 0, 0),
             ("selection_version", "VARCHAR", 0, 0),
+            ("selection_hash", "VARCHAR", 0, 0),
             ("rule_snapshot_hash", "VARCHAR", 0, 0),
         ),
         "approval_binding_invalidations": (
@@ -143,6 +144,7 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("enrollment_version", "INTEGER", 1, 0),
             ("link_version", "INTEGER", 1, 0),
             ("selection_version", "VARCHAR", 1, 0),
+            ("selection_hash", "VARCHAR", 0, 0),
             ("rule_snapshot_hash", "VARCHAR", 1, 0),
             ("reason", "VARCHAR", 1, 0),
             ("status", "VARCHAR", 1, 0),
@@ -265,6 +267,7 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("link_version", "INTEGER", 1, 0),
             ("selection_version", "VARCHAR", 1, 0),
             ("rule_snapshot_hash", "VARCHAR", 1, 0),
+            ("selection_hash", "VARCHAR", 0, 0),
         ),
         "assortment_submissions": _business_columns(
             "assortment_submission_id",
@@ -273,6 +276,8 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("assortment_policy_ref", "VARCHAR", 1, 0),
             ("assortment_policy_version", "VARCHAR", 1, 0),
             ("status", "VARCHAR", 1, 0),
+            ("selection_version", "VARCHAR", 0, 0),
+            ("selection_hash", "VARCHAR", 0, 0),
         ),
         "assortment_submission_items": (
             ("tenant_id", "VARCHAR", 1, 1),
