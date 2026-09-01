@@ -1,15 +1,17 @@
 import asyncio
 import hashlib
 import json
+from collections.abc import Coroutine
 from enum import StrEnum
 from importlib import resources
 from pathlib import Path
-from typing import Annotated, Literal, cast
+from typing import Annotated, Any, Literal, cast
 
 import typer
 
 from oria import __version__
 from oria.config import ConfigResolutionError, resolve_runtime_config
+from oria.config.models import ResolvedRuntimeConfig
 from oria.core.protocols import Reranker
 from oria.data import DataInitializationError, initialize_data
 from oria.demo import DemoRunError, run_demo
@@ -19,6 +21,16 @@ from oria.eval import (
     load_rag_eval_config,
     run_rag_eval,
     write_value_model,
+)
+from oria.orchestrator.local_executor import (
+    LocalWorkflowResult,
+    close_enrollment_window,
+    complete_selection,
+    decide_confirmation,
+    decide_local_approval,
+    inject_merchant_event,
+    inject_selection_decision,
+    start_local_workflow,
 )
 from oria.rag.rerank import CrossEncoderReranker, FixtureReranker
 
@@ -31,9 +43,15 @@ app = typer.Typer(
 config_app = typer.Typer(help="Inspect and validate runtime configuration.")
 data_app = typer.Typer(help="Initialize versioned local data stores.")
 eval_app = typer.Typer(help="Run versioned evaluation suites.")
+workflow_app = typer.Typer(help="Start and resume the local Scenario A workflow.")
+approval_app = typer.Typer(help="Approve or reject an active workflow HITL request.")
+mock_app = typer.Typer(help="Inject authenticated synthetic Scenario A events.")
 app.add_typer(config_app, name="config")
 app.add_typer(data_app, name="data")
 app.add_typer(eval_app, name="eval")
+app.add_typer(workflow_app, name="workflow")
+app.add_typer(approval_app, name="approval")
+app.add_typer(mock_app, name="mock")
 
 
 class OutputFormat(StrEnum):
@@ -371,4 +389,279 @@ def eval_run(
             ensure_ascii=False,
             sort_keys=True,
         )
+    )
+
+
+def _workflow_config(
+    *,
+    output: OutputFormat,
+    config_path: Path | None,
+    data_dir: Path | None,
+) -> ResolvedRuntimeConfig:
+    try:
+        return resolve_runtime_config(config_path=config_path, data_dir=data_dir)
+    except ConfigResolutionError as exc:
+        payload = {"ok": False, "error": {"code": "invalid_config", "message": str(exc)}}
+        if output is OutputFormat.JSON:
+            typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        else:
+            typer.echo(f"Configuration invalid: {exc}", err=True)
+        raise typer.Exit(code=2) from None
+
+
+def _run_workflow_operation(
+    operation: Coroutine[Any, Any, LocalWorkflowResult],
+    *,
+    output: OutputFormat,
+) -> None:
+    try:
+        result = asyncio.run(operation)
+    except (LookupError, PermissionError, RuntimeError, ValueError) as exc:
+        payload = {
+            "ok": False,
+            "error": {"code": "workflow_operation_failed", "message": str(exc)},
+        }
+        if output is OutputFormat.JSON:
+            typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        else:
+            typer.echo(f"Workflow operation failed: {exc}", err=True)
+        raise typer.Exit(code=1) from None
+    payload = result.model_dump(mode="json")
+    if output is OutputFormat.JSON:
+        typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    else:
+        typer.echo(f"Workflow {result.status}: {result.thread_id}")
+        for interruption in result.interrupts:
+            typer.echo(
+                f"Waiting: {interruption.get('kind')} "
+                f"({interruption.get('approval_id') or interruption.get('confirmation_task_id')})"
+            )
+
+
+@workflow_app.command("start")
+def workflow_start(
+    thread_id: Annotated[str, typer.Option(help="Opaque local workflow thread ID.")],
+    campaign_id: Annotated[str, typer.Option(help="Synthetic campaign business ID.")],
+    request: Annotated[
+        str,
+        typer.Option(help="Scenario A campaign request passed to the research graph."),
+    ] = "生成华东餐饮招商活动并完成预定流程",
+    output: Annotated[
+        OutputFormat,
+        typer.Option("--output", help="Output format: human or json."),
+    ] = OutputFormat.HUMAN,
+    config_path: Annotated[
+        Path | None,
+        typer.Option("--config", help="Read an explicit YAML configuration file."),
+    ] = None,
+    data_dir: Annotated[
+        Path | None,
+        typer.Option("--data-dir", help="Override the runtime data root."),
+    ] = None,
+) -> None:
+    """Initialize local data and start a checkpointed Scenario A workflow."""
+
+    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    _run_workflow_operation(
+        start_local_workflow(
+            config,
+            thread_id=thread_id,
+            campaign_id=campaign_id,
+            user_request=request,
+        ),
+        output=output,
+    )
+
+
+@workflow_app.command("resume")
+def workflow_resume(
+    thread_id: Annotated[str, typer.Option(help="Existing workflow thread ID.")],
+    confirmation_task_id: Annotated[
+        str,
+        typer.Option(help="Active dynamic ConfirmationTask ID."),
+    ],
+    decision: Annotated[
+        Literal["confirm", "reject"],
+        typer.Option(help="Confirmation decision."),
+    ] = "confirm",
+    output: Annotated[
+        OutputFormat,
+        typer.Option("--output", help="Output format: human or json."),
+    ] = OutputFormat.HUMAN,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """Resume one authenticated business-confirmation external wait."""
+
+    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    _run_workflow_operation(
+        decide_confirmation(
+            config,
+            thread_id=thread_id,
+            confirmation_task_id=confirmation_task_id,
+            decision=decision,
+        ),
+        output=output,
+    )
+
+
+def _approval_decision_command(
+    *,
+    thread_id: str,
+    approval_id: str,
+    decision: Literal["approve", "reject"],
+    reason: str | None,
+    output: OutputFormat,
+    config_path: Path | None,
+    data_dir: Path | None,
+) -> None:
+    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    _run_workflow_operation(
+        decide_local_approval(
+            config,
+            thread_id=thread_id,
+            approval_id=approval_id,
+            decision=decision,
+            reason=reason,
+        ),
+        output=output,
+    )
+
+
+@approval_app.command("approve")
+def approval_approve(
+    thread_id: Annotated[str, typer.Option(help="Existing workflow thread ID.")],
+    approval_id: Annotated[str, typer.Option(help="Active approval ID.")],
+    output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """Approve the active launch or consumer-publish HITL request and resume."""
+
+    _approval_decision_command(
+        thread_id=thread_id,
+        approval_id=approval_id,
+        decision="approve",
+        reason=None,
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+    )
+
+
+@approval_app.command("reject")
+def approval_reject(
+    thread_id: Annotated[str, typer.Option(help="Existing workflow thread ID.")],
+    approval_id: Annotated[str, typer.Option(help="Active approval ID.")],
+    reason: Annotated[str, typer.Option(help="Required rejection reason.")],
+    output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """Reject the active launch or consumer-publish HITL request and resume."""
+
+    _approval_decision_command(
+        thread_id=thread_id,
+        approval_id=approval_id,
+        decision="reject",
+        reason=reason,
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+    )
+
+
+@mock_app.command("enrollment")
+def mock_enrollment(
+    thread_id: Annotated[str, typer.Option(help="Existing workflow thread ID.")],
+    source_event_id: Annotated[str, typer.Option(help="Synthetic source event ID.")],
+    merchant_id: Annotated[str, typer.Option()] = "demo-m001",
+    product_ref: Annotated[str, typer.Option()] = "synthetic-product-demo-m001",
+    output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """Inject one authenticated Mock merchant-enrollment event without graph resume."""
+
+    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    _run_workflow_operation(
+        inject_merchant_event(
+            config,
+            thread_id=thread_id,
+            source_event_id=source_event_id,
+            merchant_id=merchant_id,
+            product_ref=product_ref,
+        ),
+        output=output,
+    )
+
+
+@mock_app.command("window-close")
+def mock_window_close(
+    thread_id: Annotated[str, typer.Option(help="Existing workflow thread ID.")],
+    source_event_id: Annotated[str, typer.Option(help="Synthetic source event ID.")],
+    output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """Inject a trusted close event and resume the enrollment barrier."""
+
+    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    _run_workflow_operation(
+        close_enrollment_window(
+            config,
+            thread_id=thread_id,
+            source_event_id=source_event_id,
+        ),
+        output=output,
+    )
+
+
+@mock_app.command("selection-decision")
+def mock_selection_decision(
+    thread_id: Annotated[str, typer.Option(help="Existing workflow thread ID.")],
+    source_event_id: Annotated[str, typer.Option(help="Synthetic source event ID.")],
+    selection_version: Annotated[str, typer.Option()] = "selection-v1",
+    decision: Annotated[Literal["selected", "rejected"], typer.Option()] = "selected",
+    reason_code: Annotated[str | None, typer.Option()] = None,
+    output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """Inject an inbox-authenticated Mock selection decision without graph resume."""
+
+    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    _run_workflow_operation(
+        inject_selection_decision(
+            config,
+            thread_id=thread_id,
+            source_event_id=source_event_id,
+            selection_version=selection_version,
+            decision=decision,
+            reason_code=reason_code,
+        ),
+        output=output,
+    )
+
+
+@mock_app.command("selection-complete")
+def mock_selection_complete(
+    thread_id: Annotated[str, typer.Option(help="Existing workflow thread ID.")],
+    source_event_id: Annotated[str, typer.Option(help="Synthetic source event ID.")],
+    selection_version: Annotated[str, typer.Option()] = "selection-v1",
+    output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """Inject a trusted completion event and resume the selection wait."""
+
+    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    _run_workflow_operation(
+        complete_selection(
+            config,
+            thread_id=thread_id,
+            source_event_id=source_event_id,
+            selection_version=selection_version,
+        ),
+        output=output,
     )

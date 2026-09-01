@@ -1404,3 +1404,15 @@ class SQLiteCampaignLaunchRepository:
             receipt_id=receipt_id,
         )
         await self._publications._update(session, existing, published, allow_status_change=True)
+        campaign = await self._campaigns._find_by_id(session, existing.campaign_id, tenant_id)
+        if campaign is None:
+            raise BusinessRepositoryError("recruitment campaign is unavailable")
+        current = campaign
+        if current.status == "draft":
+            pending = current.transition_to("pending_launch_approval", updated_at=updated_at)
+            await self._campaigns._update(session, current, pending, allow_status_change=True)
+            current = pending
+        if current.status != "pending_launch_approval":
+            raise BusinessRepositoryError("recruitment campaign is not launchable")
+        recruiting = current.transition_to("recruiting", updated_at=updated_at)
+        await self._campaigns._update(session, current, recruiting, allow_status_change=True)

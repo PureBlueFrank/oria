@@ -21,6 +21,7 @@ from oria.core.integration_events import (
     ExternalWait,
     IntegrationEventInboxService,
     SelectionCompleted,
+    SelectionDecisionRecorded,
     parse_integration_event,
 )
 from oria.core.protocols import Node
@@ -269,6 +270,67 @@ class DefaultScenarioAWorkflowService:
 
         return self._integration_events
 
+    async def ingest_merchant_event(
+        self,
+        state: WorkflowState,
+        event: object,
+        ctx: Context,
+    ) -> NodeResult:
+        """Authenticate and persist one Mock merchant event without resuming the graph."""
+
+        branch = _result_model(state, "enrollment_prepared", "branch_state", EnrollmentBranchState)
+        wait = _result_model(
+            state, "enrollment_prepared", "merchant_event_domain_wait", ExternalWait
+        )
+        outcome = await self._enrollment_branches.process_event(branch, event, wait=wait, ctx=ctx)
+        if outcome.status not in {"accepted", "duplicate"}:
+            raise PermissionError("merchant enrollment event did not pass trusted inbox validation")
+        return _node_result(
+            status=outcome.status,
+            write_result=(
+                None
+                if outcome.write_result is None
+                else outcome.write_result.model_dump(mode="json")
+            ),
+        )
+
+    async def ingest_selection_decision(
+        self,
+        request: ScenarioAWorkflowRequest,
+        state: WorkflowState,
+        event: object,
+        ctx: Context,
+    ) -> NodeResult:
+        """Authenticate, deduplicate, and apply a non-resuming selection decision."""
+
+        parsed = parse_integration_event(event)
+        if not isinstance(parsed, SelectionDecisionRecorded):
+            raise PermissionError("only a selection decision event is accepted")
+        completion_wait = _result_model(state, "selection_wait", "domain_wait", ExternalWait)
+        wait = ExternalWait(
+            tenant_id=ctx.tenant_id,
+            wait_id=_stable_id(
+                "external_wait",
+                ctx.tenant_id,
+                parsed.adapter_id,
+                parsed.source_event_id,
+            ),
+            event_type="selection.decision_recorded",
+            resource_type="campaign",
+            resource_id=request.draft.campaign_id,
+            expected_version=parsed.version,
+            checkpoint_id=completion_wait.checkpoint_id,
+            expires_at=completion_wait.expires_at,
+            timeout_action="fail",
+            created_at=completion_wait.created_at,
+        )
+        await self._integration_events.register_wait(wait)
+        inbox = await self._integration_events.process(event, wait=wait)
+        if not inbox.resume_eligible:
+            raise PermissionError("selection decision did not pass trusted inbox validation")
+        applied = await self._selection_events.apply(parsed, ctx)
+        return _node_result(**applied.model_dump(mode="json"))
+
     async def generate_draft(self, request: ScenarioAWorkflowRequest, ctx: Context) -> NodeResult:
         research = await self._research.ainvoke(
             initial_research_state(
@@ -421,9 +483,9 @@ class DefaultScenarioAWorkflowService:
             updates.update(
                 {
                     "merchant_event_domain_wait": merchant_wait.model_dump(mode="json"),
-                    "merchant_event_wait": cast(JsonValue, merchant_projection),
+                    "merchant_event_wait": _wait_json(merchant_projection),
                     "merchant_window_domain_wait": window_wait.model_dump(mode="json"),
-                    "merchant_window_wait": cast(JsonValue, window_projection),
+                    "merchant_window_wait": _wait_json(window_projection),
                 }
             )
         return NodeResult(status="waiting", updates=updates), waits
@@ -566,7 +628,7 @@ class DefaultScenarioAWorkflowService:
                     dict[str, JsonValue],
                     {
                         "confirmation_task_id": task_id,
-                        "wait": wait,
+                        "wait": _wait_json(wait),
                     },
                 ),
             ),
@@ -655,7 +717,7 @@ class DefaultScenarioAWorkflowService:
                 {
                     "domain_wait": wait.model_dump(mode="json"),
                     "submission_version": submission["submission_version"],
-                    "wait": projection,
+                    "wait": _wait_json(projection),
                 },
             ),
         )
@@ -894,6 +956,16 @@ def _wait_projection(wait: ExternalWait, ctx: Context) -> ExternalWaitState:
     }
 
 
+def _wait_json(wait: ExternalWaitState) -> JsonValue:
+    return cast(
+        JsonValue,
+        {
+            **wait,
+            "resource": wait["resource"].model_dump(mode="json"),
+        },
+    )
+
+
 def scenario_a_request(state: WorkflowState) -> ScenarioAWorkflowRequest:
     steps = state["plan"]["steps"]
     if len(steps) != 1 or steps[0]["node_id"] != "scenario_a":
@@ -1072,6 +1144,13 @@ async def _confirmation_hitl(state: WorkflowState, runtime: Runtime[Context]) ->
     return {"results": {f"confirmation_decision:{task_id}": result}}
 
 
+async def _confirmation_handoff(state: WorkflowState) -> dict[str, object]:
+    value = interrupt({"kind": "workflow_handoff", "target_role": "campaign_admin"})
+    if not isinstance(value, Mapping) or value.get("continue") is not True:
+        raise PermissionError("confirmation handoff requires the trusted workflow executor")
+    return {"results": {"confirmation_handoff": _node_result(continued=True)}}
+
+
 async def _link_coupon(state: WorkflowState, runtime: Runtime[Context]) -> dict[str, object]:
     result = await _service(runtime.context).link_coupon_batch(
         scenario_a_request(state), state, runtime.context
@@ -1170,6 +1249,7 @@ def build_scenario_a_graph(
     builder.add_node("join_enrollment", _join_enrollment)
     builder.add_node("prepare_confirmation", _prepare_confirmation)
     builder.add_node("confirmation_hitl", _confirmation_hitl)
+    builder.add_node("confirmation_handoff", _confirmation_handoff)
     builder.add_node("link_coupon_batch", _link_coupon)
     builder.add_node("submit_assortment", _submit_assortment)
     builder.add_node("prepare_selection_wait", _prepare_selection_wait)
@@ -1197,9 +1277,10 @@ def build_scenario_a_graph(
     builder.add_conditional_edges(
         "prepare_confirmation",
         _confirmation_route,
-        {"confirmation_hitl": "confirmation_hitl", END: "link_coupon_batch"},
+        {"confirmation_hitl": "confirmation_hitl", END: "confirmation_handoff"},
     )
     builder.add_edge("confirmation_hitl", "prepare_confirmation")
+    builder.add_edge("confirmation_handoff", "link_coupon_batch")
     builder.add_edge("link_coupon_batch", "submit_assortment")
     builder.add_edge("submit_assortment", "prepare_selection_wait")
     builder.add_edge("prepare_selection_wait", "selection_event_wait")

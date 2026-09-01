@@ -466,6 +466,25 @@ class ApprovalService:
         )
         return decided
 
+    async def get_for_decision(
+        self,
+        *,
+        tenant_id: str,
+        approval_id: str,
+        ctx: Context,
+    ) -> Approval:
+        """Reload one approval after reauthorizing its decision boundary."""
+
+        if tenant_id != ctx.tenant_id:
+            raise PermissionError("cross-tenant approval access is denied")
+        approval = await self._required(tenant_id, approval_id)
+        await self._authorize(
+            action=_DECIDE_ACTIONS[approval.approval_action],
+            resource_id=approval.approval_id,
+            ctx=ctx,
+        )
+        return approval
+
     async def authorize_resume(
         self,
         *,

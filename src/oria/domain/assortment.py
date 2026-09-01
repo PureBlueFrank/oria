@@ -874,14 +874,14 @@ class AssortmentService:
             binding = await self._required_binding(decision_payload.campaign_id, ctx)
         else:
             completion_payload = event.payload
-            binding = await self._required_binding(completion_payload.campaign_id, ctx)
+            expected_binding = await self._required_binding(completion_payload.campaign_id, ctx)
             selection_hash = await self._repository.selection_completion_hash(
                 tenant_id=ctx.tenant_id,
                 campaign_id=completion_payload.campaign_id,
                 submission_version=completion_payload.submission_version,
                 selection_version=completion_payload.selection_version,
             )
-            updated_binding = binding.model_copy(
+            updated_binding = expected_binding.model_copy(
                 update={
                     "selection_version": completion_payload.selection_version,
                     "selection_hash": selection_hash,
@@ -907,7 +907,7 @@ class AssortmentService:
                     campaign_id=completion_payload.campaign_id,
                     submission_version=completion_payload.submission_version,
                     selection_version=completion_payload.selection_version,
-                    expected_binding=binding,
+                    expected_binding=expected_binding,
                     updated_binding=updated_binding,
                     updated_at=now,
                 )

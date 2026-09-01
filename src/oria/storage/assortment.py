@@ -173,6 +173,13 @@ class SQLiteAssortmentWorkflowRepository:
                     "created_at": submission.created_at,
                 },
             )
+        if campaign.status == "recruiting":
+            await self._campaigns._update(
+                session,
+                campaign,
+                campaign.transition_to("selecting", updated_at=submission.updated_at),
+                allow_status_change=True,
+            )
 
     def submission_outcome_projection(
         self,
@@ -339,13 +346,15 @@ class SQLiteAssortmentWorkflowRepository:
             selection_version=selection_version,
         )
         current_binding = await self._find_binding(session, tenant_id, campaign_id)
-        if current_binding != expected_binding or updated_binding != expected_binding.model_copy(
+        if current_binding != expected_binding:
+            raise BusinessRepositoryError("selection current binding optimistic lock conflict")
+        if updated_binding != expected_binding.model_copy(
             update={
                 "selection_version": selection_version,
                 "selection_hash": selection_hash,
             }
         ):
-            raise BusinessRepositoryError("selection approval binding optimistic lock conflict")
+            raise BusinessRepositoryError("selection result hash binding conflict")
         completed = submission._next_version(
             updated_at=updated_at,
             status="completed",

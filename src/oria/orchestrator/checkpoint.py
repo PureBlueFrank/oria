@@ -187,7 +187,13 @@ async def open_tenant_sqlite_saver(path: Path) -> AsyncIterator[TenantSqliteSave
     try:
         delegate = AsyncSqliteSaver(
             connection,
-            serde=JsonPlusSerializer(pickle_fallback=False),
+            serde=JsonPlusSerializer(
+                pickle_fallback=False,
+                allowed_msgpack_modules=(
+                    ("oria.core.types", "NodeResult"),
+                    ("oria.core.types", "ResourceRef"),
+                ),
+            ),
         )
         saver = TenantSqliteSaver(delegate)
         await saver.setup()

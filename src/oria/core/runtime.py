@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import AbstractAsyncContextManager
+from datetime import UTC, datetime
+from decimal import Decimal
 
 import httpx
 
@@ -15,12 +17,14 @@ from oria.adapters.assortment import (
     InMemoryMerchantNotificationAdapter,
 )
 from oria.adapters.launch import InMemoryCouponBatchAdapter, InMemoryRecruitmentAdapter
+from oria.adapters.products import InMemoryProductCatalogAdapter
 from oria.agent.graph import build_research_graph
 from oria.config.models import ResolvedRuntimeConfig
 from oria.config.resolve import resolve_runtime_config
 from oria.core.approvals import ApprovalBindingInvalidationConsumer, ApprovalService
 from oria.core.context import RuntimeServices, SealedAsyncExitStack
 from oria.core.execution_ledger import ExecutionLedger
+from oria.core.integration_events import IntegrationEventInboxService
 from oria.core.protocols import (
     Embedder,
     Guardrail,
@@ -30,9 +34,19 @@ from oria.core.protocols import (
     Notifier,
 )
 from oria.core.registry import ServiceRegistry
+from oria.core.types import Principal
 from oria.domain.assortment import AssortmentService, TrustedSelectionEventService
+from oria.domain.confirmations import ConfirmationService
 from oria.domain.eligibility import EligibilityPolicy
+from oria.domain.enrollment import (
+    CouponLinkService,
+    EnrollmentService,
+    InMemoryConfirmationSubjectDirectory,
+)
+from oria.domain.enrollment_branch import EnrollmentBranchCoordinator
 from oria.domain.launch import DefaultCampaignLaunchService
+from oria.domain.product_eligibility import ProductEligibilityPolicy, ProductSnapshot
+from oria.domain.products import ProductQueryService
 from oria.domain.services import (
     DefaultMerchantService,
     DomainServiceRegistry,
@@ -40,6 +54,10 @@ from oria.domain.services import (
 )
 from oria.ingress.local import LocalCLIIngressAdapter
 from oria.orchestrator.checkpoint import open_tenant_sqlite_saver
+from oria.orchestrator.scenario_a import (
+    DefaultScenarioAWorkflowService,
+    build_scenario_a_graph,
+)
 from oria.permission.audit import PlatformAuditService
 from oria.permission.local import LocalPolicyEngine
 from oria.providers.anthropic import AnthropicProvider
@@ -70,6 +88,8 @@ from oria.storage.repositories import (
     SQLiteCampaignLaunchRepository,
     SQLiteCampaignRepository,
     SQLiteCampaignRuleSnapshotRefRepository,
+    SQLiteCouponBatchRepository,
+    SQLiteEnrollmentWorkflowRepository,
     SQLiteMerchantRepository,
 )
 from oria.tools.assortment import (
@@ -87,6 +107,11 @@ async def build_runtime(
     config: ResolvedRuntimeConfig | None = None,
     *,
     resource_factories: Sequence[RuntimeResourceFactory] = (),
+    clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    trusted_actors: Sequence[Principal] | None = None,
+    trusted_executors: Sequence[Principal] | None = None,
+    confirmation_assignments: Mapping[str, str] | None = None,
+    integration_event_subjects: Mapping[tuple[str, str], frozenset[str]] | None = None,
 ) -> RuntimeServices:
     """Build and seal one runtime, unwinding every startup resource on failure."""
     resolved = resolve_runtime_config() if config is None else config
@@ -157,7 +182,12 @@ async def build_runtime(
         catalog = SQLiteKnowledgeCatalog(database_resources.platform_sessions)
         bm25_index = BM25Index()
         audit = PlatformAuditService(database_resources.platform_sessions, resolved)
-        policy = LocalPolicyEngine(audit)
+        policy = LocalPolicyEngine(
+            audit,
+            trusted_actors=trusted_actors,
+            trusted_executors=trusted_executors,
+            confirmation_assignments=confirmation_assignments,
+        )
         knowledge = LocalKnowledgeService(
             catalog=catalog,
             objects=objects,
@@ -191,45 +221,156 @@ async def build_runtime(
             EligibilityPolicy(),
             campaign_rules,
         )
-        approvals = ApprovalService(
-            SQLiteApprovalRepository(database_resources.platform_sessions),
-            policy,
-        )
-        ledger = ExecutionLedger(database_resources.business_sessions)
         assortment_repository = SQLiteAssortmentWorkflowRepository(
             database_resources.business_sessions
         )
+        approvals = ApprovalService(
+            SQLiteApprovalRepository(database_resources.platform_sessions),
+            policy,
+            clock=clock,
+            binding_reader=assortment_repository,
+        )
+        ledger = ExecutionLedger(database_resources.business_sessions, clock=clock)
+        campaign_repository = SQLiteCampaignRepository(database_resources.business_sessions)
+        rule_ref_repository = SQLiteCampaignRuleSnapshotRefRepository(
+            database_resources.business_sessions
+        )
+        coupon_repository = SQLiteCouponBatchRepository(database_resources.business_sessions)
+        enrollment_repository = SQLiteEnrollmentWorkflowRepository(
+            database_resources.business_sessions
+        )
+        inbox_repository = SQLiteIntegrationEventInboxRepository(
+            database_resources.platform_sessions
+        )
+        approval_invalidator = ApprovalBindingInvalidationConsumer(
+            SQLiteApprovalInvalidationRepository(database_resources.platform_sessions)
+        )
+        product_catalog = InMemoryProductCatalogAdapter(
+            {
+                bundle.merchants.tenant_id: tuple(
+                    ProductSnapshot(
+                        product_ref=f"synthetic-product-{merchant.merchant_id}",
+                        product_version="v1",
+                        merchant_id=merchant.merchant_id,
+                        source_ref=(f"synthetic://catalog/{merchant.merchant_id}/product/v1"),
+                        captured_at=clock(),
+                        category="餐饮套餐",
+                        normalized_price=Decimal("100.00"),
+                        currency="CNY",
+                        normalized_title=f"合成夏季套餐 {merchant.merchant_id}",
+                        keyword_labels=("夏季", "套餐"),
+                        eligibility_facts={"available": True, "status": "available"},
+                    )
+                    for merchant in bundle.merchants.merchants
+                )
+            }
+        )
+        product_query = ProductQueryService(
+            campaigns=campaign_repository,
+            rule_refs=rule_ref_repository,
+            rule_snapshots=rule_snapshots,
+            catalog=product_catalog,
+            eligibility=ProductEligibilityPolicy(),
+            merchants=merchant_repository,
+            merchant_eligibility=EligibilityPolicy(),
+        )
+        enrollment_service = EnrollmentService(
+            campaigns=campaign_repository,
+            rule_refs=rule_ref_repository,
+            rule_snapshots=rule_snapshots,
+            merchants=merchant_repository,
+            repository=enrollment_repository,
+            catalog=product_catalog,
+            ledger=ledger,
+            subjects=InMemoryConfirmationSubjectDirectory(
+                {
+                    (bundle.merchants.tenant_id, merchant.merchant_id): {
+                        "merchant": merchant.merchant_id,
+                        "sales": f"sales:{merchant.merchant_id}",
+                        "sales_manager": f"sales-manager:{merchant.merchant_id}",
+                    }
+                    for merchant in bundle.merchants.merchants
+                }
+            ),
+            clock=clock,
+        )
+        integration_events = IntegrationEventInboxService(
+            inbox_repository,
+            authorized_subjects=integration_event_subjects
+            or {
+                (bundle.merchants.tenant_id, "mock-merchant"): frozenset({"mock-merchant-adapter"}),
+                (bundle.merchants.tenant_id, "mock-selection"): frozenset(
+                    {"mock-selection-adapter"}
+                ),
+            },
+            clock=clock,
+        )
+        enrollment_branches = EnrollmentBranchCoordinator(
+            inbox=integration_events,
+            enrollments=enrollment_service,
+            approval_invalidator=approval_invalidator,
+            clock=clock,
+        )
+        confirmations = ConfirmationService(
+            repository=enrollment_repository,
+            ledger=ledger,
+            clock=clock,
+        )
+        coupon_links = CouponLinkService(
+            repository=enrollment_repository,
+            ledger=ledger,
+            campaigns=campaign_repository,
+            coupons=coupon_repository,
+            rule_refs=rule_ref_repository,
+            rule_snapshots=rule_snapshots,
+            catalog=product_catalog,
+            clock=clock,
+        )
         assortment = AssortmentService(
-            campaigns=SQLiteCampaignRepository(database_resources.business_sessions),
-            rule_refs=SQLiteCampaignRuleSnapshotRefRepository(database_resources.business_sessions),
+            campaigns=campaign_repository,
+            rule_refs=rule_ref_repository,
             rule_snapshots=rule_snapshots,
             repository=assortment_repository,
             ledger=ledger,
             approvals=approvals,
-            assortment_adapter=InMemoryAssortmentAdapter(),
-            placement_adapter=InMemoryConsumerPlacementAdapter(),
-            notification_adapter=InMemoryMerchantNotificationAdapter(),
-            approval_invalidator=ApprovalBindingInvalidationConsumer(
-                SQLiteApprovalInvalidationRepository(database_resources.platform_sessions)
-            ),
+            assortment_adapter=InMemoryAssortmentAdapter(clock=clock),
+            placement_adapter=InMemoryConsumerPlacementAdapter(clock=clock),
+            notification_adapter=InMemoryMerchantNotificationAdapter(clock=clock),
+            approval_invalidator=approval_invalidator,
+            clock=clock,
         )
         selection_events = TrustedSelectionEventService(
-            SQLiteIntegrationEventInboxRepository(database_resources.platform_sessions),
+            inbox_repository,
             assortment,
+            clock=clock,
+        )
+        campaign_launch = DefaultCampaignLaunchService(
+            SQLiteCampaignDraftRepository(database_resources.business_sessions),
+            launches=SQLiteCampaignLaunchRepository(database_resources.business_sessions),
+            approvals=approvals,
+            ledger=ledger,
+            coupon_adapter=InMemoryCouponBatchAdapter(clock=clock),
+            recruitment_adapter=InMemoryRecruitmentAdapter(clock=clock),
+            clock=clock,
+        )
+        scenario_a = DefaultScenarioAWorkflowService(
+            campaign_launch=campaign_launch,
+            approvals=approvals,
+            products=product_query,
+            enrollment_branches=enrollment_branches,
+            confirmations=confirmations,
+            coupon_links=coupon_links,
+            assortment=assortment,
+            selection_events=selection_events,
+            integration_events=integration_events,
         )
         domain = DomainServiceRegistry(
             campaign_rules=campaign_rules,
             merchants=merchant_service,
-            campaign_launch=DefaultCampaignLaunchService(
-                SQLiteCampaignDraftRepository(database_resources.business_sessions),
-                launches=SQLiteCampaignLaunchRepository(database_resources.business_sessions),
-                approvals=approvals,
-                ledger=ledger,
-                coupon_adapter=InMemoryCouponBatchAdapter(),
-                recruitment_adapter=InMemoryRecruitmentAdapter(),
-            ),
+            campaign_launch=campaign_launch,
             assortment=assortment,
             selection_events=selection_events,
+            scenario_a=scenario_a,
         )
 
         tools = ToolRegistry(
@@ -255,6 +396,7 @@ async def build_runtime(
         notifier: ServiceRegistry[Notifier] = ServiceRegistry()
         ingress.register("cli", LocalCLIIngressAdapter())
         agents.register("research_agent", build_research_graph(checkpointer=checkpointer))
+        agents.register("scenario_a", build_scenario_a_graph(checkpointer=checkpointer))
 
         tools.seal()
         for registry in (guardrails, nodes, agents, ingress, notifier):
