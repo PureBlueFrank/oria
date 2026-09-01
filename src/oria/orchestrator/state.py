@@ -117,7 +117,7 @@ def canonical_json_value(value: object) -> object:
     if isinstance(value, Enum):
         return canonical_json_value(value.value)
     if isinstance(value, BaseModel):
-        return canonical_json_value(value.model_dump(mode="json"))
+        return canonical_json_value(value.model_dump(mode="python", round_trip=True))
     if is_dataclass(value) and not isinstance(value, type):
         return canonical_json_value(asdict(value))
     if isinstance(value, Mapping):
