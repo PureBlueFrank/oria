@@ -16,9 +16,9 @@ from oria.adapters.assortment import (
     InMemoryMerchantNotificationAdapter,
 )
 from oria.config import resolve_runtime_config
-from oria.core.approvals import ApprovalBusinessBinding
+from oria.core.approvals import ApprovalBusinessBinding, canonical_args_hash
 from oria.core.execution_ledger import ExecutionEventBundle, ExecutionLedger
-from oria.core.types import EventEnvelope, ResourceRef
+from oria.core.types import EventEnvelope, PolicyDecision, Principal, ResourceRef
 from oria.data import initialize_data
 from oria.domain.assortment import (
     AssortmentSelection,
@@ -35,7 +35,7 @@ from oria.domain.business import (
     EnrollmentCouponLink,
     SelectionDecision,
 )
-from oria.domain.ledger import OutboxRecord, Receipt
+from oria.domain.ledger import OutboxRecord, Receipt, ToolExecution
 from oria.storage.database import DatabaseResources
 
 pytestmark = pytest.mark.integration
@@ -43,6 +43,56 @@ pytestmark = pytest.mark.integration
 NOW = datetime(2026, 9, 1, 10, 0, tzinfo=UTC)
 TENANT = "local-community"
 HASH = f"sha256:{'a' * 64}"
+
+
+class _AllowPolicy:
+    async def authorize(self, request: object, ctx: object) -> PolicyDecision:
+        del request, ctx
+        return PolicyDecision(
+            allow=True,
+            constraints={"tenant_id": TENANT},
+            policy_version="allow-v1",
+            reason="test authorization",
+        )
+
+
+class _WaitingLedger:
+    def __init__(self) -> None:
+        self.recovery_calls = 0
+        self.execute_calls = 0
+
+    async def reserve_for_args(self, **kwargs: object) -> ToolExecution:
+        args_hash = canonical_args_hash(
+            tool_name=str(kwargs["tool_name"]),
+            tool_schema_version=int(kwargs["tool_schema_version"]),
+            schema=kwargs["schema"],  # type: ignore[arg-type]
+            args=kwargs["args"],  # type: ignore[arg-type]
+        )
+        reserved = ToolExecution(
+            execution_id=str(kwargs["execution_id"]),
+            tenant_id=str(kwargs["tenant_id"]),
+            tool_name=str(kwargs["tool_name"]),
+            idempotency_key=ExecutionLedger.build_idempotency_key(
+                str(kwargs["stable_business_id"]), args_hash
+            ),
+            canonical_args_hash=args_hash,
+            checkpoint_id=str(kwargs["checkpoint_id"]),
+            created_at=NOW,
+            updated_at=NOW,
+        )
+        return reserved.transition_to("executing", updated_at=NOW + timedelta(seconds=1))
+
+    async def recover_stale_executing(
+        self, execution: ToolExecution, **kwargs: object
+    ) -> ToolExecution:
+        del kwargs
+        self.recovery_calls += 1
+        return execution
+
+    async def execute(self, *args: object, **kwargs: object) -> ToolExecution:
+        del args, kwargs
+        self.execute_calls += 1
+        raise AssertionError("waiting replay must not invoke execute")
 
 
 def _binding(selection_hash: str | None = None) -> ApprovalBusinessBinding:
@@ -315,3 +365,122 @@ async def test_rejected_side_effect_commits_terminal_ledger_audit_and_outbox(
     assert failed.status == "failed"
     assert row == ("failed", 1, 1)
     assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_all_t06_fresh_executing_replays_return_waiting_without_adapter_calls() -> None:
+    assortment_adapter = InMemoryAssortmentAdapter()
+    placement_adapter = InMemoryConsumerPlacementAdapter()
+    notification_adapter = InMemoryMerchantNotificationAdapter()
+    approvals = SimpleNamespace(authorize_resume=AsyncMock(return_value=None))
+    repository = SimpleNamespace(
+        load_selection=AsyncMock(return_value=_selection()),
+        get_approval_binding=AsyncMock(return_value=_binding()),
+        notification_message=AsyncMock(
+            return_value=MerchantNotificationMessage(
+                merchant_id="merchant-a",
+                campaign_id="campaign-a",
+                result_version="selection-v1",
+                selected_item_ids=("item-a",),
+                rejected_reasons=(),
+                template_id="selection-result-v1",
+                channel="mock-im",
+            )
+        ),
+    )
+    ledger = _WaitingLedger()
+    actor = Principal(
+        subject_id="operator-a",
+        tenant_id=TENANT,
+        kind="human",
+        roles=("campaign_admin",),
+        authn_method="test",
+    )
+    executor = Principal(
+        subject_id="executor-a",
+        tenant_id=TENANT,
+        kind="service",
+        roles=("runtime",),
+        authn_method="test",
+    )
+    context = SimpleNamespace(
+        tenant_id=TENANT,
+        run_id="run-a",
+        correlation_id="correlation-a",
+        actor=actor,
+        executor=executor,
+        policy=_AllowPolicy(),
+    )
+    service = AssortmentService(
+        campaigns=SimpleNamespace(),
+        rule_refs=SimpleNamespace(),
+        rule_snapshots=SimpleNamespace(),
+        repository=repository,
+        ledger=ledger,
+        approvals=approvals,
+        assortment_adapter=assortment_adapter,
+        placement_adapter=placement_adapter,
+        notification_adapter=notification_adapter,
+        approval_invalidator=SimpleNamespace(),
+        clock=lambda: NOW + timedelta(seconds=2),
+    )
+    submit_request = SubmitAssortmentArgs(
+        campaign_id="campaign-a",
+        enrollment_item_ids=("item-a",),
+        assortment_policy_ref="policy-a",
+        assortment_policy_version="v1",
+        idempotency_key="submit-request-a",
+    )
+    canonical_submit = submit_request.model_copy(
+        update={"idempotency_key": "[request-key]", "approval_id": None}
+    )
+    submit_hash = canonical_args_hash(
+        tool_name="submit_assortment",
+        tool_schema_version=1,
+        schema=SubmitAssortmentArgs,
+        args=canonical_submit.model_dump(),
+    )
+    service._assortment_precheck = AsyncMock(  # type: ignore[method-assign]
+        return_value=(
+            canonical_submit,
+            submit_hash,
+            _binding(),
+            object(),
+            object(),
+            object(),
+        )
+    )
+
+    submit = await service.submit(submit_request, context)
+    placement = await service.publish_consumer_placement(
+        PublishConsumerPlacementArgs(
+            campaign_id="campaign-a",
+            selection_version="selection-v1",
+            placement_spec={"target": "consumer"},
+            idempotency_key="publish-request-a",
+        ),
+        context,
+    )
+    notification = await service.send_merchant_notification(
+        SendMerchantNotificationArgs(
+            merchant_id="merchant-a",
+            campaign_id="campaign-a",
+            result_version="selection-v1",
+            template_id="selection-result-v1",
+            channel="mock-im",
+            idempotency_key="notify-request-a",
+        ),
+        context,
+    )
+
+    assert (submit.replay_status, submit.submission.status) == ("waiting", "pending")
+    assert (placement.replay_status, placement.placement.status) == ("waiting", "pending")
+    assert (notification.replay_status, notification.notification.status) == (
+        "waiting",
+        "pending",
+    )
+    assert ledger.recovery_calls == 3
+    assert ledger.execute_calls == 0
+    assert assortment_adapter.calls == []
+    assert placement_adapter.calls == []
+    assert notification_adapter.calls == []

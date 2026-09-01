@@ -29,6 +29,7 @@ class SubmitAssortmentToolResult(ValueModel):
     execution_id: str
     idempotency_key: str
     request_idempotency_key: str
+    replay_status: Literal["completed", "waiting", "reconciliation"]
 
 
 class PublishConsumerPlacementToolResult(ValueModel):
@@ -41,6 +42,7 @@ class PublishConsumerPlacementToolResult(ValueModel):
     execution_id: str
     idempotency_key: str
     request_idempotency_key: str
+    replay_status: Literal["completed", "waiting", "reconciliation"]
 
 
 class SendMerchantNotificationToolResult(ValueModel):
@@ -53,6 +55,7 @@ class SendMerchantNotificationToolResult(ValueModel):
     execution_id: str
     idempotency_key: str
     request_idempotency_key: str
+    replay_status: Literal["completed", "waiting", "reconciliation"]
 
 
 class SubmitAssortmentTool:
@@ -82,6 +85,7 @@ class SubmitAssortmentTool:
             execution_id=result.execution_id,
             idempotency_key=result.idempotency_key,
             request_idempotency_key=result.request_idempotency_key,
+            replay_status=result.replay_status,
         )
         return _tool_result(self.name, data, result.execution_id, result.idempotency_key)
 
@@ -115,6 +119,7 @@ class PublishConsumerPlacementTool:
             execution_id=result.execution_id,
             idempotency_key=result.idempotency_key,
             request_idempotency_key=result.request_idempotency_key,
+            replay_status=result.replay_status,
         )
         return _tool_result(self.name, data, result.execution_id, result.idempotency_key)
 
@@ -148,6 +153,7 @@ class SendMerchantNotificationTool:
             execution_id=result.execution_id,
             idempotency_key=result.idempotency_key,
             request_idempotency_key=result.request_idempotency_key,
+            replay_status=result.replay_status,
         )
         return _tool_result(self.name, data, result.execution_id, result.idempotency_key)
 

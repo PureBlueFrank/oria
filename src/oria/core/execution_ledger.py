@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal, TypeAlias
 
 from pydantic import BaseModel
@@ -62,9 +62,13 @@ class ExecutionLedger:
         sessions: async_sessionmaker[AsyncSession],
         *,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        executing_timeout: timedelta = timedelta(minutes=5),
     ) -> None:
+        if executing_timeout <= timedelta(0):
+            raise ValueError("executing timeout must be positive")
         self._sessions = sessions
         self._clock = clock
+        self._executing_timeout = executing_timeout
         self._tools = SQLiteToolExecutionRepository(sessions)
         self._domain_events = SQLiteDomainEventRepository(sessions)
         self._audit_events = SQLiteBusinessAuditRepository(sessions)
@@ -134,6 +138,42 @@ class ExecutionLedger:
             execution.execution_id,
             self._now(),
         )
+
+    async def recover_stale_executing(
+        self,
+        execution: ToolExecution,
+        *,
+        business_write: BusinessMutation | None = None,
+        domain_events: Sequence[DomainEvent] = (),
+        audit_events: Sequence[EventEnvelope] = (),
+        outbox_records: Sequence[OutboxRecord] = (),
+    ) -> ToolExecution:
+        """Expire an abandoned invocation without ever invoking its adapter again."""
+        if execution.status != "executing":
+            raise ValueError("executing recovery requires an executing ledger value")
+        now = self._now()
+        if now - execution.updated_at < self._executing_timeout:
+            return execution
+        try:
+            return await self._commit_outcome(
+                execution,
+                "unknown",
+                expected_status="executing",
+                business_write=business_write,
+                compensation_status="reconciliation_required",
+                domain_events=domain_events,
+                audit_events=audit_events,
+                outbox_records=outbox_records,
+            )
+        except ValueError:
+            history = await self._tools.get_by_idempotency(
+                execution.tenant_id,
+                execution.tool_name,
+                execution.idempotency_key,
+            )
+            if history is None or history.status == "executing":
+                raise
+            return history
 
     async def record_success(
         self,
@@ -321,9 +361,7 @@ class ExecutionLedger:
             return await self.record_unknown(
                 executing,
                 business_write=(
-                    None
-                    if outcome_business_write is None
-                    else outcome_business_write("unknown")
+                    None if outcome_business_write is None else outcome_business_write("unknown")
                 ),
                 receipt_id=exc.receipt_id,
                 domain_events=events.domain_events,
@@ -341,9 +379,7 @@ class ExecutionLedger:
             await self.record_failure(
                 executing,
                 business_write=(
-                    None
-                    if outcome_business_write is None
-                    else outcome_business_write("failed")
+                    None if outcome_business_write is None else outcome_business_write("failed")
                 ),
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
@@ -381,9 +417,7 @@ class ExecutionLedger:
             return await self.record_unknown(
                 executing,
                 business_write=(
-                    None
-                    if outcome_business_write is None
-                    else outcome_business_write("unknown")
+                    None if outcome_business_write is None else outcome_business_write("unknown")
                 ),
                 receipt_id=receipt.receipt_id,
                 domain_events=events.domain_events,
@@ -400,9 +434,7 @@ class ExecutionLedger:
         return await self.record_failure(
             executing,
             business_write=(
-                None
-                if outcome_business_write is None
-                else outcome_business_write("failed")
+                None if outcome_business_write is None else outcome_business_write("failed")
             ),
             domain_events=events.domain_events,
             audit_events=events.audit_events,

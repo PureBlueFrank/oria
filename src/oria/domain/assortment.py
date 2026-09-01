@@ -189,6 +189,7 @@ class SubmitAssortmentResult(ValueModel):
     execution_id: str
     idempotency_key: str
     request_idempotency_key: str
+    replay_status: Literal["completed", "waiting", "reconciliation"] = "completed"
 
 
 class SelectionEventResult(ValueModel):
@@ -228,6 +229,7 @@ class PublishConsumerPlacementResult(ValueModel):
     execution_id: str
     idempotency_key: str
     request_idempotency_key: str
+    replay_status: Literal["completed", "waiting", "reconciliation"] = "completed"
 
 
 class MerchantNotificationMessage(ValueModel):
@@ -283,6 +285,7 @@ class SendMerchantNotificationResult(ValueModel):
     execution_id: str
     idempotency_key: str
     request_idempotency_key: str
+    replay_status: Literal["completed", "waiting", "reconciliation"] = "completed"
 
 
 class AssortmentSelection(ValueModel):
@@ -658,18 +661,9 @@ class AssortmentService:
             checkpoint_id=ctx.run_id,
             request_idempotency_key=request.idempotency_key,
         )
-        if execution.status != "reserved":
-            return await self._submission_result(request, execution, submission_version)
         if args_hash != execution.canonical_args_hash:
             raise RuntimeError("assortment canonical binding changed during execution")
         now = self._now()
-
-        async def invoke(idempotency_key: str) -> Receipt:
-            return await self._assortment_adapter.submit(
-                request,
-                submission_version=submission_version,
-                idempotency_key=idempotency_key,
-            )
 
         def write_for(outcome: ExecutionOutcome) -> BusinessMutation:
             status = {"succeeded": "submitted", "failed": "failed", "unknown": "unknown"}[outcome]
@@ -701,11 +695,8 @@ class AssortmentService:
 
             return write
 
-        execution = await self._ledger.execute(
-            execution,
-            invoke,
-            outcome_business_write=write_for,
-            outcome_events=lambda outcome: _execution_events(
+        def events_for(outcome: ExecutionOutcome) -> ExecutionEventBundle:
+            return _execution_events(
                 now=now,
                 execution=execution,
                 aggregate_type="assortment_submission",
@@ -715,7 +706,42 @@ class AssortmentService:
                 outcome=outcome,
                 policy_version=policy_version,
                 ctx=ctx,
-            ),
+            )
+
+        if execution.status == "executing":
+            events = events_for("unknown")
+            execution = await self._ledger.recover_stale_executing(
+                execution,
+                business_write=write_for("unknown"),
+                domain_events=events.domain_events,
+                audit_events=events.audit_events,
+                outbox_records=events.outbox_records,
+            )
+            if execution.status == "executing":
+                return self._waiting_submission_result(
+                    request,
+                    execution,
+                    submission_version,
+                    ordered_ids,
+                    now,
+                )
+        if execution.status in {"succeeded", "failed", "unknown"}:
+            return await self._submission_result(request, execution, submission_version)
+        if execution.status != "reserved":
+            raise RuntimeError("assortment execution state is not replayable")
+
+        async def invoke(idempotency_key: str) -> Receipt:
+            return await self._assortment_adapter.submit(
+                request,
+                submission_version=submission_version,
+                idempotency_key=idempotency_key,
+            )
+
+        execution = await self._ledger.execute(
+            execution,
+            invoke,
+            outcome_business_write=write_for,
+            outcome_events=events_for,
         )
         return await self._submission_result(request, execution, submission_version)
 
@@ -967,18 +993,9 @@ class AssortmentService:
             checkpoint_id=ctx.run_id,
             request_idempotency_key=request.idempotency_key,
         )
-        if execution.status != "reserved":
-            return await self._placement_result(request, execution, placement_id)
         if args_hash != execution.canonical_args_hash:
             raise RuntimeError("consumer placement canonical binding changed during execution")
         now = self._now()
-
-        async def invoke(idempotency_key: str) -> Receipt:
-            return await self._placement_adapter.publish(
-                request,
-                selected_item_ids=selected_ids,
-                idempotency_key=idempotency_key,
-            )
 
         def write_for(outcome: ExecutionOutcome) -> BusinessMutation:
             status = {"succeeded": "published", "failed": "failed", "unknown": "unknown"}[outcome]
@@ -1007,11 +1024,8 @@ class AssortmentService:
 
             return write
 
-        execution = await self._ledger.execute(
-            execution,
-            invoke,
-            outcome_business_write=write_for,
-            outcome_events=lambda outcome: _execution_events(
+        def events_for(outcome: ExecutionOutcome) -> ExecutionEventBundle:
+            return _execution_events(
                 now=now,
                 execution=execution,
                 aggregate_type="consumer_placement",
@@ -1021,7 +1035,43 @@ class AssortmentService:
                 outcome=outcome,
                 policy_version=policy_version,
                 ctx=ctx,
-            ),
+            )
+
+        if execution.status == "executing":
+            events = events_for("unknown")
+            execution = await self._ledger.recover_stale_executing(
+                execution,
+                business_write=write_for("unknown"),
+                domain_events=events.domain_events,
+                audit_events=events.audit_events,
+                outbox_records=events.outbox_records,
+            )
+            if execution.status == "executing":
+                return self._waiting_placement_result(
+                    request,
+                    execution,
+                    placement_id,
+                    spec_hash,
+                    selected_ids,
+                    now,
+                )
+        if execution.status in {"succeeded", "failed", "unknown"}:
+            return await self._placement_result(request, execution, placement_id)
+        if execution.status != "reserved":
+            raise RuntimeError("consumer placement execution state is not replayable")
+
+        async def invoke(idempotency_key: str) -> Receipt:
+            return await self._placement_adapter.publish(
+                request,
+                selected_item_ids=selected_ids,
+                idempotency_key=idempotency_key,
+            )
+
+        execution = await self._ledger.execute(
+            execution,
+            invoke,
+            outcome_business_write=write_for,
+            outcome_events=events_for,
         )
         return await self._placement_result(request, execution, placement_id)
 
@@ -1109,27 +1159,10 @@ class AssortmentService:
             checkpoint_id=ctx.run_id,
             request_idempotency_key=request.idempotency_key,
         )
-        if execution.status != "reserved":
-            return await self._notification_result(request, execution, notification_id)
         if args_hash != execution.canonical_args_hash:
             raise RuntimeError("notification canonical binding changed during execution")
         now = self._now()
         attempts = [0]
-
-        async def invoke(idempotency_key: str) -> Receipt:
-            last: Receipt | None = None
-            for attempt in range(1, self._notification_adapter.capabilities.max_attempts + 1):
-                attempts[0] = attempt
-                last = await self._notification_adapter.send(
-                    message,
-                    idempotency_key=idempotency_key,
-                    attempt=attempt,
-                )
-                if last.status != "rejected":
-                    return last
-            if last is None:
-                raise RuntimeError("notification adapter made no delivery attempt")
-            return last
 
         def write_for(outcome: ExecutionOutcome) -> BusinessMutation:
             notification = MerchantNotification(
@@ -1156,11 +1189,8 @@ class AssortmentService:
 
             return write
 
-        execution = await self._ledger.execute(
-            execution,
-            invoke,
-            outcome_business_write=write_for,
-            outcome_events=lambda outcome: _execution_events(
+        def events_for(outcome: ExecutionOutcome) -> ExecutionEventBundle:
+            return _execution_events(
                 now=now,
                 execution=execution,
                 aggregate_type="merchant_notification",
@@ -1170,7 +1200,49 @@ class AssortmentService:
                 outcome=outcome,
                 policy_version=policy_version,
                 ctx=ctx,
-            ),
+            )
+
+        if execution.status == "executing":
+            events = events_for("unknown")
+            execution = await self._ledger.recover_stale_executing(
+                execution,
+                business_write=write_for("unknown"),
+                domain_events=events.domain_events,
+                audit_events=events.audit_events,
+                outbox_records=events.outbox_records,
+            )
+            if execution.status == "executing":
+                return self._waiting_notification_result(
+                    request,
+                    execution,
+                    notification_id,
+                    now,
+                )
+        if execution.status in {"succeeded", "failed", "unknown"}:
+            return await self._notification_result(request, execution, notification_id)
+        if execution.status != "reserved":
+            raise RuntimeError("merchant notification execution state is not replayable")
+
+        async def invoke(idempotency_key: str) -> Receipt:
+            last: Receipt | None = None
+            for attempt in range(1, self._notification_adapter.capabilities.max_attempts + 1):
+                attempts[0] = attempt
+                last = await self._notification_adapter.send(
+                    message,
+                    idempotency_key=idempotency_key,
+                    attempt=attempt,
+                )
+                if last.status != "rejected":
+                    return last
+            if last is None:
+                raise RuntimeError("notification adapter made no delivery attempt")
+            return last
+
+        execution = await self._ledger.execute(
+            execution,
+            invoke,
+            outcome_business_write=write_for,
+            outcome_events=events_for,
         )
         return await self._notification_result(request, execution, notification_id)
 
@@ -1245,6 +1317,96 @@ class AssortmentService:
             raise LookupError("campaign approval business binding is unavailable")
         return binding
 
+    @staticmethod
+    def _waiting_submission_result(
+        request: SubmitAssortmentArgs,
+        execution: ToolExecution,
+        submission_version: str,
+        item_ids: tuple[str, ...],
+        now: datetime,
+    ) -> SubmitAssortmentResult:
+        return SubmitAssortmentResult(
+            submission=AssortmentSubmission(
+                tenant_id=execution.tenant_id,
+                assortment_submission_id=_stable_id(
+                    "assortment_submission",
+                    execution.tenant_id,
+                    request.campaign_id,
+                    submission_version,
+                ),
+                campaign_id=request.campaign_id,
+                submission_version=submission_version,
+                assortment_policy_ref=request.assortment_policy_ref,
+                assortment_policy_version=request.assortment_policy_version,
+                status="pending",
+                version=1,
+                created_at=execution.created_at,
+                updated_at=now,
+            ),
+            enrollment_item_ids=item_ids,
+            execution_id=execution.execution_id,
+            idempotency_key=execution.idempotency_key,
+            request_idempotency_key=request.idempotency_key,
+            replay_status="waiting",
+        )
+
+    @staticmethod
+    def _waiting_placement_result(
+        request: PublishConsumerPlacementArgs,
+        execution: ToolExecution,
+        placement_id: str,
+        spec_hash: str,
+        selected_item_ids: tuple[str, ...],
+        now: datetime,
+    ) -> PublishConsumerPlacementResult:
+        return PublishConsumerPlacementResult(
+            placement=ConsumerPlacement(
+                tenant_id=execution.tenant_id,
+                consumer_placement_id=placement_id,
+                campaign_id=request.campaign_id,
+                selection_version=request.selection_version,
+                placement_spec_hash=spec_hash,
+                status="pending",
+                request_id=execution.execution_id,
+                version=1,
+                created_at=execution.created_at,
+                updated_at=now,
+            ),
+            selected_item_ids=selected_item_ids,
+            execution_id=execution.execution_id,
+            idempotency_key=execution.idempotency_key,
+            request_idempotency_key=request.idempotency_key,
+            replay_status="waiting",
+        )
+
+    @staticmethod
+    def _waiting_notification_result(
+        request: SendMerchantNotificationArgs,
+        execution: ToolExecution,
+        notification_id: str,
+        now: datetime,
+    ) -> SendMerchantNotificationResult:
+        return SendMerchantNotificationResult(
+            notification=MerchantNotification(
+                tenant_id=execution.tenant_id,
+                merchant_notification_id=notification_id,
+                merchant_id=request.merchant_id,
+                campaign_id=request.campaign_id,
+                result_version=request.result_version,
+                template_id=request.template_id,
+                channel=request.channel,
+                status="pending",
+                attempt_count=execution.attempt_count,
+                version=1,
+                created_at=execution.created_at,
+                updated_at=now,
+            ),
+            execution_id=execution.execution_id,
+            idempotency_key=execution.idempotency_key,
+            request_idempotency_key=request.idempotency_key,
+            replay_status="waiting",
+        )
+
     async def _submission_result(
         self,
         request: SubmitAssortmentArgs,
@@ -1262,6 +1424,7 @@ class AssortmentService:
             execution_id=execution.execution_id,
             idempotency_key=execution.idempotency_key,
             request_idempotency_key=request.idempotency_key,
+            replay_status=_replay_status(execution),
         )
 
     async def _placement_result(
@@ -1285,6 +1448,7 @@ class AssortmentService:
             execution_id=execution.execution_id,
             idempotency_key=execution.idempotency_key,
             request_idempotency_key=request.idempotency_key,
+            replay_status=_replay_status(execution),
         )
 
     async def _notification_result(
@@ -1302,6 +1466,7 @@ class AssortmentService:
             execution_id=execution.execution_id,
             idempotency_key=execution.idempotency_key,
             request_idempotency_key=request.idempotency_key,
+            replay_status=_replay_status(execution),
         )
 
     def _now(self) -> datetime:
@@ -1315,6 +1480,16 @@ def _canonical_publish_request(
     request: PublishConsumerPlacementArgs,
 ) -> PublishConsumerPlacementArgs:
     return request.model_copy(update={"idempotency_key": "[request-key]", "approval_id": None})
+
+
+def _replay_status(
+    execution: ToolExecution,
+) -> Literal["completed", "waiting", "reconciliation"]:
+    if execution.status == "executing":
+        return "waiting"
+    if execution.status == "unknown":
+        return "reconciliation"
+    return "completed"
 
 
 def _canonical_notification_request(

@@ -8,7 +8,9 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
+import oria.domain.ledger as _domain_ledger  # noqa: F401  # Initialize domain package first.
 from oria.config import resolve_runtime_config
 from oria.core.execution_ledger import ExecutionLedger
 from oria.core.types import EventEnvelope, ResourceRef
@@ -143,3 +145,101 @@ async def test_unknown_is_not_reinvoked_and_reconciliation_converges_once(tmp_pa
     assert execution_count == 1
     assert business_audit_count == 1
     assert platform_audit_count == (0,)
+
+
+@pytest.mark.asyncio
+async def test_stale_executing_is_atomically_moved_to_reconciliation_without_reinvocation(
+    tmp_path: Path,
+) -> None:
+    config = _config(tmp_path)
+    await initialize_data(config)
+    clock = _Clock()
+    adapter_calls = 0
+
+    async with DatabaseResources(config) as databases:
+        ledger = ExecutionLedger(
+            databases.business_sessions,
+            clock=clock,
+            executing_timeout=timedelta(minutes=5),
+        )
+        executing = await ledger.mark_executing(await ledger.reserve(_reservation("exec_stale")))
+        clock.value += timedelta(minutes=6)
+
+        async def invoke(_: str) -> Receipt:
+            nonlocal adapter_calls
+            adapter_calls += 1
+            raise AssertionError("stale recovery must not invoke the adapter")
+
+        async def write_reconciliation_projection(session: AsyncSession) -> None:
+            await session.execute(
+                text(
+                    "UPDATE merchants SET version = version + 1 WHERE tenant_id = :tenant_id "
+                    "AND merchant_id = 'demo-m001'"
+                ),
+                {"tenant_id": TENANT},
+            )
+
+        outbox = OutboxRecord(
+            event_id="event_stale_unknown",
+            tenant_id=TENANT,
+            topic="consumer_placement.unknown",
+            payload_json='{"outcome":"unknown"}',
+            occurred_at=clock.value,
+            available_at=clock.value,
+        )
+        unknown = await ledger.recover_stale_executing(
+            executing,
+            business_write=write_reconciliation_projection,
+            audit_events=[_unknown_audit().model_copy(update={"event_id": "audit_stale_unknown"})],
+            outbox_records=[outbox],
+        )
+        duplicate = await ledger.reserve(_reservation("exec_retry"))
+        if duplicate.status == "reserved":
+            await ledger.execute(duplicate, invoke)
+
+        async with databases.business_sessions() as session:
+            row = (
+                await session.execute(
+                    text(
+                        "SELECT status, compensation_status, "
+                        "(SELECT version FROM merchants WHERE tenant_id = :tenant_id "
+                        "AND merchant_id = 'demo-m001'), "
+                        "(SELECT COUNT(*) FROM audit_events), (SELECT COUNT(*) FROM outbox) "
+                        "FROM tool_executions WHERE execution_id = 'exec_stale'"
+                    ),
+                    {"tenant_id": TENANT},
+                )
+            ).one()
+
+    assert unknown.status == duplicate.status == "unknown"
+    assert row == ("unknown", "reconciliation_required", 2, 1, 1)
+    assert adapter_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_fresh_executing_remains_waiting_without_projection_or_events(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    await initialize_data(config)
+    clock = _Clock()
+
+    async with DatabaseResources(config) as databases:
+        ledger = ExecutionLedger(
+            databases.business_sessions,
+            clock=clock,
+            executing_timeout=timedelta(minutes=5),
+        )
+        executing = await ledger.mark_executing(await ledger.reserve(_reservation("exec_waiting")))
+        waiting = await ledger.recover_stale_executing(executing)
+        async with databases.business_sessions() as session:
+            row = (
+                await session.execute(
+                    text(
+                        "SELECT status, compensation_status, (SELECT COUNT(*) FROM audit_events), "
+                        "(SELECT COUNT(*) FROM outbox) FROM tool_executions "
+                        "WHERE execution_id = 'exec_waiting'"
+                    )
+                )
+            ).one()
+
+    assert waiting.status == "executing"
+    assert row == ("executing", None, 0, 0)
