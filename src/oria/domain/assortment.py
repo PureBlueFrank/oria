@@ -597,7 +597,7 @@ class AssortmentService:
         expires_at: datetime,
         ctx: Context,
     ) -> Approval:
-        canonical, args_hash, binding, _ = await self._assortment_precheck(request, ctx)
+        canonical, args_hash, binding, _, _, _ = await self._assortment_precheck(request, ctx)
         reasons = self._assortment_adapter.capabilities.approval_reasons(canonical)
         if not reasons:
             raise ValueError("assortment submission does not require conditional approval")
@@ -616,14 +616,15 @@ class AssortmentService:
         request: SubmitAssortmentArgs,
         ctx: Context,
     ) -> SubmitAssortmentResult:
-        ordered_ids = tuple(sorted(request.enrollment_item_ids))
-        canonical = request.model_copy(
-            update={
-                "enrollment_item_ids": ordered_ids,
-                "idempotency_key": "[request-key]",
-                "approval_id": None,
-            }
-        )
+        (
+            canonical,
+            args_hash,
+            binding,
+            candidate_set,
+            campaign,
+            product_criteria,
+        ) = await self._assortment_precheck(request, ctx)
+        ordered_ids = canonical.enrollment_item_ids
         submission_version = _stable_id(
             "submission_version",
             request.campaign_id,
@@ -631,23 +632,7 @@ class AssortmentService:
             request.assortment_policy_version,
             *ordered_ids,
         )
-        execution = await self._ledger.reserve_for_args(
-            execution_id=f"tool_execution_{uuid.uuid4().hex}",
-            tenant_id=ctx.tenant_id,
-            tool_name=SUBMIT_ASSORTMENT_TOOL_NAME,
-            tool_schema_version=1,
-            schema=SubmitAssortmentArgs,
-            args=canonical.model_dump(),
-            stable_business_id=f"{request.campaign_id}:{submission_version}",
-            checkpoint_id=ctx.run_id,
-            request_idempotency_key=request.idempotency_key,
-        )
-        if execution.status != "reserved":
-            return await self._submission_result(request, execution, submission_version)
-        _, args_hash, binding, candidate_set = await self._assortment_precheck(request, ctx)
-        if args_hash != execution.canonical_args_hash:
-            raise RuntimeError("assortment canonical binding changed during execution")
-        reasons = self._assortment_adapter.capabilities.approval_reasons(request)
+        reasons = self._assortment_adapter.capabilities.approval_reasons(canonical)
         await self._approvals.authorize_resume(
             request=ApprovalResumeRequest(
                 approval_id=request.approval_id,
@@ -661,13 +646,22 @@ class AssortmentService:
             tool_policy=SUBMIT_ASSORTMENT_POLICY,
             ctx=ctx,
         )
-        campaign = await self._required_campaign(request.campaign_id, ctx)
-        rule_ref = await self._rule_refs.get(campaign.rule_snapshot_ref_id, ctx)
-        if rule_ref is None:
-            raise LookupError("campaign rule snapshot is unavailable")
-        snapshot = await self._rule_snapshots.get(rule_ref.snapshot_id, ctx)
-        product_criteria = ProductEligibilityCriteria.from_snapshot(snapshot)
         policy_version = await _authorize("assortment:submit", request.campaign_id, ctx)
+        execution = await self._ledger.reserve_for_args(
+            execution_id=f"tool_execution_{uuid.uuid4().hex}",
+            tenant_id=ctx.tenant_id,
+            tool_name=SUBMIT_ASSORTMENT_TOOL_NAME,
+            tool_schema_version=1,
+            schema=SubmitAssortmentArgs,
+            args=canonical.model_dump(),
+            stable_business_id=f"{request.campaign_id}:{submission_version}",
+            checkpoint_id=ctx.run_id,
+            request_idempotency_key=request.idempotency_key,
+        )
+        if execution.status != "reserved":
+            return await self._submission_result(request, execution, submission_version)
+        if args_hash != execution.canonical_args_hash:
+            raise RuntimeError("assortment canonical binding changed during execution")
         now = self._now()
 
         async def invoke(idempotency_key: str) -> Receipt:
@@ -936,6 +930,32 @@ class AssortmentService:
             request.selection_version,
             spec_hash,
         )
+        selection = await self._repository.load_selection(
+            tenant_id=ctx.tenant_id,
+            campaign_id=request.campaign_id,
+            selection_version=request.selection_version,
+        )
+        selected_ids = _require_publishable_selection(selection)
+        args_hash = canonical_args_hash(
+            tool_name=PUBLISH_CONSUMER_TOOL_NAME,
+            tool_schema_version=1,
+            schema=PublishConsumerPlacementArgs,
+            args=canonical.model_dump(),
+        )
+        await self._approvals.authorize_resume(
+            request=ApprovalResumeRequest(
+                approval_id=request.approval_id,
+                approval_action="consumer_publish_approval",
+                tool_name=PUBLISH_CONSUMER_TOOL_NAME,
+                canonical_args_hash=args_hash,
+                checkpoint_id=ctx.run_id,
+                approval_required=True,
+                business_binding=selection.binding,
+            ),
+            tool_policy=PUBLISH_CONSUMER_POLICY,
+            ctx=ctx,
+        )
+        policy_version = await _authorize("consumer:publish", request.campaign_id, ctx)
         execution = await self._ledger.reserve_for_args(
             execution_id=f"tool_execution_{uuid.uuid4().hex}",
             tenant_id=ctx.tenant_id,
@@ -949,26 +969,8 @@ class AssortmentService:
         )
         if execution.status != "reserved":
             return await self._placement_result(request, execution, placement_id)
-        selection = await self._repository.load_selection(
-            tenant_id=ctx.tenant_id,
-            campaign_id=request.campaign_id,
-            selection_version=request.selection_version,
-        )
-        selected_ids = _require_publishable_selection(selection)
-        await self._approvals.authorize_resume(
-            request=ApprovalResumeRequest(
-                approval_id=request.approval_id,
-                approval_action="consumer_publish_approval",
-                tool_name=PUBLISH_CONSUMER_TOOL_NAME,
-                canonical_args_hash=execution.canonical_args_hash,
-                checkpoint_id=ctx.run_id,
-                approval_required=True,
-                business_binding=selection.binding,
-            ),
-            tool_policy=PUBLISH_CONSUMER_POLICY,
-            ctx=ctx,
-        )
-        policy_version = await _authorize("consumer:publish", request.campaign_id, ctx)
+        if args_hash != execution.canonical_args_hash:
+            raise RuntimeError("consumer placement canonical binding changed during execution")
         now = self._now()
 
         async def invoke(idempotency_key: str) -> Receipt:
@@ -1066,6 +1068,36 @@ class AssortmentService:
             request.template_id,
             request.channel,
         )
+        message = await self._repository.notification_message(
+            tenant_id=ctx.tenant_id,
+            merchant_id=request.merchant_id,
+            campaign_id=request.campaign_id,
+            result_version=request.result_version,
+            template_id=request.template_id,
+            channel=request.channel,
+        )
+        binding = await self._required_binding(request.campaign_id, ctx)
+        reasons = self._notification_adapter.capabilities.approval_reasons(request.template_id)
+        args_hash = canonical_args_hash(
+            tool_name=SEND_NOTIFICATION_TOOL_NAME,
+            tool_schema_version=1,
+            schema=SendMerchantNotificationArgs,
+            args=canonical.model_dump(),
+        )
+        await self._approvals.authorize_resume(
+            request=ApprovalResumeRequest(
+                approval_id=request.approval_id,
+                approval_action="merchant_notification_approval",
+                tool_name=SEND_NOTIFICATION_TOOL_NAME,
+                canonical_args_hash=args_hash,
+                checkpoint_id=ctx.run_id,
+                approval_required=bool(reasons),
+                business_binding=binding,
+            ),
+            tool_policy=SEND_NOTIFICATION_POLICY,
+            ctx=ctx,
+        )
+        policy_version = await _authorize("notification:send", request.campaign_id, ctx)
         execution = await self._ledger.reserve_for_args(
             execution_id=f"tool_execution_{uuid.uuid4().hex}",
             tenant_id=ctx.tenant_id,
@@ -1079,30 +1111,8 @@ class AssortmentService:
         )
         if execution.status != "reserved":
             return await self._notification_result(request, execution, notification_id)
-        message = await self._repository.notification_message(
-            tenant_id=ctx.tenant_id,
-            merchant_id=request.merchant_id,
-            campaign_id=request.campaign_id,
-            result_version=request.result_version,
-            template_id=request.template_id,
-            channel=request.channel,
-        )
-        binding = await self._required_binding(request.campaign_id, ctx)
-        reasons = self._notification_adapter.capabilities.approval_reasons(request.template_id)
-        await self._approvals.authorize_resume(
-            request=ApprovalResumeRequest(
-                approval_id=request.approval_id,
-                approval_action="merchant_notification_approval",
-                tool_name=SEND_NOTIFICATION_TOOL_NAME,
-                canonical_args_hash=execution.canonical_args_hash,
-                checkpoint_id=ctx.run_id,
-                approval_required=bool(reasons),
-                business_binding=binding,
-            ),
-            tool_policy=SEND_NOTIFICATION_POLICY,
-            ctx=ctx,
-        )
-        policy_version = await _authorize("notification:send", request.campaign_id, ctx)
+        if args_hash != execution.canonical_args_hash:
+            raise RuntimeError("notification canonical binding changed during execution")
         now = self._now()
         attempts = [0]
 
@@ -1173,6 +1183,8 @@ class AssortmentService:
         str,
         ApprovalBusinessBinding,
         AssortmentCandidateSet,
+        Campaign,
+        ProductEligibilityCriteria,
     ]:
         campaign = await self._required_campaign(request.campaign_id, ctx)
         if campaign.status not in {"recruiting", "selecting"}:
@@ -1216,7 +1228,7 @@ class AssortmentService:
         )
         if not set(request.enrollment_item_ids).issubset(candidate_set.enrollment_item_ids):
             raise PermissionError("assortment items are outside the server candidate set")
-        return canonical, args_hash, binding, candidate_set
+        return canonical, args_hash, binding, candidate_set, campaign, product_criteria
 
     async def _required_campaign(self, campaign_id: str, ctx: Context) -> Campaign:
         campaign = await self._campaigns.get(campaign_id, ctx)
