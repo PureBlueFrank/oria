@@ -411,6 +411,23 @@ class SQLiteIntegrationEventInboxRepository:
         except SQLAlchemyError as exc:
             raise PlatformRepositoryError("external wait persistence failed") from exc
 
+    async def get_wait(self, tenant_id: str, wait_id: str) -> ExternalWait | None:
+        try:
+            async with self._sessions() as session:
+                result = await session.execute(
+                    text(
+                        "SELECT tenant_id, wait_id, event_type, resource_type, resource_id, "
+                        "expected_version, checkpoint_id, expires_at, timeout_action, status, "
+                        "created_at, resolved_at FROM external_waits WHERE tenant_id = "
+                        ":tenant_id AND wait_id = :wait_id"
+                    ),
+                    {"tenant_id": tenant_id, "wait_id": wait_id},
+                )
+                row = result.mappings().one_or_none()
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("external wait read failed") from exc
+        return None if row is None else ExternalWait.model_validate(dict(row))
+
     async def add(self, record: IntegrationInboxRecord) -> bool:
         values: dict[str, Any] = record.model_dump(exclude={"redacted_payload"})
         values["redacted_payload_json"] = json.dumps(

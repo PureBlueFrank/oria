@@ -27,6 +27,7 @@ from oria.domain.repositories import MerchantRepository
 
 if TYPE_CHECKING:
     from oria.core.context import Context
+    from oria.orchestrator.scenario_a import ScenarioAWorkflowService
     from oria.rag.models import CampaignRuleSnapshot
 
 
@@ -207,3 +208,4 @@ class DomainServiceRegistry:
     campaign_launch: CampaignLaunchService
     assortment: AssortmentService
     selection_events: TrustedSelectionEventService
+    scenario_a: ScenarioAWorkflowService | None = None

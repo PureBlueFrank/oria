@@ -212,6 +212,10 @@ class InboxProcessResult(ValueModel):
 
 
 class IntegrationEventInboxRepository(Protocol):
+    async def add_wait(self, wait: ExternalWait) -> None: ...
+
+    async def get_wait(self, tenant_id: str, wait_id: str) -> ExternalWait | None: ...
+
     async def add(self, record: IntegrationInboxRecord) -> bool: ...
 
     async def get(
@@ -281,6 +285,17 @@ class IntegrationEventInboxService:
         self._repository = repository
         self._authorized_subjects = dict(authorized_subjects)
         self._clock = clock
+
+    async def register_wait(self, wait: ExternalWait) -> ExternalWait:
+        """Persist a trusted wait idempotently before a graph can interrupt."""
+
+        existing = await self._repository.get_wait(wait.tenant_id, wait.wait_id)
+        if existing is not None:
+            if existing != wait:
+                raise PermissionError("external wait identity has a different frozen binding")
+            return existing
+        await self._repository.add_wait(wait)
+        return wait
 
     async def process(
         self,
