@@ -29,7 +29,13 @@ async def _verify(data_dir: Path) -> None:
     )
     try:
         await ctx.knowledge.ingest(demo_rule_document(), ctx)
-        if tuple(ctx.tools) != ("search_campaign_rules", "query_merchants"):
+        if tuple(ctx.tools) != (
+            "search_campaign_rules",
+            "query_merchants",
+            "submit_assortment",
+            "publish_consumer_placement",
+            "send_merchant_notification",
+        ):
             raise AssertionError("installed T06 tool allowlist is invalid")
         search = SearchCampaignRulesResult.model_validate(
             (
