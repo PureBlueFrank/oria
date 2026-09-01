@@ -32,11 +32,20 @@ ProjectionOutcome: TypeAlias = Literal["failed", "unknown"]
 class OutcomeProjectionMutation(Protocol):
     """A failed/unknown projection bound to one exact execution aggregate."""
 
-    tenant_id: str
-    execution_id: str
-    aggregate_type: str
-    aggregate_id: str
-    outcome: ProjectionOutcome
+    @property
+    def tenant_id(self) -> str: ...
+
+    @property
+    def execution_id(self) -> str: ...
+
+    @property
+    def aggregate_type(self) -> str: ...
+
+    @property
+    def aggregate_id(self) -> str: ...
+
+    @property
+    def outcome(self) -> ProjectionOutcome: ...
 
     async def apply(self, session: AsyncSession) -> None: ...
 
