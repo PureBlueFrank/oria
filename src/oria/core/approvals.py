@@ -28,7 +28,12 @@ if TYPE_CHECKING:
     from oria.core.context import Context
     from oria.core.protocols import PolicyEngine
 
-ApprovalAction: TypeAlias = Literal["launch_approval", "consumer_publish_approval"]
+ApprovalAction: TypeAlias = Literal[
+    "launch_approval",
+    "assortment_submission_approval",
+    "consumer_publish_approval",
+    "merchant_notification_approval",
+]
 ApprovalInvalidationStatus: TypeAlias = Literal["pending", "applied", "reconciliation"]
 
 
@@ -334,11 +339,15 @@ class InMemoryApprovalRepository:
 
 _REQUEST_ACTIONS: dict[ApprovalAction, str] = {
     "launch_approval": "approval:launch:request",
+    "assortment_submission_approval": "approval:assortment:request",
     "consumer_publish_approval": "approval:consumer_publish:request",
+    "merchant_notification_approval": "approval:notification:request",
 }
 _DECIDE_ACTIONS: dict[ApprovalAction, str] = {
     "launch_approval": "approval:launch:decide",
+    "assortment_submission_approval": "approval:assortment:decide",
     "consumer_publish_approval": "approval:consumer_publish:decide",
+    "merchant_notification_approval": "approval:notification:decide",
 }
 
 

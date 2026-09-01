@@ -36,6 +36,7 @@ class ExecutionEventBundle:
 
 
 OutcomeEventFactory: TypeAlias = Callable[[ExecutionOutcome], ExecutionEventBundle]
+OutcomeBusinessWriteFactory: TypeAlias = Callable[[ExecutionOutcome], BusinessMutation | None]
 
 _HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -212,6 +213,7 @@ class ExecutionLedger:
         self,
         execution: ToolExecution,
         *,
+        business_write: BusinessMutation | None = None,
         compensation_status: str | None = None,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
@@ -221,6 +223,7 @@ class ExecutionLedger:
             execution,
             "failed",
             expected_status="executing",
+            business_write=business_write,
             compensation_status=compensation_status,
             domain_events=domain_events,
             audit_events=audit_events,
@@ -231,6 +234,7 @@ class ExecutionLedger:
         self,
         execution: ToolExecution,
         *,
+        business_write: BusinessMutation | None = None,
         receipt_id: str | None = None,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
@@ -240,6 +244,7 @@ class ExecutionLedger:
             execution,
             "unknown",
             expected_status="executing",
+            business_write=business_write,
             receipt_id=receipt_id,
             compensation_status="reconciliation_required",
             domain_events=domain_events,
@@ -282,6 +287,7 @@ class ExecutionLedger:
         audit_events: Sequence[EventEnvelope] = (),
         outbox_records: Sequence[OutboxRecord] = (),
         outcome_events: OutcomeEventFactory | None = None,
+        outcome_business_write: OutcomeBusinessWriteFactory | None = None,
     ) -> ToolExecution:
         """Run one reserved side effect; retries return history without reinvocation."""
         if reservation.status != "reserved":
@@ -314,6 +320,11 @@ class ExecutionLedger:
             )
             return await self.record_unknown(
                 executing,
+                business_write=(
+                    None
+                    if outcome_business_write is None
+                    else outcome_business_write("unknown")
+                ),
                 receipt_id=exc.receipt_id,
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
@@ -329,6 +340,11 @@ class ExecutionLedger:
             )
             await self.record_failure(
                 executing,
+                business_write=(
+                    None
+                    if outcome_business_write is None
+                    else outcome_business_write("failed")
+                ),
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
                 outbox_records=events.outbox_records,
@@ -345,7 +361,11 @@ class ExecutionLedger:
             return await self.record_success(
                 executing,
                 receipt.receipt_id,
-                business_write=business_write,
+                business_write=(
+                    business_write
+                    if outcome_business_write is None
+                    else outcome_business_write("succeeded")
+                ),
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
                 outbox_records=events.outbox_records,
@@ -360,6 +380,11 @@ class ExecutionLedger:
             )
             return await self.record_unknown(
                 executing,
+                business_write=(
+                    None
+                    if outcome_business_write is None
+                    else outcome_business_write("unknown")
+                ),
                 receipt_id=receipt.receipt_id,
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
@@ -374,6 +399,11 @@ class ExecutionLedger:
         )
         return await self.record_failure(
             executing,
+            business_write=(
+                None
+                if outcome_business_write is None
+                else outcome_business_write("failed")
+            ),
             domain_events=events.domain_events,
             audit_events=events.audit_events,
             outbox_records=events.outbox_records,
@@ -410,8 +440,6 @@ class ExecutionLedger:
             audit_events=audit_events,
             outbox_records=outbox_records,
         )
-        if outcome != "succeeded" and business_write is not None:
-            raise ValueError("business state writes require a confirmed successful outcome")
         try:
             async with self._sessions.begin() as session:
                 if business_write is not None:

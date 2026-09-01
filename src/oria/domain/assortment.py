@@ -1,0 +1,1218 @@
+"""Post-enrollment assortment, consumer placement, and merchant notification services."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import uuid
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Literal, Protocol
+
+from pydantic import Field, field_validator
+
+from oria.core.approvals import (
+    Approval,
+    ApprovalBindingInvalidationFact,
+    ApprovalBusinessBinding,
+    ApprovalResumeRequest,
+    ApprovalService,
+    canonical_args_hash,
+)
+from oria.core.execution_ledger import (
+    BusinessMutation,
+    ExecutionEventBundle,
+    ExecutionLedger,
+    ExecutionOutcome,
+)
+from oria.core.integration_events import (
+    IntegrationEventInboxRepository,
+    IntegrationInboxRecord,
+    SelectionCompleted,
+    SelectionDecisionRecorded,
+    integration_payload_hash,
+)
+from oria.core.types import (
+    AuthorizationContext,
+    AuthorizationRequest,
+    EventEnvelope,
+    JsonValue,
+    ResourceRef,
+    RetryPolicy,
+    ToolPolicy,
+    ValueModel,
+)
+from oria.domain.business import (
+    AssortmentSubmission,
+    Campaign,
+    ConsumerPlacement,
+    EnrollmentCouponLink,
+    EnrollmentItem,
+    MerchantNotification,
+    SelectionDecision,
+)
+from oria.domain.ledger import DomainEvent, OutboxRecord, Receipt, ToolExecution
+from oria.domain.repositories import CampaignRepository, CampaignRuleSnapshotRefRepository
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from oria.core.context import Context
+    from oria.rag.models import CampaignRuleSnapshot
+
+SUBMIT_ASSORTMENT_TOOL_NAME = "submit_assortment"
+PUBLISH_CONSUMER_TOOL_NAME = "publish_consumer_placement"
+SEND_NOTIFICATION_TOOL_NAME = "send_merchant_notification"
+
+SUBMIT_ASSORTMENT_POLICY = ToolPolicy(
+    risk_level="medium",
+    side_effect=True,
+    timeout_seconds=30,
+    retry_policy=RetryPolicy(max_attempts=1),
+    idempotency_scope="campaign_id:submission_version",
+    required_action="assortment:submit",
+    resource_type="campaign",
+    approval_mode="conditional",
+    approval_action="assortment_submission_approval",
+)
+PUBLISH_CONSUMER_POLICY = ToolPolicy(
+    risk_level="high",
+    side_effect=True,
+    timeout_seconds=30,
+    retry_policy=RetryPolicy(max_attempts=1),
+    idempotency_scope="campaign_id:selection_version:placement_spec_hash",
+    required_action="consumer:publish",
+    resource_type="campaign",
+    approval_mode="required",
+    approval_action="consumer_publish_approval",
+)
+SEND_NOTIFICATION_POLICY = ToolPolicy(
+    risk_level="medium",
+    side_effect=True,
+    timeout_seconds=30,
+    retry_policy=RetryPolicy(max_attempts=1),
+    idempotency_scope="merchant_id:campaign_id:result_version:template_id:channel",
+    required_action="notification:send",
+    resource_type="campaign",
+    approval_mode="conditional",
+    approval_action="merchant_notification_approval",
+)
+
+
+def _stable_id(prefix: str, *parts: str) -> str:
+    digest = hashlib.sha256(":".join(parts).encode("utf-8")).hexdigest()[:32]
+    return f"{prefix}_{digest}"
+
+
+def _hash(value: object) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return f"sha256:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
+
+
+class SubmitAssortmentArgs(ValueModel):
+    campaign_id: str = Field(min_length=1)
+    enrollment_item_ids: tuple[str, ...] = Field(min_length=1, max_length=100)
+    assortment_policy_ref: str = Field(min_length=1)
+    assortment_policy_version: str = Field(min_length=1)
+    idempotency_key: str = Field(min_length=1, max_length=256)
+    approval_id: str | None = Field(default=None, min_length=1)
+
+    @field_validator("enrollment_item_ids")
+    @classmethod
+    def require_unique_items(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if len(value) != len(set(value)):
+            raise ValueError("enrollment_item_ids must be unique")
+        return value
+
+
+class AssortmentAdapterCapabilities(ValueModel):
+    reversible: bool
+    max_automatic_items: int = Field(ge=1)
+    preapproved_policy_bindings: frozenset[str] = frozenset()
+
+    def approval_reasons(self, args: SubmitAssortmentArgs) -> tuple[str, ...]:
+        reasons: list[str] = []
+        if not self.reversible:
+            reasons.append("irreversible_adapter")
+        if len(args.enrollment_item_ids) > self.max_automatic_items:
+            reasons.append("broad_scope")
+        binding = f"{args.assortment_policy_ref}@{args.assortment_policy_version}"
+        if binding not in self.preapproved_policy_bindings:
+            reasons.append("policy_upgrade")
+        return tuple(reasons)
+
+
+class AssortmentAdapter(Protocol):
+    adapter_id: str
+    capabilities: AssortmentAdapterCapabilities
+
+    async def submit(
+        self,
+        args: SubmitAssortmentArgs,
+        *,
+        submission_version: str,
+        idempotency_key: str,
+    ) -> Receipt: ...
+
+
+class SubmitAssortmentResult(ValueModel):
+    schema_version: Literal[1] = 1
+    submission: AssortmentSubmission
+    enrollment_item_ids: tuple[str, ...]
+    execution_id: str
+    idempotency_key: str
+    request_idempotency_key: str
+
+
+class SelectionEventResult(ValueModel):
+    schema_version: Literal[1] = 1
+    event_type: Literal["selection.decision_recorded", "selection.completed"]
+    selection_version: str
+    execution_id: str
+    idempotency_key: str
+    approval_binding: ApprovalBusinessBinding
+    invalidation_status: Literal["not_required", "applied", "reconciliation"]
+
+
+class PublishConsumerPlacementArgs(ValueModel):
+    campaign_id: str = Field(min_length=1)
+    selection_version: str = Field(min_length=1)
+    placement_spec: dict[str, JsonValue] = Field(min_length=1)
+    idempotency_key: str = Field(min_length=1, max_length=256)
+    approval_id: str | None = Field(default=None, min_length=1)
+
+
+class ConsumerPlacementAdapter(Protocol):
+    adapter_id: str
+
+    async def publish(
+        self,
+        args: PublishConsumerPlacementArgs,
+        *,
+        selected_item_ids: tuple[str, ...],
+        idempotency_key: str,
+    ) -> Receipt: ...
+
+
+class PublishConsumerPlacementResult(ValueModel):
+    schema_version: Literal[1] = 1
+    placement: ConsumerPlacement
+    selected_item_ids: tuple[str, ...]
+    execution_id: str
+    idempotency_key: str
+    request_idempotency_key: str
+
+
+class MerchantNotificationMessage(ValueModel):
+    merchant_id: str = Field(min_length=1, repr=False)
+    campaign_id: str = Field(min_length=1)
+    result_version: str = Field(min_length=1)
+    selected_item_ids: tuple[str, ...]
+    rejected_reasons: tuple[str, ...]
+    template_id: str = Field(min_length=1)
+    channel: str = Field(min_length=1)
+
+
+class NotificationAdapterCapabilities(ValueModel):
+    standard_template_ids: frozenset[str]
+    sensitive_template_ids: frozenset[str] = frozenset()
+    max_attempts: int = Field(default=3, ge=1, le=10)
+
+    def approval_reasons(self, template_id: str) -> tuple[str, ...]:
+        reasons: list[str] = []
+        if template_id not in self.standard_template_ids:
+            reasons.append("non_standard_template")
+        if template_id in self.sensitive_template_ids:
+            reasons.append("sensitive_content")
+        return tuple(reasons)
+
+
+class MerchantNotificationAdapter(Protocol):
+    adapter_id: str
+    capabilities: NotificationAdapterCapabilities
+
+    async def send(
+        self,
+        message: MerchantNotificationMessage,
+        *,
+        idempotency_key: str,
+        attempt: int,
+    ) -> Receipt: ...
+
+
+class SendMerchantNotificationArgs(ValueModel):
+    merchant_id: str = Field(min_length=1)
+    campaign_id: str = Field(min_length=1)
+    result_version: str = Field(min_length=1)
+    template_id: str = Field(min_length=1)
+    channel: str = Field(min_length=1)
+    idempotency_key: str = Field(min_length=1, max_length=256)
+    approval_id: str | None = Field(default=None, min_length=1)
+
+
+class SendMerchantNotificationResult(ValueModel):
+    schema_version: Literal[1] = 1
+    notification: MerchantNotification
+    execution_id: str
+    idempotency_key: str
+    request_idempotency_key: str
+
+
+class AssortmentSelection(ValueModel):
+    campaign: Campaign
+    binding: ApprovalBusinessBinding
+    submission: AssortmentSubmission
+    enrollment_item_ids: tuple[str, ...]
+    decisions: tuple[SelectionDecision, ...]
+    items: tuple[EnrollmentItem, ...]
+    links: tuple[EnrollmentCouponLink, ...]
+
+    @property
+    def selected_item_ids(self) -> tuple[str, ...]:
+        return tuple(
+            sorted(
+                decision.enrollment_item_id
+                for decision in self.decisions
+                if decision.decision == "selected"
+            )
+        )
+
+
+class AssortmentWorkflowRepository(Protocol):
+    async def get_approval_binding(
+        self, *, tenant_id: str, campaign_id: str
+    ) -> ApprovalBusinessBinding | None: ...
+
+    async def persist_submission_outcome(
+        self,
+        session: AsyncSession,
+        *,
+        submission: AssortmentSubmission,
+        enrollment_item_ids: tuple[str, ...],
+        expected_campaign_version: int,
+        outcome: ExecutionOutcome,
+    ) -> None: ...
+
+    async def load_submission(
+        self, *, tenant_id: str, campaign_id: str, submission_version: str
+    ) -> tuple[AssortmentSubmission, tuple[str, ...]]: ...
+
+    async def record_selection_decision(
+        self,
+        session: AsyncSession,
+        *,
+        decision: SelectionDecision,
+    ) -> None: ...
+
+    async def complete_selection(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        campaign_id: str,
+        submission_version: str,
+        selection_version: str,
+        expected_binding: ApprovalBusinessBinding,
+        updated_binding: ApprovalBusinessBinding,
+        updated_at: datetime,
+    ) -> None: ...
+
+    async def load_selection(
+        self, *, tenant_id: str, campaign_id: str, selection_version: str
+    ) -> AssortmentSelection: ...
+
+    async def persist_placement_outcome(
+        self,
+        session: AsyncSession,
+        *,
+        placement: ConsumerPlacement,
+        expected_binding: ApprovalBusinessBinding,
+        selected_item_ids: tuple[str, ...],
+        outcome: ExecutionOutcome,
+    ) -> None: ...
+
+    async def load_placement(self, *, tenant_id: str, placement_id: str) -> ConsumerPlacement: ...
+
+    async def notification_message(
+        self,
+        *,
+        tenant_id: str,
+        merchant_id: str,
+        campaign_id: str,
+        result_version: str,
+        template_id: str,
+        channel: str,
+    ) -> MerchantNotificationMessage: ...
+
+    async def persist_notification_outcome(
+        self,
+        session: AsyncSession,
+        *,
+        notification: MerchantNotification,
+    ) -> None: ...
+
+    async def load_notification(
+        self, *, tenant_id: str, notification_id: str
+    ) -> MerchantNotification: ...
+
+
+class RuleSnapshotReader(Protocol):
+    async def get(self, snapshot_id: str, ctx: Context) -> CampaignRuleSnapshot: ...
+
+
+class DownstreamApprovalInvalidator(Protocol):
+    async def consume(self, fact: ApprovalBindingInvalidationFact) -> object: ...
+
+
+class TrustedSelectionEventService:
+    """Load the persisted inbox record before applying a selection event."""
+
+    def __init__(
+        self,
+        inbox: IntegrationEventInboxRepository,
+        assortment: AssortmentService,
+    ) -> None:
+        self._inbox = inbox
+        self._assortment = assortment
+
+    async def apply(
+        self,
+        event: SelectionDecisionRecorded | SelectionCompleted,
+        ctx: Context,
+    ) -> SelectionEventResult:
+        record = await self._inbox.get(
+            event.tenant_id,
+            event.adapter_id,
+            event.source_event_id,
+        )
+        if record is None:
+            raise PermissionError("selection event is not present in the trusted inbox")
+        return await self._assortment.record_selection_event(event, record, ctx)
+
+
+class AssortmentService:
+    """Execute T06 writes through exact policy, version, approval, and ledger bindings."""
+
+    def __init__(
+        self,
+        *,
+        campaigns: CampaignRepository,
+        rule_refs: CampaignRuleSnapshotRefRepository,
+        rule_snapshots: RuleSnapshotReader,
+        repository: AssortmentWorkflowRepository,
+        ledger: ExecutionLedger,
+        approvals: ApprovalService,
+        assortment_adapter: AssortmentAdapter,
+        placement_adapter: ConsumerPlacementAdapter,
+        notification_adapter: MerchantNotificationAdapter,
+        approval_invalidator: DownstreamApprovalInvalidator,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._campaigns = campaigns
+        self._rule_refs = rule_refs
+        self._rule_snapshots = rule_snapshots
+        self._repository = repository
+        self._ledger = ledger
+        self._approvals = approvals
+        self._assortment_adapter = assortment_adapter
+        self._placement_adapter = placement_adapter
+        self._notification_adapter = notification_adapter
+        self._approval_invalidator = approval_invalidator
+        self._clock = clock
+
+    async def request_assortment_approval(
+        self,
+        request: SubmitAssortmentArgs,
+        *,
+        expires_at: datetime,
+        ctx: Context,
+    ) -> Approval:
+        _, args_hash, binding = await self._assortment_precheck(request, ctx)
+        reasons = self._assortment_adapter.capabilities.approval_reasons(request)
+        if not reasons:
+            raise ValueError("assortment submission does not require conditional approval")
+        return await self._approvals.create(
+            approval_action="assortment_submission_approval",
+            tool_name=SUBMIT_ASSORTMENT_TOOL_NAME,
+            canonical_args_hash=args_hash,
+            checkpoint_id=ctx.run_id,
+            expires_at=expires_at,
+            ctx=ctx,
+            business_binding=binding,
+        )
+
+    async def submit(
+        self,
+        request: SubmitAssortmentArgs,
+        ctx: Context,
+    ) -> SubmitAssortmentResult:
+        ordered_ids = tuple(sorted(request.enrollment_item_ids))
+        canonical = request.model_copy(
+            update={
+                "enrollment_item_ids": ordered_ids,
+                "idempotency_key": "[request-key]",
+                "approval_id": None,
+            }
+        )
+        submission_version = _stable_id(
+            "submission_version",
+            request.campaign_id,
+            request.assortment_policy_ref,
+            request.assortment_policy_version,
+            *ordered_ids,
+        )
+        execution = await self._ledger.reserve_for_args(
+            execution_id=f"tool_execution_{uuid.uuid4().hex}",
+            tenant_id=ctx.tenant_id,
+            tool_name=SUBMIT_ASSORTMENT_TOOL_NAME,
+            tool_schema_version=1,
+            schema=SubmitAssortmentArgs,
+            args=canonical.model_dump(),
+            stable_business_id=f"{request.campaign_id}:{submission_version}",
+            checkpoint_id=ctx.run_id,
+            request_idempotency_key=request.idempotency_key,
+        )
+        if execution.status != "reserved":
+            return await self._submission_result(request, execution, submission_version)
+        _, args_hash, binding = await self._assortment_precheck(request, ctx)
+        if args_hash != execution.canonical_args_hash:
+            raise RuntimeError("assortment canonical binding changed during execution")
+        reasons = self._assortment_adapter.capabilities.approval_reasons(request)
+        await self._approvals.authorize_resume(
+            request=ApprovalResumeRequest(
+                approval_id=request.approval_id,
+                approval_action="assortment_submission_approval",
+                tool_name=SUBMIT_ASSORTMENT_TOOL_NAME,
+                canonical_args_hash=args_hash,
+                checkpoint_id=ctx.run_id,
+                approval_required=bool(reasons),
+                business_binding=binding,
+            ),
+            tool_policy=SUBMIT_ASSORTMENT_POLICY,
+            ctx=ctx,
+        )
+        campaign = await self._required_campaign(request.campaign_id, ctx)
+        policy_version = await _authorize("assortment:submit", request.campaign_id, ctx)
+        now = self._now()
+
+        async def invoke(idempotency_key: str) -> Receipt:
+            return await self._assortment_adapter.submit(
+                request,
+                submission_version=submission_version,
+                idempotency_key=idempotency_key,
+            )
+
+        def write_for(outcome: ExecutionOutcome) -> BusinessMutation:
+            status = {"succeeded": "submitted", "failed": "failed", "unknown": "unknown"}[outcome]
+            submission = AssortmentSubmission(
+                tenant_id=ctx.tenant_id,
+                assortment_submission_id=_stable_id(
+                    "assortment_submission", ctx.tenant_id, request.campaign_id, submission_version
+                ),
+                campaign_id=request.campaign_id,
+                submission_version=submission_version,
+                assortment_policy_ref=request.assortment_policy_ref,
+                assortment_policy_version=request.assortment_policy_version,
+                status=status,  # type: ignore[arg-type]
+                version=1,
+                created_at=now,
+                updated_at=now,
+            )
+
+            async def write(session: AsyncSession) -> None:
+                await self._repository.persist_submission_outcome(
+                    session,
+                    submission=submission,
+                    enrollment_item_ids=ordered_ids,
+                    expected_campaign_version=campaign.version,
+                    outcome=outcome,
+                )
+
+            return write
+
+        execution = await self._ledger.execute(
+            execution,
+            invoke,
+            outcome_business_write=write_for,
+            outcome_events=lambda outcome: _execution_events(
+                now=now,
+                execution=execution,
+                aggregate_type="assortment_submission",
+                aggregate_id=submission_version,
+                event_type=f"assortment.submission_{outcome}",
+                count=len(ordered_ids),
+                outcome=outcome,
+                policy_version=policy_version,
+                ctx=ctx,
+            ),
+        )
+        return await self._submission_result(request, execution, submission_version)
+
+    async def record_selection_event(
+        self,
+        event: SelectionDecisionRecorded | SelectionCompleted,
+        record: IntegrationInboxRecord,
+        ctx: Context,
+    ) -> SelectionEventResult:
+        if (
+            event.tenant_id != ctx.tenant_id
+            or record.tenant_id != ctx.tenant_id
+            or record.adapter_id != event.adapter_id
+            or record.source_event_id != event.source_event_id
+            or record.event_type != event.event_type
+            or record.processing_status != "matched"
+            or record.payload_hash != integration_payload_hash(event)
+        ):
+            raise PermissionError("selection event source binding is not trusted")
+        policy_version = await _authorize("selection:event:apply", event.payload.campaign_id, ctx)
+        execution = await self._ledger.reserve_for_args(
+            execution_id=f"tool_execution_{uuid.uuid4().hex}",
+            tenant_id=ctx.tenant_id,
+            tool_name=(
+                "record_selection_decision"
+                if isinstance(event, SelectionDecisionRecorded)
+                else "complete_selection"
+            ),
+            tool_schema_version=1,
+            schema=type(event.payload),
+            args=event.payload.model_dump(),
+            stable_business_id=f"{event.adapter_id}:{event.source_event_id}",
+            checkpoint_id=ctx.run_id,
+            request_idempotency_key=f"integration:{event.adapter_id}:{event.source_event_id}",
+        )
+        if execution.status == "succeeded":
+            binding = await self._required_binding(event.payload.campaign_id, ctx)
+            return SelectionEventResult(
+                event_type=event.event_type,
+                selection_version=event.payload.selection_version,
+                execution_id=execution.execution_id,
+                idempotency_key=execution.idempotency_key,
+                approval_binding=binding,
+                invalidation_status="not_required",
+            )
+        if execution.status != "reserved":
+            raise RuntimeError("prior selection event execution is not retryable")
+        now = self._now()
+        invalidation_fact: ApprovalBindingInvalidationFact | None = None
+        selection_version = event.payload.selection_version
+        if isinstance(event, SelectionDecisionRecorded):
+            decision_payload = event.payload
+            decision = SelectionDecision(
+                tenant_id=ctx.tenant_id,
+                selection_decision_id=_stable_id(
+                    "selection_decision",
+                    ctx.tenant_id,
+                    decision_payload.campaign_id,
+                    decision_payload.selection_version,
+                    decision_payload.enrollment_item_id,
+                ),
+                campaign_id=decision_payload.campaign_id,
+                submission_version=decision_payload.submission_version,
+                selection_version=decision_payload.selection_version,
+                enrollment_item_id=decision_payload.enrollment_item_id,
+                decision=decision_payload.decision,
+                reason_code=decision_payload.reason_code,
+                version=1,
+                created_at=now,
+                updated_at=now,
+            )
+
+            async def write(session: AsyncSession) -> None:
+                await self._repository.record_selection_decision(session, decision=decision)
+
+            binding = await self._required_binding(decision_payload.campaign_id, ctx)
+        else:
+            completion_payload = event.payload
+            binding = await self._required_binding(completion_payload.campaign_id, ctx)
+            updated_binding = binding.model_copy(
+                update={"selection_version": completion_payload.selection_version}
+            )
+            invalidation_fact = ApprovalBindingInvalidationFact(
+                event_id=_stable_id(
+                    "selection_binding",
+                    ctx.tenant_id,
+                    completion_payload.campaign_id,
+                    completion_payload.selection_version,
+                ),
+                tenant_id=ctx.tenant_id,
+                binding=updated_binding,
+                reason="selection_version_completed",
+                occurred_at=now,
+            )
+
+            async def write(session: AsyncSession) -> None:
+                await self._repository.complete_selection(
+                    session,
+                    tenant_id=ctx.tenant_id,
+                    campaign_id=completion_payload.campaign_id,
+                    submission_version=completion_payload.submission_version,
+                    selection_version=completion_payload.selection_version,
+                    expected_binding=binding,
+                    updated_binding=updated_binding,
+                    updated_at=now,
+                )
+
+            binding = updated_binding
+        events = _execution_events(
+            now=now,
+            execution=execution,
+            aggregate_type="selection",
+            aggregate_id=selection_version,
+            event_type=event.event_type,
+            count=1,
+            outcome="succeeded",
+            policy_version=policy_version,
+            ctx=ctx,
+            binding_fact=invalidation_fact,
+        )
+        execution = await self._ledger.record_local_success(
+            execution,
+            receipt_id=_stable_id("receipt", execution.idempotency_key),
+            business_write=write,
+            domain_events=events.domain_events,
+            audit_events=events.audit_events,
+            outbox_records=events.outbox_records,
+        )
+        invalidation_status: Literal["not_required", "applied", "reconciliation"] = "not_required"
+        if invalidation_fact is not None:
+            try:
+                result = await self._approval_invalidator.consume(invalidation_fact)
+                invalidation_status = (
+                    "applied" if getattr(result, "status", None) == "applied" else "reconciliation"
+                )
+            except Exception:
+                invalidation_status = "reconciliation"
+        return SelectionEventResult(
+            event_type=event.event_type,
+            selection_version=selection_version,
+            execution_id=execution.execution_id,
+            idempotency_key=execution.idempotency_key,
+            approval_binding=binding,
+            invalidation_status=invalidation_status,
+        )
+
+    async def request_consumer_publish_approval(
+        self,
+        request: PublishConsumerPlacementArgs,
+        *,
+        expires_at: datetime,
+        ctx: Context,
+    ) -> Approval:
+        canonical = _canonical_publish_request(request)
+        args_hash = canonical_args_hash(
+            tool_name=PUBLISH_CONSUMER_TOOL_NAME,
+            tool_schema_version=1,
+            schema=PublishConsumerPlacementArgs,
+            args=canonical.model_dump(),
+        )
+        selection = await self._repository.load_selection(
+            tenant_id=ctx.tenant_id,
+            campaign_id=request.campaign_id,
+            selection_version=request.selection_version,
+        )
+        _require_publishable_selection(selection)
+        return await self._approvals.create(
+            approval_action="consumer_publish_approval",
+            tool_name=PUBLISH_CONSUMER_TOOL_NAME,
+            canonical_args_hash=args_hash,
+            checkpoint_id=ctx.run_id,
+            expires_at=expires_at,
+            ctx=ctx,
+            business_binding=selection.binding,
+        )
+
+    async def publish_consumer_placement(
+        self,
+        request: PublishConsumerPlacementArgs,
+        ctx: Context,
+    ) -> PublishConsumerPlacementResult:
+        canonical = _canonical_publish_request(request)
+        spec_hash = _hash(request.placement_spec)
+        placement_id = _stable_id(
+            "consumer_placement",
+            ctx.tenant_id,
+            request.campaign_id,
+            request.selection_version,
+            spec_hash,
+        )
+        execution = await self._ledger.reserve_for_args(
+            execution_id=f"tool_execution_{uuid.uuid4().hex}",
+            tenant_id=ctx.tenant_id,
+            tool_name=PUBLISH_CONSUMER_TOOL_NAME,
+            tool_schema_version=1,
+            schema=PublishConsumerPlacementArgs,
+            args=canonical.model_dump(),
+            stable_business_id=(f"{request.campaign_id}:{request.selection_version}:{spec_hash}"),
+            checkpoint_id=ctx.run_id,
+            request_idempotency_key=request.idempotency_key,
+        )
+        if execution.status != "reserved":
+            return await self._placement_result(request, execution, placement_id)
+        selection = await self._repository.load_selection(
+            tenant_id=ctx.tenant_id,
+            campaign_id=request.campaign_id,
+            selection_version=request.selection_version,
+        )
+        selected_ids = _require_publishable_selection(selection)
+        await self._approvals.authorize_resume(
+            request=ApprovalResumeRequest(
+                approval_id=request.approval_id,
+                approval_action="consumer_publish_approval",
+                tool_name=PUBLISH_CONSUMER_TOOL_NAME,
+                canonical_args_hash=execution.canonical_args_hash,
+                checkpoint_id=ctx.run_id,
+                approval_required=True,
+                business_binding=selection.binding,
+            ),
+            tool_policy=PUBLISH_CONSUMER_POLICY,
+            ctx=ctx,
+        )
+        policy_version = await _authorize("consumer:publish", request.campaign_id, ctx)
+        now = self._now()
+
+        async def invoke(idempotency_key: str) -> Receipt:
+            return await self._placement_adapter.publish(
+                request,
+                selected_item_ids=selected_ids,
+                idempotency_key=idempotency_key,
+            )
+
+        def write_for(outcome: ExecutionOutcome) -> BusinessMutation:
+            status = {"succeeded": "published", "failed": "failed", "unknown": "unknown"}[outcome]
+            placement = ConsumerPlacement(
+                tenant_id=ctx.tenant_id,
+                consumer_placement_id=placement_id,
+                campaign_id=request.campaign_id,
+                selection_version=request.selection_version,
+                placement_spec_hash=spec_hash,
+                status=status,  # type: ignore[arg-type]
+                request_id=execution.execution_id,
+                receipt_id=None,
+                version=1,
+                created_at=now,
+                updated_at=now,
+            )
+
+            async def write(session: AsyncSession) -> None:
+                await self._repository.persist_placement_outcome(
+                    session,
+                    placement=placement,
+                    expected_binding=selection.binding,
+                    selected_item_ids=selected_ids,
+                    outcome=outcome,
+                )
+
+            return write
+
+        execution = await self._ledger.execute(
+            execution,
+            invoke,
+            outcome_business_write=write_for,
+            outcome_events=lambda outcome: _execution_events(
+                now=now,
+                execution=execution,
+                aggregate_type="consumer_placement",
+                aggregate_id=placement_id,
+                event_type=f"consumer.placement_{outcome}",
+                count=len(selected_ids),
+                outcome=outcome,
+                policy_version=policy_version,
+                ctx=ctx,
+            ),
+        )
+        return await self._placement_result(request, execution, placement_id)
+
+    async def request_notification_approval(
+        self,
+        request: SendMerchantNotificationArgs,
+        *,
+        expires_at: datetime,
+        ctx: Context,
+    ) -> Approval:
+        reasons = self._notification_adapter.capabilities.approval_reasons(request.template_id)
+        if not reasons:
+            raise ValueError("merchant notification does not require conditional approval")
+        canonical = _canonical_notification_request(request)
+        args_hash = canonical_args_hash(
+            tool_name=SEND_NOTIFICATION_TOOL_NAME,
+            tool_schema_version=1,
+            schema=SendMerchantNotificationArgs,
+            args=canonical.model_dump(),
+        )
+        binding = await self._required_binding(request.campaign_id, ctx)
+        return await self._approvals.create(
+            approval_action="merchant_notification_approval",
+            tool_name=SEND_NOTIFICATION_TOOL_NAME,
+            canonical_args_hash=args_hash,
+            checkpoint_id=ctx.run_id,
+            expires_at=expires_at,
+            ctx=ctx,
+            business_binding=binding,
+        )
+
+    async def send_merchant_notification(
+        self,
+        request: SendMerchantNotificationArgs,
+        ctx: Context,
+    ) -> SendMerchantNotificationResult:
+        canonical = _canonical_notification_request(request)
+        notification_id = _stable_id(
+            "merchant_notification",
+            ctx.tenant_id,
+            request.merchant_id,
+            request.campaign_id,
+            request.result_version,
+            request.template_id,
+            request.channel,
+        )
+        execution = await self._ledger.reserve_for_args(
+            execution_id=f"tool_execution_{uuid.uuid4().hex}",
+            tenant_id=ctx.tenant_id,
+            tool_name=SEND_NOTIFICATION_TOOL_NAME,
+            tool_schema_version=1,
+            schema=SendMerchantNotificationArgs,
+            args=canonical.model_dump(),
+            stable_business_id=notification_id,
+            checkpoint_id=ctx.run_id,
+            request_idempotency_key=request.idempotency_key,
+        )
+        if execution.status != "reserved":
+            return await self._notification_result(request, execution, notification_id)
+        message = await self._repository.notification_message(
+            tenant_id=ctx.tenant_id,
+            merchant_id=request.merchant_id,
+            campaign_id=request.campaign_id,
+            result_version=request.result_version,
+            template_id=request.template_id,
+            channel=request.channel,
+        )
+        binding = await self._required_binding(request.campaign_id, ctx)
+        reasons = self._notification_adapter.capabilities.approval_reasons(request.template_id)
+        await self._approvals.authorize_resume(
+            request=ApprovalResumeRequest(
+                approval_id=request.approval_id,
+                approval_action="merchant_notification_approval",
+                tool_name=SEND_NOTIFICATION_TOOL_NAME,
+                canonical_args_hash=execution.canonical_args_hash,
+                checkpoint_id=ctx.run_id,
+                approval_required=bool(reasons),
+                business_binding=binding,
+            ),
+            tool_policy=SEND_NOTIFICATION_POLICY,
+            ctx=ctx,
+        )
+        policy_version = await _authorize("notification:send", request.campaign_id, ctx)
+        now = self._now()
+        attempts = [0]
+
+        async def invoke(idempotency_key: str) -> Receipt:
+            last: Receipt | None = None
+            for attempt in range(1, self._notification_adapter.capabilities.max_attempts + 1):
+                attempts[0] = attempt
+                last = await self._notification_adapter.send(
+                    message,
+                    idempotency_key=idempotency_key,
+                    attempt=attempt,
+                )
+                if last.status != "rejected":
+                    return last
+            if last is None:
+                raise RuntimeError("notification adapter made no delivery attempt")
+            return last
+
+        def write_for(outcome: ExecutionOutcome) -> BusinessMutation:
+            notification = MerchantNotification(
+                tenant_id=ctx.tenant_id,
+                merchant_notification_id=notification_id,
+                merchant_id=request.merchant_id,
+                campaign_id=request.campaign_id,
+                result_version=request.result_version,
+                template_id=request.template_id,
+                channel=request.channel,
+                status="sent" if outcome == "succeeded" else "dead_letter",
+                attempt_count=max(attempts[0], 1),
+                receipt_id=None,
+                version=1,
+                created_at=now,
+                updated_at=now,
+            )
+
+            async def write(session: AsyncSession) -> None:
+                await self._repository.persist_notification_outcome(
+                    session,
+                    notification=notification,
+                )
+
+            return write
+
+        execution = await self._ledger.execute(
+            execution,
+            invoke,
+            outcome_business_write=write_for,
+            outcome_events=lambda outcome: _execution_events(
+                now=now,
+                execution=execution,
+                aggregate_type="merchant_notification",
+                aggregate_id=notification_id,
+                event_type=f"merchant.notification_{outcome}",
+                count=max(attempts[0], 1),
+                outcome=outcome,
+                policy_version=policy_version,
+                ctx=ctx,
+            ),
+        )
+        return await self._notification_result(request, execution, notification_id)
+
+    async def _assortment_precheck(
+        self,
+        request: SubmitAssortmentArgs,
+        ctx: Context,
+    ) -> tuple[SubmitAssortmentArgs, str, ApprovalBusinessBinding]:
+        campaign = await self._required_campaign(request.campaign_id, ctx)
+        if campaign.status not in {"recruiting", "selecting"}:
+            raise ValueError("campaign is not accepting assortment submissions")
+        rule_ref = await self._rule_refs.get(campaign.rule_snapshot_ref_id, ctx)
+        if rule_ref is None:
+            raise LookupError("campaign rule snapshot is unavailable")
+        snapshot = await self._rule_snapshots.get(rule_ref.snapshot_id, ctx)
+        if (
+            snapshot.tenant_id != ctx.tenant_id
+            or snapshot.snapshot_hash != rule_ref.snapshot_hash
+            or snapshot.recompute_hash() != snapshot.snapshot_hash
+            or request.assortment_policy_ref != snapshot.enrollment_policy.assortment_policy_ref
+            or request.assortment_policy_version
+            != snapshot.enrollment_policy.assortment_policy_version
+        ):
+            raise PermissionError("assortment policy does not match the frozen rule snapshot")
+        canonical = request.model_copy(
+            update={
+                "enrollment_item_ids": tuple(sorted(request.enrollment_item_ids)),
+                "idempotency_key": "[request-key]",
+                "approval_id": None,
+            }
+        )
+        args_hash = canonical_args_hash(
+            tool_name=SUBMIT_ASSORTMENT_TOOL_NAME,
+            tool_schema_version=1,
+            schema=SubmitAssortmentArgs,
+            args=canonical.model_dump(),
+        )
+        binding = await self._required_binding(request.campaign_id, ctx)
+        return canonical, args_hash, binding
+
+    async def _required_campaign(self, campaign_id: str, ctx: Context) -> Campaign:
+        campaign = await self._campaigns.get(campaign_id, ctx)
+        if campaign is None:
+            raise LookupError("campaign is unavailable")
+        return campaign
+
+    async def _required_binding(self, campaign_id: str, ctx: Context) -> ApprovalBusinessBinding:
+        binding = await self._repository.get_approval_binding(
+            tenant_id=ctx.tenant_id,
+            campaign_id=campaign_id,
+        )
+        if binding is None:
+            raise LookupError("campaign approval business binding is unavailable")
+        return binding
+
+    async def _submission_result(
+        self,
+        request: SubmitAssortmentArgs,
+        execution: ToolExecution,
+        submission_version: str,
+    ) -> SubmitAssortmentResult:
+        submission, item_ids = await self._repository.load_submission(
+            tenant_id=execution.tenant_id,
+            campaign_id=request.campaign_id,
+            submission_version=submission_version,
+        )
+        return SubmitAssortmentResult(
+            submission=submission,
+            enrollment_item_ids=item_ids,
+            execution_id=execution.execution_id,
+            idempotency_key=execution.idempotency_key,
+            request_idempotency_key=request.idempotency_key,
+        )
+
+    async def _placement_result(
+        self,
+        request: PublishConsumerPlacementArgs,
+        execution: ToolExecution,
+        placement_id: str,
+    ) -> PublishConsumerPlacementResult:
+        placement = await self._repository.load_placement(
+            tenant_id=execution.tenant_id,
+            placement_id=placement_id,
+        )
+        selection = await self._repository.load_selection(
+            tenant_id=execution.tenant_id,
+            campaign_id=request.campaign_id,
+            selection_version=request.selection_version,
+        )
+        return PublishConsumerPlacementResult(
+            placement=placement,
+            selected_item_ids=selection.selected_item_ids,
+            execution_id=execution.execution_id,
+            idempotency_key=execution.idempotency_key,
+            request_idempotency_key=request.idempotency_key,
+        )
+
+    async def _notification_result(
+        self,
+        request: SendMerchantNotificationArgs,
+        execution: ToolExecution,
+        notification_id: str,
+    ) -> SendMerchantNotificationResult:
+        notification = await self._repository.load_notification(
+            tenant_id=execution.tenant_id,
+            notification_id=notification_id,
+        )
+        return SendMerchantNotificationResult(
+            notification=notification,
+            execution_id=execution.execution_id,
+            idempotency_key=execution.idempotency_key,
+            request_idempotency_key=request.idempotency_key,
+        )
+
+    def _now(self) -> datetime:
+        now = self._clock()
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("assortment service clock must return a timezone-aware timestamp")
+        return now
+
+
+def _canonical_publish_request(
+    request: PublishConsumerPlacementArgs,
+) -> PublishConsumerPlacementArgs:
+    return request.model_copy(update={"idempotency_key": "[request-key]", "approval_id": None})
+
+
+def _canonical_notification_request(
+    request: SendMerchantNotificationArgs,
+) -> SendMerchantNotificationArgs:
+    return request.model_copy(update={"idempotency_key": "[request-key]", "approval_id": None})
+
+
+def _require_publishable_selection(selection: AssortmentSelection) -> tuple[str, ...]:
+    if selection.campaign.status != "pending_consumer_publish":
+        raise ValueError("campaign is not ready for consumer publication")
+    if selection.binding.selection_version != selection.decisions[0].selection_version:
+        raise PermissionError("selection binding is stale")
+    selected = selection.selected_item_ids
+    if not selected:
+        raise ValueError("consumer placement requires at least one selected item")
+    active_link_ids = {
+        link.enrollment_item_id for link in selection.links if link.status == "active"
+    }
+    if any(item_id not in active_link_ids for item_id in selected):
+        raise ValueError("selected item does not have an active coupon link")
+    return selected
+
+
+async def _authorize(action: str, campaign_id: str, ctx: Context) -> str:
+    decision = await ctx.policy.authorize(
+        AuthorizationRequest(
+            actor=ctx.actor,
+            executor=ctx.executor,
+            action=action,
+            resource=ResourceRef(
+                resource_type="campaign",
+                resource_id=campaign_id,
+                tenant_id=ctx.tenant_id,
+            ),
+            context=AuthorizationContext(correlation_id=ctx.correlation_id),
+        ),
+        ctx,
+    )
+    if not decision.allow or decision.constraints.get("tenant_id") != ctx.tenant_id:
+        raise PermissionError("assortment workflow write is not authorized")
+    return decision.policy_version
+
+
+def _execution_events(
+    *,
+    now: datetime,
+    execution: ToolExecution,
+    aggregate_type: str,
+    aggregate_id: str,
+    event_type: str,
+    count: int,
+    outcome: ExecutionOutcome,
+    policy_version: str,
+    ctx: Context,
+    binding_fact: ApprovalBindingInvalidationFact | None = None,
+) -> ExecutionEventBundle:
+    event_id = f"domain_event_{uuid.uuid4().hex}"
+    payload: dict[str, JsonValue] = {
+        "args_hash": execution.canonical_args_hash,
+        "count": count,
+        "execution_id": execution.execution_id,
+        "outcome": outcome,
+    }
+    outbox = [
+        OutboxRecord(
+            event_id=event_id,
+            tenant_id=ctx.tenant_id,
+            topic=event_type,
+            payload_json=json.dumps(
+                payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ),
+            occurred_at=now,
+            available_at=now,
+        )
+    ]
+    if binding_fact is not None:
+        outbox.append(
+            OutboxRecord(
+                event_id=binding_fact.event_id,
+                tenant_id=ctx.tenant_id,
+                topic="selection.version_completed",
+                payload_json=json.dumps(
+                    {
+                        **binding_fact.binding.model_dump(mode="json"),
+                        "reason": binding_fact.reason,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+                occurred_at=now,
+                available_at=now,
+            )
+        )
+    return ExecutionEventBundle(
+        domain_events=(
+            DomainEvent(
+                event_id=event_id,
+                tenant_id=ctx.tenant_id,
+                aggregate_type=aggregate_type,
+                aggregate_id=aggregate_id,
+                event_type=event_type,
+                event_version=1,
+                payload=payload,
+                occurred_at=now,
+                correlation_id=ctx.correlation_id,
+            ),
+        ),
+        audit_events=(
+            EventEnvelope(
+                event_id=f"business_audit_{uuid.uuid4().hex}",
+                occurred_at=now,
+                tenant_id=ctx.tenant_id,
+                actor=ctx.actor.subject_id,
+                action=execution.tool_name,
+                resource=ResourceRef(
+                    resource_type=aggregate_type,
+                    resource_id=aggregate_id,
+                    tenant_id=ctx.tenant_id,
+                ),
+                decision="allow",
+                policy_version=policy_version,
+                args_hash=execution.canonical_args_hash,
+                result="success" if outcome == "succeeded" else "failure",
+                correlation_id=ctx.correlation_id,
+                payload={"count": count, "execution_id": execution.execution_id},
+            ),
+        ),
+        outbox_records=tuple(outbox),
+    )

@@ -38,8 +38,22 @@ async def _runtime(tmp_path: Path):
 async def test_registered_tools_return_versioned_cited_and_bounded_results(tmp_path: Path) -> None:
     runtime, ctx = await _runtime(tmp_path)
     try:
-        assert tuple(ctx.tools) == ("search_campaign_rules", "query_merchants")
-        assert ctx.tools.allowlist == frozenset({"search_campaign_rules", "query_merchants"})
+        assert tuple(ctx.tools) == (
+            "search_campaign_rules",
+            "query_merchants",
+            "submit_assortment",
+            "publish_consumer_placement",
+            "send_merchant_notification",
+        )
+        assert ctx.tools.allowlist == frozenset(
+            {
+                "search_campaign_rules",
+                "query_merchants",
+                "submit_assortment",
+                "publish_consumer_placement",
+                "send_merchant_notification",
+            }
+        )
         assert {spec.schema_version for spec in ctx.tools.specs()} == {1}
 
         search = await ctx.tools.execute(

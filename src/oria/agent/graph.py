@@ -229,7 +229,10 @@ async def research_model_node(
         tools = (
             None
             if state["finalization_only"]
-            else _bounded_tool_specs(context.ctx.tools.specs(), state["max_candidates"])
+            else _bounded_tool_specs(
+                context.ctx.tools.specs(("search_campaign_rules", "query_merchants")),
+                state["max_candidates"],
+            )
         )
         result = await llm.chat(
             _messages(state),
@@ -434,7 +437,10 @@ async def research_tools_node(
         return {"termination": _termination(state, context, "deadline_exceeded")}
 
     results = await asyncio.gather(*(_execute_safely(call, context) for call in calls))
-    tool_versions = {spec.name: spec.schema_version for spec in context.ctx.tools.specs()}
+    tool_versions = {
+        spec.name: spec.schema_version
+        for spec in context.ctx.tools.specs(("search_campaign_rules", "query_merchants"))
+    }
     messages = list(state["messages"])
     seen = set(state["seen_evidence_fingerprints"])
     new_fingerprints: list[str] = []

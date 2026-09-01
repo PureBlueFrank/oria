@@ -49,7 +49,13 @@ async def test_context_has_no_repository_engine_session_or_second_domain_path(
             assert not hasattr(runtime, name)
             assert not hasattr(ctx.domain, name)
         public_domain = {name for name in dir(ctx.domain) if not name.startswith("_")}
-        assert public_domain == {"campaign_launch", "campaign_rules", "merchants"}
+        assert public_domain == {
+            "assortment",
+            "campaign_launch",
+            "campaign_rules",
+            "merchants",
+            "selection_events",
+        }
         parameters = inspect.signature(ctx.domain.merchants.eligible_merchants).parameters
         assert tuple(parameters) == ("rule_set_id", "limit", "ctx")
         with pytest.raises(TypeError):

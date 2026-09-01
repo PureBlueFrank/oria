@@ -205,7 +205,15 @@ async def test_retrieved_instructions_remain_untrusted_data_and_cannot_add_tools
         assert docs[0].trust_level == "untrusted_data"
         assert docs[0].provenance == malicious.source_uri
         assert docs[0].data_classification == malicious.data_classification
-        assert ctx.tools.allowlist == frozenset({"search_campaign_rules", "query_merchants"})
+        assert ctx.tools.allowlist == frozenset(
+            {
+                "search_campaign_rules",
+                "query_merchants",
+                "submit_assortment",
+                "publish_consumer_placement",
+                "send_merchant_notification",
+            }
+        )
         with pytest.raises(LookupError, match="allowlisted"):
             await ctx.tools.execute("persist_campaign", {}, ctx)
     finally:

@@ -9,11 +9,16 @@ from contextlib import AbstractAsyncContextManager
 
 import httpx
 
+from oria.adapters.assortment import (
+    InMemoryAssortmentAdapter,
+    InMemoryConsumerPlacementAdapter,
+    InMemoryMerchantNotificationAdapter,
+)
 from oria.adapters.launch import InMemoryCouponBatchAdapter, InMemoryRecruitmentAdapter
 from oria.agent.graph import build_research_graph
 from oria.config.models import ResolvedRuntimeConfig
 from oria.config.resolve import resolve_runtime_config
-from oria.core.approvals import ApprovalService
+from oria.core.approvals import ApprovalBindingInvalidationConsumer, ApprovalService
 from oria.core.context import RuntimeServices, SealedAsyncExitStack
 from oria.core.execution_ledger import ExecutionLedger
 from oria.core.protocols import (
@@ -25,6 +30,7 @@ from oria.core.protocols import (
     Notifier,
 )
 from oria.core.registry import ServiceRegistry
+from oria.domain.assortment import AssortmentService, TrustedSelectionEventService
 from oria.domain.eligibility import EligibilityPolicy
 from oria.domain.launch import DefaultCampaignLaunchService
 from oria.domain.services import (
@@ -52,12 +58,24 @@ from oria.rag.service import (
 )
 from oria.rag.snapshots import LocalRuleSnapshotStore
 from oria.resources.loader import load_demo_data
+from oria.storage.assortment import SQLiteAssortmentWorkflowRepository
 from oria.storage.database import DatabaseResources
-from oria.storage.platform import SQLiteApprovalRepository
+from oria.storage.platform import (
+    SQLiteApprovalInvalidationRepository,
+    SQLiteApprovalRepository,
+    SQLiteIntegrationEventInboxRepository,
+)
 from oria.storage.repositories import (
     SQLiteCampaignDraftRepository,
     SQLiteCampaignLaunchRepository,
+    SQLiteCampaignRepository,
+    SQLiteCampaignRuleSnapshotRefRepository,
     SQLiteMerchantRepository,
+)
+from oria.tools.assortment import (
+    PublishConsumerPlacementTool,
+    SendMerchantNotificationTool,
+    SubmitAssortmentTool,
 )
 from oria.tools.builtin import QueryMerchantsTool, SearchCampaignRulesTool
 from oria.tools.registry import ToolRegistry
@@ -173,25 +191,63 @@ async def build_runtime(
             EligibilityPolicy(),
             campaign_rules,
         )
+        approvals = ApprovalService(
+            SQLiteApprovalRepository(database_resources.platform_sessions),
+            policy,
+        )
+        ledger = ExecutionLedger(database_resources.business_sessions)
+        assortment_repository = SQLiteAssortmentWorkflowRepository(
+            database_resources.business_sessions
+        )
+        assortment = AssortmentService(
+            campaigns=SQLiteCampaignRepository(database_resources.business_sessions),
+            rule_refs=SQLiteCampaignRuleSnapshotRefRepository(database_resources.business_sessions),
+            rule_snapshots=rule_snapshots,
+            repository=assortment_repository,
+            ledger=ledger,
+            approvals=approvals,
+            assortment_adapter=InMemoryAssortmentAdapter(),
+            placement_adapter=InMemoryConsumerPlacementAdapter(),
+            notification_adapter=InMemoryMerchantNotificationAdapter(),
+            approval_invalidator=ApprovalBindingInvalidationConsumer(
+                SQLiteApprovalInvalidationRepository(database_resources.platform_sessions)
+            ),
+        )
+        selection_events = TrustedSelectionEventService(
+            SQLiteIntegrationEventInboxRepository(database_resources.platform_sessions),
+            assortment,
+        )
         domain = DomainServiceRegistry(
             campaign_rules=campaign_rules,
             merchants=merchant_service,
             campaign_launch=DefaultCampaignLaunchService(
                 SQLiteCampaignDraftRepository(database_resources.business_sessions),
                 launches=SQLiteCampaignLaunchRepository(database_resources.business_sessions),
-                approvals=ApprovalService(
-                    SQLiteApprovalRepository(database_resources.platform_sessions),
-                    policy,
-                ),
-                ledger=ExecutionLedger(database_resources.business_sessions),
+                approvals=approvals,
+                ledger=ledger,
                 coupon_adapter=InMemoryCouponBatchAdapter(),
                 recruitment_adapter=InMemoryRecruitmentAdapter(),
             ),
+            assortment=assortment,
+            selection_events=selection_events,
         )
 
-        tools = ToolRegistry(allowlist=frozenset({"search_campaign_rules", "query_merchants"}))
+        tools = ToolRegistry(
+            allowlist=frozenset(
+                {
+                    "search_campaign_rules",
+                    "query_merchants",
+                    "submit_assortment",
+                    "publish_consumer_placement",
+                    "send_merchant_notification",
+                }
+            )
+        )
         tools.register(SearchCampaignRulesTool(retriever, rule_snapshots))
         tools.register(QueryMerchantsTool(rule_snapshots, merchant_service))
+        tools.register(SubmitAssortmentTool(assortment))
+        tools.register(PublishConsumerPlacementTool(assortment))
+        tools.register(SendMerchantNotificationTool(assortment))
         guardrails: ServiceRegistry[Guardrail] = ServiceRegistry()
         nodes: ServiceRegistry[Node] = ServiceRegistry()
         agents: ServiceRegistry[object] = ServiceRegistry()
