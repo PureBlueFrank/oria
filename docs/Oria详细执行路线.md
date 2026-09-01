@@ -415,7 +415,9 @@ T05 加固（代码审查修复，已完成，Fixture/Community）：对 T05 产
 - P1-1：Business ProductSnapshot 唯一键加入 `merchant_id`（`business_0005`）。
 - P1-2：商品查询绑定 server-issued 资格候选集，模型可见结果用 `EligibleProductProjection` 白名单投影。
 
-head 升至 `platform_0006 / business_0008`。完整非 Live/Enterprise/Performance 套件 `526 passed, 1 deselected`，独立安全套件 `89 passed, 438 deselected`，`make lint` 与 migration asset 完整性通过。剩余 P1-3~P1-8 六项（adapter snapshot 回查、auto/window 状态约束、bundle 跨实体校验、审计 policy version、ToolResult ledger key、集成测试替身持久边界）标记为应修非必须，留待 T06/T07 顺带处理。
+head 升至 `platform_0006 / business_0008`。完整非 Live/Enterprise/Performance 套件 `526 passed, 1 deselected`，独立安全套件 `89 passed, 438 deselected`，`make lint` 与 migration asset 完整性通过。当时剩余 P1-3~P1-8 六项（adapter snapshot 回查、auto/window 状态约束、bundle 跨实体校验、审计 policy version、ToolResult ledger key、集成测试替身持久边界）标记为应修非必须。
+
+T05 六项非阻断 P1 收口（已完成，Fixture/Community）：Adapter 已支持按服务端签发的 `catalog_snapshot_id` 回查保留快照，auto 分支在写入前拒绝跨 tenant、未开窗、已关窗/过期和重复完成状态；Business bundle 在 Repository 写入前完成 Enrollment/Product/Item/ConfirmationTask 跨实体关联校验；报名与券关联审计保存最终鉴权返回的真实 policy version；ToolResult 契约固定公开 ledger 幂等键并与 caller request key 分离；报名分支集成测试改用真实 SQLite inbox、external wait 与 approval invalidation 持久边界。完整非 Live/Enterprise/Performance 套件 `534 passed, 1 deselected`，独立安全套件 `89 passed, 446 deselected`，扩展 T05 定向套件 `42 passed`，静态检查、wheel/sdist 构建、CLI smoke 与 migration asset 完整性均通过。证据：[`reports/verification/v0.3/20260901T082603+0800/summary.md`](../reports/verification/v0.3/20260901T082603+0800/summary.md)。本次未运行 Live、Enterprise、Performance 或真实商品库/企业 Adapter，T07 Graph/CLI 完整接线仍未验证。
 
 ### 6.2 真实验证场景
 

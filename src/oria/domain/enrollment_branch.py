@@ -275,6 +275,15 @@ class EnrollmentBranchCoordinator:
     ) -> EnrollmentBranchOutcome:
         if state.mode == "merchant":
             raise ValueError("merchant enrollment mode has no auto branch")
+        if state.tenant_id != ctx.tenant_id:
+            raise PermissionError("auto enrollment state tenant does not match context")
+        now = self._now()
+        if state.auto_completed:
+            raise ValueError("auto enrollment branch is already complete")
+        if now < state.enrollment_window_start:
+            raise ValueError("auto enrollment window has not opened")
+        if state.window_closed or now >= state.enrollment_window_end:
+            raise ValueError("auto enrollment window is closed")
         result = await self._enrollments.upsert_auto(
             AutoEnrollmentCommand(
                 campaign_id=state.campaign_id,

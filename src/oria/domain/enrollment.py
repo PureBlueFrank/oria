@@ -441,6 +441,9 @@ class EnrollmentService:
             ordered_items,
             product_criteria,
             ctx,
+            expected_catalog_snapshot_id=(
+                None if expected_auto_binding is None else expected_auto_binding.catalog_snapshot_id
+            ),
         )
         if expected_auto_binding is not None and (
             expected_auto_binding.product_circle_policy_ref != product_criteria.policy_ref
@@ -547,7 +550,7 @@ class EnrollmentService:
                 due_at=now + self._confirmation_ttl,
             )
             bundles.append((business_snapshot, enrollment, enrollment_item, tasks))
-        await _authorize("enrollment:item:write", "campaign", campaign_id, ctx)
+        policy_version = await _authorize("enrollment:item:write", "campaign", campaign_id, ctx)
 
         async def write(session: AsyncSession) -> None:
             await self._repository.upsert_enrollment_items(
@@ -571,6 +574,7 @@ class EnrollmentService:
             aggregate_id=campaign_id,
             event_type="enrollment.items_upserted",
             count=len(ordered_items),
+            policy_version=policy_version,
             ctx=ctx,
         )
         if new_enrollment_version:
@@ -669,6 +673,8 @@ class EnrollmentService:
         requested: tuple[EnrollmentItemInput, ...],
         criteria: ProductEligibilityCriteria,
         ctx: Context,
+        *,
+        expected_catalog_snapshot_id: str | None,
     ) -> tuple[str, dict[tuple[str, str, str], ProductSnapshot]]:
         merchants = tuple(sorted({item.merchant_id for item in requested}))
         binding = ProductCatalogPolicyBinding(
@@ -676,19 +682,20 @@ class EnrollmentService:
             policy_version=criteria.policy_version,
         )
         cursor: str | None = None
-        catalog_snapshot_id: str | None = None
+        observed_catalog_snapshot_id: str | None = None
         found: dict[tuple[str, str, str], ProductSnapshot] = {}
         while True:
             page = await self._catalog.list_products(
                 tenant_id=ctx.tenant_id,
                 merchant_ids=merchants,
                 policy=binding,
+                catalog_snapshot_id=expected_catalog_snapshot_id,
                 cursor=cursor,
                 limit=100,
             )
-            if catalog_snapshot_id is None:
-                catalog_snapshot_id = page.catalog_snapshot_id
-            elif page.catalog_snapshot_id != catalog_snapshot_id:
+            if observed_catalog_snapshot_id is None:
+                observed_catalog_snapshot_id = page.catalog_snapshot_id
+            elif page.catalog_snapshot_id != observed_catalog_snapshot_id:
                 raise RuntimeError("product catalog pagination changed snapshots")
             for product in page.products:
                 found[(product.merchant_id, product.product_ref, product.product_version)] = product
@@ -700,9 +707,9 @@ class EnrollmentService:
         }
         if not requested_keys.issubset(found):
             raise LookupError("enrollment product snapshot is unavailable")
-        if catalog_snapshot_id is None:
+        if observed_catalog_snapshot_id is None:
             raise LookupError("product catalog snapshot is unavailable")
-        return catalog_snapshot_id, {key: found[key] for key in requested_keys}
+        return observed_catalog_snapshot_id, {key: found[key] for key in requested_keys}
 
     @staticmethod
     def _redacted_attributes(
@@ -736,6 +743,7 @@ class EnrollmentService:
         aggregate_id: str,
         event_type: str,
         count: int,
+        policy_version: str,
         ctx: Context,
     ) -> ExecutionEventBundle:
         return _execution_events(
@@ -745,6 +753,7 @@ class EnrollmentService:
             aggregate_id=aggregate_id,
             event_type=event_type,
             count=count,
+            policy_version=policy_version,
             ctx=ctx,
         )
 
@@ -943,7 +952,9 @@ class CouponLinkService:
             )
             for item_id in ordered_ids
         )
-        await _authorize("enrollment:coupon:link", "coupon_batch", request.coupon_batch_id, ctx)
+        policy_version = await _authorize(
+            "enrollment:coupon:link", "coupon_batch", request.coupon_batch_id, ctx
+        )
 
         async def write(session: AsyncSession) -> None:
             await self._repository.link_coupon_batch(
@@ -970,6 +981,7 @@ class CouponLinkService:
             aggregate_id=request.coupon_batch_id,
             event_type="enrollment.coupon_batch_linked",
             count=len(candidates),
+            policy_version=policy_version,
             ctx=ctx,
         )
         execution = await self._ledger.record_local_success(
@@ -1019,6 +1031,7 @@ class CouponLinkService:
                 tenant_id=ctx.tenant_id,
                 merchant_ids=merchants,
                 policy=binding,
+                catalog_snapshot_id=None,
                 cursor=cursor,
                 limit=100,
             )
@@ -1052,7 +1065,7 @@ async def _authorize(
     resource_type: str,
     resource_id: str,
     ctx: Context,
-) -> None:
+) -> str:
     decision = await ctx.policy.authorize(
         AuthorizationRequest(
             actor=ctx.actor,
@@ -1069,6 +1082,7 @@ async def _authorize(
     )
     if not decision.allow or decision.constraints.get("tenant_id") != ctx.tenant_id:
         raise PermissionError("enrollment write is not authorized")
+    return decision.policy_version
 
 
 def _execution_events(
@@ -1079,6 +1093,7 @@ def _execution_events(
     aggregate_id: str,
     event_type: str,
     count: int,
+    policy_version: str,
     ctx: Context,
 ) -> ExecutionEventBundle:
     event_id = f"domain_event_{uuid.uuid4().hex}"
@@ -1114,7 +1129,7 @@ def _execution_events(
                     tenant_id=ctx.tenant_id,
                 ),
                 decision="allow",
-                policy_version="frozen-campaign-rule/v1",
+                policy_version=policy_version,
                 args_hash=execution.canonical_args_hash,
                 result="success",
                 correlation_id=ctx.correlation_id,

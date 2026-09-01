@@ -8,10 +8,9 @@ from pathlib import Path
 import pytest
 from sqlalchemy import text
 from tests.integration.test_v03_enrollment_branches import (
-    InboxRepository,
     coordinator,
     event,
-    wait,
+    persisted_wait,
 )
 from tests.support.enrollment import NOW, enrollment_harness
 
@@ -77,7 +76,7 @@ def _tool_policy() -> ToolPolicy:
 
 
 async def _seed_and_close(harness: object, invalidator: object):
-    branch = coordinator(harness, InboxRepository(), invalidator)
+    branch = coordinator(harness, invalidator=invalidator)  # type: ignore[arg-type]
     state = EnrollmentBranchState.from_snapshot(
         campaign_id="campaign-1",
         snapshot=harness.snapshot,  # type: ignore[attr-defined]
@@ -85,7 +84,7 @@ async def _seed_and_close(harness: object, invalidator: object):
     accepted = await branch.process_event(
         state,
         event("accepted-before-close"),
-        wait=wait(),
+        wait=await persisted_wait(harness),
         ctx=harness.ctx,  # type: ignore[attr-defined,arg-type]
     )
     return branch, accepted.state.model_copy(update={"window_closed": True})

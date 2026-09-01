@@ -9,6 +9,7 @@ import pytest
 from sqlalchemy import text
 from tests.support.enrollment import auto_command, enrollment_harness, product
 
+from oria.core.types import AuthorizationRequest, PolicyDecision
 from oria.domain.enrollment import EnrollmentItemInput, LinkCouponBatchArgs
 from oria.storage.repositories import BusinessRepositoryError
 
@@ -86,7 +87,7 @@ async def test_final_transaction_rejects_product_snapshot_item_binding_mismatch(
             await original(session, **kwargs)  # type: ignore[arg-type]
 
         monkeypatch.setattr(repository, "upsert_enrollment_items", corrupt_bundle)
-        with pytest.raises(BusinessRepositoryError, match="does not match enrollment item"):
+        with pytest.raises(BusinessRepositoryError, match="bundle associations"):
             await harness.enrollments.upsert_auto(
                 auto_command(_items(), circle_run_id="wrong-product-bundle"),
                 harness.ctx,  # type: ignore[arg-type]
@@ -102,6 +103,93 @@ async def test_final_transaction_rejects_product_snapshot_item_binding_mismatch(
             ).one()
 
     assert counts == (0, 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("corruption", ["enrollment_merchant", "task_item"])
+async def test_final_transaction_rejects_cross_entity_enrollment_bundle_mismatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    corruption: str,
+) -> None:
+    async with enrollment_harness(tmp_path) as harness:
+        repository = harness.workflow_repository
+        original = repository.upsert_enrollment_items
+
+        async def corrupt_bundle(session: object, **kwargs: object) -> None:
+            bundles = kwargs["bundles"]
+            product_value, enrollment, item, tasks = bundles[0]  # type: ignore[index]
+            if corruption == "enrollment_merchant":
+                enrollment = enrollment.model_copy(update={"merchant_id": "demo-m002"})
+            else:
+                tasks = (
+                    tasks[0].model_copy(update={"enrollment_item_id": "another-item"}),
+                    *tasks[1:],
+                )
+            kwargs["bundles"] = ((product_value, enrollment, item, tasks),)
+            await original(session, **kwargs)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(repository, "upsert_enrollment_items", corrupt_bundle)
+        with pytest.raises(BusinessRepositoryError, match="bundle associations"):
+            await harness.enrollments.upsert_auto(
+                auto_command(_items(), circle_run_id=f"cross-entity-{corruption}"),
+                harness.ctx,  # type: ignore[arg-type]
+            )
+        async with harness.databases.business_sessions() as session:
+            counts = (
+                await session.execute(
+                    text(
+                        "SELECT (SELECT COUNT(*) FROM enrollments), "
+                        "(SELECT COUNT(*) FROM enrollment_items), "
+                        "(SELECT COUNT(*) FROM confirmation_tasks)"
+                    )
+                )
+            ).one()
+
+    assert counts == (0, 0, 0)
+
+
+class _VersionedPolicy:
+    def __init__(self, delegate: object, version: str) -> None:
+        self._delegate = delegate
+        self._version = version
+
+    async def authorize(self, request: AuthorizationRequest, ctx: object) -> PolicyDecision:
+        decision = await self._delegate.authorize(request, ctx)  # type: ignore[attr-defined]
+        return decision.model_copy(update={"policy_version": self._version})
+
+
+@pytest.mark.asyncio
+async def test_enrollment_business_audit_records_actual_authorization_policy_version(
+    tmp_path: Path,
+) -> None:
+    async with enrollment_harness(tmp_path, confirmation_steps=()) as harness:
+        harness.ctx.policy = _VersionedPolicy(harness.policy, "enrollment-policy-v2")
+        enrolled = await harness.enrollments.upsert_auto(
+            auto_command(_items(), circle_run_id="policy-version-upsert"),
+            harness.ctx,  # type: ignore[arg-type]
+        )
+        item_id = enrolled.enrollment_items[0].enrollment_item_id
+        await harness.links.link(
+            LinkCouponBatchArgs(
+                enrollment_item_ids=(item_id,),
+                coupon_batch_id="coupon-1",
+                tier_mapping={item_id: "base"},
+                idempotency_key="policy-version-link",
+            ),
+            harness.ctx,  # type: ignore[arg-type]
+        )
+        async with harness.databases.business_sessions() as session:
+            versions = tuple(
+                await session.scalars(
+                    text(
+                        "SELECT policy_version FROM audit_events WHERE action IN "
+                        "('upsert_enrollment_items', 'link_coupon_batch') ORDER BY action"
+                    )
+                )
+            )
+
+    assert versions == ("enrollment-policy-v2", "enrollment-policy-v2")
 
 
 @pytest.mark.asyncio

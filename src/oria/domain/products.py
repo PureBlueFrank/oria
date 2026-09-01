@@ -97,6 +97,7 @@ class ProductQueryService:
                 policy_ref=criteria.policy_ref,
                 policy_version=criteria.policy_version,
             ),
+            catalog_snapshot_id=None,
             cursor=request.cursor,
             limit=request.limit,
         )

@@ -14,6 +14,7 @@ from oria.domain.enrollment import (
     UpsertEnrollmentItemsArgs,
 )
 from oria.tools.enrollment import LinkCouponBatchTool, UpsertEnrollmentItemsTool
+from oria.tools.models import QueryEligibleProductsParams
 from oria.tools.product_catalog import QueryEligibleProductsTool
 
 pytestmark = pytest.mark.contract
@@ -148,6 +149,36 @@ async def test_upsert_history_precedes_changed_catalog_merchant_and_request_key_
 
 
 @pytest.mark.asyncio
+async def test_auto_enrollment_reloads_server_issued_catalog_snapshot_after_catalog_advances(
+    tmp_path: Path,
+) -> None:
+    async with enrollment_harness(tmp_path) as harness:
+        query = await harness.query.query(
+            QueryEligibleProductsParams(
+                campaign_id="campaign-1",
+                rule_snapshot_id=harness.snapshot.snapshot_id,
+                product_circle_policy_ref="synthetic-product-circle-policy",
+                product_circle_policy_version="1.0.0",
+                limit=100,
+            ),
+            harness.ctx,  # type: ignore[arg-type]
+        )
+        harness.catalog.install_snapshot("catalog-snapshot-v2", {"local-community": ()})
+        request = _upsert()
+
+        enrolled = await harness.enrollments.upsert_auto(
+            auto_command(
+                request.items,
+                circle_run_id="server-issued-old-snapshot",
+                catalog_snapshot_id=query.catalog_snapshot_id,
+            ),
+            harness.ctx,  # type: ignore[arg-type]
+        )
+
+    assert enrolled.enrollment_items[0].product_ref == "product-1"
+
+
+@pytest.mark.asyncio
 async def test_coupon_link_history_precedes_expiry_and_same_request_key_rejects_new_tier(
     tmp_path: Path,
 ) -> None:
@@ -221,6 +252,10 @@ async def test_t05_tool_contracts_return_schema_valid_results_without_fixed_hitl
     assert "source_ref" not in serialized_products
     assert upsert_result.ok and upsert_tool.policy.approval_mode == "none"
     assert link_result.ok and link_tool.policy.approval_mode == "none"
+    assert upsert_result.idempotency_key == upsert_result.data["idempotency_key"]  # type: ignore[index]
+    assert upsert_result.idempotency_key != upsert_result.data["request_idempotency_key"]  # type: ignore[index]
+    assert link_result.idempotency_key == link_result.data["idempotency_key"]  # type: ignore[index]
+    assert link_result.idempotency_key != link_result.data["request_idempotency_key"]  # type: ignore[index]
 
 
 @pytest.mark.asyncio

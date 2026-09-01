@@ -33,6 +33,7 @@ class ProductCatalogAdapter(Protocol):
         tenant_id: str,
         merchant_ids: tuple[str, ...],
         policy: ProductCatalogPolicyBinding,
+        catalog_snapshot_id: str | None,
         cursor: str | None,
         limit: int,
     ) -> ProductCatalogPage: ...
@@ -78,6 +79,7 @@ class InMemoryProductCatalogAdapter:
         tenant_id: str,
         merchant_ids: tuple[str, ...],
         policy: ProductCatalogPolicyBinding,
+        catalog_snapshot_id: str | None,
         cursor: str | None,
         limit: int,
     ) -> ProductCatalogPage:
@@ -90,12 +92,14 @@ class InMemoryProductCatalogAdapter:
             raise ValueError("at least one merchant is required")
         query_hash = self._query_hash(normalized_merchants, policy)
         if cursor is None:
-            snapshot_id = self._current_snapshot_id
+            snapshot_id = catalog_snapshot_id or self._current_snapshot_id
             offset = 0
         else:
             snapshot_id, offset, observed_hash = self._decode_cursor(cursor)
             if observed_hash != query_hash:
                 raise ValueError("product cursor does not match this query")
+            if catalog_snapshot_id is not None and snapshot_id != catalog_snapshot_id:
+                raise ValueError("product cursor does not match the requested catalog snapshot")
         try:
             tenant_products = self._snapshots[snapshot_id].get(tenant_id, ())
         except KeyError as exc:

@@ -764,6 +764,7 @@ class SQLiteEnrollmentWorkflowRepository:
         for product, enrollment, item, tasks in bundles:
             if any(entity.tenant_id != tenant_id for entity in (product, enrollment, item, *tasks)):
                 raise BusinessRepositoryError("cross-tenant enrollment write is forbidden")
+            self._validate_enrollment_bundle(product, enrollment, item, tasks)
             if (
                 enrollment.campaign_id != campaign_id
                 or item.campaign_id != campaign_id
@@ -1040,6 +1041,24 @@ class SQLiteEnrollmentWorkflowRepository:
             current=current_binding,
             updated=updated_approval_binding,
         )
+
+    @staticmethod
+    def _validate_enrollment_bundle(
+        product: ProductSnapshot,
+        enrollment: Enrollment,
+        item: EnrollmentItem,
+        tasks: tuple[ConfirmationTask, ...],
+    ) -> None:
+        if (
+            enrollment.enrollment_id != item.enrollment_id
+            or enrollment.merchant_id != item.merchant_id
+            or product.merchant_id != item.merchant_id
+            or product.product_ref != item.product_ref
+            or product.product_version != item.product_version
+            or product.product_snapshot_id != item.product_snapshot_id
+            or any(task.enrollment_item_id != item.enrollment_item_id for task in tasks)
+        ):
+            raise BusinessRepositoryError("enrollment bundle associations do not match")
 
     @staticmethod
     async def _load_merchant(

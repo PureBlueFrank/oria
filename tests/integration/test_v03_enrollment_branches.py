@@ -2,62 +2,31 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from collections.abc import Callable
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
 from sqlalchemy import text
 from tests.support.enrollment import NOW, auto_command, enrollment_harness
 
+from oria.core.approvals import ApprovalBindingInvalidationConsumer
 from oria.core.integration_events import (
     ExternalWait,
     IntegrationEventInboxService,
-    IntegrationInboxRecord,
 )
 from oria.domain.enrollment import EnrollmentItemInput
 from oria.domain.enrollment_branch import (
+    DownstreamApprovalInvalidator,
     EnrollmentBranchCoordinator,
     EnrollmentBranchState,
-    InMemoryDownstreamApprovalInvalidator,
+)
+from oria.storage.platform import (
+    SQLiteApprovalInvalidationRepository,
+    SQLiteIntegrationEventInboxRepository,
 )
 
 pytestmark = pytest.mark.integration
-
-
-class InboxRepository:
-    def __init__(self) -> None:
-        self.records: list[IntegrationInboxRecord] = []
-        self.get_calls: list[tuple[str, str, str]] = []
-
-    async def add(self, record: IntegrationInboxRecord) -> bool:
-        key = (record.tenant_id, record.adapter_id, record.source_event_id)
-        if any(
-            (item.tenant_id, item.adapter_id, item.source_event_id) == key for item in self.records
-        ):
-            return False
-        self.records.append(record)
-        return True
-
-    async def get(
-        self,
-        tenant_id: str,
-        adapter_id: str,
-        source_event_id: str,
-    ) -> IntegrationInboxRecord | None:
-        self.get_calls.append((tenant_id, adapter_id, source_event_id))
-        return next(
-            (
-                record
-                for record in self.records
-                if (
-                    record.tenant_id,
-                    record.adapter_id,
-                    record.source_event_id,
-                )
-                == (tenant_id, adapter_id, source_event_id)
-            ),
-            None,
-        )
 
 
 def event(
@@ -102,18 +71,36 @@ def wait(event_type: str = "merchant.enrollment_upserted") -> ExternalWait:
     )
 
 
-def coordinator(harness: object, repository: InboxRepository, invalidator: object):
+async def persisted_wait(harness: object, event_type: str = "merchant.enrollment_upserted"):
+    value = wait(event_type)
+    repository = SQLiteIntegrationEventInboxRepository(
+        harness.databases.platform_sessions  # type: ignore[attr-defined]
+    )
+    await repository.add_wait(value)
+    return value
+
+
+def coordinator(
+    harness: object,
+    *,
+    clock: Callable[[], datetime] | None = None,
+    invalidator: DownstreamApprovalInvalidator | None = None,
+):
+    platform_sessions = harness.databases.platform_sessions  # type: ignore[attr-defined]
     return EnrollmentBranchCoordinator(
         inbox=IntegrationEventInboxService(
-            repository,
+            SQLiteIntegrationEventInboxRepository(platform_sessions),
             authorized_subjects={
                 ("local-community", "merchant-adapter"): frozenset({"adapter-principal"})
             },
             clock=lambda: NOW,
         ),
         enrollments=harness.enrollments,  # type: ignore[attr-defined]
-        approval_invalidator=invalidator,  # type: ignore[arg-type]
-        clock=lambda: NOW,
+        approval_invalidator=invalidator
+        or ApprovalBindingInvalidationConsumer(
+            SQLiteApprovalInvalidationRepository(platform_sessions)
+        ),
+        clock=clock or (lambda: NOW),
     )
 
 
@@ -123,28 +110,35 @@ async def test_merchant_mode_waits_for_window_close_before_join(tmp_path: Path) 
         state = EnrollmentBranchState.from_snapshot(
             campaign_id="campaign-1", snapshot=harness.snapshot
         )
-        repository = InboxRepository()
-        branch = coordinator(harness, repository, InMemoryDownstreamApprovalInvalidator())
+        branch = coordinator(harness)
+        merchant_wait = await persisted_wait(harness)
+        closed_wait = await persisted_wait(harness, "enrollment.window_closed")
 
         accepted = await branch.process_event(
             state,
             event("merchant-1"),
-            wait=wait(),
+            wait=merchant_wait,
             ctx=harness.ctx,  # type: ignore[arg-type]
         )
         closed = await branch.process_event(
             accepted.state,
             event("closed-1", "enrollment.window_closed"),
-            wait=wait("enrollment.window_closed"),
+            wait=closed_wait,
             ctx=harness.ctx,  # type: ignore[arg-type]
         )
+        async with harness.databases.platform_sessions() as session:
+            persisted = tuple(
+                await session.scalars(
+                    text(
+                        "SELECT source_event_id FROM integration_event_inbox "
+                        "ORDER BY source_event_id"
+                    )
+                )
+            )
 
     assert accepted.status == "accepted" and accepted.state.join_complete is False
     assert closed.status == "window_closed" and closed.state.join_complete is True
-    assert repository.get_calls == [
-        ("local-community", "merchant-adapter", "merchant-1"),
-        ("local-community", "merchant-adapter", "closed-1"),
-    ]
+    assert persisted == ("closed-1", "merchant-1")
 
 
 @pytest.mark.asyncio
@@ -153,7 +147,7 @@ async def test_auto_mode_finishes_immediately_after_deterministic_circle(tmp_pat
         state = EnrollmentBranchState.from_snapshot(
             campaign_id="campaign-1", snapshot=harness.snapshot
         )
-        branch = coordinator(harness, InboxRepository(), InMemoryDownstreamApprovalInvalidator())
+        branch = coordinator(harness)
 
         completed = await branch.complete_auto(
             state,
@@ -173,6 +167,53 @@ async def test_auto_mode_finishes_immediately_after_deterministic_circle(tmp_pat
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("state_updates", "clock_offset", "message"),
+    [
+        ({}, "before", "has not opened"),
+        ({"window_closed": True}, "inside", "is closed"),
+        ({}, "after", "is closed"),
+        ({"auto_completed": True}, "inside", "already complete"),
+    ],
+)
+async def test_auto_branch_rejects_illegal_window_and_completion_states(
+    tmp_path: Path,
+    state_updates: dict[str, object],
+    clock_offset: str,
+    message: str,
+) -> None:
+    async with enrollment_harness(tmp_path, mode="auto") as harness:
+        state = EnrollmentBranchState.from_snapshot(
+            campaign_id="campaign-1", snapshot=harness.snapshot
+        ).model_copy(update=state_updates)
+        moments = {
+            "before": state.enrollment_window_start - timedelta(seconds=1),
+            "inside": NOW,
+            "after": state.enrollment_window_end,
+        }
+        branch = coordinator(harness, clock=lambda: moments[clock_offset])
+        items = (
+            EnrollmentItemInput(
+                merchant_id="demo-m001",
+                product_ref="product-1",
+                product_version="v1",
+            ),
+        )
+
+        with pytest.raises(ValueError, match=message):
+            await branch.complete_auto(
+                state,
+                items,
+                binding=auto_command(items, circle_run_id=f"illegal-{clock_offset}").binding,
+                ctx=harness.ctx,  # type: ignore[arg-type]
+            )
+        async with harness.databases.business_sessions() as session:
+            count = await session.scalar(text("SELECT COUNT(*) FROM enrollment_items"))
+
+    assert count == 0
+
+
+@pytest.mark.asyncio
 async def test_hybrid_waits_for_both_branches_and_deduplicates_the_business_key(
     tmp_path: Path,
 ) -> None:
@@ -180,8 +221,9 @@ async def test_hybrid_waits_for_both_branches_and_deduplicates_the_business_key(
         state = EnrollmentBranchState.from_snapshot(
             campaign_id="campaign-1", snapshot=harness.snapshot
         )
-        repository = InboxRepository()
-        branch = coordinator(harness, repository, InMemoryDownstreamApprovalInvalidator())
+        branch = coordinator(harness)
+        merchant_wait = await persisted_wait(harness)
+        closed_wait = await persisted_wait(harness, "enrollment.window_closed")
         auto = await branch.complete_auto(
             state,
             items := (
@@ -197,31 +239,34 @@ async def test_hybrid_waits_for_both_branches_and_deduplicates_the_business_key(
         merchant = await branch.process_event(
             auto.state,
             event("merchant-1"),
-            wait=wait(),
+            wait=merchant_wait,
             ctx=harness.ctx,  # type: ignore[arg-type]
         )
         duplicate = await branch.process_event(
             merchant.state,
             event("merchant-1"),
-            wait=wait(),
+            wait=merchant_wait,
             ctx=harness.ctx,  # type: ignore[arg-type]
         )
         closed = await branch.process_event(
             merchant.state,
             event("closed-1", "enrollment.window_closed"),
-            wait=wait("enrollment.window_closed"),
+            wait=closed_wait,
             ctx=harness.ctx,  # type: ignore[arg-type]
         )
         async with harness.databases.business_sessions() as session:
             row = (
                 await session.execute(text("SELECT sources_json, COUNT(*) FROM enrollment_items"))
             ).one()
+        async with harness.databases.platform_sessions() as session:
+            inbox_count = await session.scalar(text("SELECT COUNT(*) FROM integration_event_inbox"))
 
     assert auto.state.join_complete is False
     assert merchant.state.join_complete is False
     assert duplicate.status == "duplicate"
     assert closed.state.join_complete is True
     assert row == ('["auto","merchant"]', 1)
+    assert inbox_count == 2
 
 
 @pytest.mark.asyncio
@@ -235,15 +280,15 @@ async def test_closed_window_late_event_is_rejected_or_creates_a_new_version(
         mode="merchant",
         late_event_action=late_action,  # type: ignore[arg-type]
     ) as harness:
-        invalidator = InMemoryDownstreamApprovalInvalidator()
-        branch = coordinator(harness, InboxRepository(), invalidator)
+        branch = coordinator(harness)
+        merchant_wait = await persisted_wait(harness)
         state = EnrollmentBranchState.from_snapshot(
             campaign_id="campaign-1", snapshot=harness.snapshot
         )
         accepted = await branch.process_event(
             state,
             event("accepted-1"),
-            wait=wait(),
+            wait=merchant_wait,
             ctx=harness.ctx,  # type: ignore[arg-type]
         )
         state = accepted.state.model_copy(update={"window_closed": True})
@@ -259,20 +304,24 @@ async def test_closed_window_late_event_is_rejected_or_creates_a_new_version(
             enrollment_version = await session.scalar(
                 text("SELECT version FROM enrollments LIMIT 1")
             )
+        async with harness.databases.platform_sessions() as session:
+            invalidation = (
+                await session.execute(
+                    text(
+                        "SELECT campaign_id, enrollment_version, status FROM "
+                        "approval_binding_invalidations"
+                    )
+                )
+            ).one_or_none()
 
     if late_action == "reject":
         assert outcome.status == "late_rejected"
         assert outcome.state.late_rejected_event_ids == ("late-1",)
         assert enrollment_count == 1 and enrollment_version == 1
-        assert invalidator.invalidations == []
+        assert invalidation is None
     else:
         assert outcome.status == "new_version"
         assert outcome.state.enrollment_version == 2
         assert outcome.state.downstream_approval_invalidated is True
         assert enrollment_count == 1 and enrollment_version == 2
-        assert len(invalidator.invalidations) == 1
-        fact = invalidator.invalidations[0]
-        assert fact.tenant_id == "local-community"
-        assert fact.binding.campaign_id == "campaign-1"
-        assert fact.binding.enrollment_version == 2
-        assert fact.reason == "late_enrollment_new_version"
+        assert invalidation == ("campaign-1", 2, "applied")
