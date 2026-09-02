@@ -1,6 +1,6 @@
 # Oria 详细执行路线
 
-> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。仓库现已完成 `V0.1-T01–T10`、`V0.2-T01–T06` 与 `V0.3-T01–T05`；`V0.1-Core`、`V0.2-Core`、真实 DeepSeek Nightly 和各自必需 Live 卡均已通过。当前口径是“V0.3 进行中（T01–T05 完成，T06–T09 未开始）”，不包含 V0.2 企业 Adapter、DeepSeek 以外 Provider Live 或 V0.3 完整 Workflow。其余任务与验证状态以 §三总览和对应版本的“验证状态”小节为准。
+> 本文是 `Oria架构设计.md` 的执行配套文档。架构主文档定义目标和边界，本文定义实施顺序、阶段准入、真实验证场景、测试用例与证据。每次开始任务前必须先检查本文。仓库现已完成 `V0.1-T01–T10`、`V0.2-T01–T06` 与 `V0.3-T01–T08`；`V0.1-Core`、`V0.2-Core`、`V0.3-Core`、V0.1/V0.2 真实 DeepSeek Nightly 和对应必需 Live 卡均已通过。当前口径是“V0.3 Core 通过，T09 DeepSeek 草案/软排序必需 Live 卡待执行”，不包含 V0.2 企业 Adapter、DeepSeek 以外 Provider Live 或真实企业 Adapter 验证。其余任务与验证状态以 §三总览和对应版本的“验证状态”小节为准。
 
 > **场景 A 设计评审记录（2026-08-26）**：已按“需求接入 → 规则快照 → 商家预筛/LLM 软排序 → 活动与券批次草案 → 运营审核/招商投放 → 自主报名或自动圈品 → 券关联 → 招后选品 → C 端投放 → 商家通知”同步架构与路线。此次只更新设计契约，未生成代码、未运行验证，版本状态仍为“未开始”。
 
@@ -172,7 +172,7 @@ Nightly 不倒推阻断已合并的单个 PR：它在回归时创建/更新告�
 | --- | --- | --- | --- |
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 Live 卡均通过 | 本地 BGE/Chroma + SQLite；真实 DeepSeek smoke；零业务副作用 |
 | V0.2 | Provider/RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡均通过 | 真实 BGE 对照评测、tenant/document read ACL；可用 Provider 的 Live adapter 卡片 |
-| V0.3 | 场景 A 完整 Workflow | 进行中；T01–T05 已完成，T06–T09 未开始 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
+| V0.3 | 场景 A 完整 Workflow | Core 通过；T01–T08 已完成，T09 必需 Live 卡待执行 | SQLite 全链路业务状态、动态确认链、双高风险审批、选品异步恢复、外部副作用幂等/对账 |
 | V0.4 | 场景 B 动态归因 Agent | 未开始 | 真实模型对本地分析数据的未知路径归因 |
 | V0.5 | 多智能体、上下文和记忆 | 未开始 | 单/多 Agent 同集对照；跨会话记忆生命周期 |
 | V0.6 | API 与 Durable Job | 未开始 | SQLite 单 worker社区链路；PostgreSQL 双 worker、杀进程恢复、SSE 与真实 HTTP webhook |
@@ -423,6 +423,8 @@ T06 交付与 P0 审查收口（已完成，Fixture/Community）：已实现可�
 
 T07 交付（已完成，Fixture/Community）：在既有草案子图上接入 10 步 Scenario A Graph，launch 与 consumer publish 使用两个独立 LangGraph `interrupt()`，审批恢复使用 `Command(resume=...)` 并冻结 approval/args/checkpoint/policy 绑定。`merchant|auto|hybrid` 经 parallelization builder 执行，动态三级 ConfirmationTask 与 selection event 经 external wait/inbox 验签去重后恢复；所有业务写仍只调用 T02–T06 领域 Service/Tool。新增受信本地 workflow/approval/Mock event CLI，每次命令重建 Runtime 并通过 tenant 隔离的官方 AsyncSqliteSaver 恢复；S1 E2E-F 逐表核对状态、版本、唯一键、ledger/outbox/audit/correlation，并与已有 T02–T06 套件共同覆盖 S2–S6 核心断言。完整非 Live/Enterprise/Performance 套件 `593 passed, 1 deselected`，独立 security 套件 `99 passed, 495 deselected`，`make lint` 通过。证据：[`reports/verification/v0.3/20260901T233718+0800/summary.md`](../reports/verification/v0.3/20260901T233718+0800/summary.md)。本次未运行 Live、Enterprise、Performance、真实网络或企业 Adapter；T08 完整故障注入与 T09 DeepSeek Live 卡仍未完成。
 
+T08 交付（已完成，Fixture/Community）：补齐五类故障点的可复核证据：LaunchPlan 批准后重建执行进程；券外部成功但 saga checkpoint 未推进；选品提交与 C 端投放在外部已接受、本地落账前退出；商家通知局部失败。新增测试证明 `executing` 新鲜重放只等待、超时后转 `unknown/reconciliation_required` 且 Adapter 调用数保持 1；通知 dead-letter 不回滚已发布 placement。同步新增 V0.3 威胁模型并复核 S1–S6、最小权限、双来源汇聚、确认链、外部事件与两库事务边界。完整非 Live/Enterprise/Performance 套件 `597 passed, 1 deselected`，独立 security 套件 `99 passed, 499 deselected`，静态检查、wheel/sdist 构建和 CLI smoke 均通过。证据：[`reports/verification/v0.3/20260902T083103+0800/summary.md`](../reports/verification/v0.3/20260902T083103+0800/summary.md)。V0.3 Core 通过；本轮未运行 Live、Enterprise、Performance 或真实企业 Adapter，T09 DeepSeek 必需 Live 卡仍待执行。
+
 ### 6.2 真实验证场景
 
 **V0.3-S1：10 步本地完整闭环（C）**：用真实 SQLite migration/事务和 Mock 外部 Adapter，从 CLI 提交需求，生成带引用的规则快照与硬资格候选；LLM 只做软排序/草案。另一授权运营批准 LaunchPlan 后物化一个券批次并投放商家侧；以 `hybrid` 模式注入一条商家自主报名和一批基于 ProductSnapshot 的确定性自动圈品结果，再注入关窗事件完成 join、确认链、券关联、选品提交/结果恢复，再由另一授权主体批准 C 端投放，最后按商家保存通知回执。逐表核对状态、版本、唯一键、execution ledger、outbox、audit 和 correlation ID。
@@ -453,6 +455,21 @@ T07 交付（已完成，Fixture/Community）：在既有草案子图上接入 1
 - `E2E-L`：真实 DeepSeek 只能在 EligibilityPolicy 候选集内软排序并生成草案；所有活动/券/报名/选品/投放写入只能由领域 Service 在授权、确认或对应审批满足后执行。
 
 Core Gate：V0.3-T01–T08、migration、10 步 Community 闭环、最小权限、双来源汇聚、动态确认链、异步选品恢复和五类故障点均有实际证据；各业务唯一键重复执行计数保持 1，才可进入 V0.4。V0.3-T09 DeepSeek 草案/软排序验证为必需 Live 卡；没有真实券、商家侧、选品、C 端、IM 系统时明确写“社区本地完整业务语义已验证，企业 Adapter 未验证”。未通过 EligibilityPolicy/PolicyEngine/确认链的写操作不得以“后续 V0.5 再补安全”为由放行。
+
+### V0.3 验证状态（2026-09-02）
+
+- 代码状态：T01–T08 已实现；T09 Live 验证待执行
+- Core Gate：通过（Fixture/Community）
+- Fixture 验证：通过
+- Community Real：通过（SQLite、AsyncSqliteSaver、进程作用域 Runtime 重建）
+- Live Provider：V0.3-T09 未运行；历史 V0.1/V0.2 DeepSeek 报告只作前置证据
+- Local Enterprise Stack：未运行
+- Enterprise：无环境；Mock Adapter 不替代真实企业接入
+- 必需验证卡：V0.3 Core `passed`；V0.3-T09 DeepSeek `未运行`
+- 证据：`reports/verification/v0.3/20260902T083103+0800/summary.md`
+- 未解决问题：真实券/招商/商品库/选品/C 端/IM Adapter 均未验证；SQLite 不声明多 worker 安全
+- 允许对外声明：社区本地完整场景 A 业务语义、双等待恢复、最小权限和五类故障恢复已验证
+- 禁止对外声明：V0.3 全部验证通过、真实企业接入通过、多 worker Durable Job 已验证
 
 ## 七、V0.4 场景 B 动态归因 Agent
 

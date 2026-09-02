@@ -1,6 +1,6 @@
 # Oria
 
-Oria 是面向招商活动编排的 AI Agent 平台。当前 V0.1 交付了一条会永久保留的社区版只读纵向切片：它使用真实本地 SQLite、Chroma 和 ObjectStore，由确定性 Mock LLM 驱动正式 Graph 与 Tool 契约，生成可回查证据的招商活动提案。
+Oria 是面向招商活动编排的 AI Agent 平台。当前 V0.3 Core 已通过：项目从 V0.1 的社区版只读提案纵向切片扩展为 10 步完整场景 A Workflow，使用本地 SQLite、Chroma、ObjectStore 与官方 AsyncSqliteSaver，覆盖双审批、报名/圈品、动态确认、选品事件恢复、C 端投放、通知、幂等账本和故障对账。V0.3 的 DeepSeek 必需 Live 卡与真实企业 Adapter 仍未验证。
 
 ## 五分钟运行离线 Demo
 
@@ -46,7 +46,10 @@ Golden 评测是 30 条已人工批准的离线场景 A 样本；安全、schema
 | V0.1-T10 DeepSeek + BGE Live | `passed`；详见 [T10 Live 报告](reports/verification/v0.1/20260829T145723+0800/summary.md) |
 | V0.1 Agent 审计修复 | usage/request ID、提示词隔离、候选上限和业务库指纹已修复并完成真实双跑；[验证报告](reports/verification/v0.1/20260829T160420+0800/summary.md) |
 | V0.2 Provider 契约 | 六家统一 Fixture CT 已实现；DeepSeek Nightly 与必需 Live 卡通过，[状态卡](reports/verification/v0.2/provider-status.json) 为 `live_verified=true`；其余 Provider 未 Live 验证 |
-| 企业 Adapter | 未实现、未验证 |
+| V0.3 场景 A Core | T01–T08 通过；597 条 Community 测试通过；[T08 报告](reports/verification/v0.3/20260902T083103+0800/summary.md) |
+| V0.3 故障恢复 | 五类故障点、重复恢复、unknown 对账与通知 dead-letter 已通过 Mock/SQLite 验证 |
+| V0.3 DeepSeek Live | T09 未运行；不得由历史 V0.1/V0.2 Live 卡替代 |
+| 企业 Adapter | Mock/契约实现已覆盖场景 A；真实企业环境未验证 |
 | 远程 GitHub Actions | 当前未提交变更尚未在远程实跑 |
 
 V0.1-T10 及后续 Agent 审计修复已完成真实 DeepSeek + 锁定 BGE 双跑；V0.2 Core、真实 DeepSeek Nightly 与必需 Provider Live 卡均已通过。Kimi、智谱、OpenAI、Anthropic 仍只有无网络 Fixture CT，不包含这些 Provider 的 Live 验证，也不包含企业 Adapter。Live 与 Enterprise 测试默认不运行；显式运行时必须同时提供开关和非空已知 target，否则以非零状态拒绝而不是冒充通过。

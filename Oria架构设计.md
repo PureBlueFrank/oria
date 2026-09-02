@@ -10,7 +10,7 @@
 
 > 本节是架构作者给“无对话上下文的实现方”的交接说明，确保对方能准确起步、不偏航。本节与其余各节冲突时，以其余各节为准；本节只负责“如何开始”与“口径澄清”。
 
-**0.1 当前状态（2026-08-30）**：仓库已完成 V0.1-T01–T10 与 V0.2-T01–T06；`V0.1-Core`、`V0.2-Core` 及各自必需 Live 卡均通过。60 条 RAG v1 数据已人工批准并冻结 holdout，Fixture baseline/gates、PR `eval-golden`、Nightly 零请求预检、锁定 BGE + cross-encoder 三管线 C 级对照、真实 DeepSeek Provider Nightly 12/12 和 Responses 文本/流式/工具/401 映射 Live 卡均已通过。DeepSeek 显式 `tool_choice` 与默认思考模式的兼容问题已通过请求级 `reasoning.effort=none` 修复并真实复验；企业 Adapter 与 DeepSeek 以外 Provider 仍未 Live 验证。后续状态以详细路线和脱敏验证卡为准。**本文档与 `docs/Oria详细执行路线.md` 共同构成执行契约**；ADR 状态以 `docs/adr/README.md` 为准，冲突时必须先修正文档或 ADR，不能自行择一。
+**0.1 当前状态（2026-09-02）**：仓库已完成 V0.1-T01–T10、V0.2-T01–T06 与 V0.3-T01–T08；`V0.1-Core`、`V0.2-Core`、`V0.3-Core` 以及 V0.1/V0.2 必需 Live 卡均通过，V0.3-T09 DeepSeek 草案/软排序必需 Live 卡尚未执行。V0.3 已用本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据完成 10 步场景 A、双审批/双等待恢复、五类故障注入、最小权限与幂等/对账验证；这只证明 Community 业务语义，不证明真实券、招商、商品库、选品、C 端投放或 IM 接入。60 条 RAG v1 数据已人工批准并冻结 holdout，Fixture baseline/gates、PR `eval-golden`、Nightly 零请求预检、锁定 BGE + cross-encoder 三管线 C 级对照、真实 DeepSeek Provider Nightly 12/12 和 Responses 文本/流式/工具/401 映射 Live 卡均已通过。DeepSeek 显式 `tool_choice` 与默认思考模式的兼容问题已通过请求级 `reasoning.effort=none` 修复并真实复验；企业 Adapter 与 DeepSeek 以外 Provider 仍未 Live 验证。后续状态以详细路线和脱敏验证卡为准。**本文档与 `docs/Oria详细执行路线.md` 共同构成执行契约**；ADR 状态以 `docs/adr/README.md` 为准，冲突时必须先修正文档或 ADR，不能自行择一。
 
 **0.2 实现方角色**：由 Codex 按 §九版本路线和 `docs/Oria详细执行路线.md` 实现。每次任务前先检查详细路线的准入、真实场景和测试；遇设计空白在 `docs/adr/` 建 ADR 并标“待 review”，不得擅自偏离架构。每条 ADR 对应 §十面试 hook。
 
