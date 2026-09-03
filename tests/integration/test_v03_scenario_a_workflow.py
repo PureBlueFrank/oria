@@ -55,6 +55,8 @@ async def test_scenario_a_completes_across_process_scoped_runtimes_and_persists_
     )
     launch = _interrupt(result, "launch_approval")
     launch_approval_id = str(launch["approval_id"])
+    assert result.view.current_stage == "招商发布审批"
+    assert result.view.merchant_matches.matched_count == 10
 
     with pytest.raises(PermissionError, match="active interrupt"):
         await decide_local_approval(
@@ -137,6 +139,9 @@ async def test_scenario_a_completes_across_process_scoped_runtimes_and_persists_
     consumer = _interrupt(result, "consumer_publish_approval")
     consumer_approval_id = str(consumer["approval_id"])
     assert consumer_approval_id != launch_approval_id
+    assert result.view.selection_summary.selected_count == 1
+    assert result.view.selection_summary.coupon_linked_count == 1
+    assert result.view.selection_summary.selected_products == ("synthetic-product-demo-m001",)
 
     result = await decide_local_approval(
         config,
@@ -147,6 +152,7 @@ async def test_scenario_a_completes_across_process_scoped_runtimes_and_persists_
     )
     assert result.status == "completed"
     assert not result.interrupts
+    assert result.view.terminal_outcome == "completed"
 
     platform_path, business_path = workflow_database_paths(config)
     with _connect_read_only(business_path) as business:
@@ -296,3 +302,30 @@ async def test_scenario_a_completes_across_process_scoped_runtimes_and_persists_
                 "SELECT COUNT(*) AS total, COUNT(DISTINCT event_id) AS unique_ids FROM outbox",
             )[0]
         ) == (4, 4)
+
+
+@pytest.mark.asyncio
+async def test_rejected_launch_is_not_presented_as_completed(tmp_path: Path) -> None:
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path / "rejected")
+    result = await start_local_workflow(
+        config,
+        thread_id="scenario-a-rejected-view",
+        campaign_id="campaign-rejected-view",
+        user_request="拒绝路径展示",
+    )
+    approval_id = str(_interrupt(result, "launch_approval")["approval_id"])
+
+    result = await decide_local_approval(
+        config,
+        thread_id="scenario-a-rejected-view",
+        approval_id=approval_id,
+        decision="reject",
+        reason="fixture rejection",
+    )
+
+    # The legacy JSON status remains unchanged; the human projection owns the
+    # corrected terminal meaning without breaking the automation contract.
+    assert result.status == "completed"
+    assert result.interrupts == ()
+    assert result.view.terminal_outcome == "rejected"
+    assert result.view.current_stage == "招商发布审批"
