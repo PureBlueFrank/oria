@@ -57,6 +57,7 @@ V0.1-T10 及后续 Agent 审计修复已完成真实 DeepSeek + 锁定 BGE 双�
 ## 设计与安全
 
 - [架构概览](ARCHITECTURE.md)
+- [执行计划](ROADMAP.md)
 - [V0.1 威胁模型](docs/security/V0.1威胁模型.md)
 - [ADR 索引](docs/adr/README.md)
 - [验证证据模板](reports/verification/TEMPLATE.md)
