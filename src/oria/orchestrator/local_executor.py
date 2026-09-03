@@ -659,6 +659,7 @@ async def start_local_workflow(
     thread_id: str,
     campaign_id: str,
     user_request: str,
+    workflow_request: ScenarioAWorkflowRequest | None = None,
 ) -> LocalWorkflowResult:
     await initialize_data(config)
     runtime = await _runtime(config)
@@ -671,7 +672,11 @@ async def start_local_workflow(
             run_suffix="start",
         )
         await ctx.knowledge.ingest(demo_rule_document(), ctx)
-        request = default_request(campaign_id=campaign_id, user_request=user_request)
+        request = workflow_request or default_request(
+            campaign_id=campaign_id, user_request=user_request
+        )
+        if request.draft.campaign_id != campaign_id:
+            raise ValueError("workflow request campaign does not match the requested campaign")
         value = await _graph(runtime).ainvoke(
             initial_scenario_a_state(
                 request,
@@ -710,6 +715,21 @@ async def _snapshot(
     return ctx, snapshot
 
 
+async def inspect_local_workflow(
+    config: ResolvedRuntimeConfig,
+    *,
+    thread_id: str,
+) -> LocalWorkflowResult:
+    """Read one tenant-qualified checkpoint and build the existing human view."""
+
+    runtime = await _runtime(config)
+    try:
+        _, snapshot = await _snapshot(runtime, thread_id=thread_id)
+        return _result(thread_id, snapshot)
+    finally:
+        await runtime.aclose()
+
+
 def _single_interrupt(snapshot: StateSnapshot, kind: str) -> dict[str, JsonValue]:
     matches = [
         item.value
@@ -728,6 +748,7 @@ async def decide_local_approval(
     approval_id: str,
     decision: Literal["approve", "reject"],
     reason: str | None,
+    decision_actor: Principal | None = None,
 ) -> LocalWorkflowResult:
     runtime = await _runtime(config)
     try:
@@ -746,7 +767,9 @@ async def decide_local_approval(
         frozen = _single_interrupt(snapshot, kind)
         if frozen.get("approval_id") != approval_id:
             raise PermissionError("approval ID does not match the active interrupt")
-        approver = launch_approver() if kind == "launch_approval" else consumer_publish_approver()
+        approver = decision_actor or (
+            launch_approver() if kind == "launch_approval" else consumer_publish_approver()
+        )
         approver_ctx = _ctx(
             runtime,
             actor=approver,

@@ -10,6 +10,7 @@ import pytest
 from oria.config import resolve_runtime_config
 from oria.orchestrator.local_executor import (
     LocalWorkflowResult,
+    campaign_admin,
     close_enrollment_window,
     complete_selection,
     decide_confirmation,
@@ -57,6 +58,16 @@ async def test_scenario_a_completes_across_process_scoped_runtimes_and_persists_
     launch_approval_id = str(launch["approval_id"])
     assert result.view.current_stage == "招商发布审批"
     assert result.view.merchant_matches.matched_count == 10
+
+    with pytest.raises(PermissionError, match="not authorized"):
+        await decide_local_approval(
+            config,
+            thread_id=thread_id,
+            approval_id=launch_approval_id,
+            decision="approve",
+            reason=None,
+            decision_actor=campaign_admin(),
+        )
 
     with pytest.raises(PermissionError, match="active interrupt"):
         await decide_local_approval(

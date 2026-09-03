@@ -13,17 +13,21 @@ from oria.chat.router import (
     RouterPrompt,
     UnsupportedInput,
 )
+from oria.chat.session import ChatSession, LocalChatBackend, run_chat
 
 __all__ = [
     "ActiveInterrupt",
+    "ChatSession",
     "DecideApproval",
     "DecideConfirmation",
     "HelpAction",
     "IntentRouter",
     "LaunchCampaign",
+    "LocalChatBackend",
     "NewSessionAction",
     "QueryStatus",
     "QuitAction",
     "RouterPrompt",
     "UnsupportedInput",
+    "run_chat",
 ]

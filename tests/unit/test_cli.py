@@ -6,6 +6,7 @@ from click import Group
 from typer.main import get_command
 from typer.testing import CliRunner
 
+import oria.cli as cli_module
 from oria import __version__
 from oria.cli import app
 
@@ -22,6 +23,7 @@ def test_version_option_reports_package_version() -> None:
 def test_scenario_a_cli_exposes_start_resume_approval_and_mock_events() -> None:
     root = cast(Group, get_command(app))
 
+    assert "chat" in root.commands
     workflow = cast(Group, root.commands["workflow"])
     approval = cast(Group, root.commands["approval"])
     mock = cast(Group, root.commands["mock"])
@@ -33,6 +35,52 @@ def test_scenario_a_cli_exposes_start_resume_approval_and_mock_events() -> None:
         "selection-decision",
         "selection-complete",
     }
+
+
+def test_bare_oria_non_tty_prints_help_without_starting_chat(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(cli_module, "_stdio_is_tty", lambda: False)
+
+    def fail_if_called(**values: object) -> None:
+        raise AssertionError("chat must not start in a non-TTY environment")
+
+    monkeypatch.setattr(cli_module, "_run_chat_command", fail_if_called)
+    result = CliRunner().invoke(app, [])
+
+    assert result.exit_code == 0
+    assert "Usage:" in result.output
+    assert "chat" in result.output
+
+
+def test_bare_oria_enters_chat_only_when_stdin_and_stdout_are_tty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called = False
+    monkeypatch.setattr(cli_module, "_stdio_is_tty", lambda: True)
+
+    def record_call(**values: object) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(cli_module, "_run_chat_command", record_call)
+    result = CliRunner().invoke(app, [])
+
+    assert result.exit_code == 0
+    assert called is True
+
+
+def test_explicit_chat_runs_in_non_tty_input_and_exits_cleanly(tmp_path: Path) -> None:
+    result = CliRunner().invoke(
+        app,
+        ["chat", "--data-dir", str(tmp_path / "data")],
+        input="/quit\n",
+    )
+
+    assert result.exit_code == 0
+    assert "Oria chat 已启动" in result.output
+    assert "可信本地主体" in result.output
+    assert "已退出 Oria chat" in result.output
 
 
 def test_scenario_a_commands_expose_optional_runtime_profile_overrides() -> None:

@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import sys
 from collections.abc import Coroutine
 from enum import StrEnum
 from importlib import resources
@@ -10,6 +11,7 @@ from typing import Annotated, Any, Literal, cast
 import typer
 
 from oria import __version__
+from oria.chat.session import run_chat
 from oria.config import ConfigResolutionError, resolve_runtime_config
 from oria.config.models import ResolvedRuntimeConfig
 from oria.core.protocols import Reranker
@@ -44,7 +46,7 @@ from oria.rag.rerank import CrossEncoderReranker, FixtureReranker
 app = typer.Typer(
     name="oria",
     help="Oria enterprise AI agent platform.",
-    no_args_is_help=True,
+    no_args_is_help=False,
     invoke_without_command=True,
 )
 config_app = typer.Typer(help="Inspect and validate runtime configuration.")
@@ -119,6 +121,7 @@ _DEFAULT_RAG_CONFIG = _default_eval_asset("config/rag.yaml")
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     version: Annotated[
         bool,
         typer.Option("--version", help="Show the installed Oria version and exit."),
@@ -128,6 +131,21 @@ def main(
     if version:
         typer.echo(__version__)
         raise typer.Exit()
+    if ctx.invoked_subcommand is None:
+        if _stdio_is_tty():
+            _run_chat_command(
+                config_path=None,
+                runtime_profile=None,
+                llm_profile=None,
+                embedding_profile=None,
+                data_dir=None,
+            )
+        else:
+            typer.echo(ctx.get_help())
+
+
+def _stdio_is_tty() -> bool:
+    return sys.stdin.isatty() and sys.stdout.isatty()
 
 
 @app.command("demo")
@@ -473,6 +491,59 @@ def _run_workflow_operation(
         typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
     else:
         typer.echo(render_workflow(result.view))
+
+
+def _run_chat_command(
+    *,
+    config_path: Path | None,
+    runtime_profile: str | None,
+    llm_profile: str | None,
+    embedding_profile: str | None,
+    data_dir: Path | None,
+) -> None:
+    config = _workflow_config(
+        output=OutputFormat.HUMAN,
+        config_path=config_path,
+        data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
+    )
+    run_chat(config)
+
+
+@app.command("chat")
+def chat(
+    config_path: Annotated[
+        Path | None,
+        typer.Option("--config", help="Read an explicit YAML configuration file."),
+    ] = None,
+    runtime_profile: Annotated[
+        str | None,
+        typer.Option("--runtime-profile", help="Override the runtime profile."),
+    ] = None,
+    llm_profile: Annotated[
+        str | None,
+        typer.Option("--llm-profile", help="Override the active LLM profile."),
+    ] = None,
+    embedding_profile: Annotated[
+        str | None,
+        typer.Option("--embedding-profile", help="Override the active embedding profile."),
+    ] = None,
+    data_dir: Annotated[
+        Path | None,
+        typer.Option("--data-dir", help="Override the runtime data root."),
+    ] = None,
+) -> None:
+    """Enter the local interactive Agent interface."""
+
+    _run_chat_command(
+        config_path=config_path,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
+        data_dir=data_dir,
+    )
 
 
 @workflow_app.command("start")
