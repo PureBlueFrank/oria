@@ -35,14 +35,14 @@ CAMPAIGN_ID="campaign-local-001"
 ```bash
 uv run oria data init \
   --data-dir "$DATA_DIR" \
-  --output json
+  --output human
 
 uv run oria workflow start \
   --data-dir "$DATA_DIR" \
   --thread-id "$THREAD_ID" \
   --campaign-id "$CAMPAIGN_ID" \
   --request "生成华东餐饮招商活动并完成预定流程" \
-  --output json
+  --output human
 ```
 
 启动结果应为 `status: interrupted`，且 `interrupts[0].kind` 为 `launch_approval`。复制该对象的 `approval_id`：
@@ -60,7 +60,7 @@ uv run oria approval approve \
   --data-dir "$DATA_DIR" \
   --thread-id "$THREAD_ID" \
   --approval-id "$LAUNCH_APPROVAL_ID" \
-  --output json
+  --output human
 ```
 
 或者拒绝并结束该分支：
@@ -71,7 +71,7 @@ uv run oria approval reject \
   --thread-id "$THREAD_ID" \
   --approval-id "$LAUNCH_APPROVAL_ID" \
   --reason "招商方案需要调整" \
-  --output json
+  --output human
 ```
 
 继续完整流程时选择 approve。批准后返回 `interrupts[0].kind: enrollment_window`。
@@ -87,13 +87,13 @@ uv run oria mock enrollment \
   --source-event-id enrollment-event-001 \
   --merchant-id demo-m001 \
   --product-ref synthetic-product-demo-m001 \
-  --output json
+  --output human
 
 uv run oria mock window-close \
   --data-dir "$DATA_DIR" \
   --thread-id "$THREAD_ID" \
   --source-event-id window-close-event-001 \
-  --output json
+  --output human
 ```
 
 关窗后应进入 `interrupts[0].kind: business_confirmation`。
@@ -109,7 +109,7 @@ uv run oria workflow resume \
   --thread-id "$THREAD_ID" \
   --confirmation-task-id "$CONFIRMATION_TASK_ID" \
   --decision confirm \
-  --output json
+  --output human
 ```
 
 只要最新返回仍是 `kind: business_confirmation`，就用新的 `confirmation_task_id` 重复上述命令。当前内置 Fixture 的冻结规则是 merchant → sales → sales_manager，共 3 级，因此需要执行 3 轮。确认链由规则动态生成，不应把 3 级当成通用常量。
@@ -122,7 +122,7 @@ uv run oria workflow resume \
   --thread-id "$THREAD_ID" \
   --confirmation-task-id "$CONFIRMATION_TASK_ID" \
   --decision reject \
-  --output json
+  --output human
 ```
 
 第三轮确认成功后，返回应变为 `kind: selection_event`，并含有用于观测的 `wait_id`。此时系统已自动完成券关联、提交选品并进入异步等待。
@@ -138,7 +138,7 @@ uv run oria mock selection-decision \
   --source-event-id selection-decision-event-001 \
   --selection-version selection-v1 \
   --decision selected \
-  --output json
+  --output human
 ```
 
 `--decision` 可为 `selected` 或 `rejected`；拒绝时可增加 `--reason-code <code>`。再注入同一 `selection_version` 的完成事件，这次才会恢复 Graph：
@@ -149,7 +149,7 @@ uv run oria mock selection-complete \
   --thread-id "$THREAD_ID" \
   --source-event-id selection-complete-event-001 \
   --selection-version selection-v1 \
-  --output json
+  --output human
 ```
 
 返回应包含第二道审批 `interrupts[0].kind: consumer_publish_approval`。复制它的 `approval_id`：
@@ -167,7 +167,7 @@ uv run oria approval approve \
   --data-dir "$DATA_DIR" \
   --thread-id "$THREAD_ID" \
   --approval-id "$CONSUMER_APPROVAL_ID" \
-  --output json
+  --output human
 ```
 
 或者拒绝：
@@ -178,7 +178,7 @@ uv run oria approval reject \
   --thread-id "$THREAD_ID" \
   --approval-id "$CONSUMER_APPROVAL_ID" \
   --reason "C 端投放参数需要调整" \
-  --output json
+  --output human
 ```
 
 批准后的成功终态是 `status: completed` 且 `interrupts: []`。Business DB 中对应投放状态为 `published`，商家通知状态为 `sent`。
