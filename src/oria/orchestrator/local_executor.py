@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import shlex
+from collections import Counter
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -9,10 +13,11 @@ from typing import Any, Literal, cast
 from langgraph.types import Command, Interrupt, StateSnapshot
 from pydantic import Field
 
+from oria.agent.models import CampaignProposal
 from oria.config.models import ResolvedRuntimeConfig
 from oria.core.context import Context, RuntimeServices
 from oria.core.runtime import build_runtime
-from oria.core.types import JsonValue, Principal, ValueModel
+from oria.core.types import JsonValue, NodeResult, Principal, ValueModel
 from oria.data import initialize_data
 from oria.domain.launch import CampaignDraftSpec
 from oria.orchestrator.checkpoint import checkpoint_config
@@ -23,7 +28,18 @@ from oria.orchestrator.scenario_a import (
     scenario_a_request,
 )
 from oria.permission.local import LOCAL_TENANT_ID, local_cli_executor
+from oria.presentation.workflow import (
+    ApprovalSummary,
+    ConfirmationProgress,
+    MerchantExclusionCount,
+    MerchantMatch,
+    MerchantMatches,
+    SelectionSummary,
+    WorkflowViewModel,
+    proposal_rule_summary,
+)
 from oria.rag.demo import demo_rule_document
+from oria.tools.models import QueryMerchantsResult
 
 FIXTURE_NOW = datetime(2026, 7, 10, 4, 0, tzinfo=UTC)
 MOCK_MERCHANT_ADAPTER = "mock-merchant"
@@ -38,6 +54,7 @@ class LocalWorkflowResult(ValueModel):
     status: Literal["waiting", "completed"]
     interrupts: tuple[dict[str, JsonValue], ...] = ()
     detail: dict[str, JsonValue] = Field(default_factory=dict)
+    view: WorkflowViewModel = Field(exclude=True)
 
 
 def _principal(
@@ -158,13 +175,448 @@ def _public_interrupt(interruption: Interrupt) -> dict[str, JsonValue]:
     )
 
 
+_STAGES = (
+    "生成规则与活动草案",
+    "招商发布审批",
+    "券批次物化与招商发布",
+    "报名与商品圈选",
+    "动态业务确认",
+    "报名商品关联券批次",
+    "提交并等待招后选品",
+    "C 端发布审批",
+    "C 端投放",
+    "通知商家并闭环",
+)
+
+_INTERRUPT_STAGES = {
+    "launch_approval": 2,
+    "enrollment_window": 4,
+    "business_confirmation": 5,
+    "selection_event": 7,
+    "consumer_publish_approval": 8,
+    "workflow_handoff": 6,
+}
+
+_RESULT_STAGES = {
+    "draft": 1,
+    "launch_approval": 2,
+    "launch": 3,
+    "enrollment_prepared": 4,
+    "auto_enrollment": 4,
+    "merchant_enrollment": 4,
+    "enrollment_join": 4,
+    "coupon_link": 6,
+    "assortment_submission": 7,
+    "selection_wait": 7,
+    "selection": 7,
+    "consumer_publish_approval": 8,
+    "consumer_publish": 9,
+    "merchant_notifications": 10,
+}
+
+_ROLE_LABELS = {
+    "merchant": "商家",
+    "sales": "销售",
+    "sales_manager": "销售经理",
+    "campaign_admin": "活动管理员",
+}
+
+_EXCLUSION_LABELS = {
+    "inactive": "商家未启用",
+    "category_mismatch": "类目不符",
+    "city_mismatch": "城市不符",
+    "not_allowlisted": "名单策略未通过",
+    "denylisted": "名单策略未通过",
+    "enrollment_system_mismatch": "报名系统不符",
+    "sales_org_mismatch": "销售组织不符",
+}
+
+
+def _state_values(value: object) -> Mapping[str, object]:
+    if isinstance(value, StateSnapshot):
+        return cast(Mapping[str, object], value.values)
+    if isinstance(value, Mapping):
+        return cast(Mapping[str, object], value)
+    return {}
+
+
+def _state_results(values: Mapping[str, object]) -> dict[str, NodeResult]:
+    raw = values.get("results")
+    if not isinstance(raw, Mapping):
+        return {}
+    results: dict[str, NodeResult] = {}
+    for key, item in raw.items():
+        if not isinstance(key, str):
+            continue
+        try:
+            results[key] = item if isinstance(item, NodeResult) else NodeResult.model_validate(item)
+        except ValueError:
+            continue
+    return results
+
+
+def _terminal_outcome(
+    results: Mapping[str, NodeResult], interruptions: tuple[dict[str, JsonValue], ...]
+) -> Literal["completed", "rejected", "failed", "reconciliation_required"] | None:
+    failures = [result for result in results.values() if result.status == "failed"]
+    error_codes = tuple(result.error.code for result in failures if result.error is not None)
+    if any("reject" in code for code in error_codes):
+        return "rejected"
+    if any(
+        _contains_outcome(
+            result.updates,
+            {"unknown", "reconciliation", "reconciliation_required", "compensation_pending"},
+        )
+        for result in results.values()
+    ) or any("reconciliation" in code or "unknown" in code for code in error_codes):
+        return "reconciliation_required"
+    if failures:
+        return "failed"
+    if interruptions:
+        return None
+    if results.get("merchant_notifications", NodeResult(status="waiting")).status == "completed":
+        return "completed"
+    return "failed"
+
+
+def _contains_outcome(value: object, outcomes: set[str]) -> bool:
+    if isinstance(value, str):
+        return value in outcomes
+    if isinstance(value, Mapping):
+        return any(_contains_outcome(item, outcomes) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_contains_outcome(item, outcomes) for item in value)
+    return False
+
+
+def _active_stage(
+    results: Mapping[str, NodeResult],
+    interruptions: tuple[dict[str, JsonValue], ...],
+    terminal: str | None,
+) -> int:
+    if terminal == "completed":
+        return len(_STAGES)
+    if interruptions:
+        kind = interruptions[0].get("kind")
+        if isinstance(kind, str):
+            return _INTERRUPT_STAGES.get(kind, 1)
+    for result in results.values():
+        code = result.error.code if result.error is not None else ""
+        if result.status == "failed" and code == "launch_rejected":
+            return 2
+        if result.status == "failed" and code == "consumer_publish_rejected":
+            return 8
+    failed_stages = [
+        _RESULT_STAGES.get(key.split(":", maxsplit=1)[0], 1)
+        for key, result in results.items()
+        if result.status == "failed"
+    ]
+    if failed_stages:
+        return max(failed_stages)
+    completed_stages = [
+        _RESULT_STAGES.get(key.split(":", maxsplit=1)[0], 1)
+        for key, result in results.items()
+        if result.status == "completed"
+    ]
+    return max(completed_stages, default=1)
+
+
+def _proposal_and_merchants(
+    results: Mapping[str, NodeResult],
+) -> tuple[CampaignProposal | None, QueryMerchantsResult | None]:
+    draft = results.get("draft")
+    if draft is None:
+        return None, None
+    try:
+        proposal = CampaignProposal.model_validate(draft.updates.get("proposal"))
+    except ValueError:
+        proposal = None
+    try:
+        merchants = QueryMerchantsResult.model_validate(draft.updates.get("merchant_result"))
+    except ValueError:
+        merchants = None
+    return proposal, merchants
+
+
+def _merchant_summary(
+    proposal: CampaignProposal | None, merchants: QueryMerchantsResult | None
+) -> tuple[MerchantMatches, tuple[MerchantExclusionCount, ...]]:
+    recommendations = {
+        item.merchant_id: item for item in (proposal.recommended_merchants if proposal else ())
+    }
+    items: tuple[MerchantMatch, ...] = ()
+    if merchants is not None:
+        items = tuple(
+            MerchantMatch(
+                merchant_id=candidate.merchant_id,
+                display_name=candidate.display_name,
+                llm_rank=(
+                    recommendations[candidate.merchant_id].rank
+                    if candidate.merchant_id in recommendations
+                    else None
+                ),
+                recommendation_reason=(
+                    recommendations[candidate.merchant_id].reason
+                    if candidate.merchant_id in recommendations
+                    else "通过硬资格筛选, 未进入本次推荐排序"
+                ),
+            )
+            for candidate in sorted(
+                merchants.candidates,
+                key=lambda item: (
+                    recommendations[item.merchant_id].rank
+                    if item.merchant_id in recommendations
+                    else 10_000,
+                    item.merchant_id,
+                ),
+            )
+        )
+    matches = MerchantMatches(
+        matched_count=(merchants.eligible_count if merchants else len(recommendations)),
+        evaluated_count=(merchants.evaluated_count if merchants else len(recommendations)),
+        items=items,
+    )
+    aggregated: Counter[str] = Counter()
+    if merchants is not None:
+        for reason, count in merchants.exclusion_reason_counts.items():
+            if reason != "eligible":
+                aggregated[_EXCLUSION_LABELS.get(reason, "其他资格条件未通过")] += count
+    exclusions = tuple(
+        MerchantExclusionCount(reason=reason, count=count)
+        for reason, count in sorted(aggregated.items())
+    )
+    # Future per-merchant disclosure belongs in a PolicyEngine-authorized,
+    # field-redacted MerchantEligibilityDisplayProjection. Never derive it here.
+    return matches, exclusions
+
+
+def _confirmation_progress(
+    results: Mapping[str, NodeResult], interruptions: tuple[dict[str, JsonValue], ...]
+) -> ConfirmationProgress | None:
+    current = next(
+        (item for item in interruptions if item.get("kind") == "business_confirmation"), None
+    )
+    if current is None:
+        return None
+    task_id = current.get("confirmation_task_id")
+    task_lists: list[object] = []
+    joined = results.get("enrollment_join")
+    if joined is not None:
+        task_lists.append(joined.updates.get("confirmation_tasks"))
+    task_lists.extend(
+        result.updates.get("confirmation_tasks")
+        for key, result in results.items()
+        if key.startswith("confirmation_decision:")
+    )
+    tasks = next(
+        (items for items in reversed(task_lists) if isinstance(items, (list, tuple)) and items),
+        (),
+    )
+    typed = [item for item in tasks if isinstance(item, Mapping)]
+    active = next((item for item in typed if item.get("confirmation_task_id") == task_id), None)
+    if active is None:
+        return None
+    sequence = active.get("sequence")
+    role = active.get("subject_type")
+    if not isinstance(sequence, int) or not isinstance(role, str):
+        return None
+    following = next((item for item in typed if item.get("sequence") == sequence + 1), None)
+    next_role = following.get("subject_type") if following is not None else None
+    return ConfirmationProgress(
+        current_level=sequence,
+        total_levels=len(typed),
+        current_role=_ROLE_LABELS.get(role, role),
+        next_role=(_ROLE_LABELS.get(next_role, next_role) if isinstance(next_role, str) else None),
+    )
+
+
+def _selection_summary(
+    values: Mapping[str, object],
+    results: Mapping[str, NodeResult],
+    detail: Mapping[str, JsonValue],
+) -> SelectionSummary:
+    assortment = results.get("assortment_submission")
+    submission_version: str | None = None
+    submitted_count = 0
+    if assortment is not None:
+        submission = assortment.updates.get("submission")
+        if isinstance(submission, Mapping) and isinstance(
+            submission.get("submission_version"), str
+        ):
+            submission_version = cast(str, submission["submission_version"])
+        item_ids = assortment.updates.get("enrollment_item_ids")
+        if isinstance(item_ids, (list, tuple)):
+            submitted_count = len(item_ids)
+    approval = results.get("consumer_publish_approval")
+    projection = approval.updates.get("selection_summary") if approval is not None else None
+    if not isinstance(projection, Mapping):
+        projection = {}
+    selected_products = projection.get("selected_products", ())
+    if not isinstance(selected_products, (list, tuple)):
+        selected_products = ()
+    selected_count = _nonnegative_int(projection.get("selected_count"))
+    rejected_count = _nonnegative_int(projection.get("rejected_count"))
+    received_count = selected_count + rejected_count
+    if received_count == 0 and "selection_version" in detail and submitted_count:
+        received_count = 1
+        if detail.get("decision") == "selected":
+            selected_count = 1
+        elif detail.get("decision") == "rejected":
+            rejected_count = 1
+    if results.get("selection") is not None and received_count == 0:
+        received_count = submitted_count
+    request = _scenario_request_from_values(values)
+    placement_scope = None
+    if request is not None:
+        placement_scope = ", ".join(
+            f"{key}={json.dumps(value, ensure_ascii=False)}"
+            for key, value in sorted(request.placement_spec.items())
+        )
+    return SelectionSummary(
+        submission_version=submission_version,
+        submitted_count=submitted_count,
+        received_count=min(received_count, submitted_count),
+        pending_count=max(submitted_count - received_count, 0),
+        selected_count=selected_count,
+        rejected_count=rejected_count,
+        selected_products=tuple(item for item in selected_products if isinstance(item, str)),
+        coupon_linked_count=_nonnegative_int(projection.get("coupon_linked_count")),
+        placement_scope=placement_scope,
+    )
+
+
+def _nonnegative_int(value: object) -> int:
+    return value if isinstance(value, int) and value >= 0 else 0
+
+
+def _scenario_request_from_values(values: Mapping[str, object]) -> ScenarioAWorkflowRequest | None:
+    try:
+        return scenario_a_request(cast(Any, values))
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _pending_copy(
+    thread_id: str,
+    interruptions: tuple[dict[str, JsonValue], ...],
+    confirmation: ConfirmationProgress | None,
+) -> tuple[str, str | None, ApprovalSummary | None]:
+    if not interruptions:
+        return "流程已停止, 当前没有待处理动作。", None, None
+    interruption = interruptions[0]
+    kind = interruption.get("kind")
+    quoted_thread = shlex.quote(thread_id)
+    if kind in {"launch_approval", "consumer_publish_approval"}:
+        approval_id = interruption.get("approval_id")
+        if not isinstance(approval_id, str):
+            return "等待审批, 但审批标识不可用。", None, None
+        description = "招商发布审批" if kind == "launch_approval" else "C 端发布审批"
+        command = (
+            f"oria approval approve --thread-id {quoted_thread} "
+            f"--approval-id {shlex.quote(approval_id)}"
+        )
+        summary = ApprovalSummary(
+            kind=cast(Literal["launch_approval", "consumer_publish_approval"], kind),
+            approval_id=approval_id,
+            status="pending",
+            description=description,
+        )
+        if kind == "launch_approval":
+            return (
+                "规则、候选范围及活动/券草案已冻结, 等待招商发布审批。",
+                command,
+                summary,
+            )
+        return (
+            "入选商品、券关联与投放范围已冻结, 等待 C 端发布审批。",
+            command,
+            summary,
+        )
+    if kind == "enrollment_window":
+        command = f"oria mock window-close --thread-id {quoted_thread} --source-event-id <event-id>"
+        return "招商已发布, 等待报名/关窗; 当前正在接收报名。", command, None
+    if kind == "business_confirmation":
+        task_id = interruption.get("confirmation_task_id")
+        if not isinstance(task_id, str):
+            return "等待业务确认, 但确认任务标识不可用。", None, None
+        next_role = (
+            f", 下一位为{confirmation.next_role}" if confirmation and confirmation.next_role else ""
+        )
+        progress = (
+            f"当前第 {confirmation.current_level}/{confirmation.total_levels} 级, "
+            f"由{confirmation.current_role}确认{next_role}。"
+            if confirmation
+            else "等待当前业务角色确认。"
+        )
+        command = (
+            f"oria workflow resume --thread-id {quoted_thread} "
+            f"--confirmation-task-id {shlex.quote(task_id)} --decision confirm"
+        )
+        return progress, command, None
+    if kind == "selection_event":
+        command = (
+            f"oria mock selection-complete --thread-id {quoted_thread} "
+            "--source-event-id <event-id> --selection-version <version>"
+        )
+        return "选品批次已提交, 正在等待剩余选品结果。", command, None
+    return "流程等待受信执行器继续处理。", None, None
+
+
+def workflow_view_from_state(
+    thread_id: str,
+    value: object,
+    interruptions: tuple[dict[str, JsonValue], ...],
+    detail: Mapping[str, JsonValue],
+) -> WorkflowViewModel:
+    """Build the read-only human projection from public checkpoint state values."""
+
+    values = _state_values(value)
+    results = _state_results(values)
+    terminal = _terminal_outcome(results, interruptions)
+    stage = _active_stage(results, interruptions, terminal)
+    request = _scenario_request_from_values(values)
+    effective_at = request.effective_at.isoformat() if request is not None else "—"
+    proposal, merchants = _proposal_and_merchants(results)
+    matches, exclusions = _merchant_summary(proposal, merchants)
+    confirmation = _confirmation_progress(results, interruptions)
+    pending_action, next_command, approval = _pending_copy(thread_id, interruptions, confirmation)
+    if terminal == "completed":
+        pending_action = "全部十个业务步骤已完成。"
+    elif terminal == "rejected":
+        pending_action = "流程已按拒绝决定终止。"
+    elif terminal == "failed":
+        pending_action = "流程因执行错误终止。"
+    elif terminal == "reconciliation_required":
+        pending_action = "请先完成人工对账, 再决定补偿或恢复。"
+    completed_count = stage if terminal == "completed" else max(stage - 1, 0)
+    return WorkflowViewModel(
+        thread_id=thread_id,
+        flow_name="招商活动自动化",
+        stage_index=stage,
+        stage_total=len(_STAGES),
+        current_stage=_STAGES[stage - 1],
+        completed_steps=_STAGES[:completed_count],
+        pending_action=pending_action,
+        next_command=next_command if terminal is None else None,
+        rule_summary=proposal_rule_summary(proposal, effective_at),
+        merchant_matches=matches,
+        merchant_exclusion_summary=exclusions,
+        approval_summary=approval,
+        confirmation_progress=confirmation,
+        selection_summary=_selection_summary(values, results, detail),
+        terminal_outcome=cast(Any, terminal),
+    )
+
+
 def _result(thread_id: str, value: object, **detail: JsonValue) -> LocalWorkflowResult:
     interruptions = _interrupts(value)
+    public_interrupts = tuple(_public_interrupt(item) for item in interruptions)
     return LocalWorkflowResult(
         thread_id=thread_id,
         status="waiting" if interruptions else "completed",
-        interrupts=tuple(_public_interrupt(item) for item in interruptions),
+        interrupts=public_interrupts,
         detail=detail,
+        view=workflow_view_from_state(thread_id, value, public_interrupts, detail),
     )
 
 
@@ -376,11 +828,10 @@ async def inject_merchant_event(
             },
             ctx,
         )
-        return LocalWorkflowResult(
-            thread_id=thread_id,
-            status="waiting",
-            interrupts=tuple(_public_interrupt(item) for item in snapshot.interrupts),
-            detail={"event_status": result.updates.get("status")},
+        return _result(
+            thread_id,
+            snapshot,
+            event_status=result.updates.get("status"),
         )
     finally:
         await runtime.aclose()
@@ -569,11 +1020,11 @@ async def inject_selection_decision(
         applied = await _scenario(runtime).ingest_selection_decision(
             request, cast(Any, snapshot.values), event, ctx
         )
-        return LocalWorkflowResult(
-            thread_id=thread_id,
-            status="waiting",
-            interrupts=tuple(_public_interrupt(item) for item in snapshot.interrupts),
-            detail={"selection_version": applied.updates.get("selection_version")},
+        return _result(
+            thread_id,
+            snapshot,
+            selection_version=applied.updates.get("selection_version"),
+            decision=decision,
         )
     finally:
         await runtime.aclose()

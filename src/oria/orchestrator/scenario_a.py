@@ -343,7 +343,13 @@ class DefaultScenarioAWorkflowService:
         termination = research.get("termination")
         proposal = research.get("proposal")
         rule_result = research.get("rule_result")
-        if termination is not None or proposal is None or not isinstance(rule_result, Mapping):
+        merchant_result = research.get("merchant_result")
+        if (
+            termination is not None
+            or proposal is None
+            or not isinstance(rule_result, Mapping)
+            or not isinstance(merchant_result, Mapping)
+        ):
             raise ValueError("research graph did not produce a valid campaign draft")
         snapshot_id = rule_result.get("rule_snapshot_id")
         if not isinstance(snapshot_id, str):
@@ -355,6 +361,7 @@ class DefaultScenarioAWorkflowService:
         return _node_result(
             draft=draft.model_dump(mode="json"),
             proposal=proposal,
+            merchant_result=cast(JsonValue, merchant_result),
             research={
                 "model_turns": research["model_turns"],
                 "rule_snapshot_id": snapshot_id,
@@ -752,7 +759,7 @@ class DefaultScenarioAWorkflowService:
             _result(state, "selection").updates.get("selection_version"),
             "selection version",
         )
-        approval = await self._assortment.request_consumer_publish_approval(
+        approval_result = await self._assortment.request_consumer_publish_approval(
             PublishConsumerPlacementArgs(
                 campaign_id=request.draft.campaign_id,
                 selection_version=selection_version,
@@ -765,7 +772,16 @@ class DefaultScenarioAWorkflowService:
         )
         return NodeResult(
             status="waiting",
-            updates={"approval": _approval_projection(approval)},
+            updates={
+                "approval": _approval_projection(approval_result.approval),
+                "selection_summary": {
+                    "submitted_count": approval_result.submitted_count,
+                    "selected_count": approval_result.selected_count,
+                    "rejected_count": approval_result.rejected_count,
+                    "selected_products": list(approval_result.selected_products),
+                    "coupon_linked_count": approval_result.coupon_linked_count,
+                },
+            },
         )
 
     async def resume_consumer_publish(

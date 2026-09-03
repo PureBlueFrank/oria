@@ -212,6 +212,17 @@ class PublishConsumerPlacementArgs(ValueModel):
     approval_id: str | None = Field(default=None, min_length=1)
 
 
+class ConsumerPublishApprovalResult(ValueModel):
+    """Authorized, non-sensitive facts shown before C-end publication approval."""
+
+    approval: Approval
+    submitted_count: int = Field(ge=0)
+    selected_count: int = Field(ge=0)
+    rejected_count: int = Field(ge=0)
+    selected_products: tuple[str, ...]
+    coupon_linked_count: int = Field(ge=0)
+
+
 class ConsumerPlacementAdapter(Protocol):
     adapter_id: str
 
@@ -958,7 +969,7 @@ class AssortmentService:
         checkpoint_id: str,
         expires_at: datetime,
         ctx: Context,
-    ) -> Approval:
+    ) -> ConsumerPublishApprovalResult:
         checkpoint_id = _require_trusted_checkpoint_id(checkpoint_id)
         canonical = _canonical_publish_request(request)
         args_hash = canonical_args_hash(
@@ -973,7 +984,7 @@ class AssortmentService:
             selection_version=request.selection_version,
         )
         _require_publishable_selection(selection)
-        return await self._approvals.create(
+        approval = await self._approvals.create(
             approval_action="consumer_publish_approval",
             tool_name=PUBLISH_CONSUMER_TOOL_NAME,
             canonical_args_hash=args_hash,
@@ -981,6 +992,22 @@ class AssortmentService:
             expires_at=expires_at,
             ctx=ctx,
             business_binding=selection.binding,
+        )
+        selected_ids = set(selection.selected_item_ids)
+        selected_products = tuple(
+            sorted(
+                item.product_ref
+                for item in selection.items
+                if item.enrollment_item_id in selected_ids
+            )
+        )
+        return ConsumerPublishApprovalResult(
+            approval=approval,
+            submitted_count=len(selection.enrollment_item_ids),
+            selected_count=len(selected_ids),
+            rejected_count=len(selection.decisions) - len(selected_ids),
+            selected_products=selected_products,
+            coupon_linked_count=len(selection.links),
         )
 
     async def publish_consumer_placement(
