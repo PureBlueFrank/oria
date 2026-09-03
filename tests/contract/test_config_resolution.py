@@ -180,11 +180,17 @@ def test_cli_environment_and_yaml_use_declared_precedence(tmp_path: Path) -> Non
     resolved = resolve_runtime_config(
         config_path=config,
         runtime_profile="demo",
-        environ={"ORIA_RUNTIME_PROFILE": "standard"},
+        embedding_profile="bge",
+        environ={
+            "ORIA_ENVIRONMENT": "test",
+            "ORIA_RUNTIME_PROFILE": "standard",
+            "ORIA_EMBEDDING_PROFILE": "fixture",
+        },
         cwd=tmp_path,
     )
 
     assert resolved.runtime_profile == "demo"
+    assert resolved.embedding.profile_id == "bge"
 
 
 @pytest.mark.parametrize(

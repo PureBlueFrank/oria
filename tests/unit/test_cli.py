@@ -35,6 +35,21 @@ def test_scenario_a_cli_exposes_start_resume_approval_and_mock_events() -> None:
     }
 
 
+def test_scenario_a_commands_expose_optional_runtime_profile_overrides() -> None:
+    command_paths = {
+        "workflow": ("start", "resume"),
+        "approval": ("approve", "reject"),
+        "mock": ("enrollment", "window-close", "selection-decision", "selection-complete"),
+    }
+    expected = {"--runtime-profile", "--llm-profile", "--embedding-profile"}
+
+    for group_name, command_names in command_paths.items():
+        for command_name in command_names:
+            result = CliRunner().invoke(app, [group_name, command_name, "--help"])
+            assert result.exit_code == 0
+            assert all(option in result.output for option in expected)
+
+
 def test_rag_eval_fails_closed_before_unreviewed_dataset_runs(
     tmp_path: Path,
     pending_rag_manifest: Path,

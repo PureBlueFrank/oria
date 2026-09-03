@@ -335,6 +335,7 @@ def resolve_runtime_config(
     config_path: Path | None = None,
     runtime_profile: str | None = None,
     llm_profile: str | None = None,
+    embedding_profile: str | None = None,
     data_dir: Path | None = None,
     environ: Mapping[str, str] | None = None,
     cwd: Path | None = None,
@@ -351,6 +352,8 @@ def resolve_runtime_config(
         cli_overrides["runtime_profile"] = runtime_profile
     if llm_profile is not None:
         cli_overrides["llm"] = {"active_profile": llm_profile}
+    if embedding_profile is not None:
+        cli_overrides["embedding"] = {"active_profile": embedding_profile}
     if data_dir is not None:
         cli_overrides["data_dir"] = str(data_dir)
     merged = _deep_merge(merged, cli_overrides)

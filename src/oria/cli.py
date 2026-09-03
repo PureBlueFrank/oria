@@ -397,9 +397,18 @@ def _workflow_config(
     output: OutputFormat,
     config_path: Path | None,
     data_dir: Path | None,
+    runtime_profile: str | None,
+    llm_profile: str | None,
+    embedding_profile: str | None,
 ) -> ResolvedRuntimeConfig:
     try:
-        return resolve_runtime_config(config_path=config_path, data_dir=data_dir)
+        return resolve_runtime_config(
+            config_path=config_path,
+            runtime_profile=runtime_profile,
+            llm_profile=llm_profile,
+            embedding_profile=embedding_profile,
+            data_dir=data_dir,
+        )
     except ConfigResolutionError as exc:
         payload = {"ok": False, "error": {"code": "invalid_config", "message": str(exc)}}
         if output is OutputFormat.JSON:
@@ -454,6 +463,18 @@ def workflow_start(
         Path | None,
         typer.Option("--config", help="Read an explicit YAML configuration file."),
     ] = None,
+    runtime_profile: Annotated[
+        str | None,
+        typer.Option("--runtime-profile", help="Override the runtime profile."),
+    ] = None,
+    llm_profile: Annotated[
+        str | None,
+        typer.Option("--llm-profile", help="Override the active LLM profile."),
+    ] = None,
+    embedding_profile: Annotated[
+        str | None,
+        typer.Option("--embedding-profile", help="Override the active embedding profile."),
+    ] = None,
     data_dir: Annotated[
         Path | None,
         typer.Option("--data-dir", help="Override the runtime data root."),
@@ -461,7 +482,14 @@ def workflow_start(
 ) -> None:
     """Initialize local data and start a checkpointed Scenario A workflow."""
 
-    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    config = _workflow_config(
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
+    )
     _run_workflow_operation(
         start_local_workflow(
             config,
@@ -489,11 +517,21 @@ def workflow_resume(
         typer.Option("--output", help="Output format: human or json."),
     ] = OutputFormat.HUMAN,
     config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    llm_profile: Annotated[str | None, typer.Option("--llm-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
     data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
 ) -> None:
     """Resume one authenticated business-confirmation external wait."""
 
-    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    config = _workflow_config(
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
+    )
     _run_workflow_operation(
         decide_confirmation(
             config,
@@ -514,8 +552,18 @@ def _approval_decision_command(
     output: OutputFormat,
     config_path: Path | None,
     data_dir: Path | None,
+    runtime_profile: str | None,
+    llm_profile: str | None,
+    embedding_profile: str | None,
 ) -> None:
-    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    config = _workflow_config(
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
+    )
     _run_workflow_operation(
         decide_local_approval(
             config,
@@ -534,6 +582,9 @@ def approval_approve(
     approval_id: Annotated[str, typer.Option(help="Active approval ID.")],
     output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
     config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    llm_profile: Annotated[str | None, typer.Option("--llm-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
     data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
 ) -> None:
     """Approve the active launch or consumer-publish HITL request and resume."""
@@ -546,6 +597,9 @@ def approval_approve(
         output=output,
         config_path=config_path,
         data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
     )
 
 
@@ -556,6 +610,9 @@ def approval_reject(
     reason: Annotated[str, typer.Option(help="Required rejection reason.")],
     output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
     config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    llm_profile: Annotated[str | None, typer.Option("--llm-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
     data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
 ) -> None:
     """Reject the active launch or consumer-publish HITL request and resume."""
@@ -568,6 +625,9 @@ def approval_reject(
         output=output,
         config_path=config_path,
         data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
     )
 
 
@@ -579,11 +639,21 @@ def mock_enrollment(
     product_ref: Annotated[str, typer.Option()] = "synthetic-product-demo-m001",
     output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
     config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    llm_profile: Annotated[str | None, typer.Option("--llm-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
     data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
 ) -> None:
     """Inject one authenticated Mock merchant-enrollment event without graph resume."""
 
-    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    config = _workflow_config(
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
+    )
     _run_workflow_operation(
         inject_merchant_event(
             config,
@@ -602,11 +672,21 @@ def mock_window_close(
     source_event_id: Annotated[str, typer.Option(help="Synthetic source event ID.")],
     output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
     config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    llm_profile: Annotated[str | None, typer.Option("--llm-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
     data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
 ) -> None:
     """Inject a trusted close event and resume the enrollment barrier."""
 
-    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    config = _workflow_config(
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
+    )
     _run_workflow_operation(
         close_enrollment_window(
             config,
@@ -626,11 +706,21 @@ def mock_selection_decision(
     reason_code: Annotated[str | None, typer.Option()] = None,
     output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
     config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    llm_profile: Annotated[str | None, typer.Option("--llm-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
     data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
 ) -> None:
     """Inject an inbox-authenticated Mock selection decision without graph resume."""
 
-    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    config = _workflow_config(
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
+    )
     _run_workflow_operation(
         inject_selection_decision(
             config,
@@ -651,11 +741,21 @@ def mock_selection_complete(
     selection_version: Annotated[str, typer.Option()] = "selection-v1",
     output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
     config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    llm_profile: Annotated[str | None, typer.Option("--llm-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
     data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
 ) -> None:
     """Inject a trusted completion event and resume the selection wait."""
 
-    config = _workflow_config(output=output, config_path=config_path, data_dir=data_dir)
+    config = _workflow_config(
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=llm_profile,
+        embedding_profile=embedding_profile,
+    )
     _run_workflow_operation(
         complete_selection(
             config,
