@@ -41,6 +41,11 @@ class ToolExecution(ValueModel):
     checkpoint_id: str = Field(min_length=1)
     status: ExecutionStatus = "reserved"
     receipt_id: str | None = Field(default=None, min_length=1)
+    receipt_summary_hash: str | None = Field(
+        default=None,
+        pattern=r"^sha256:[0-9a-f]{64}$",
+        repr=False,
+    )
     compensation_status: str | None = Field(default=None, min_length=1)
     attempt_count: int = Field(default=0, ge=0)
     created_at: datetime
@@ -65,6 +70,7 @@ class ToolExecution(ValueModel):
                 self.attempt_count != 0
                 or self.executed_at is not None
                 or self.receipt_id is not None
+                or self.receipt_summary_hash is not None
             ):
                 raise ValueError("reserved executions cannot contain attempt or outcome data")
         elif self.status == "executing":
@@ -72,6 +78,7 @@ class ToolExecution(ValueModel):
                 self.attempt_count < 1
                 or self.executed_at is not None
                 or self.receipt_id is not None
+                or self.receipt_summary_hash is not None
             ):
                 raise ValueError("executing executions require an attempt without outcome data")
         else:
@@ -79,8 +86,8 @@ class ToolExecution(ValueModel):
                 raise ValueError("terminal executions require attempt and execution timestamps")
             if self.status == "succeeded" and self.receipt_id is None:
                 raise ValueError("succeeded executions require a receipt")
-            if self.status == "failed" and self.receipt_id is not None:
-                raise ValueError("failed executions cannot carry a receipt")
+            if self.receipt_summary_hash is not None and self.receipt_id is None:
+                raise ValueError("receipt summary hashes require a receipt identity")
         return self
 
     def transition_to(
@@ -89,6 +96,7 @@ class ToolExecution(ValueModel):
         *,
         updated_at: datetime,
         receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         compensation_status: str | None = None,
     ) -> ToolExecution:
         """Return the validated next ledger state; unknown never re-enters execution."""
@@ -101,6 +109,7 @@ class ToolExecution(ValueModel):
             "status": target,
             "updated_at": updated_at,
             "receipt_id": receipt_id,
+            "receipt_summary_hash": receipt_summary_hash,
             "compensation_status": compensation_status,
         }
         if target == "executing":

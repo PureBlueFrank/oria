@@ -99,17 +99,29 @@ def test_tool_execution_validates_receipt_and_timestamp_invariants() -> None:
                 "executed_at": NOW + timedelta(seconds=1),
             }
         )
-    with pytest.raises(ValidationError, match="failed executions cannot carry a receipt"):
+    with pytest.raises(ValidationError, match="summary hashes require a receipt identity"):
         ToolExecution.model_validate(
             values
             | {
                 "status": "failed",
                 "attempt_count": 1,
-                "receipt_id": "receipt_1",
+                "receipt_summary_hash": HASH_A,
                 "updated_at": NOW + timedelta(seconds=1),
                 "executed_at": NOW + timedelta(seconds=1),
             }
         )
+    rejected = ToolExecution.model_validate(
+        values
+        | {
+            "status": "failed",
+            "attempt_count": 1,
+            "receipt_id": "receipt_1",
+            "receipt_summary_hash": HASH_A,
+            "updated_at": NOW + timedelta(seconds=1),
+            "executed_at": NOW + timedelta(seconds=1),
+        }
+    )
+    assert rejected.receipt_id == "receipt_1"
 
 
 def test_launch_plan_hash_is_order_independent_and_binds_every_child_argument() -> None:

@@ -329,6 +329,7 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("created_at", "DATETIME", 1, 0),
             ("updated_at", "DATETIME", 1, 0),
             ("executed_at", "DATETIME", 0, 0),
+            ("receipt_summary_hash", "VARCHAR", 0, 0),
         ),
         "tool_execution_requests": (
             ("tenant_id", "VARCHAR", 1, 1),

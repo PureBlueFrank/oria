@@ -131,6 +131,25 @@ async def test_matching_event_is_sanitized_hashed_and_duplicate_never_resumes() 
 
 
 @pytest.mark.asyncio
+async def test_unauthorized_event_cannot_poison_a_later_authenticated_source_event() -> None:
+    repository = _Repository()
+    service = _service(repository)
+
+    unauthorized = await service.process(
+        _event(signature_subject="attacker"),
+        wait=_wait(),
+    )
+    authenticated = await service.process(_event(), wait=_wait())
+
+    assert unauthorized.status == "unauthorized"
+    assert unauthorized.resume_eligible is False
+    assert authenticated.status == "matched"
+    assert authenticated.resume_eligible is True
+    assert len(repository.records) == 1
+    assert repository.records[0].signature_subject == "adapter-principal-a"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("event_updates", "wait_updates", "expected"),
     [

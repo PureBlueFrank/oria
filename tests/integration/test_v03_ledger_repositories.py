@@ -84,6 +84,39 @@ async def test_tool_execution_repository_returns_duplicate_history_and_reconcile
 
 
 @pytest.mark.asyncio
+async def test_failed_reconciliation_preserves_the_unknown_receipt_evidence(
+    tmp_path: Path,
+) -> None:
+    config = _config(tmp_path)
+    await initialize_data(config)
+
+    async with DatabaseResources(config) as databases:
+        repository = SQLiteToolExecutionRepository(databases.business_sessions)
+        executing = await repository.mark_executing(
+            TENANT,
+            (await repository.reserve(_execution("exec_unknown_receipt"))).execution_id,
+            NOW + timedelta(seconds=1),
+        )
+        unknown = await repository.record_unknown(
+            TENANT,
+            executing.execution_id,
+            NOW + timedelta(seconds=2),
+            receipt_id="receipt_unknown",
+            receipt_summary_hash=HASH_A,
+        )
+        reconciled = await repository.reconcile(
+            TENANT,
+            unknown.execution_id,
+            "failed",
+            NOW + timedelta(seconds=3),
+        )
+
+    assert reconciled.status == "failed"
+    assert reconciled.receipt_id == "receipt_unknown"
+    assert reconciled.receipt_summary_hash == HASH_A
+
+
+@pytest.mark.asyncio
 async def test_domain_audit_and_outbox_repositories_append_redacted_records(
     tmp_path: Path,
 ) -> None:

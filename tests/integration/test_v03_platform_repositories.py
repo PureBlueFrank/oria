@@ -246,3 +246,66 @@ async def test_sqlite_inbox_atomically_validates_wait_and_consumes_selection_eve
             ).one()
         assert inbox_status == "consumed"
         assert wait_row == ("matched", "checkpoint-selection-1")
+
+
+@pytest.mark.asyncio
+async def test_sqlite_inbox_rechecks_wait_expiry_when_claiming_a_matched_event(
+    tmp_path: Path,
+) -> None:
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
+    await initialize_data(config)
+    wait = ExternalWait(
+        tenant_id="tenant-a",
+        wait_id="selection-wait-expiring",
+        event_type="selection.completed",
+        resource_type="campaign",
+        resource_id="campaign-1",
+        expected_version=2,
+        checkpoint_id="checkpoint-selection-expiring",
+        expires_at=NOW + timedelta(minutes=2),
+        timeout_action="fail",
+        created_at=NOW,
+    )
+    event_value = {
+        "schema_version": 1,
+        "event_type": "selection.completed",
+        "tenant_id": "tenant-a",
+        "adapter_id": "selection-adapter-a",
+        "source_event_id": "selection-event-expiring",
+        "signature_subject": "selection-principal-a",
+        "version": 2,
+        "payload": {
+            "campaign_id": "campaign-1",
+            "submission_version": "submission-1",
+            "selection_version": "selection-1",
+        },
+    }
+    event = parse_integration_event(event_value)
+    identity = IntegrationInboxIdentity(
+        tenant_id="tenant-a",
+        adapter_id="selection-adapter-a",
+        source_event_id="selection-event-expiring",
+    )
+
+    async with DatabaseResources(config) as databases:
+        repository = SQLiteIntegrationEventInboxRepository(databases.platform_sessions)
+        await repository.add_wait(wait)
+        service = IntegrationEventInboxService(
+            repository,
+            authorized_subjects={
+                ("tenant-a", "selection-adapter-a"): frozenset({"selection-principal-a"})
+            },
+            clock=lambda: NOW + timedelta(minutes=1),
+        )
+        assert (await service.process(event_value, wait=wait)).resume_eligible is True
+
+        with pytest.raises(PermissionError, match="does not match"):
+            await repository.consume_matched(
+                identity,
+                event,
+                consumed_at=wait.expires_at,
+            )
+
+        persisted_wait = await repository.get_wait("tenant-a", wait.wait_id)
+        assert persisted_wait is not None
+        assert persisted_wait.status == "waiting"

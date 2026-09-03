@@ -15,7 +15,7 @@
       }
     },
     "business": {
-      "head": "business_0009",
+      "head": "business_0010",
       "files": {
         "business/env.py": "7628d5dc806bcc58b2cfaf14f9100876ea6c706afedc24991ae80f02fe68c491",
         "business/versions/business_0001_merchants.py": "7cbcd8134a2345f9f9ac1de8a676a1158ab8f118038ed75d2cbdd8ec34e0ec07",
@@ -26,7 +26,8 @@
         "business/versions/business_0006_execution_request_keys.py": "2d9ab04f57008c9b952ccf55bf92931fc773509b79123c684b581c38a22387ab",
         "business/versions/business_0007_confirmation_chain_states.py": "0c0e37c5b29f1880249e653b04cef545b5ad2cc34d73b2e6e326280fc2cd4877",
         "business/versions/business_0008_campaign_approval_bindings.py": "a3aeaf952d9b8d7200cb7d1a5ff3b360d16966683bc265fb69ef85d09e032565",
-        "business/versions/business_0009_assortment_submission_items.py": "1cb12f4573948a342a5a4f849c72ff188c2bbe830294e0410208422359937906"
+        "business/versions/business_0009_assortment_submission_items.py": "1cb12f4573948a342a5a4f849c72ff188c2bbe830294e0410208422359937906",
+        "business/versions/business_0010_rejected_receipt_evidence.py": "8cff9f22feefa5725cb2a2a8004caf9f42bbd21dd75458743852a68176d451b4"
       }
     }
   }

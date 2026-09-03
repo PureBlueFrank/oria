@@ -563,6 +563,7 @@ class SQLiteIntegrationEventInboxRepository:
                     or record.payload_hash != integration_payload_hash(event)
                     or record.processing_status != "matched"
                     or wait.status != "waiting"
+                    or consumed_at >= wait.expires_at
                     or wait.event_type != event.event_type
                     or wait.resource_type != "campaign"
                     or wait.resource_id != event.payload.campaign_id

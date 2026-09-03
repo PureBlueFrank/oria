@@ -22,3 +22,7 @@ dist/
 # Local-only design and execution documents
 /Oria架构设计.md
 /docs/Oria详细执行路线.md
+
+# Local-only failed credential diagnostics
+/reports/verification/v0.3/20260902T232135+0800/
+/reports/verification/v0.3/20260902T233513+0800/

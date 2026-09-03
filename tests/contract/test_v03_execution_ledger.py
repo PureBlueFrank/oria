@@ -263,6 +263,44 @@ async def test_execute_invokes_an_explicit_reserve_for_args_record_once(tmp_path
 
 
 @pytest.mark.asyncio
+async def test_rejected_adapter_receipt_remains_available_for_reconciliation(
+    tmp_path: Path,
+) -> None:
+    config = _config(tmp_path)
+    await initialize_data(config)
+
+    async with DatabaseResources(config) as databases:
+        ledger = ExecutionLedger(databases.business_sessions, clock=_Clock())
+
+        async def invoke(_: str) -> Receipt:
+            return Receipt(
+                receipt_id="receipt_rejected_1",
+                adapter_id="mock_recruitment",
+                resource_ref="campaign:campaign_1",
+                status="rejected",
+                received_at=NOW + timedelta(seconds=1),
+                summary_hash=HASH_B,
+            )
+
+        failed = await ledger.execute(_reservation("exec_rejected"), invoke)
+        async with databases.business_sessions() as session:
+            persisted = (
+                await session.execute(
+                    text(
+                        "SELECT status, receipt_id, receipt_summary_hash FROM tool_executions "
+                        "WHERE tenant_id = :tenant_id AND execution_id = 'exec_rejected'"
+                    ),
+                    {"tenant_id": TENANT},
+                )
+            ).one()
+
+    assert failed.status == "failed"
+    assert failed.receipt_id == "receipt_rejected_1"
+    assert failed.receipt_summary_hash == HASH_B
+    assert persisted == ("failed", "receipt_rejected_1", HASH_B)
+
+
+@pytest.mark.asyncio
 async def test_business_state_ledger_and_events_roll_back_as_one_transaction(
     tmp_path: Path,
 ) -> None:

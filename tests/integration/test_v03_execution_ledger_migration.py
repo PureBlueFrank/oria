@@ -49,7 +49,7 @@ def test_business_0003_empty_upgrade_is_repeatable_and_downgrades_cleanly(
     command.upgrade(config, "head")
     command.upgrade(config, "head")
 
-    assert _revision(database) == "business_0009"
+    assert _revision(database) == "business_0010"
     assert _tables(database) >= LEDGER_TABLES
 
     command.downgrade(config, "business_0002")
@@ -78,8 +78,14 @@ def test_execution_ledger_constraints_enforce_idempotency_status_and_receipts(
         "2026-08-30T00:00:00+00:00",
         "2026-08-30T00:00:00+00:00",
         None,
+        None,
     )
-    sql = "INSERT INTO tool_executions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    sql = (
+        "INSERT INTO tool_executions (execution_id, tenant_id, tool_name, idempotency_key, "
+        "canonical_args_hash, checkpoint_id, status, receipt_id, compensation_status, "
+        "attempt_count, created_at, updated_at, executed_at, receipt_summary_hash) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
 
     with sqlite3.connect(database) as connection:
         connection.execute(sql, base_values)
@@ -99,9 +105,95 @@ def test_execution_ledger_constraints_enforce_idempotency_status_and_receipts(
             1,
             *base_values[10:12],
             "2026-08-30T00:00:01+00:00",
+            None,
         )
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute(sql, succeeded_without_receipt)
+
+
+def test_business_0010_preserves_existing_terminal_executions_and_downgrades(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "receipt-evidence.db"
+    config = _config(database)
+    command.upgrade(config, "business_0009")
+    timestamp = "2026-09-03T00:00:00+00:00"
+    insert = (
+        "INSERT INTO tool_executions (execution_id, tenant_id, tool_name, idempotency_key, "
+        "canonical_args_hash, checkpoint_id, status, receipt_id, compensation_status, "
+        "attempt_count, created_at, updated_at, executed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, "
+        "?, ?, ?, ?, ?)"
+    )
+    common = (
+        "tenant_a",
+        "publish_recruitment",
+        f"sha256:{'a' * 64}",
+        "checkpoint_1",
+    )
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            insert,
+            (
+                "exec_failed",
+                *common[:2],
+                "campaign_1:failed",
+                *common[2:],
+                "failed",
+                None,
+                None,
+                1,
+                timestamp,
+                timestamp,
+                timestamp,
+            ),
+        )
+        connection.execute(
+            insert,
+            (
+                "exec_succeeded",
+                *common[:2],
+                "campaign_1:succeeded",
+                *common[2:],
+                "succeeded",
+                "receipt_succeeded",
+                None,
+                1,
+                timestamp,
+                timestamp,
+                timestamp,
+            ),
+        )
+        connection.commit()
+
+    command.upgrade(config, "head")
+
+    with sqlite3.connect(database) as connection:
+        rows = connection.execute(
+            "SELECT execution_id, status, receipt_id, receipt_summary_hash FROM "
+            "tool_executions ORDER BY execution_id"
+        ).fetchall()
+        connection.execute(
+            "UPDATE tool_executions SET receipt_id = 'receipt_rejected', "
+            "receipt_summary_hash = ? WHERE execution_id = 'exec_failed'",
+            (f"sha256:{'b' * 64}",),
+        )
+        connection.commit()
+    assert rows == [
+        ("exec_failed", "failed", None, None),
+        ("exec_succeeded", "succeeded", "receipt_succeeded", None),
+    ]
+
+    command.downgrade(config, "business_0009")
+
+    with sqlite3.connect(database) as connection:
+        columns = {str(row[1]) for row in connection.execute("PRAGMA table_info(tool_executions)")}
+        failed_receipt = connection.execute(
+            "SELECT receipt_id FROM tool_executions WHERE execution_id = 'exec_failed'"
+        ).fetchone()
+        foreign_key_errors = connection.execute("PRAGMA foreign_key_check").fetchall()
+    assert "receipt_summary_hash" not in columns
+    assert failed_receipt == (None,)
+    assert foreign_key_errors == []
 
 
 def test_platform_and_business_revision_chains_upgrade_independently(tmp_path: Path) -> None:

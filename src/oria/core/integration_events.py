@@ -309,6 +309,10 @@ class IntegrationEventInboxService:
             return InboxProcessResult(status="invalid_envelope", resume_eligible=False)
         now = self._now()
         status = self._classify(event, wait, now)
+        if status == "unauthorized":
+            # An unauthenticated sender must not be able to reserve the durable
+            # deduplication identity of a later authenticated source event.
+            return InboxProcessResult(status=status, resume_eligible=False)
         payload = cast(dict[str, JsonValue], event.payload.model_dump(mode="json"))
         record = IntegrationInboxRecord(
             tenant_id=event.tenant_id,

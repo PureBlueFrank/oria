@@ -202,6 +202,7 @@ class ExecutionLedger:
         execution: ToolExecution,
         receipt_id: str,
         *,
+        receipt_summary_hash: str | None = None,
         business_write: BusinessMutation | None = None,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
@@ -212,6 +213,7 @@ class ExecutionLedger:
             "succeeded",
             expected_status="executing",
             receipt_id=receipt_id,
+            receipt_summary_hash=receipt_summary_hash,
             business_write=business_write,
             domain_events=domain_events,
             audit_events=audit_events,
@@ -223,6 +225,7 @@ class ExecutionLedger:
         execution: ToolExecution,
         receipt_id: str,
         *,
+        receipt_summary_hash: str | None = None,
         business_write: BusinessMutation,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
@@ -256,6 +259,7 @@ class ExecutionLedger:
                     expected_status="executing",
                     updated_at=self._now(),
                     receipt_id=receipt_id,
+                    receipt_summary_hash=receipt_summary_hash,
                 )
                 for domain_event in domain_events:
                     await self._domain_events._append(session, domain_event)
@@ -275,6 +279,8 @@ class ExecutionLedger:
         self,
         execution: ToolExecution,
         *,
+        receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         business_write: BusinessMutation | None = None,
         outcome_projection: OutcomeProjectionMutation | None = None,
         compensation_status: str | None = None,
@@ -286,6 +292,8 @@ class ExecutionLedger:
             execution,
             "failed",
             expected_status="executing",
+            receipt_id=receipt_id,
+            receipt_summary_hash=receipt_summary_hash,
             business_write=business_write,
             outcome_projection=outcome_projection,
             compensation_status=compensation_status,
@@ -301,6 +309,7 @@ class ExecutionLedger:
         business_write: BusinessMutation | None = None,
         outcome_projection: OutcomeProjectionMutation | None = None,
         receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         domain_events: Sequence[DomainEvent] = (),
         audit_events: Sequence[EventEnvelope] = (),
         outbox_records: Sequence[OutboxRecord] = (),
@@ -312,6 +321,7 @@ class ExecutionLedger:
             business_write=business_write,
             outcome_projection=outcome_projection,
             receipt_id=receipt_id,
+            receipt_summary_hash=receipt_summary_hash,
             compensation_status="reconciliation_required",
             domain_events=domain_events,
             audit_events=audit_events,
@@ -324,6 +334,7 @@ class ExecutionLedger:
         outcome: Literal["succeeded", "failed"],
         *,
         receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         compensation_status: str | None = None,
         business_write: BusinessMutation | None = None,
         outcome_projection: OutcomeProjectionMutation | None = None,
@@ -337,6 +348,7 @@ class ExecutionLedger:
             outcome,
             expected_status="unknown",
             receipt_id=receipt_id,
+            receipt_summary_hash=receipt_summary_hash,
             compensation_status=compensation_status,
             business_write=business_write,
             outcome_projection=outcome_projection,
@@ -425,6 +437,7 @@ class ExecutionLedger:
             return await self.record_success(
                 executing,
                 receipt.receipt_id,
+                receipt_summary_hash=receipt.summary_hash,
                 business_write=business_write,
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
@@ -444,6 +457,7 @@ class ExecutionLedger:
                     None if outcome_projection is None else outcome_projection("unknown")
                 ),
                 receipt_id=receipt.receipt_id,
+                receipt_summary_hash=receipt.summary_hash,
                 domain_events=events.domain_events,
                 audit_events=events.audit_events,
                 outbox_records=events.outbox_records,
@@ -457,6 +471,8 @@ class ExecutionLedger:
         )
         return await self.record_failure(
             executing,
+            receipt_id=receipt.receipt_id,
+            receipt_summary_hash=receipt.summary_hash,
             outcome_projection=(
                 None if outcome_projection is None else outcome_projection("failed")
             ),
@@ -484,6 +500,7 @@ class ExecutionLedger:
         *,
         expected_status: Literal["executing", "unknown"],
         receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         compensation_status: str | None = None,
         business_write: BusinessMutation | None = None,
         outcome_projection: OutcomeProjectionMutation | None = None,
@@ -517,6 +534,7 @@ class ExecutionLedger:
                     expected_status=expected_status,
                     updated_at=self._now(),
                     receipt_id=receipt_id,
+                    receipt_summary_hash=receipt_summary_hash,
                     compensation_status=compensation_status,
                 )
                 for domain_event in domain_events:

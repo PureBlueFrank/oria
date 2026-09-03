@@ -23,7 +23,8 @@ class LedgerRepositoryError(RuntimeError):
 
 _TOOL_COLUMNS = (
     "execution_id, tenant_id, tool_name, idempotency_key, canonical_args_hash, checkpoint_id, "
-    "status, receipt_id, compensation_status, attempt_count, created_at, updated_at, executed_at"
+    "status, receipt_id, receipt_summary_hash, compensation_status, attempt_count, created_at, "
+    "updated_at, executed_at"
 )
 
 
@@ -84,8 +85,8 @@ class SQLiteToolExecutionRepository:
                         f"INSERT INTO tool_executions ({_TOOL_COLUMNS}) VALUES "
                         "(:execution_id, :tenant_id, :tool_name, :idempotency_key, "
                         ":canonical_args_hash, :checkpoint_id, :status, :receipt_id, "
-                        ":compensation_status, :attempt_count, :created_at, :updated_at, "
-                        ":executed_at)"
+                        ":receipt_summary_hash, :compensation_status, :attempt_count, :created_at, "
+                        ":updated_at, :executed_at)"
                     ),
                     execution.model_dump(),
                 )
@@ -150,8 +151,8 @@ class SQLiteToolExecutionRepository:
                             f"INSERT INTO tool_executions ({_TOOL_COLUMNS}) VALUES "
                             "(:execution_id, :tenant_id, :tool_name, :idempotency_key, "
                             ":canonical_args_hash, :checkpoint_id, :status, :receipt_id, "
-                            ":compensation_status, :attempt_count, :created_at, :updated_at, "
-                            ":executed_at)"
+                            ":receipt_summary_hash, :compensation_status, :attempt_count, "
+                            ":created_at, :updated_at, :executed_at)"
                         ),
                         execution.model_dump(),
                     )
@@ -196,6 +197,7 @@ class SQLiteToolExecutionRepository:
         expected_status: ExecutionStatus,
         updated_at: datetime,
         receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         compensation_status: str | None = None,
     ) -> ToolExecution:
         existing = await self._find_by_id(session, tenant_id, execution_id)
@@ -203,17 +205,22 @@ class SQLiteToolExecutionRepository:
             raise LookupError("execution is unavailable")
         if existing.status != expected_status:
             raise ValueError("execution is not in the required source state")
+        if expected_status == "unknown" and receipt_id is None:
+            receipt_id = existing.receipt_id
+            receipt_summary_hash = existing.receipt_summary_hash
         transitioned = existing.transition_to(
             target,
             updated_at=updated_at,
             receipt_id=receipt_id,
+            receipt_summary_hash=receipt_summary_hash,
             compensation_status=compensation_status,
         )
         result = await session.execute(
             text(
                 "UPDATE tool_executions SET status = :status, receipt_id = :receipt_id, "
-                "compensation_status = :compensation_status, attempt_count = :attempt_count, "
-                "updated_at = :updated_at, executed_at = :executed_at "
+                "receipt_summary_hash = :receipt_summary_hash, compensation_status = "
+                ":compensation_status, attempt_count = :attempt_count, updated_at = :updated_at, "
+                "executed_at = :executed_at "
                 "WHERE tenant_id = :tenant_id AND execution_id = :execution_id "
                 "AND status = :expected_status"
             ),
@@ -232,6 +239,7 @@ class SQLiteToolExecutionRepository:
         expected_status: ExecutionStatus,
         updated_at: datetime,
         receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         compensation_status: str | None = None,
     ) -> ToolExecution:
         try:
@@ -244,6 +252,7 @@ class SQLiteToolExecutionRepository:
                     expected_status=expected_status,
                     updated_at=updated_at,
                     receipt_id=receipt_id,
+                    receipt_summary_hash=receipt_summary_hash,
                     compensation_status=compensation_status,
                 )
         except (LookupError, ValueError, LedgerRepositoryError):
@@ -271,6 +280,8 @@ class SQLiteToolExecutionRepository:
         execution_id: str,
         receipt_id: str,
         updated_at: datetime,
+        *,
+        receipt_summary_hash: str | None = None,
     ) -> ToolExecution:
         return await self._public_transition(
             tenant_id=tenant_id,
@@ -278,6 +289,7 @@ class SQLiteToolExecutionRepository:
             target="succeeded",
             expected_status="executing",
             receipt_id=receipt_id,
+            receipt_summary_hash=receipt_summary_hash,
             updated_at=updated_at,
         )
 
@@ -287,6 +299,8 @@ class SQLiteToolExecutionRepository:
         execution_id: str,
         updated_at: datetime,
         *,
+        receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         compensation_status: str | None = None,
     ) -> ToolExecution:
         return await self._public_transition(
@@ -294,6 +308,8 @@ class SQLiteToolExecutionRepository:
             execution_id=execution_id,
             target="failed",
             expected_status="executing",
+            receipt_id=receipt_id,
+            receipt_summary_hash=receipt_summary_hash,
             compensation_status=compensation_status,
             updated_at=updated_at,
         )
@@ -305,6 +321,7 @@ class SQLiteToolExecutionRepository:
         updated_at: datetime,
         *,
         receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         compensation_status: str = "reconciliation_required",
     ) -> ToolExecution:
         return await self._public_transition(
@@ -313,6 +330,7 @@ class SQLiteToolExecutionRepository:
             target="unknown",
             expected_status="executing",
             receipt_id=receipt_id,
+            receipt_summary_hash=receipt_summary_hash,
             compensation_status=compensation_status,
             updated_at=updated_at,
         )
@@ -342,6 +360,7 @@ class SQLiteToolExecutionRepository:
         updated_at: datetime,
         *,
         receipt_id: str | None = None,
+        receipt_summary_hash: str | None = None,
         compensation_status: str | None = None,
     ) -> ToolExecution:
         return await self._public_transition(
@@ -350,6 +369,7 @@ class SQLiteToolExecutionRepository:
             target=outcome,
             expected_status="unknown",
             receipt_id=receipt_id,
+            receipt_summary_hash=receipt_summary_hash,
             compensation_status=compensation_status,
             updated_at=updated_at,
         )
