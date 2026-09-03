@@ -14,7 +14,7 @@ from oria.config import ConfigResolutionError, resolve_runtime_config
 from oria.config.models import ResolvedRuntimeConfig
 from oria.core.protocols import Reranker
 from oria.data import DataInitializationError, initialize_data
-from oria.demo import DemoRunError, run_demo
+from oria.demo import DemoResult, DemoRunError, run_demo
 from oria.eval import (
     RagDatasetError,
     load_rag_dataset,
@@ -31,6 +31,13 @@ from oria.orchestrator.local_executor import (
     inject_merchant_event,
     inject_selection_decision,
     start_local_workflow,
+)
+from oria.presentation.workflow import (
+    MerchantMatch,
+    MerchantMatches,
+    WorkflowViewModel,
+    proposal_rule_summary,
+    render_workflow,
 )
 from oria.rag.rerank import CrossEncoderReranker, FixtureReranker
 
@@ -62,6 +69,34 @@ class OutputFormat(StrEnum):
 class EvalVerification(StrEnum):
     FIXTURE = "fixture"
     COMMUNITY = "community"
+
+
+def _demo_view(result: DemoResult) -> WorkflowViewModel:
+    recommendations = result.proposal.recommended_merchants
+    return WorkflowViewModel(
+        thread_id=result.thread_id,
+        flow_name="招商活动只读提案演示",
+        stage_index=1,
+        stage_total=1,
+        current_stage="生成规则与活动草案",
+        completed_steps=("生成规则与活动草案",),
+        pending_action="只读提案已完成; 本次演示没有创建活动、券或投放记录。",
+        next_command=("oria workflow start --thread-id <thread-id> --campaign-id <campaign-id>"),
+        rule_summary=proposal_rule_summary(result.proposal, result.executed_at.isoformat()),
+        merchant_matches=MerchantMatches(
+            matched_count=result.validation.eligible_merchant_count,
+            evaluated_count=result.validation.eligible_merchant_count,
+            items=tuple(
+                MerchantMatch(
+                    merchant_id=item.merchant_id,
+                    display_name=item.merchant_id,
+                    llm_rank=item.rank,
+                    recommendation_reason=item.reason,
+                )
+                for item in recommendations
+            ),
+        ),
+    )
 
 
 def _default_eval_asset(relative: str) -> Path:
@@ -156,10 +191,8 @@ def demo(
     if output is OutputFormat.JSON:
         typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
     else:
-        typer.echo("Oria offline demo completed")
-        typer.echo(f"Correlation: {result.correlation_id}")
-        typer.echo(f"Eligible merchants: {result.validation.eligible_merchant_count}")
-        typer.echo(f"Proposal report: {result.report_path}")
+        typer.echo(render_workflow(_demo_view(result)))
+        typer.echo(f"\n提案报告: {result.report_path}")
 
 
 @config_app.command("doctor")
@@ -439,12 +472,7 @@ def _run_workflow_operation(
     if output is OutputFormat.JSON:
         typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
     else:
-        typer.echo(f"Workflow {result.status}: {result.thread_id}")
-        for interruption in result.interrupts:
-            typer.echo(
-                f"Waiting: {interruption.get('kind')} "
-                f"({interruption.get('approval_id') or interruption.get('confirmation_task_id')})"
-            )
+        typer.echo(render_workflow(result.view))
 
 
 @workflow_app.command("start")
