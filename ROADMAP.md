@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 DeepSeek+BGE Live 卡通过 | 零配置 Demo 完成规则检索、硬资格商家预筛、LLM 软排序和带引用提案，且不产生业务写入。 |
 | V0.2 | Provider 与 RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡通过 | 统一六家 Provider 的 Fixture 契约，完成授权 RAG、三管线对照、冻结数据集和 DeepSeek Live 验证；其他 Provider 未 Live 验证。 |
-| V0.3 | 场景 A 完整 Workflow | T01–T08 与 Core 已完成；T09 DeepSeek 草案/软排序 Live 卡未执行 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
+| V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
 | V0.4 | 场景 B 动态归因 Agent | T01 已启动且首批产物已提交；T02–T05 未开始 | 已建立可复现合成分析数据并将根因标签与查询库隔离；查询 Tool、Agent、冻结集和 Live 评测尚未交付。 |
 | V0.5 | 多智能体、上下文与记忆 | 未开始 | 计划交付上下文压缩、可治理 Memory、完整权限与 Guardrails、多智能体编排及公平对照实验。 |
 
