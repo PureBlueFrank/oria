@@ -8,8 +8,8 @@
   "embedding_profile": "fixture",
   "reranker_profile": "fixture",
   "gates_sha256": "bf81649871389a72f703bafe6a9b692222297733315bb445c2ea7855a894ec33",
-  "lock_sha256": "b45a0bb6cef787031c371e3351d8bbad6b7b325388eb838c6265dc46ec5ad425",
-  "eval_fingerprint": "sha256:7d8b7357bcdfca1213e72195aca968fa137e46e17cbaaebdecb366627ab95278",
+  "lock_sha256": "32a43e3b49d7ef405feeb229cb7e8419ce2dd6a6494a999298650880c3a3d5ff",
+  "eval_fingerprint": "sha256:6c39670dc392cef20c1de7f07916d1031d67cd427259fcfcaf0c216793804893",
   "created_at": "2026-08-30T15:16:12.426260+08:00",
   "pipelines": [
     {

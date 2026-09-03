@@ -16,7 +16,7 @@ dependencies = [
   "jsonschema>=4.23,<5",
   "langgraph>=1,<2",
   "langgraph-checkpoint-sqlite>=3,<4",
-  "onnxruntime>=1.23.2,<1.24; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "onnxruntime>=1.23.2,<1.24; sys_platform == 'darwin'",
   "pydantic>=2.11,<3",
   "pydantic-settings>=2.10,<3",
   "pyyaml>=6,<7",
@@ -28,14 +28,18 @@ dependencies = [
 [project.optional-dependencies]
 standard = [
   "numpy>=1.26,<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "numpy>=2,<3; sys_platform == 'darwin' and platform_machine == 'arm64'",
   "sentence-transformers>=5,<6",
   "torch>=2.2,<2.3; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "torch>=2.13,<2.14; sys_platform == 'darwin' and platform_machine == 'arm64'",
   "transformers>=4.41,<5",
 ]
 eval = [
   "numpy>=1.26,<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "numpy>=2,<3; sys_platform == 'darwin' and platform_machine == 'arm64'",
   "sentence-transformers>=5,<6",
   "torch>=2.2,<2.3; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "torch>=2.13,<2.14; sys_platform == 'darwin' and platform_machine == 'arm64'",
   "transformers>=4.41,<5",
 ]
 
@@ -57,6 +61,7 @@ required-version = "==0.12.6"
 default-groups = ["dev"]
 required-environments = [
   "sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "sys_platform == 'darwin' and platform_machine == 'arm64'",
 ]
 
 [tool.hatch.build.targets.wheel]
