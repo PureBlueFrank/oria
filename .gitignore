@@ -18,3 +18,7 @@ dist/
 .artifacts/
 .idea/
 .vscode/
+
+# Local-only design and execution documents
+/Oria架构设计.md
+/docs/Oria详细执行路线.md
