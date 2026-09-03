@@ -18,6 +18,9 @@ from oria.presentation.workflow import (
     RuleSummaryItem,
     SelectionSummary,
     WorkflowViewModel,
+    _column_widths,
+    _display_width,
+    _wrap,
     render_workflow,
 )
 
@@ -241,6 +244,58 @@ def test_renderer_contains_rule_merchant_and_workflow_table_rows() -> None:
     assert "提交并等待招后选品" in rendered
     assert "城市不符 1; 名单策略未通过 1" in rendered
     assert "已提交 2, 已收 1, 待收 1" in rendered
+
+
+def test_renderer_wraps_long_cells_without_ellipsis_or_exceeding_terminal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("oria.presentation.workflow._terminal_columns", lambda: 80)
+    long_reason = "满足规则快照中的全部确定性硬资格且可通过当前报名系统完成活动报名"
+    view = WorkflowViewModel(
+        thread_id="thread-wrap",
+        flow_name="招商活动自动化",
+        stage_index=2,
+        stage_total=10,
+        current_stage="招商发布审批",
+        completed_steps=("生成规则与活动草案",),
+        pending_action="规则、候选范围及活动/券草案已冻结, 等待招商发布审批。",
+        next_command=("oria approval approve --thread-id thread-wrap --approval-id approval-wrap"),
+        merchant_matches=MerchantMatches(
+            matched_count=1,
+            evaluated_count=1,
+            items=(
+                MerchantMatch(
+                    merchant_id="demo-m001",
+                    display_name="虚构食坊一号",
+                    llm_rank=1,
+                    recommendation_reason=long_reason,
+                ),
+            ),
+        ),
+    )
+
+    rendered = render_workflow(view)
+
+    assert "…" not in rendered
+    assert "完成活动报名" in rendered
+    table_lines = [line for line in rendered.splitlines() if line.startswith(("┌", "├", "└", "│"))]
+    assert table_lines
+    assert all(_display_width(line) <= 80 for line in table_lines)
+    assert "".join(_wrap(long_reason, 16)) == long_reason
+
+
+def test_non_tty_fallback_reserves_wide_long_text_column(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("oria.presentation.workflow._terminal_columns", lambda: 160)
+    widths = _column_widths(
+        ("类别", "关键值", "生效时间", "来源版本"),
+        (("基础信息", "短值", "2026-07-10", "1.0.0"),),
+        (10, 16, 14, 10),
+        (1,),
+    )
+
+    assert widths[1] >= 60
 
 
 def test_local_result_view_does_not_change_json_contract() -> None:

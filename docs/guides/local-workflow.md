@@ -23,8 +23,8 @@ CAMPAIGN_ID="campaign-local-001"
 | `DATA_DIR` | 运行者选择 | 持久化 Platform DB、Business DB、Checkpoint 和本地投影 |
 | `THREAD_ID` | 运行者选择 | 定位同一条 LangGraph 恢复游标 |
 | `CAMPAIGN_ID` | 运行者选择 | 定位本次合成招商活动 |
-| `approval_id` | 最新输出的 `interrupts[0].approval_id` | 决定 Launch 或 C 端投放审批 |
-| `confirmation_task_id` | 最新输出的 `interrupts[0].confirmation_task_id` | 每次只恢复一个业务确认任务 |
+| `approval_id` | 最新 human 输出的“下一步命令”中 `--approval-id` 的参数值 | 决定 Launch 或 C 端投放审批 |
+| `confirmation_task_id` | 最新 human 输出的“下一步命令”中 `--confirmation-task-id` 的参数值 | 每次只恢复一个业务确认任务 |
 | `source_event_id` | 运行者为每个 Mock 事件选择的唯一 ID | inbox 幂等与重放防护 |
 | `selection_version` | 运行者选择，后续事件必须一致 | 绑定选品决定、完成事件和 C 端投放 |
 
@@ -45,10 +45,10 @@ uv run oria workflow start \
   --output human
 ```
 
-启动结果应为 `status: interrupted`，且 `interrupts[0].kind` 为 `launch_approval`。复制该对象的 `approval_id`：
+启动后的“当前阶段”应为“招商发布审批”，并显示含 `--approval-id` 的“下一步命令”。复制该参数的值：
 
 ```bash
-LAUNCH_APPROVAL_ID="粘贴 interrupts[0].approval_id"
+LAUNCH_APPROVAL_ID="粘贴最新‘下一步命令’里的 --approval-id 值"
 ```
 
 ## 3. 决定 Launch 审批
@@ -74,7 +74,7 @@ uv run oria approval reject \
   --output human
 ```
 
-继续完整流程时选择 approve。批准后返回 `interrupts[0].kind: enrollment_window`。
+继续完整流程时选择 approve。批准后的“当前阶段”应为“报名与商品圈选”，“下一步命令”会提示关闭报名窗口。
 
 ## 4. 注入报名并关闭窗口
 
@@ -96,14 +96,14 @@ uv run oria mock window-close \
   --output human
 ```
 
-关窗后应进入 `interrupts[0].kind: business_confirmation`。
+关窗后的“当前阶段”应为“动态业务确认”，“下一步命令”会给出当前 `--confirmation-task-id`。
 
 ## 5. 逐个处理动态确认链
 
 `workflow resume` 每次只处理一个 ConfirmationTask。每次都从最新返回重新复制 ID，不得重用上一步的已决定 ID：
 
 ```bash
-CONFIRMATION_TASK_ID="粘贴最新 interrupts[0].confirmation_task_id"
+CONFIRMATION_TASK_ID="粘贴最新‘下一步命令’里的 --confirmation-task-id 值"
 uv run oria workflow resume \
   --data-dir "$DATA_DIR" \
   --thread-id "$THREAD_ID" \
@@ -112,7 +112,7 @@ uv run oria workflow resume \
   --output human
 ```
 
-只要最新返回仍是 `kind: business_confirmation`，就用新的 `confirmation_task_id` 重复上述命令。当前内置 Fixture 的冻结规则是 merchant → sales → sales_manager，共 3 级，因此需要执行 3 轮。确认链由规则动态生成，不应把 3 级当成通用常量。
+只要最新输出的“当前阶段”仍是“动态业务确认”，就从新的“下一步命令”复制 `--confirmation-task-id` 的值，重复上述命令。当前内置 Fixture 的冻结规则是 merchant → sales → sales_manager，共 3 级，因此需要执行 3 轮。确认链由规则动态生成，不应把 3 级当成通用常量。
 
 要测试拒绝分支，将任意一轮的 decision 改为 `reject`：
 
@@ -125,11 +125,11 @@ uv run oria workflow resume \
   --output human
 ```
 
-第三轮确认成功后，返回应变为 `kind: selection_event`，并含有用于观测的 `wait_id`。此时系统已自动完成券关联、提交选品并进入异步等待。
+第三轮确认成功后，“当前阶段”应变为“提交并等待招后选品”，“下一步命令”会提示注入选品完成事件。此时系统已自动完成券关联、提交选品并进入异步等待。
 
 ## 6. 注入选品决定与完成事件
 
-先写入逐商品决定。该命令不恢复 Graph，返回仍是 `selection_event`：
+先写入逐商品决定。该命令不恢复 Graph，返回的“当前阶段”仍是“提交并等待招后选品”：
 
 ```bash
 uv run oria mock selection-decision \
@@ -152,10 +152,10 @@ uv run oria mock selection-complete \
   --output human
 ```
 
-返回应包含第二道审批 `interrupts[0].kind: consumer_publish_approval`。复制它的 `approval_id`：
+返回的“当前阶段”应为“C 端发布审批”。复制“下一步命令”中 `--approval-id` 的值：
 
 ```bash
-CONSUMER_APPROVAL_ID="粘贴 interrupts[0].approval_id"
+CONSUMER_APPROVAL_ID="粘贴最新‘下一步命令’里的 --approval-id 值"
 ```
 
 ## 7. 决定 C 端投放审批
@@ -181,7 +181,7 @@ uv run oria approval reject \
   --output human
 ```
 
-批准后的成功终态是 `status: completed` 且 `interrupts: []`。Business DB 中对应投放状态为 `published`，商家通知状态为 `sent`。
+批准后，“当前阶段”为“通知商家并闭环”，并显示终态文案“流程已完成: C 端投放与商家通知已闭环。”Business DB 中对应投放状态为 `published`，商家通知状态为 `sent`。
 
 ## 8. 配置与 profile 一致性
 
@@ -203,6 +203,6 @@ uv run oria approval reject \
 
 - 不要更换 `DATA_DIR` 或 `THREAD_ID`，否则命令无法找到原 checkpoint 和业务状态。
 - 每个 Mock 事件使用稳定且唯一的 `source_event_id`；同 ID 重放由 inbox 去重，同 ID 不同内容会被拒绝。
-- 始终从最新 `interrupts[0]` 取得当前 ID。已解析、过期、跨 tenant 或与参数/checkpoint/策略版本不匹配的审批会 fail closed。
+- 始终从最新 human 输出的“下一步命令”取得 `--approval-id` 或 `--confirmation-task-id` 的当前值。已解析、过期、跨 tenant 或与参数/checkpoint/策略版本不匹配的审批会 fail closed。
 - `config doctor` 只校验配置，不读取 Workflow 状态，也不证明外部系统连通。
 - 需要查看表结构与真相源时，参阅 [数据模型与核心表](../reference/data-model.md)。

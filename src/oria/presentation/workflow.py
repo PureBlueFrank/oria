@@ -6,6 +6,8 @@ repositories, runtime services, checkpoints, or LangGraph implementation objects
 
 from __future__ import annotations
 
+import shutil
+import sys
 import unicodedata
 from collections.abc import Sequence
 from typing import Literal
@@ -254,7 +256,12 @@ def _rule_table(view: WorkflowViewModel) -> str:
         (item.category, item.key_value, item.effective_time, item.source_version)
         for item in view.rule_summary
     ] or [("—", "尚未生成规则摘要", "—", "—")]
-    return _table(("类别", "关键值", "生效时间", "来源版本"), rows, (14, 36, 25, 14))
+    return _table(
+        ("类别", "关键值", "生效时间", "来源版本"),
+        rows,
+        minimums=(10, 16, 14, 10),
+        long_text_columns=(1,),
+    )
 
 
 def _merchant_table(view: WorkflowViewModel) -> str:
@@ -267,7 +274,12 @@ def _merchant_table(view: WorkflowViewModel) -> str:
         )
         for item in view.merchant_matches.items
     ] or [("—", "—", "—", "尚无合格候选")]
-    return _table(("商家", "硬资格", "LLM 排名", "推荐理由"), rows, (28, 8, 10, 38))
+    return _table(
+        ("商家", "硬资格", "LLM 排名", "推荐理由"),
+        rows,
+        minimums=(16, 6, 8, 16),
+        long_text_columns=(3,),
+    )
 
 
 def _workflow_table(view: WorkflowViewModel) -> str:
@@ -287,7 +299,12 @@ def _workflow_table(view: WorkflowViewModel) -> str:
             artifact = "—"
             action = "等待前序步骤"
         rows.append((f"{index}. {step}", _status_label(status), artifact, action))
-    return _table(("步骤", "状态", "产物", "下一动作"), rows, (28, 10, 22, 38))
+    return _table(
+        ("步骤", "状态", "产物", "下一动作"),
+        rows,
+        minimums=(18, 6, 12, 16),
+        long_text_columns=(3,),
+    )
 
 
 def _current_status(view: WorkflowViewModel) -> StepStatus:
@@ -329,48 +346,116 @@ def _status_label(status: StepStatus) -> str:
 def _table(
     headers: Sequence[str],
     rows: Sequence[Sequence[str]],
-    maximums: Sequence[int],
+    *,
+    minimums: Sequence[int],
+    long_text_columns: Sequence[int],
 ) -> str:
-    normalized = [
-        tuple(_truncate(str(cell), maximums[index]) for index, cell in enumerate(row))
-        for row in rows
-    ]
-    widths = [
-        min(
-            maximums[index],
-            max(
-                _display_width(headers[index]), *(_display_width(row[index]) for row in normalized)
-            ),
-        )
-        for index in range(len(headers))
-    ]
+    normalized = [tuple(str(cell) for cell in row) for row in rows]
+    widths = _column_widths(headers, normalized, minimums, long_text_columns)
     top = "┌" + "┬".join("─" * (width + 2) for width in widths) + "┐"
     middle = "├" + "┼".join("─" * (width + 2) for width in widths) + "┤"
     bottom = "└" + "┴".join("─" * (width + 2) for width in widths) + "┘"
 
-    def line(cells: Sequence[str]) -> str:
-        return (
-            "│ " + " │ ".join(_pad(cell, widths[index]) for index, cell in enumerate(cells)) + " │"
-        )
+    def line(cells: Sequence[str]) -> list[str]:
+        wrapped = [_wrap(cell, widths[index]) for index, cell in enumerate(cells)]
+        height = max(len(cell_lines) for cell_lines in wrapped)
+        return [
+            "│ "
+            + " │ ".join(
+                _pad(cell_lines[line_index] if line_index < len(cell_lines) else "", widths[index])
+                for index, cell_lines in enumerate(wrapped)
+            )
+            + " │"
+            for line_index in range(height)
+        ]
 
-    return "\n".join([top, line(headers), middle, *(line(row) for row in normalized), bottom])
+    body = line(headers)
+    body.append(middle)
+    for row in normalized:
+        body.extend(line(row))
+    return "\n".join([top, *body, bottom])
+
+
+def _column_widths(
+    headers: Sequence[str],
+    rows: Sequence[Sequence[str]],
+    minimums: Sequence[int],
+    long_text_columns: Sequence[int],
+) -> list[int]:
+    column_count = len(headers)
+    if len(minimums) != column_count:
+        raise ValueError("table minimum widths must match the column count")
+    available = max(_terminal_columns() - (3 * column_count + 1), 2 * column_count)
+    natural = [
+        max(_display_width(headers[index]), *(_display_width(row[index]) for row in rows))
+        for index in range(column_count)
+    ]
+    widths = [max(width, 2) for width in minimums]
+    for index in long_text_columns:
+        widths[index] = max(widths[index], 60)
+
+    excess = max(sum(widths) - available, 0)
+    shrink_order = [
+        *long_text_columns,
+        *(index for index in range(column_count) if index not in long_text_columns),
+    ]
+    for index in shrink_order:
+        floor = max(minimums[index], 2) if index in long_text_columns else 2
+        reduction = min(max(widths[index] - floor, 0), excess)
+        widths[index] -= reduction
+        excess -= reduction
+        if excess == 0:
+            break
+    if excess:
+        for index in shrink_order:
+            reduction = min(max(widths[index] - 2, 0), excess)
+            widths[index] -= reduction
+            excess -= reduction
+            if excess == 0:
+                break
+
+    remaining = max(available - sum(widths), 0)
+    for index in shrink_order:
+        addition = min(max(natural[index] - widths[index], 0), remaining)
+        widths[index] += addition
+        remaining -= addition
+    return widths
+
+
+def _terminal_columns() -> int:
+    try:
+        if not sys.stdout.isatty():
+            return 160
+    except (AttributeError, OSError):
+        return 160
+    return max(shutil.get_terminal_size(fallback=(160, 24)).columns, 21)
+
+
+def _wrap(value: str, width: int) -> tuple[str, ...]:
+    lines: list[str] = []
+    current = ""
+    current_width = 0
+    for character in value:
+        if character == "\n":
+            lines.append(current)
+            current = ""
+            current_width = 0
+            continue
+        character_width = _display_width(character)
+        if current and current_width + character_width > width:
+            lines.append(current)
+            current = ""
+            current_width = 0
+        current += character
+        current_width += character_width
+    lines.append(current)
+    return tuple(lines)
 
 
 def _display_width(value: str) -> int:
     return sum(
         2 if unicodedata.east_asian_width(character) in {"W", "F"} else 1 for character in value
     )
-
-
-def _truncate(value: str, maximum: int) -> str:
-    if _display_width(value) <= maximum:
-        return value
-    result = ""
-    for character in value:
-        if _display_width(result + character + "…") > maximum:
-            break
-        result += character
-    return result + "…"
 
 
 def _pad(value: str, width: int) -> str:
