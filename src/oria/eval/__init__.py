@@ -5,9 +5,13 @@ from oria.eval.baseline_policy import (
     assert_eval_baseline_update_policy,
 )
 from oria.eval.datasets import (
+    AttributionGoldenCase,
     GoldenCase,
+    GoldenCaseModel,
     GoldenDataset,
     GoldenDatasetError,
+    GoldenManifest,
+    GoldenReview,
     HumanReviewRequired,
     load_golden_dataset,
 )
@@ -76,13 +80,17 @@ from oria.eval.scenario_a import (
 )
 
 __all__ = [
+    "AttributionGoldenCase",
     "DeepSeekToolDiagnosticCard",
     "DeepSeekToolProbeResult",
     "EvalBaselineUpdateError",
     "GoldenCase",
+    "GoldenCaseModel",
     "GoldenDataset",
     "GoldenDatasetError",
     "GoldenGateError",
+    "GoldenManifest",
+    "GoldenReview",
     "HumanReviewRequired",
     "NightlyBudget",
     "NightlyBudgetExceeded",

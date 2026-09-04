@@ -350,7 +350,8 @@ def _proposal(search: dict[str, Any], merchants: dict[str, Any]) -> dict[str, Js
 
 
 def _eval_runtime(base: RuntimeServices, dataset: GoldenDataset) -> RuntimeServices:
-    cases = {case.case_id: case for case in dataset.cases}
+    cases = {case.case_id: case for case in dataset.cases if isinstance(case, GoldenCase)}
+    cases_tuple = tuple(c for c in dataset.cases if isinstance(c, GoldenCase))
     tools = ToolRegistry(allowlist=frozenset({"search_campaign_rules", "query_merchants"}))
     tools.register(_ScenarioSearchTool(base.tools.get("search_campaign_rules"), cases))
     tools.register(base.tools.get("query_merchants"))
@@ -368,7 +369,7 @@ def _eval_runtime(base: RuntimeServices, dataset: GoldenDataset) -> RuntimeServi
         ingress=base.ingress,
         notifier=base.notifier,
         exit_stack=stack,
-        llm=_ScenarioAReplayProvider(dataset.cases),
+        llm=_ScenarioAReplayProvider(cases_tuple),
         retriever=base.retriever,
         embedder=base.embedder,
         memory=base.memory,
@@ -407,6 +408,7 @@ async def run_scenario_a_golden(
         await runtime.knowledge.ingest(demo_rule_document(), ingest_ctx)
         results: list[ScenarioACaseResult] = []
         for case in dataset.cases:
+            assert isinstance(case, GoldenCase)
             ctx = runtime.new_context(
                 actor=local_operator(),
                 executor=local_cli_executor(),

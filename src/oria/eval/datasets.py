@@ -70,8 +70,50 @@ class GoldenCase(ValueModel):
         return self
 
 
+class AttributionGoldenCase(ValueModel):
+    """Scenario B golden case for attribution eval with human-review gate."""
+
+    case_id: str = Field(pattern=r"^sb-v[1-9][0-9]*-[0-9]{3}$")
+    schema_version: Literal[1] = 1
+    critical: bool
+    tenant_id: str = Field(min_length=1)
+    question: str = Field(min_length=1)
+    fixture_variant: str = Field(min_length=1)
+    expected_outcome: Literal["attributed", "conflicting", "insufficient"]
+    expected_abstain: bool
+    root_cause_code: str | None = None
+    acceptable_hypotheses: tuple[str, ...] = ()
+    required_evidence: tuple[str, ...] = ()
+    golden_rationale: str = Field(min_length=1)
+    expected_tools: tuple[str, ...] = ()
+    forbidden_tools: tuple[str, ...] = ()
+    review: GoldenReview
+
+    @model_validator(mode="after")
+    def validate_outcome_shape(self) -> Self:
+        if self.expected_outcome == "insufficient":
+            if not self.expected_abstain:
+                raise ValueError("insufficient cases must expect abstention")
+            if self.root_cause_code is not None:
+                raise ValueError("insufficient cases cannot have a root cause code")
+        else:
+            if self.expected_abstain:
+                raise ValueError("attributed/conflicting cases cannot expect abstention")
+            if not self.acceptable_hypotheses or not self.required_evidence:
+                raise ValueError("attributed/conflicting cases require hypotheses and evidence")
+            if not self.expected_tools:
+                raise ValueError("attributed/conflicting cases require expected tools")
+            if self.expected_outcome == "conflicting" and len(self.acceptable_hypotheses) < 2:
+                raise ValueError("conflicting cases require multiple acceptable hypotheses")
+        return self
+
+
+GoldenCaseModel = GoldenCase | AttributionGoldenCase
+"""Union of all golden case models; dispatch is driven by ``GoldenManifest.suite``."""
+
+
 class GoldenManifest(ValueModel):
-    suite: Literal["scenario_a"]
+    suite: Literal["scenario_a", "scenario_b"]
     dataset_version: str = Field(pattern=r"^[1-9][0-9]*$")
     schema_version: Literal[1] = 1
     source: Literal["synthetic"]
@@ -98,7 +140,22 @@ class GoldenManifest(ValueModel):
 
 class GoldenDataset(ValueModel):
     manifest: GoldenManifest
-    cases: tuple[GoldenCase, ...]
+    cases: tuple[GoldenCaseModel, ...]
+
+    @model_validator(mode="after")
+    def validate_suite_case_type(self) -> Self:
+        for case in self.cases:
+            if self.manifest.suite == "scenario_a" and not isinstance(case, GoldenCase):
+                raise GoldenDatasetError("scenario_a cases must use GoldenCase schema")
+            if self.manifest.suite == "scenario_b" and not isinstance(case, AttributionGoldenCase):
+                raise GoldenDatasetError("scenario_b cases must use AttributionGoldenCase schema")
+        return self
+
+
+_CASE_MODELS: dict[str, type[GoldenCaseModel]] = {
+    "scenario_a": GoldenCase,
+    "scenario_b": AttributionGoldenCase,
+}
 
 
 def load_golden_dataset(
@@ -121,12 +178,13 @@ def load_golden_dataset(
         raise GoldenDatasetError("Golden dataset is unavailable") from exc
     if hashlib.sha256(payload).hexdigest() != manifest.dataset_sha256:
         raise GoldenDatasetError("Golden dataset integrity check failed")
-    cases: list[GoldenCase] = []
+    case_model = _CASE_MODELS[manifest.suite]
+    cases: list[GoldenCaseModel] = []
     try:
         for line in payload.decode("utf-8").splitlines():
             if not line.strip():
                 raise GoldenDatasetError("Golden dataset contains a blank line")
-            cases.append(GoldenCase.model_validate_json(line))
+            cases.append(case_model.model_validate_json(line))
     except (UnicodeDecodeError, ValueError) as exc:
         if isinstance(exc, GoldenDatasetError):
             raise

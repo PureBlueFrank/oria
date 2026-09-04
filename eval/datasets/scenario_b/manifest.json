@@ -1,0 +1,16 @@
+{
+  "suite": "scenario_b",
+  "dataset_version": "1",
+  "schema_version": 1,
+  "source": "synthetic",
+  "contains_real_entities": false,
+  "license": "CC0-1.0",
+  "generator_seed": "20260902",
+  "case_count": 50,
+  "critical_case_count": 7,
+  "dataset_file": "v1.jsonl",
+  "dataset_sha256": "275cf5bce3b19328659b7a9458aaba02ade80f64e5cdffd388ab7f91f1dfec68",
+  "review_status": "pending_human_review",
+  "human_review_complete": false,
+  "baseline_created": false
+}
