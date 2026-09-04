@@ -58,6 +58,7 @@ class ResearchState(TypedDict):
     rule_result: dict[str, JsonValue] | None
     merchant_result: dict[str, JsonValue] | None
     proposal: dict[str, JsonValue] | None
+    conclusion: dict[str, JsonValue] | None
     tool_results: dict[str, dict[str, JsonValue]]
     final_result: dict[str, JsonValue] | None
     termination: dict[str, JsonValue] | None
@@ -118,6 +119,7 @@ def initial_research_state(
         rule_result=None,
         merchant_result=None,
         proposal=None,
+        conclusion=None,
         tool_results={},
         final_result=None,
         termination=None,

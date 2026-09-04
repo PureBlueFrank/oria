@@ -66,3 +66,34 @@ def test_production_analytics_package_does_not_import_eval_labels() -> None:
                 imports.add(node.module)
 
     assert all(not name.startswith("oria.eval") for name in imports)
+
+
+def test_agent_prompt_and_production_tools_do_not_embed_eval_only_answers(
+    tmp_path: Path,
+) -> None:
+    query_database = tmp_path / "analytics.db"
+    label_database = tmp_path / "evaluation-only" / "labels.db"
+    generate_attribution_fixture(query_database, label_database)
+    with sqlite3.connect(label_database) as connection:
+        row = connection.execute(
+            "SELECT case_id, root_cause_code, golden_rationale FROM attribution_labels"
+        ).fetchone()
+    assert row is not None
+    eval_only_values = tuple(str(value) for value in row)
+
+    root = Path(__file__).resolve().parents[2]
+    production_files = (
+        root / "src" / "oria" / "agent" / "attribution.py",
+        root / "src" / "oria" / "agent" / "graph.py",
+        root / "src" / "oria" / "agent" / "models.py",
+        root / "src" / "oria" / "analytics" / "demo.py",
+        root / "src" / "oria" / "analytics" / "query.py",
+        root / "src" / "oria" / "tools" / "analytics.py",
+        root / "src" / "oria" / "prompts" / "attribution_reasoning" / "v1.jinja",
+    )
+    production_text = "\n".join(path.read_text(encoding="utf-8") for path in production_files)
+
+    assert all(value not in production_text for value in eval_only_values)
+    assert "oria.eval" not in production_text
+    query_bytes = query_database.read_bytes()
+    assert all(value.encode() not in query_bytes for value in eval_only_values)
