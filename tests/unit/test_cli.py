@@ -160,11 +160,15 @@ def test_scenario_a_commands_expose_optional_runtime_profile_overrides() -> None
     }
     expected = {"--runtime-profile", "--llm-profile", "--embedding-profile"}
 
+    root = get_command(app)
     for group_name, command_names in command_paths.items():
+        group = root.commands[group_name]
         for command_name in command_names:
-            result = CliRunner().invoke(app, [group_name, command_name, "--help"])
-            assert result.exit_code == 0
-            assert all(option in result.output for option in expected)
+            command = group.commands[command_name]
+            option_names = {
+                opt for param in command.params for opt in param.opts if opt.startswith("--")
+            }
+            assert expected <= option_names
 
 
 def test_rag_eval_fails_closed_before_unreviewed_dataset_runs(
