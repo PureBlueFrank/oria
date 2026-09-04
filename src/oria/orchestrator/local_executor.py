@@ -31,9 +31,14 @@ from oria.permission.local import LOCAL_TENANT_ID, local_cli_executor
 from oria.presentation.workflow import (
     ApprovalSummary,
     ConfirmationProgress,
+    CouponBatchSummary,
+    EnrollmentItemDetail,
     MerchantExclusionCount,
     MerchantMatch,
     MerchantMatches,
+    NotificationMessage,
+    PlacementSummary,
+    SelectionDecisionDetail,
     SelectionSummary,
     WorkflowViewModel,
     proposal_rule_summary,
@@ -485,6 +490,144 @@ def _selection_summary(
     )
 
 
+def _enrollment_items(results: Mapping[str, NodeResult]) -> tuple[EnrollmentItemDetail, ...]:
+    joined = results.get("enrollment_join")
+    raw = joined.updates.get("enrollment_items") if joined is not None else None
+    if not isinstance(raw, (list, tuple)):
+        return ()
+    projected: list[EnrollmentItemDetail] = []
+    for item in raw:
+        if not isinstance(item, Mapping):
+            continue
+        sources = item.get("sources")
+        try:
+            projected.append(
+                EnrollmentItemDetail.model_validate(
+                    {
+                        "merchant_id": item.get("merchant_id"),
+                        "product_ref": item.get("product_ref"),
+                        "product_version": item.get("product_version"),
+                        "sources": (
+                            tuple(value for value in sources if isinstance(value, str))
+                            if isinstance(sources, (list, tuple))
+                            else ()
+                        ),
+                        "status": item.get("status"),
+                    }
+                )
+            )
+        except ValueError:
+            continue
+    return tuple(projected)
+
+
+def _coupon_batch(results: Mapping[str, NodeResult]) -> CouponBatchSummary | None:
+    launch = results.get("launch")
+    raw = launch.updates.get("coupon_batch") if launch is not None else None
+    if not isinstance(raw, Mapping):
+        return None
+    face_values = raw.get("face_values")
+    try:
+        return CouponBatchSummary.model_validate(
+            {
+                "coupon_batch_id": raw.get("coupon_batch_id"),
+                "face_values": (
+                    tuple(value for value in face_values if isinstance(value, str))
+                    if isinstance(face_values, (list, tuple))
+                    else ()
+                ),
+                "quantity": raw.get("quantity"),
+                "quantity_note": raw.get("quantity_note"),
+                "budget_cap": raw.get("budget_cap"),
+                "currency": raw.get("currency"),
+                "status": raw.get("status"),
+            }
+        )
+    except ValueError:
+        return None
+
+
+def _selection_decisions(
+    results: Mapping[str, NodeResult],
+) -> tuple[SelectionDecisionDetail, ...]:
+    approval = results.get("consumer_publish_approval")
+    raw = approval.updates.get("selection_decisions") if approval is not None else None
+    if not isinstance(raw, (list, tuple)):
+        return ()
+    projected: list[SelectionDecisionDetail] = []
+    for item in raw:
+        if not isinstance(item, Mapping):
+            continue
+        try:
+            projected.append(
+                SelectionDecisionDetail.model_validate(
+                    {
+                        "merchant_id": item.get("merchant_id"),
+                        "product_ref": item.get("product_ref"),
+                        "product_version": item.get("product_version"),
+                        "decision": item.get("decision"),
+                        "reason": item.get("reason"),
+                    }
+                )
+            )
+        except ValueError:
+            continue
+    return tuple(projected)
+
+
+def _placement(results: Mapping[str, NodeResult]) -> PlacementSummary | None:
+    for result_key in ("consumer_publish", "consumer_publish_approval"):
+        result = results.get(result_key)
+        raw = result.updates.get("placement_display") if result is not None else None
+        if not isinstance(raw, Mapping):
+            continue
+        selected = raw.get("selected_products")
+        try:
+            return PlacementSummary.model_validate(
+                {
+                    "channel": raw.get("channel"),
+                    "region": raw.get("region"),
+                    "content_example": raw.get("content_example"),
+                    "selected_products": (
+                        tuple(value for value in selected if isinstance(value, str))
+                        if isinstance(selected, (list, tuple))
+                        else ()
+                    ),
+                    "status": raw.get("status"),
+                }
+            )
+        except ValueError:
+            continue
+    return None
+
+
+def _notification_messages(
+    results: Mapping[str, NodeResult],
+) -> tuple[NotificationMessage, ...]:
+    result = results.get("merchant_notifications")
+    raw = result.updates.get("notification_messages") if result is not None else None
+    if not isinstance(raw, (list, tuple)):
+        return ()
+    projected: list[NotificationMessage] = []
+    for item in raw:
+        if not isinstance(item, Mapping):
+            continue
+        try:
+            projected.append(
+                NotificationMessage.model_validate(
+                    {
+                        "merchant_id": item.get("merchant_id"),
+                        "channel": item.get("channel"),
+                        "status": item.get("status"),
+                        "message": item.get("message"),
+                    }
+                )
+            )
+        except ValueError:
+            continue
+    return tuple(projected)
+
+
 def _nonnegative_int(value: object) -> int:
     return value if isinstance(value, int) and value >= 0 else 0
 
@@ -604,6 +747,11 @@ def workflow_view_from_state(
         approval_summary=approval,
         confirmation_progress=confirmation,
         selection_summary=_selection_summary(values, results, detail),
+        enrollment_items=_enrollment_items(results),
+        coupon_batch=_coupon_batch(results),
+        selection_decisions=_selection_decisions(results),
+        placement=_placement(results),
+        notification_messages=_notification_messages(results),
         terminal_outcome=cast(Any, terminal),
     )
 
@@ -1043,9 +1191,24 @@ async def inject_selection_decision(
         applied = await _scenario(runtime).ingest_selection_decision(
             request, cast(Any, snapshot.values), event, ctx
         )
+        graph = _graph(runtime)
+        await graph.aupdate_state(
+            checkpoint_config(ctx),
+            {
+                "results": {
+                    f"selection_decision:{item_id}": applied,
+                }
+            },
+            as_node="prepare_selection_wait",
+        )
+        value = await graph.ainvoke(
+            None,
+            config=checkpoint_config(ctx),
+            context=ctx,
+        )
         return _result(
             thread_id,
-            snapshot,
+            value,
             selection_version=applied.updates.get("selection_version"),
             decision=decision,
         )

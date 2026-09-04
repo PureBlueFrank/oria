@@ -15,6 +15,7 @@ from langgraph.types import interrupt
 from pydantic import Field, model_validator
 
 from oria.agent import ResearchRunContext, build_research_graph, initial_research_state
+from oria.agent.models import CampaignProposal
 from oria.core.approvals import Approval, ApprovalService
 from oria.core.context import Context
 from oria.core.integration_events import (
@@ -52,6 +53,7 @@ from oria.domain.launch import (
     MaterializeCouponBatchArgs,
     PublishRecruitmentArgs,
 )
+from oria.domain.ledger import ToolExecution
 from oria.domain.products import ProductQueryService
 from oria.orchestrator.patterns import parallelization
 from oria.orchestrator.state import (
@@ -329,7 +331,19 @@ class DefaultScenarioAWorkflowService:
         if not inbox.resume_eligible:
             raise PermissionError("selection decision did not pass trusted inbox validation")
         applied = await self._selection_events.apply(parsed, ctx)
-        return _node_result(**applied.model_dump(mode="json"))
+        decision = parsed.payload
+        item = _enrollment_item_projection(state, decision.enrollment_item_id)
+        return _node_result(
+            **applied.model_dump(mode="json"),
+            selection_decisions=[
+                {
+                    **item,
+                    "selection_version": decision.selection_version,
+                    "decision": decision.decision,
+                    "reason": decision.reason_code or "selected_by_assortment",
+                }
+            ],
+        )
 
     async def generate_draft(self, request: ScenarioAWorkflowRequest, ctx: Context) -> NodeResult:
         research = await self._research.ainvoke(
@@ -444,10 +458,9 @@ class DefaultScenarioAWorkflowService:
         status: Literal["completed", "waiting"] = (
             "completed" if execution.saga.status == "completed" else "waiting"
         )
-        return NodeResult(
-            status=status,
-            updates=cast(dict[str, JsonValue], execution.model_dump(mode="json")),
-        )
+        updates = cast(dict[str, JsonValue], execution.model_dump(mode="json"))
+        updates["coupon_batch"] = _coupon_batch_projection(state, execution.materialize_execution)
+        return NodeResult(status=status, updates=updates)
 
     async def prepare_enrollment(
         self,
@@ -584,6 +597,20 @@ class DefaultScenarioAWorkflowService:
         return _node_result(
             enrollment_item_ids=list(item_ids),
             merchant_ids=list(merchant_ids),
+            enrollment_items=cast(
+                JsonValue,
+                [
+                    {
+                        "enrollment_item_id": item.enrollment_item_id,
+                        "merchant_id": item.merchant_id,
+                        "product_ref": item.product_ref,
+                        "product_version": item.product_version,
+                        "sources": sorted(item.sources),
+                        "status": item.status,
+                    }
+                    for item in write.enrollment_items
+                ],
+            ),
             confirmation_tasks=[task.model_dump(mode="json") for task in tasks],
         )
 
@@ -770,10 +797,21 @@ class DefaultScenarioAWorkflowService:
             expires_at=request.approval_expires_at,
             ctx=ctx,
         )
+        decisions = _selection_decision_projections(
+            state,
+            selected_products=approval_result.selected_products,
+        )
         return NodeResult(
             status="waiting",
             updates={
                 "approval": _approval_projection(approval_result.approval),
+                "placement_display": _placement_projection(
+                    request,
+                    state,
+                    selected_products=approval_result.selected_products,
+                    status="pending_approval",
+                ),
+                "selection_decisions": cast(JsonValue, decisions),
                 "selection_summary": {
                     "submitted_count": approval_result.submitted_count,
                     "selected_count": approval_result.selected_count,
@@ -808,7 +846,15 @@ class DefaultScenarioAWorkflowService:
             checkpoint_id=resume.checkpoint_id,
             ctx=ctx,
         )
-        return _node_result(**published.model_dump(mode="json"))
+        return _node_result(
+            **published.model_dump(mode="json"),
+            placement_display=_placement_projection(
+                request,
+                state,
+                selected_products=_selected_products(state),
+                status=published.placement.status,
+            ),
+        )
 
     async def notify_merchants(
         self, request: ScenarioAWorkflowRequest, state: WorkflowState, ctx: Context
@@ -825,6 +871,8 @@ class DefaultScenarioAWorkflowService:
             str, _approval_payload(state, "consumer_publish_approval")["checkpoint_id"]
         )
         notifications = []
+        messages = []
+        decisions = _selection_decision_projections(state)
         for merchant_id in merchant_ids:
             sent = await self._assortment.send_merchant_notification(
                 SendMerchantNotificationArgs(
@@ -839,7 +887,18 @@ class DefaultScenarioAWorkflowService:
                 ctx=ctx,
             )
             notifications.append(sent.model_dump(mode="json"))
-        return _node_result(notifications=cast(JsonValue, notifications))
+            messages.append(
+                _notification_projection(
+                    request,
+                    merchant_id=merchant_id,
+                    status=sent.notification.status,
+                    decisions=decisions,
+                )
+            )
+        return _node_result(
+            notifications=cast(JsonValue, notifications),
+            notification_messages=cast(JsonValue, messages),
+        )
 
     async def _register_wait(
         self,
@@ -940,6 +999,188 @@ def _object_list(value: list[JsonValue], label: str) -> list[dict[str, JsonValue
             raise RuntimeError(f"workflow did not produce valid {label}")
         items.append(cast(dict[str, JsonValue], dict(item)))
     return items
+
+
+def _enrollment_item_projections(state: WorkflowState) -> list[dict[str, JsonValue]]:
+    raw = _result(state, "enrollment_join").updates.get("enrollment_items")
+    if not isinstance(raw, list):
+        return []
+    return _object_list(raw, "enrollment item projections")
+
+
+def _enrollment_item_projection(
+    state: WorkflowState, enrollment_item_id: str
+) -> dict[str, JsonValue]:
+    for item in _enrollment_item_projections(state):
+        if item.get("enrollment_item_id") == enrollment_item_id:
+            return {
+                key: item[key]
+                for key in ("enrollment_item_id", "merchant_id", "product_ref", "product_version")
+                if key in item
+            }
+    return {"enrollment_item_id": enrollment_item_id}
+
+
+def _coupon_batch_projection(
+    state: WorkflowState, materialize_execution: ToolExecution | None
+) -> dict[str, JsonValue]:
+    draft = _result_model(state, "draft", "draft", CampaignDraft)
+    proposal = _result_model(state, "draft", "proposal", CampaignProposal)
+    preview = proposal.coupon_batch_preview
+    face_values: list[str] = []
+    budget_cap: str | None = None
+    currency: str | None = None
+    if preview is not None:
+        currency = preview.currency
+        budget_cap = str(preview.budget_cap)
+        for tier in preview.tier_rules:
+            if tier.fixed_amount is not None:
+                value = f"{tier.name}: {tier.fixed_amount} {preview.currency}"
+            elif tier.discount_rate is not None:
+                value = f"{tier.name}: 折扣率 {tier.discount_rate}"
+            else:
+                steps = " / ".join(
+                    f"满 {step.threshold} 减 {step.funding_amount} {preview.currency}"
+                    for step in tier.steps
+                )
+                value = f"{tier.name}: {steps}"
+            face_values.append(value)
+    execution_status = materialize_execution.status if materialize_execution is not None else None
+    statuses = {
+        "succeeded": "ready",
+        "failed": "failed",
+        "unknown": "unknown",
+        "executing": "materializing",
+        "reserved": "materializing",
+    }
+    status = (
+        statuses.get(execution_status, draft.coupon_batch.status)
+        if execution_status
+        else draft.coupon_batch.status
+    )
+    return {
+        "coupon_batch_id": draft.coupon_batch.coupon_batch_id,
+        "face_values": cast(JsonValue, face_values),
+        "quantity": None,
+        "quantity_note": "未单独配置固定张数",
+        "budget_cap": budget_cap,
+        "currency": currency,
+        "status": status,
+    }
+
+
+def _selected_products(state: WorkflowState) -> tuple[str, ...]:
+    approval = _result(state, "consumer_publish_approval")
+    summary = approval.updates.get("selection_summary")
+    if not isinstance(summary, Mapping):
+        return ()
+    selected = summary.get("selected_products")
+    if not isinstance(selected, list):
+        return ()
+    return tuple(item for item in selected if isinstance(item, str))
+
+
+def _selection_decision_projections(
+    state: WorkflowState,
+    *,
+    selected_products: tuple[str, ...] = (),
+) -> list[dict[str, JsonValue]]:
+    decisions: dict[str, dict[str, JsonValue]] = {}
+    for result_key, result in state["results"].items():
+        if not (
+            result_key.startswith("selection_decision:")
+            or result_key == "consumer_publish_approval"
+        ):
+            continue
+        raw = result.updates.get("selection_decisions")
+        if not isinstance(raw, list):
+            continue
+        for item in _object_list(raw, "selection decision projections"):
+            item_id = item.get("enrollment_item_id")
+            if isinstance(item_id, str):
+                decisions[item_id] = item
+    if decisions:
+        return sorted(
+            decisions.values(),
+            key=lambda item: (
+                str(item.get("merchant_id", "")),
+                str(item.get("product_ref", "")),
+            ),
+        )
+
+    selected = set(selected_products or _selected_products(state))
+    for item in _enrollment_item_projections(state):
+        item_id = item.get("enrollment_item_id")
+        product_ref = item.get("product_ref")
+        if not isinstance(item_id, str) or not isinstance(product_ref, str):
+            continue
+        is_selected = product_ref in selected
+        decisions[item_id] = {
+            **item,
+            "decision": "selected" if is_selected else "rejected",
+            "reason": "selected_by_assortment" if is_selected else "selection_reason_unavailable",
+        }
+    return list(decisions.values())
+
+
+def _placement_projection(
+    request: ScenarioAWorkflowRequest,
+    state: WorkflowState,
+    *,
+    selected_products: tuple[str, ...],
+    status: str,
+) -> dict[str, JsonValue]:
+    proposal = _result_model(state, "draft", "proposal", CampaignProposal)
+    title = (
+        proposal.campaign_preview.title
+        if proposal.campaign_preview is not None
+        else request.draft.campaign_id
+    )
+    channel = request.placement_spec.get("channel")
+    region = request.placement_spec.get("region")
+    return {
+        "channel": channel if isinstance(channel, str) else "未指定",
+        "region": region if isinstance(region, str) else "未指定",
+        "content_example": (
+            f"{title}: {len(selected_products)} 个入选商品已配置活动优惠, 欢迎前往活动专区选购。"
+        ),
+        "selected_products": list(selected_products),
+        "status": status,
+    }
+
+
+def _notification_projection(
+    request: ScenarioAWorkflowRequest,
+    *,
+    merchant_id: str,
+    status: str,
+    decisions: list[dict[str, JsonValue]],
+) -> dict[str, JsonValue]:
+    merchant_decisions = [item for item in decisions if item.get("merchant_id") == merchant_id]
+    selected = [
+        str(item["product_ref"])
+        for item in merchant_decisions
+        if item.get("decision") == "selected" and "product_ref" in item
+    ]
+    rejected = [
+        f"{item['product_ref']} ({item.get('reason', '原因未提供')})"
+        for item in merchant_decisions
+        if item.get("decision") == "rejected" and "product_ref" in item
+    ]
+    channel = request.placement_spec.get("channel")
+    region = request.placement_spec.get("region")
+    return {
+        "merchant_id": merchant_id,
+        "channel": request.notification_channel,
+        "status": status,
+        "message": (
+            f"活动 {request.draft.campaign_id} 选品结果: "
+            f"入选商品 {'、'.join(selected) if selected else '无'}; "
+            f"未入选商品 {'、'.join(rejected) if rejected else '无'}; "
+            f"C 端投放 {channel if isinstance(channel, str) else '未指定'} / "
+            f"{region if isinstance(region, str) else '未指定'}。"
+        ),
+    }
 
 
 def _sha256(value: str) -> str:

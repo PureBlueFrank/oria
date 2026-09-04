@@ -73,6 +73,47 @@ class SelectionSummary(ValueModel):
     placement_scope: str | None = None
 
 
+class EnrollmentItemDetail(ValueModel):
+    merchant_id: str = Field(min_length=1)
+    product_ref: str = Field(min_length=1)
+    product_version: str | None = None
+    sources: tuple[str, ...] = ()
+    status: str = Field(min_length=1)
+
+
+class CouponBatchSummary(ValueModel):
+    coupon_batch_id: str = Field(min_length=1)
+    face_values: tuple[str, ...] = ()
+    quantity: int | None = Field(default=None, ge=0)
+    quantity_note: str | None = None
+    budget_cap: str | None = None
+    currency: str | None = None
+    status: str = Field(min_length=1)
+
+
+class SelectionDecisionDetail(ValueModel):
+    merchant_id: str | None = None
+    product_ref: str = Field(min_length=1)
+    product_version: str | None = None
+    decision: Literal["selected", "rejected"]
+    reason: str = Field(min_length=1)
+
+
+class PlacementSummary(ValueModel):
+    channel: str = Field(min_length=1)
+    region: str = Field(min_length=1)
+    content_example: str = Field(min_length=1)
+    selected_products: tuple[str, ...] = ()
+    status: str = Field(min_length=1)
+
+
+class NotificationMessage(ValueModel):
+    merchant_id: str = Field(min_length=1)
+    channel: str = Field(min_length=1)
+    status: str = Field(min_length=1)
+    message: str = Field(min_length=1)
+
+
 class WorkflowViewModel(ValueModel):
     """Stable, secret-free projection consumed by human renderers."""
 
@@ -90,6 +131,11 @@ class WorkflowViewModel(ValueModel):
     approval_summary: ApprovalSummary | None = None
     confirmation_progress: ConfirmationProgress | None = None
     selection_summary: SelectionSummary = SelectionSummary()
+    enrollment_items: tuple[EnrollmentItemDetail, ...] = ()
+    coupon_batch: CouponBatchSummary | None = None
+    selection_decisions: tuple[SelectionDecisionDetail, ...] = ()
+    placement: PlacementSummary | None = None
+    notification_messages: tuple[NotificationMessage, ...] = ()
     terminal_outcome: TerminalOutcome | None = None
 
 
@@ -192,7 +238,7 @@ _STAGES = (
 
 
 def render_workflow(view: WorkflowViewModel) -> str:
-    """Render natural-language status and three deterministic terminal tables."""
+    """Render natural-language status and deterministic terminal tables."""
 
     lines = [
         f"{view.flow_name} · 第 {view.stage_index}/{view.stage_total} 阶段",
@@ -215,6 +261,12 @@ def render_workflow(view: WorkflowViewModel) -> str:
         )
         lines.extend(["", "未命中原因汇总", summary])
 
+    if view.enrollment_items:
+        lines.extend(["", "报名商品", _enrollment_table(view)])
+
+    if view.coupon_batch is not None:
+        lines.extend(["", "券批次", _coupon_batch_table(view.coupon_batch)])
+
     selection = view.selection_summary
     if selection.submission_version is not None:
         lines.extend(
@@ -234,6 +286,15 @@ def render_workflow(view: WorkflowViewModel) -> str:
             lines.append(f"券关联: {selection.coupon_linked_count} 个报名商品已关联")
         if selection.placement_scope:
             lines.append(f"投放范围: {selection.placement_scope}")
+
+    if view.selection_decisions:
+        lines.extend(["", "选品商品明细", _selection_decision_table(view)])
+
+    if view.placement is not None:
+        lines.extend(["", "C 端投放", _placement_table(view.placement)])
+
+    if view.notification_messages:
+        lines.extend(["", "商家通知文案", _notification_table(view)])
 
     lines.extend(["", "流程进度", _workflow_table(view)])
     return "\n".join(lines)
@@ -280,6 +341,137 @@ def _merchant_table(view: WorkflowViewModel) -> str:
         minimums=(16, 6, 8, 16),
         long_text_columns=(3,),
     )
+
+
+def _enrollment_table(view: WorkflowViewModel) -> str:
+    rows = [
+        (
+            item.merchant_id,
+            (
+                f"{item.product_ref} ({item.product_version})"
+                if item.product_version is not None
+                else item.product_ref
+            ),
+            " + ".join(_source_label(source) for source in item.sources) or "未标注",
+            _business_status_label(item.status),
+        )
+        for item in view.enrollment_items
+    ]
+    return _table(
+        ("商家", "商品", "报名来源", "状态"),
+        rows,
+        minimums=(14, 20, 10, 8),
+        long_text_columns=(1,),
+    )
+
+
+def _coupon_batch_table(batch: CouponBatchSummary) -> str:
+    quantity = (
+        str(batch.quantity) if batch.quantity is not None else batch.quantity_note or "未配置"
+    )
+    budget = (
+        f"{batch.budget_cap} {batch.currency or ''}".strip()
+        if batch.budget_cap is not None
+        else "未配置"
+    )
+    return _table(
+        ("批次", "面额 / 档位", "数量", "预算上限", "状态"),
+        [
+            (
+                batch.coupon_batch_id,
+                "; ".join(batch.face_values) or "未配置",
+                quantity,
+                budget,
+                _business_status_label(batch.status),
+            )
+        ],
+        minimums=(16, 18, 10, 12, 8),
+        long_text_columns=(1,),
+    )
+
+
+def _selection_decision_table(view: WorkflowViewModel) -> str:
+    rows = [
+        (
+            item.merchant_id or "—",
+            (
+                f"{item.product_ref} ({item.product_version})"
+                if item.product_version is not None
+                else item.product_ref
+            ),
+            "入选" if item.decision == "selected" else "未入选",
+            _selection_reason_label(item.reason),
+        )
+        for item in view.selection_decisions
+    ]
+    return _table(
+        ("商家", "商品", "结果", "原因"),
+        rows,
+        minimums=(14, 20, 8, 16),
+        long_text_columns=(3,),
+    )
+
+
+def _placement_table(placement: PlacementSummary) -> str:
+    return _table(
+        ("渠道", "区域", "状态", "投放文案示例"),
+        [
+            (
+                placement.channel,
+                placement.region,
+                _business_status_label(placement.status),
+                placement.content_example,
+            )
+        ],
+        minimums=(12, 12, 8, 20),
+        long_text_columns=(3,),
+    )
+
+
+def _notification_table(view: WorkflowViewModel) -> str:
+    rows = [
+        (
+            item.merchant_id,
+            item.channel,
+            _business_status_label(item.status),
+            item.message,
+        )
+        for item in view.notification_messages
+    ]
+    return _table(
+        ("商家", "渠道", "状态", "通知文案"),
+        rows,
+        minimums=(14, 12, 8, 20),
+        long_text_columns=(3,),
+    )
+
+
+def _source_label(source: str) -> str:
+    return {"merchant": "商家自主报名", "auto": "系统自动圈品"}.get(source, source)
+
+
+def _business_status_label(status: str) -> str:
+    return {
+        "draft": "草稿",
+        "materializing": "物化中",
+        "ready": "已就绪",
+        "pending_confirmation": "待确认",
+        "confirmed": "已确认",
+        "rejected": "已拒绝",
+        "pending_approval": "待审批",
+        "published": "已投放",
+        "sent": "已发送",
+        "dead_letter": "死信",
+        "failed": "失败",
+        "unknown": "待对账",
+    }.get(status, status)
+
+
+def _selection_reason_label(reason: str) -> str:
+    return {
+        "selected_by_assortment": "通过招后选品",
+        "selection_reason_unavailable": "外部选品原因未进入展示投影",
+    }.get(reason, reason)
 
 
 def _workflow_table(view: WorkflowViewModel) -> str:
