@@ -12,10 +12,15 @@ from oria.orchestrator.local_executor import (
 )
 from oria.orchestrator.scenario_a import initial_scenario_a_state
 from oria.presentation.workflow import (
+    CouponBatchSummary,
+    EnrollmentItemDetail,
     MerchantExclusionCount,
     MerchantMatch,
     MerchantMatches,
+    NotificationMessage,
+    PlacementSummary,
     RuleSummaryItem,
+    SelectionDecisionDetail,
     SelectionSummary,
     WorkflowViewModel,
     _column_widths,
@@ -233,6 +238,47 @@ def test_renderer_contains_rule_merchant_and_workflow_table_rows() -> None:
             coupon_linked_count=2,
             placement_scope="region=east-china",
         ),
+        enrollment_items=(
+            EnrollmentItemDetail(
+                merchant_id="demo-m001",
+                product_ref="synthetic-product-1",
+                product_version="v1",
+                sources=("auto", "merchant"),
+                status="confirmed",
+            ),
+        ),
+        coupon_batch=CouponBatchSummary(
+            coupon_batch_id="coupon-1",
+            face_values=("base: 10 CNY",),
+            quantity_note="未单独配置固定张数",
+            budget_cap="100000.00",
+            currency="CNY",
+            status="ready",
+        ),
+        selection_decisions=(
+            SelectionDecisionDetail(
+                merchant_id="demo-m001",
+                product_ref="synthetic-product-1",
+                product_version="v1",
+                decision="selected",
+                reason="selected_by_assortment",
+            ),
+        ),
+        placement=PlacementSummary(
+            channel="home-feed",
+            region="east-china",
+            content_example="夏季活动: 1 个入选商品已配置优惠。",
+            selected_products=("synthetic-product-1",),
+            status="published",
+        ),
+        notification_messages=(
+            NotificationMessage(
+                merchant_id="demo-m001",
+                channel="mock-im",
+                status="sent",
+                message="活动选品结果: 入选商品 synthetic-product-1。",
+            ),
+        ),
     )
     rendered = render_workflow(view)
 
@@ -244,6 +290,163 @@ def test_renderer_contains_rule_merchant_and_workflow_table_rows() -> None:
     assert "提交并等待招后选品" in rendered
     assert "城市不符 1; 名单策略未通过 1" in rendered
     assert "已提交 2, 已收 1, 待收 1" in rendered
+    assert "报名商品" in rendered
+    assert "系统自动圈品 + 商家自主报名" in rendered
+    assert "券批次" in rendered
+    assert "base: 10 CNY" in rendered
+    assert "选品商品明细" in rendered
+    assert "通过招后选品" in rendered
+    assert "C 端投放" in rendered
+    assert "投放文案示例" in rendered
+    assert "商家通知文案" in rendered
+
+
+def test_renderer_omits_optional_business_detail_sections_when_empty() -> None:
+    view = WorkflowViewModel(
+        thread_id="thread-empty",
+        flow_name="招商活动自动化",
+        stage_index=1,
+        stage_total=10,
+        current_stage="生成规则与活动草案",
+        pending_action="处理中",
+        merchant_matches=MerchantMatches(matched_count=0, evaluated_count=0),
+    )
+
+    rendered = render_workflow(view)
+
+    assert "\n报名商品\n" not in rendered
+    assert "\n券批次\n" not in rendered
+    assert "\n选品商品明细\n" not in rendered
+    assert "\nC 端投放\n" not in rendered
+    assert "\n商家通知文案\n" not in rendered
+
+
+def test_workflow_detail_fields_default_to_empty() -> None:
+    view = WorkflowViewModel(
+        thread_id="thread-defaults",
+        flow_name="招商活动自动化",
+        stage_index=1,
+        stage_total=10,
+        current_stage="生成规则与活动草案",
+        pending_action="处理中",
+        merchant_matches=MerchantMatches(matched_count=0, evaluated_count=0),
+    )
+
+    assert view.enrollment_items == ()
+    assert view.coupon_batch is None
+    assert view.selection_decisions == ()
+    assert view.placement is None
+    assert view.notification_messages == ()
+
+
+def test_state_projection_reads_optional_business_detail_updates() -> None:
+    state = _state(
+        {
+            "enrollment_join": NodeResult(
+                status="completed",
+                updates={
+                    "enrollment_items": cast(
+                        JsonValue,
+                        [
+                            {
+                                "merchant_id": "demo-m001",
+                                "product_ref": "synthetic-product-1",
+                                "product_version": "v1",
+                                "sources": ["auto", "merchant"],
+                                "status": "confirmed",
+                            }
+                        ],
+                    )
+                },
+            ),
+            "launch": NodeResult(
+                status="completed",
+                updates={
+                    "coupon_batch": cast(
+                        JsonValue,
+                        {
+                            "coupon_batch_id": "coupon-1",
+                            "face_values": ["base: 10 CNY"],
+                            "quantity": None,
+                            "quantity_note": "未单独配置固定张数",
+                            "budget_cap": "100000.00",
+                            "currency": "CNY",
+                            "status": "ready",
+                        },
+                    )
+                },
+            ),
+            "consumer_publish_approval": NodeResult(
+                status="waiting",
+                updates={
+                    "selection_decisions": cast(
+                        JsonValue,
+                        [
+                            {
+                                "merchant_id": "demo-m001",
+                                "product_ref": "synthetic-product-1",
+                                "product_version": "v1",
+                                "decision": "selected",
+                                "reason": "selected_by_assortment",
+                            }
+                        ],
+                    ),
+                    "placement_display": cast(
+                        JsonValue,
+                        {
+                            "channel": "home-feed",
+                            "region": "east-china",
+                            "content_example": "夏季活动: 1 个入选商品已配置优惠。",
+                            "selected_products": ["synthetic-product-1"],
+                            "status": "pending_approval",
+                        },
+                    ),
+                },
+            ),
+            "merchant_notifications": NodeResult(
+                status="completed",
+                updates={
+                    "notification_messages": cast(
+                        JsonValue,
+                        [
+                            {
+                                "merchant_id": "demo-m001",
+                                "channel": "mock-im",
+                                "status": "sent",
+                                "message": "活动选品结果: 入选商品 synthetic-product-1。",
+                            }
+                        ],
+                    )
+                },
+            ),
+        }
+    )
+
+    view = workflow_view_from_state("thread-view", state, (), {})
+
+    assert view.enrollment_items[0].merchant_id == "demo-m001"
+    assert view.enrollment_items[0].sources == ("auto", "merchant")
+    assert view.coupon_batch is not None
+    assert view.coupon_batch.status == "ready"
+    assert view.selection_decisions[0].decision == "selected"
+    assert view.placement is not None
+    assert view.placement.content_example.startswith("夏季活动")
+    assert view.notification_messages[0].message.startswith("活动选品结果")
+
+
+def test_state_projection_ignores_missing_optional_business_detail_updates() -> None:
+    view = workflow_view_from_state(
+        "thread-view",
+        _state({"draft": NodeResult(status="completed")}),
+        _interrupt("launch_approval", approval_id="approval-launch"),
+        {},
+    )
+
+    assert view.enrollment_items == ()
+    assert view.coupon_batch is None
+    assert view.selection_decisions == ()
+    assert view.placement is None
+    assert view.notification_messages == ()
 
 
 def test_renderer_wraps_long_cells_without_ellipsis_or_exceeding_terminal(

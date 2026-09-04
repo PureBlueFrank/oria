@@ -86,6 +86,10 @@ async def test_scenario_a_completes_across_process_scoped_runtimes_and_persists_
         reason="fixture launch approval",
     )
     _interrupt(result, "enrollment_window")
+    assert result.view.coupon_batch is not None
+    assert result.view.coupon_batch.status == "ready"
+    assert result.view.coupon_batch.quantity is None
+    assert result.view.coupon_batch.quantity_note == "未单独配置固定张数"
 
     merchant = await inject_merchant_event(
         config,
@@ -121,6 +125,8 @@ async def test_scenario_a_completes_across_process_scoped_runtimes_and_persists_
         )
     assert len(confirmed_task_ids) == 3
     _interrupt(result, "selection_event")
+    assert result.view.enrollment_items[0].merchant_id == "demo-m001"
+    assert result.view.enrollment_items[0].product_ref == "synthetic-product-demo-m001"
 
     decision = await inject_selection_decision(
         config,
@@ -153,6 +159,12 @@ async def test_scenario_a_completes_across_process_scoped_runtimes_and_persists_
     assert result.view.selection_summary.selected_count == 1
     assert result.view.selection_summary.coupon_linked_count == 1
     assert result.view.selection_summary.selected_products == ("synthetic-product-demo-m001",)
+    assert result.view.selection_decisions[0].product_ref == "synthetic-product-demo-m001"
+    assert result.view.selection_decisions[0].decision == "selected"
+    assert result.view.selection_decisions[0].reason == "selected_by_assortment"
+    assert result.view.placement is not None
+    assert result.view.placement.channel == "synthetic-home-feed"
+    assert "1 个入选商品" in result.view.placement.content_example
 
     result = await decide_local_approval(
         config,
@@ -164,6 +176,8 @@ async def test_scenario_a_completes_across_process_scoped_runtimes_and_persists_
     assert result.status == "completed"
     assert not result.interrupts
     assert result.view.terminal_outcome == "completed"
+    assert result.view.notification_messages[0].merchant_id == "demo-m001"
+    assert "入选商品 synthetic-product-demo-m001" in result.view.notification_messages[0].message
 
     platform_path, business_path = workflow_database_paths(config)
     with _connect_read_only(business_path) as business:
