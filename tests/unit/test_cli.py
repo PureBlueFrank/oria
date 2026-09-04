@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import cast
 
@@ -9,6 +10,7 @@ from typer.testing import CliRunner
 import oria.cli as cli_module
 from oria import __version__
 from oria.cli import app
+from oria.demo import DemoRunError
 
 pytestmark = pytest.mark.unit
 
@@ -81,6 +83,73 @@ def test_explicit_chat_runs_in_non_tty_input_and_exits_cleanly(tmp_path: Path) -
     assert "Oria chat 已启动" in result.output
     assert "可信本地主体" in result.output
     assert "已退出 Oria chat" in result.output
+
+
+def test_demo_human_failure_includes_detail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fail_demo(config: object) -> None:
+        del config
+        raise DemoRunError(
+            "runtime_start_failed",
+            "correlation-human",
+            "sentence-transformers is required",
+        )
+
+    monkeypatch.setattr(cli_module, "run_demo", fail_demo)
+    result = CliRunner().invoke(
+        app,
+        ["demo", "--output", "human", "--data-dir", str(tmp_path / "data")],
+    )
+
+    assert result.exit_code == 1
+    assert result.stderr.strip() == (
+        "Demo failed (runtime_start_failed, correlation=correlation-human): "
+        "sentence-transformers is required"
+    )
+
+
+def test_demo_human_failure_without_detail_keeps_existing_format(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fail_demo(config: object) -> None:
+        del config
+        raise DemoRunError("runtime_start_failed", "correlation-no-detail")
+
+    monkeypatch.setattr(cli_module, "run_demo", fail_demo)
+    result = CliRunner().invoke(
+        app,
+        ["demo", "--output", "human", "--data-dir", str(tmp_path / "data")],
+    )
+
+    assert result.exit_code == 1
+    assert result.stderr.strip() == (
+        "Demo failed (runtime_start_failed, correlation=correlation-no-detail)"
+    )
+
+
+def test_demo_json_failure_includes_detail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fail_demo(config: object) -> None:
+        del config
+        raise DemoRunError(
+            "runtime_start_failed",
+            "correlation-json",
+            "sentence-transformers is required",
+        )
+
+    monkeypatch.setattr(cli_module, "run_demo", fail_demo)
+    result = CliRunner().invoke(
+        app,
+        ["demo", "--output", "json", "--data-dir", str(tmp_path / "data")],
+    )
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    assert payload["error"] == {
+        "code": "runtime_start_failed",
+        "message": "Oria demo failed closed",
+        "detail": "sentence-transformers is required",
+    }
 
 
 def test_scenario_a_commands_expose_optional_runtime_profile_overrides() -> None:

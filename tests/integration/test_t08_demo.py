@@ -75,6 +75,18 @@ def _assert_result(result: DemoResult) -> None:
     assert DemoResult.model_validate_json(Path(result.report_path).read_text()) == result
 
 
+def test_demo_run_error_carries_optional_detail() -> None:
+    without_detail = DemoRunError("runtime_start_failed", "correlation-default")
+    with_detail = DemoRunError(
+        "runtime_start_failed",
+        "correlation-detail",
+        "runtime dependency is unavailable",
+    )
+
+    assert without_detail.detail is None
+    assert with_detail.detail == "runtime dependency is unavailable"
+
+
 @pytest.mark.asyncio
 async def test_same_runtime_runs_do_not_share_execution_metadata(tmp_path: Path) -> None:
     config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
@@ -149,6 +161,62 @@ def test_cli_auto_initializes_repeats_offline_and_emits_correlated_json(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("message", "expected_detail"),
+    [
+        ("runtime dependency is unavailable", "runtime dependency is unavailable"),
+        ("x" * 301, "x" * 299 + "…"),
+    ],
+)
+async def test_runtime_start_failure_exposes_bounded_detail(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    message: str,
+    expected_detail: str,
+) -> None:
+    original = RuntimeError(message)
+
+    async def fail_build_runtime(config: Any) -> Any:
+        del config
+        raise original
+
+    monkeypatch.setattr(demo_module, "build_runtime", fail_build_runtime)
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
+
+    with pytest.raises(DemoRunError) as excinfo:
+        await run_demo(config)
+
+    assert excinfo.value.code == "runtime_start_failed"
+    assert excinfo.value.detail == expected_detail
+    assert excinfo.value.__cause__ is original
+
+
+@pytest.mark.asyncio
+async def test_runtime_start_failure_detail_is_single_line_and_redacts_api_key(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fail_build_runtime(config: Any) -> Any:
+        del config
+        raise RuntimeError("startup rejected test-key\ntraceback details must not be exposed")
+
+    monkeypatch.setattr(demo_module, "build_runtime", fail_build_runtime)
+    config = resolve_runtime_config(
+        environ={
+            "ORIA_RUNTIME_PROFILE": "standard",
+            "ORIA_LLM_PROFILE": "deepseek",
+            "ORIA_EMBEDDING_PROFILE": "bge",
+            "DEEPSEEK_API_KEY": "test-key",
+        },
+        data_dir=tmp_path / "data",
+    )
+
+    with pytest.raises(DemoRunError) as excinfo:
+        await run_demo(config)
+
+    assert excinfo.value.detail == "startup rejected [REDACTED]"
+
+
+@pytest.mark.asyncio
 async def test_demo_execution_failure_closes_the_built_runtime(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -172,6 +240,7 @@ async def test_demo_execution_failure_closes_the_built_runtime(
         await run_demo(config)
 
     assert excinfo.value.code == "demo_execution_failed"
+    assert excinfo.value.detail == "injected execution failure"
     assert len(captured) == 1
     assert captured[0].ready is False
 
