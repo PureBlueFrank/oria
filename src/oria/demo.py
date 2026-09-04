@@ -163,6 +163,28 @@ def validate_demo_proposal(
     return validate_campaign_proposal(normalized, rules=rules, merchants=merchants)
 
 
+def _research_failure_detail(state: dict[str, Any]) -> str | None:
+    """Expose the research graph's termination reason when no final result was produced."""
+
+    termination = state.get("termination")
+    if not isinstance(termination, dict):
+        return None
+    reason = termination.get("reason")
+    if not isinstance(reason, str) or not reason:
+        return "research graph terminated without a final result"
+    error_code: str | None = None
+    events = state.get("events")
+    if isinstance(events, list):
+        for event in reversed(events):
+            if isinstance(event, dict):
+                candidate = event.get("error_code")
+                if isinstance(candidate, str):
+                    error_code = candidate
+                    break
+    suffix = f", error_code={error_code}" if error_code else ""
+    return f"research graph terminated (reason={reason}{suffix})"
+
+
 async def execute_demo(
     runtime: RuntimeServices,
     initialization: DataInitializationResult,
@@ -197,7 +219,11 @@ async def execute_demo(
     raw_rules = state.get("rule_result")
     raw_merchants = state.get("merchant_result")
     if not all(isinstance(value, dict) for value in (raw_proposal, raw_rules, raw_merchants)):
-        raise DemoRunError("proposal_unavailable", ids.correlation_id)
+        raise DemoRunError(
+            "proposal_unavailable",
+            ids.correlation_id,
+            _research_failure_detail(state),
+        )
     proposal = validate_demo_proposal(
         cast(dict[str, JsonValue], raw_proposal),
         rules=SearchCampaignRulesResult.model_validate(raw_rules),
