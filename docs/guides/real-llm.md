@@ -64,22 +64,139 @@ uv run oria demo --config /path/to/config.yaml --output human
 
 ## 在完整 Workflow 中使用
 
-Workflow 由多条独立 CLI 命令持续恢复。推荐在开始前导出上述四个环境变量，或使用同一 YAML，以保证 `workflow start`、`workflow resume`、`approval` 和 `mock` 每次重建 Runtime 时都使用相同 profile。完整操作步骤见 [本地 Workflow 手册](local-workflow.md)。
+上面的 `oria demo` 已经自动初始化默认的 `.oria-data`。完整 Workflow 会创建活动、券和投放等业务状态，因此请改用一个新的独立数据目录，避免与 demo 的 state 冲突。
 
-这些子命令也统一支持以下当次覆盖：
+因为你已 export 四个环境变量，以下每条独立命令都会自动使用 DeepSeek + BGE，无需重复传入 `--runtime-profile`、`--llm-profile` 或 `--embedding-profile`。先为整条流程准备固定标识；后续所有命令必须复用相同的 `DATA_DIR` 和 `THREAD_ID`：
 
 ```bash
+DATA_DIR="/tmp/oria-workflow-live"
+THREAD_ID="scenario-a-live-001"
+CAMPAIGN_ID="campaign-live-001"
+```
+
+每个 Mock 事件的 `--source-event-id` 也要保持唯一。审批 ID 和业务确认任务 ID 不要预先填写，它们来自每次 human 输出的最新“下一步命令”。
+
+### 1. 初始化并启动
+
+`workflow start` 会自动初始化；这里先显式执行 `data init`，便于分开查看 migration 与播种结果：
+
+```bash
+uv run oria data init \
+  --data-dir "$DATA_DIR" \
+  --output human
+
 uv run oria workflow start \
-  --runtime-profile standard \
-  --llm-profile deepseek \
-  --embedding-profile bge \
-  --data-dir /tmp/oria-workflow \
-  --thread-id scenario-a-live-001 \
-  --campaign-id campaign-live-001 \
+  --data-dir "$DATA_DIR" \
+  --thread-id "$THREAD_ID" \
+  --campaign-id "$CAMPAIGN_ID" \
+  --request "生成华东餐饮招商活动并完成预定流程" \
   --output human
 ```
 
-但 profile CLI 选项需在每一条后续恢复/事件命令中重复，因此长流程更适合环境变量或 YAML。
+启动后的“当前阶段”应为“招商发布审批”，并显示含 `--approval-id` 的“下一步命令”。复制该参数的值：
+
+```bash
+LAUNCH_APPROVAL_ID="粘贴最新‘下一步命令’里的 --approval-id 值"
+```
+
+### 2. 批准 Launch 审批
+
+批准 LaunchPlan，继续物化券批次并投放商家侧招商：
+
+```bash
+uv run oria approval approve \
+  --data-dir "$DATA_DIR" \
+  --thread-id "$THREAD_ID" \
+  --approval-id "$LAUNCH_APPROVAL_ID" \
+  --output human
+```
+
+批准后的“当前阶段”应为“报名与商品圈选”，“下一步命令”会提示关闭报名窗口。
+
+### 3. 注入报名并关闭窗口
+
+`mock enrollment` 只接收一条已认证的合成报名事件，不恢复 Graph；`mock window-close` 才解析等待并恢复 Workflow：
+
+```bash
+uv run oria mock enrollment \
+  --data-dir "$DATA_DIR" \
+  --thread-id "$THREAD_ID" \
+  --source-event-id enrollment-event-001 \
+  --merchant-id demo-m001 \
+  --product-ref synthetic-product-demo-m001 \
+  --output human
+
+uv run oria mock window-close \
+  --data-dir "$DATA_DIR" \
+  --thread-id "$THREAD_ID" \
+  --source-event-id window-close-event-001 \
+  --output human
+```
+
+关窗后的“当前阶段”应为“动态业务确认”，“下一步命令”会给出当前 `--confirmation-task-id`。
+
+### 4. 逐个处理动态确认链
+
+`workflow resume` 每次只处理一个 ConfirmationTask。每一轮都从最新返回的“下一步命令”重新复制 `--confirmation-task-id`，不得重用已经决定过的 ID：
+
+```bash
+CONFIRMATION_TASK_ID="粘贴最新‘下一步命令’里的 --confirmation-task-id 值"
+uv run oria workflow resume \
+  --data-dir "$DATA_DIR" \
+  --thread-id "$THREAD_ID" \
+  --confirmation-task-id "$CONFIRMATION_TASK_ID" \
+  --decision confirm \
+  --output human
+```
+
+只要最新输出的“当前阶段”仍是“动态业务确认”，就从新的“下一步命令”复制 `--confirmation-task-id` 的值并重复上述命令。当前内置 Fixture 的冻结规则是 merchant → sales → sales_manager，共 3 级，因此本示例需要执行 3 轮；确认链由规则动态生成，不应把 3 级当成通用常量。
+
+最后一轮确认成功后，“当前阶段”应变为“提交并等待招后选品”，“下一步命令”会提示注入选品完成事件。此时系统已自动完成券关联、提交选品并进入异步等待。
+
+### 5. 注入选品决定与完成事件
+
+先写入逐商品决定。该命令不恢复 Graph，返回的“当前阶段”仍是“提交并等待招后选品”：
+
+```bash
+uv run oria mock selection-decision \
+  --data-dir "$DATA_DIR" \
+  --thread-id "$THREAD_ID" \
+  --source-event-id selection-decision-event-001 \
+  --selection-version selection-v1 \
+  --decision selected \
+  --output human
+```
+
+再注入相同 `selection_version` 的完成事件，这次才会恢复 Graph：
+
+```bash
+uv run oria mock selection-complete \
+  --data-dir "$DATA_DIR" \
+  --thread-id "$THREAD_ID" \
+  --source-event-id selection-complete-event-001 \
+  --selection-version selection-v1 \
+  --output human
+```
+
+返回的“当前阶段”应为“C 端发布审批”。复制最新“下一步命令”中 `--approval-id` 的值：
+
+```bash
+CONSUMER_APPROVAL_ID="粘贴最新‘下一步命令’里的 --approval-id 值"
+```
+
+### 6. 批准 C 端投放审批
+
+```bash
+uv run oria approval approve \
+  --data-dir "$DATA_DIR" \
+  --thread-id "$THREAD_ID" \
+  --approval-id "$CONSUMER_APPROVAL_ID" \
+  --output human
+```
+
+批准后，“当前阶段”为“通知商家并闭环”，终态文案应为“流程已完成: C 端投放与商家通知已闭环。”Business DB 中对应投放状态为 `published`，商家通知状态为 `sent`。
+
+Mock 企业 Adapter 场景的更多说明、拒绝分支和重放排错详见 [完整本地 Workflow 操作手册](local-workflow.md)。
 
 ## 成本、Key 和边界
 
