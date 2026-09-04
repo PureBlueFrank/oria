@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping, Sequence
 from decimal import Decimal
-from typing import Literal, Self
+from typing import Any, Literal, Self, cast
 
 from pydantic import Field, model_validator
 
@@ -110,6 +112,70 @@ class ProposalEvidenceError(ValueError):
     """A non-repairable mismatch against trusted tools or citations."""
 
 
+class AttributionHypothesis(ValueModel):
+    hypothesis_id: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
+    statement: str = Field(min_length=1, max_length=1000)
+    uncertainty: str = Field(min_length=1, max_length=1000)
+
+
+class AttributionEvidenceRef(ValueModel):
+    tool_call_id: str = Field(min_length=1, max_length=128)
+    tool_name: str = Field(pattern=r"^[A-Za-z_][A-Za-z0-9_-]{0,127}$")
+    data_path: str = Field(min_length=1, max_length=1000)
+    value: JsonValue
+    supports: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def require_json_pointer(self) -> Self:
+        if not self.data_path.startswith("/"):
+            raise ValueError("attribution evidence data_path must be a JSON Pointer")
+        return self
+
+
+class AttributionConclusion(ValueModel):
+    """Evidence-grounded three-state output for Scenario B."""
+
+    schema_version: Literal[1] = 1
+    outcome: Literal["attributed", "conflicting", "insufficient"]
+    conclusion: str | None = Field(default=None, min_length=1, max_length=2000)
+    hypotheses: tuple[AttributionHypothesis, ...] = ()
+    evidence: tuple[AttributionEvidenceRef, ...] = ()
+    confidence: float = Field(ge=0, le=1)
+    confidence_explanation: str = Field(min_length=1, max_length=1000)
+    abstained: bool
+    requested_data: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_outcome_shape(self) -> Self:
+        hypothesis_ids = tuple(item.hypothesis_id for item in self.hypotheses)
+        if len(set(hypothesis_ids)) != len(hypothesis_ids):
+            raise ValueError("attribution hypothesis IDs must be unique")
+        supported_ids = {item for ref in self.evidence for item in ref.supports}
+        if not supported_ids.issubset(hypothesis_ids):
+            raise ValueError("attribution evidence references an unknown hypothesis")
+
+        if self.outcome == "insufficient":
+            if not self.abstained or self.conclusion is not None or not self.requested_data:
+                raise ValueError(
+                    "insufficient attribution must abstain without a conclusion and request data"
+                )
+            return self
+
+        if self.abstained or self.requested_data:
+            raise ValueError("attributed or conflicting outcomes cannot abstain or request data")
+        if not self.hypotheses or not self.evidence:
+            raise ValueError("attributed or conflicting outcomes require hypotheses and evidence")
+        if set(hypothesis_ids).difference(supported_ids):
+            raise ValueError("every attribution hypothesis must have supporting evidence")
+        if self.outcome == "attributed" and self.conclusion is None:
+            raise ValueError("attributed outcome requires a conclusion")
+        if self.outcome == "conflicting" and (
+            self.conclusion is not None or len(self.hypotheses) < 2
+        ):
+            raise ValueError("conflicting outcome requires multiple hypotheses and no conclusion")
+        return self
+
+
 def campaign_proposal_schema() -> ResponseSchema:
     return ResponseSchema(
         name="campaign_proposal_v1",
@@ -122,6 +188,66 @@ def campaign_proposal_draft_schema() -> ResponseSchema:
         name="campaign_proposal_draft_v1",
         json_schema=CampaignProposalDraft.model_json_schema(mode="serialization"),
     )
+
+
+def attribution_conclusion_schema() -> ResponseSchema:
+    return ResponseSchema(
+        name="attribution_conclusion_v1",
+        json_schema=AttributionConclusion.model_json_schema(mode="serialization"),
+    )
+
+
+def _resolve_json_pointer(value: JsonValue, pointer: str) -> JsonValue:
+    current: Any = value
+    for encoded_part in pointer.removeprefix("/").split("/"):
+        if "~" in encoded_part.replace("~1", "").replace("~0", ""):
+            raise ProposalEvidenceError("evidence JSON Pointer contains an invalid escape")
+        part = encoded_part.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, Mapping):
+            if part not in current:
+                raise ProposalEvidenceError("evidence JSON Pointer does not exist")
+            current = current[part]
+        elif isinstance(current, Sequence) and not isinstance(current, (str, bytes, bytearray)):
+            if not part.isdigit():
+                raise ProposalEvidenceError("evidence JSON Pointer array index is invalid")
+            index = int(part)
+            if index >= len(current):
+                raise ProposalEvidenceError("evidence JSON Pointer does not exist")
+            current = current[index]
+        else:
+            raise ProposalEvidenceError("evidence JSON Pointer does not exist")
+    return cast(JsonValue, current)
+
+
+def _same_json_value(left: JsonValue, right: JsonValue) -> bool:
+    return json.dumps(
+        left, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ) == json.dumps(right, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def validate_attribution_conclusion(
+    value: dict[str, JsonValue],
+    *,
+    tool_results: Mapping[str, Mapping[str, JsonValue]],
+) -> AttributionConclusion:
+    conclusion = AttributionConclusion.model_validate(value)
+    seen_refs: set[tuple[str, str]] = set()
+    for evidence in conclusion.evidence:
+        identity = (evidence.tool_call_id, evidence.data_path)
+        if identity in seen_refs:
+            raise ProposalEvidenceError("attribution evidence references must be unique")
+        seen_refs.add(identity)
+        record = tool_results.get(evidence.tool_call_id)
+        if record is None or record.get("tool_name") != evidence.tool_name:
+            raise ProposalEvidenceError("attribution evidence tool call does not exist")
+        result = record.get("result")
+        if not isinstance(result, Mapping) or result.get("ok") is not True:
+            raise ProposalEvidenceError("attribution evidence requires a successful ToolResult")
+        data = result.get("data")
+        observed = _resolve_json_pointer(data, evidence.data_path)
+        if not _same_json_value(observed, evidence.value):
+            raise ProposalEvidenceError("attribution evidence value does not match ToolResult")
+    return conclusion
 
 
 def validate_campaign_proposal(
