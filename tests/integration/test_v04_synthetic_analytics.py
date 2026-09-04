@@ -40,8 +40,8 @@ def test_generator_is_deterministic_and_records_synthetic_provenance(tmp_path: P
     assert metadata == [
         (
             ATTRIBUTION_DATASET_VERSION,
-            1,
-            "scenario_b_generator_v1",
+            2,
+            "scenario_b_generator_v2",
             ATTRIBUTION_GENERATOR_SEED,
             "synthetic",
             0,

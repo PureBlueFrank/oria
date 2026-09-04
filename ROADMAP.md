@@ -9,7 +9,7 @@
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 DeepSeek+BGE Live 卡通过 | 零配置 Demo 完成规则检索、硬资格商家预筛、LLM 软排序和带引用提案，且不产生业务写入。 |
 | V0.2 | Provider 与 RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡通过 | 统一六家 Provider 的 Fixture 契约，完成授权 RAG、三管线对照、冻结数据集和 DeepSeek Live 验证；其他 Provider 未 Live 验证。 |
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
-| V0.4 | 场景 B 动态归因 Agent | T01 已启动且首批产物已提交；T02–T05 未开始 | 已建立可复现合成分析数据并将根因标签与查询库隔离；查询 Tool、Agent、冻结集和 Live 评测尚未交付。 |
+| V0.4 | 场景 B 动态归因 Agent | T01–T02 已完成；T03–T05 未开始 | 已建立可复现合成数据、标签隔离与五个租户范围内的只读归因 Tool；Agent、冻结集和 Live 评测尚未交付。 |
 | V0.5 | 多智能体、上下文与记忆 | 未开始 | 计划交付上下文压缩、可治理 Memory、完整权限与 Guardrails、多智能体编排及公平对照实验。 |
 
 ## V0.1：场景 A 只读提案 MVP
@@ -50,14 +50,14 @@
 | V0.3-T06 | V0.3-T03,V0.3-T05 | 实现异步选品、受信结果事件、C 端投放和商家通知的 Service/Tool/Mock Adapter。 | 仅合格入选商品可投放，结果变化使审批失效，unknown 与通知死信可收敛。 |
 | V0.3-T07 | V0.3-T02,V0.3-T04,V0.3-T05,V0.3-T06 | 将完整 10 步预定流程接入原 Graph，加入双真实 interrupt、并行汇聚、外部事件等待和恢复 CLI。 | Graph/HITL/事件恢复、冲突 reducer、10 步 E2E-F 与 Mock 事件注入通过。 |
 | V0.3-T08 | V0.3-T07 | 执行 Fixture/Community 故障注入、安全复核并形成 Core 证据。 | 五类故障、重复计数、状态机、最小权限、数据库与回执断言通过。 |
-| V0.3-T09 | V0.3-T08,V0.2-T01 | 使用真实 DeepSeek 验证草案与候选集内软排序。 | **未执行**；完成后须证明 LLM 不改变硬资格且没有直接写路径。 |
+| V0.3-T09 | V0.3-T08,V0.2-T01 | 使用真实 DeepSeek 验证草案与候选集内软排序。 | **已完成**；`deepseek-v4-flash` Live 卡已于 2026-09-03 通过，LLM 不改变硬资格且没有直接写路径。 |
 
 ## V0.4：场景 B 动态归因 Agent
 
 | ID | 依赖 | 任务与产物 | 完成验证 |
 | --- | --- | --- | --- |
 | V0.4-T01 | V0.3-Core | 构建固定 seed 的合成分析 schema/生成器，并将根因标签与生产查询库物理隔离。 | **已完成**；数据不变量、确定性生成和标签不可查询验证通过。 |
-| V0.4-T02 | V0.4-T01,V0.2-T03 | 实现漏斗下钻、活动、大盘和历史经验等只读分析工具。 | 待完成；需验证 SQL 只读、tenant/时间范围与证据 provenance。 |
+| V0.4-T02 | V0.4-T01,V0.2-T03 | 实现漏斗下钻、活动、大盘和历史经验等只读分析工具。 | **已完成**；SQLite 只读打开、固定参数化查询、可信 Context tenant、有界时间、证据 provenance 与授权 RAG 过滤已验证。 |
 | V0.4-T03 | V0.4-T02,V0.1-T07 | 复用有界研究原语实现动态归因、evaluator-optimizer、引用、abstain 与预算终止。 | 待完成；需验证 Prompt/Agent 契约和非固定调查路径。 |
 | V0.4-T04 | V0.4-T01,V0.4-T03 | 建立至少 50 条人工审阅 case、至少 20 条冻结 holdout、盲评 rubric 与 attribution eval CLI。 | 待完成；需验证数据 schema、污染隔离和 golden 冻结。 |
 | V0.4-T05 | V0.4-T04 | 在冻结 holdout 上执行真实模型场景、重复采样、校准和 coverage-risk 报告。 | 待完成；Live 卡须保存逐例结果、方差与人工校准证据。 |
@@ -81,4 +81,4 @@
 - **Live（L）**：调用明确记录的真实公开模型 API，只证明该日期、模型和配置下的调用与质量结果；不能外推到其他模型或未来版本。
 - **Enterprise（E-like/E）**：E-like 使用本地 PostgreSQL、Milvus、Redis、OTel 等企业栈组件，E 使用真实企业环境与 Adapter；两者均按目标独立验证，不能互相或由 Mock 替代。
 
-当前已验证到：V0.1/V0.2 Core 与各自必需 DeepSeek Live 卡通过；V0.3 仅完成 Fixture/Community Core，使用 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据，V0.3-T09 DeepSeek Live 尚未执行；V0.4 仅 T01 合成数据与标签隔离通过。真实企业 Adapter、E-like 多 worker、V0.4 动态归因 Live 和 V0.5 单/多 Agent 对照均未验证。
+当前已验证到：V0.1/V0.2/V0.3 Core 与各自必需 DeepSeek Live 卡均已通过；V0.3 Community 使用 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据完成验证。V0.4 T01–T02 的合成数据、标签隔离与五个只读归因 Tool 已通过。真实企业 Adapter、DeepSeek 以外 Provider、E-like 多 worker、V0.4 动态归因 Live 和 V0.5 单/多 Agent 对照均未验证。

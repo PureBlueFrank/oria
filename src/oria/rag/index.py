@@ -262,6 +262,7 @@ class ChromaIndex:
         mapping = {
             "document_id": "document_id",
             "document_version": "document_version",
+            "document_kind": "doc_document_kind",
             "rule_category": "rule_category",
         }
         for name, value in filters.items():

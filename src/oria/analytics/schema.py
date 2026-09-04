@@ -5,12 +5,12 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-ANALYTICS_SCHEMA_VERSION = 1
+ANALYTICS_SCHEMA_VERSION = 2
 
 _DDL = """
 CREATE TABLE analytics_metadata (
     dataset_version TEXT PRIMARY KEY,
-    schema_version INTEGER NOT NULL CHECK (schema_version = 1),
+    schema_version INTEGER NOT NULL CHECK (schema_version = 2),
     generator_version TEXT NOT NULL,
     generator_seed INTEGER NOT NULL CHECK (generator_seed >= 0),
     source TEXT NOT NULL CHECK (source = 'synthetic'),
@@ -38,6 +38,7 @@ CREATE TABLE activity_windows (
     region TEXT NOT NULL,
     category TEXT NOT NULL,
     activity_type TEXT NOT NULL,
+    merchant_id TEXT,
     starts_on TEXT NOT NULL,
     ends_on TEXT NOT NULL CHECK (starts_on <= ends_on),
     PRIMARY KEY (tenant_id, activity_id)

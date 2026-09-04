@@ -28,6 +28,7 @@ LOCAL_POLICY_VERSION = "local-v1"
 _LOCAL_ACTIONS = frozenset(
     {
         "campaign:read",
+        "analytics:read",
         "config:read",
         "document:read",
         "merchant:read",

@@ -15,8 +15,8 @@ from oria.analytics.models import ActivityFact, FunnelDailyFact, MarketDailyFact
 from oria.analytics.schema import ANALYTICS_SCHEMA_VERSION, create_analytics_schema
 from oria.core.types import ValueModel
 
-ATTRIBUTION_DATASET_VERSION = "scenario_b_synthetic_v1"
-ATTRIBUTION_GENERATOR_VERSION = "scenario_b_generator_v1"
+ATTRIBUTION_DATASET_VERSION = "scenario_b_synthetic_v2"
+ATTRIBUTION_GENERATOR_VERSION = "scenario_b_generator_v2"
 ATTRIBUTION_GENERATOR_SEED = 20260902
 _GENERATED_AT = datetime(2026, 9, 2, tzinfo=UTC)
 _START_DATE = date(2026, 8, 18)
@@ -35,9 +35,9 @@ class AttributionLabel(ValueModel):
 
 
 class AttributionFixtureManifest(ValueModel):
-    dataset_version: Literal["scenario_b_synthetic_v1"] = "scenario_b_synthetic_v1"
-    schema_version: Literal[1] = 1
-    generator_version: Literal["scenario_b_generator_v1"] = "scenario_b_generator_v1"
+    dataset_version: Literal["scenario_b_synthetic_v2"] = "scenario_b_synthetic_v2"
+    schema_version: Literal[2] = 2
+    generator_version: Literal["scenario_b_generator_v2"] = "scenario_b_generator_v2"
     generator_seed: int = Field(ge=0)
     source: Literal["synthetic"] = "synthetic"
     contains_real_entities: Literal[False] = False
@@ -93,6 +93,7 @@ def _activity_facts() -> tuple[ActivityFact, ...]:
             region="east",
             category="full_service",
             activity_type="merchant_incentive",
+            merchant_id="synthetic-merchant-east-full-service",
             starts_on=date(2026, 8, 1),
             ends_on=date(2026, 8, 30),
         ),
@@ -102,6 +103,7 @@ def _activity_facts() -> tuple[ActivityFact, ...]:
             region="east",
             category="quick_service",
             activity_type="always_on",
+            merchant_id="synthetic-merchant-east-quick-service",
             starts_on=date(2026, 7, 1),
             ends_on=date(2026, 9, 30),
         ),
@@ -111,6 +113,7 @@ def _activity_facts() -> tuple[ActivityFact, ...]:
             region="east",
             category="full_service",
             activity_type="always_on",
+            merchant_id="synthetic-merchant-secondary",
             starts_on=date(2026, 7, 1),
             ends_on=date(2026, 9, 30),
         ),
@@ -231,7 +234,7 @@ def generate_attribution_fixture(
             ),
         )
         connection.executemany(
-            "INSERT INTO activity_windows VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO activity_windows VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 (
                     fact.tenant_id,
@@ -239,6 +242,7 @@ def generate_attribution_fixture(
                     fact.region,
                     fact.category,
                     fact.activity_type,
+                    fact.merchant_id,
                     fact.starts_on.isoformat(),
                     fact.ends_on.isoformat(),
                 )
