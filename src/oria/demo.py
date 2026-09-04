@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import tempfile
 import uuid
@@ -35,6 +36,16 @@ from oria.tools.models import QueryMerchantsResult, SearchCampaignRulesResult
 
 _DEMO_REQUEST = "生成华东餐饮招商活动建议"
 _EFFECTIVE_AT = "2026-07-15T00:00:00+08:00"
+_ERROR_DETAIL_MAX_LENGTH = 300
+_REDACTED = "[REDACTED]"
+_CREDENTIAL_PATTERNS = (
+    re.compile(r"(?i)\bbearer\s+[^\s,;]+"),
+    re.compile(r"(?i)\bsk-[a-z0-9_-]{8,}"),
+    re.compile(
+        r"(?i)(?:[a-z0-9_-]*(?:api[_-]?key|token|secret|password|credential)"
+        r"|authorization)\s*[:=]\s*(?:'[^']*'|\"[^\"]*\"|[^\s,;]+)"
+    ),
+)
 _RULE_CATEGORIES = frozenset(
     {
         "basic",
@@ -50,10 +61,11 @@ _RULE_CATEGORIES = frozenset(
 class DemoRunError(RuntimeError):
     """Safe application-boundary failure with correlation metadata."""
 
-    def __init__(self, code: str, correlation_id: str) -> None:
+    def __init__(self, code: str, correlation_id: str, detail: str | None = None) -> None:
         super().__init__(code)
         self.code = code
         self.correlation_id = correlation_id
+        self.detail = detail
 
 
 class DemoIdentifiers(ValueModel):
@@ -267,18 +279,52 @@ async def run_demo(config: ResolvedRuntimeConfig) -> DemoResult:
     try:
         initialization = await initialize_data(config)
     except Exception as exc:
-        raise DemoRunError("initialization_failed", identifiers.correlation_id) from exc
+        raise DemoRunError(
+            "initialization_failed",
+            identifiers.correlation_id,
+            _safe_error_detail(exc, config=config),
+        ) from exc
     try:
         runtime = await build_runtime(config)
     except Exception as exc:
-        raise DemoRunError("runtime_start_failed", identifiers.correlation_id) from exc
+        raise DemoRunError(
+            "runtime_start_failed",
+            identifiers.correlation_id,
+            _safe_error_detail(exc, config=config),
+        ) from exc
     try:
         async with runtime:
             return await execute_demo(runtime, initialization, identifiers=identifiers)
     except DemoRunError:
         raise
     except Exception as exc:
-        raise DemoRunError("demo_execution_failed", identifiers.correlation_id) from exc
+        raise DemoRunError(
+            "demo_execution_failed",
+            identifiers.correlation_id,
+            _safe_error_detail(exc, config=config),
+        ) from exc
+
+
+def _safe_error_detail(exc: Exception, *, config: ResolvedRuntimeConfig) -> str | None:
+    detail = next((line.strip() for line in str(exc).splitlines() if line.strip()), "")
+    if not detail:
+        return None
+
+    configured_secrets = [config.llm.api_key]
+    for channel in config.im.channels.values():
+        configured_secrets.extend((channel.webhook, channel.app_secret, channel.secret))
+    secret_values = {
+        secret.get_secret_value() for secret in configured_secrets if secret is not None
+    }
+    for secret in sorted(secret_values, key=len, reverse=True):
+        if secret:
+            detail = detail.replace(secret, _REDACTED)
+    for pattern in _CREDENTIAL_PATTERNS:
+        detail = pattern.sub(_REDACTED, detail)
+
+    if len(detail) > _ERROR_DETAIL_MAX_LENGTH:
+        detail = detail[: _ERROR_DETAIL_MAX_LENGTH - 1] + "…"
+    return detail or None
 
 
 def _executed_tools(messages: list[dict[str, Any]]) -> tuple[str, ...]:

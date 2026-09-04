@@ -191,16 +191,20 @@ def demo(
     try:
         result = asyncio.run(run_demo(resolved))
     except DemoRunError as exc:
+        error = {"code": exc.code, "message": "Oria demo failed closed"}
+        if exc.detail:
+            error["detail"] = exc.detail
         payload = {
             "ok": False,
             "correlation_id": exc.correlation_id,
-            "error": {"code": exc.code, "message": "Oria demo failed closed"},
+            "error": error,
         }
         if output is OutputFormat.JSON:
             typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
         else:
+            detail = f": {exc.detail}" if exc.detail else ""
             typer.echo(
-                f"Demo failed ({exc.code}, correlation={exc.correlation_id})",
+                f"Demo failed ({exc.code}, correlation={exc.correlation_id}){detail}",
                 err=True,
             )
         raise typer.Exit(code=1) from None
