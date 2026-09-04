@@ -1,4 +1,4 @@
-"""Permanent bounded LangGraph research agent used by Scenario A."""
+"""Permanent bounded LangGraph research agent shared by all research scenarios."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import partial
 from typing import Any, Literal, TypeAlias, cast
 
 from jsonschema import ValidationError as JsonSchemaValidationError
@@ -19,6 +20,7 @@ from pydantic import ValidationError
 
 from oria.agent.models import (
     AgentTermination,
+    CampaignProposal,
     ProposalEvidenceError,
     campaign_proposal_draft_schema,
     finalize_campaign_proposal_draft,
@@ -27,6 +29,7 @@ from oria.agent.observations import (
     build_observation,
     failed_tool_result,
 )
+from oria.agent.spec import ResearchSpec, ResearchStateView
 from oria.agent.state import ResearchRunContext, ResearchState
 from oria.core.types import (
     ChatOptions,
@@ -45,6 +48,7 @@ from oria.tools.models import (
 )
 
 _TOOL_FAILURE_CODE = "tool_execution_failed"
+_CAMPAIGN_TOOL_NAMES = ("search_campaign_rules", "query_merchants")
 
 
 def _messages(state: ResearchState) -> list[Message]:
@@ -189,6 +193,53 @@ def _bounded_tool_specs(specs: tuple[ToolSpec, ...], max_candidates: int) -> lis
     return bounded
 
 
+def _campaign_tool_specs(specs: tuple[ToolSpec, ...], state: ResearchStateView) -> list[ToolSpec]:
+    return _bounded_tool_specs(specs, cast(int, state["max_candidates"]))
+
+
+def _validate_campaign_tool_call(call: ToolCall, state: ResearchStateView) -> None:
+    if call.name != "query_merchants":
+        return
+    query = QueryMerchantsParams.model_validate(call.args)
+    if query.limit > state["max_candidates"]:
+        raise ValueError("query limit exceeds the requested candidate limit")
+
+
+def _finalize_campaign(value: dict[str, JsonValue], state: ResearchStateView) -> CampaignProposal:
+    rules_value = state.get("rule_result")
+    merchant_value = state.get("merchant_result")
+    rules = None if rules_value is None else SearchCampaignRulesResult.model_validate(rules_value)
+    merchants = (
+        None if merchant_value is None else QueryMerchantsResult.model_validate(merchant_value)
+    )
+    return finalize_campaign_proposal_draft(
+        value,
+        rules=rules,
+        merchants=merchants,
+        max_candidates=cast(int, state["max_candidates"]),
+    )
+
+
+def campaign_research_spec() -> ResearchSpec:
+    """Return the fixed V0.1 Scenario A specialization of the research loop."""
+
+    return ResearchSpec(
+        prompt_name="merchant_selection",
+        prompt_version=1,
+        tool_names=_CAMPAIGN_TOOL_NAMES,
+        response_schema=campaign_proposal_draft_schema(),
+        output_field="proposal",
+        validated_event_type="proposal_validated",
+        finalize=_finalize_campaign,
+        result_state_fields=(
+            ("search_campaign_rules", "rule_result"),
+            ("query_merchants", "merchant_result"),
+        ),
+        adapt_tool_specs=_campaign_tool_specs,
+        validate_tool_call=_validate_campaign_tool_call,
+    )
+
+
 def _repair_update(
     state: ResearchState,
     *,
@@ -216,7 +267,10 @@ def _repair_update(
 async def research_model_node(
     state: ResearchState,
     runtime: Runtime[ResearchRunContext],
+    *,
+    spec: ResearchSpec | None = None,
 ) -> dict[str, object]:
+    selected = spec or campaign_research_spec()
     context = runtime.context
     reason = _model_limit_reason(state, context)
     if reason is not None:
@@ -229,10 +283,7 @@ async def research_model_node(
         tools = (
             None
             if state["finalization_only"]
-            else _bounded_tool_specs(
-                context.ctx.tools.specs(("search_campaign_rules", "query_merchants")),
-                state["max_candidates"],
-            )
+            else selected.adapt_tool_specs(context.ctx.tools.specs(selected.tool_names), state)
         )
         result = await llm.chat(
             _messages(state),
@@ -242,7 +293,7 @@ async def research_model_node(
                 temperature=0,
                 max_output_tokens=remaining_output,
                 parallel_tool_calls=True,
-                response_schema=campaign_proposal_draft_schema(),
+                response_schema=selected.response_schema,
             ),
         )
     except StructuredOutputError as exc:
@@ -391,7 +442,10 @@ async def _execute_safely(call: ToolCall, context: ResearchRunContext) -> ToolRe
 async def research_tools_node(
     state: ResearchState,
     runtime: Runtime[ResearchRunContext],
+    *,
+    spec: ResearchSpec | None = None,
 ) -> dict[str, object]:
+    selected = spec or campaign_research_spec()
     context = runtime.context
     calls = [ToolCall.model_validate(item) for item in state["pending_tool_calls"]]
     if not calls:
@@ -413,10 +467,7 @@ async def research_tools_node(
 
     for call in calls:
         try:
-            if call.name == "query_merchants":
-                query = QueryMerchantsParams.model_validate(call.args)
-                if query.limit > state["max_candidates"]:
-                    raise ValueError("query limit exceeds the requested candidate limit")
+            selected.validate_tool_call(call, state)
             await context.ctx.tools.preflight(call.name, dict(call.args), context.ctx)
         except LookupError:
             code = "unknown_tool"
@@ -438,15 +489,15 @@ async def research_tools_node(
 
     results = await asyncio.gather(*(_execute_safely(call, context) for call in calls))
     tool_versions = {
-        spec.name: spec.schema_version
-        for spec in context.ctx.tools.specs(("search_campaign_rules", "query_merchants"))
+        spec.name: spec.schema_version for spec in context.ctx.tools.specs(selected.tool_names)
     }
     messages = list(state["messages"])
     seen = set(state["seen_evidence_fingerprints"])
     new_fingerprints: list[str] = []
     safe_refs = list(state["safe_evidence_refs"])
-    rule_result = state["rule_result"]
-    merchant_result = state["merchant_result"]
+    tool_results = dict(state.get("tool_results", {}))
+    result_updates: dict[str, object] = {}
+    result_fields = dict(selected.result_state_fields)
     side_effect_termination: tuple[str, str] | None = None
     for call, result in zip(calls, results, strict=True):
         try:
@@ -477,18 +528,18 @@ async def research_tools_node(
             new_fingerprints.append(built.fingerprint)
         if result.ok:
             safe_refs.append(built.object_ref or result.provenance)
+            tool_results[call.id] = {
+                "tool_name": call.name,
+                "arguments": cast(JsonValue, call.args),
+                "result": cast(JsonValue, result.model_dump(mode="json")),
+            }
+            state_field = result_fields.get(call.name)
             if (
-                built.object_ref is None
-                and call.name == "search_campaign_rules"
+                state_field is not None
+                and built.object_ref is None
                 and isinstance(result.data, dict)
             ):
-                rule_result = result.data
-            if (
-                built.object_ref is None
-                and call.name == "query_merchants"
-                and isinstance(result.data, dict)
-            ):
-                merchant_result = result.data
+                result_updates[state_field] = result.data
         else:
             policy = context.ctx.tools.get(call.name).policy
             if policy.side_effect:
@@ -505,8 +556,7 @@ async def research_tools_node(
         "tool_calls_total": state["tool_calls_total"] + len(calls),
         "seen_evidence_fingerprints": sorted(seen),
         "no_progress_streak": streak,
-        "rule_result": rule_result,
-        "merchant_result": merchant_result,
+        "tool_results": tool_results,
         "safe_evidence_refs": list(dict.fromkeys(safe_refs)),
         "events": _event(
             state,
@@ -515,6 +565,7 @@ async def research_tools_node(
             new_evidence_count=len(new_fingerprints),
         ),
     }
+    update.update(result_updates)
     shadow = cast(ResearchState, {**state, **update})
     if side_effect_termination is not None:
         raw_status, reason = side_effect_termination
@@ -532,7 +583,10 @@ def route_after_tools(state: ResearchState) -> str:
 async def research_validate_node(
     state: ResearchState,
     runtime: Runtime[ResearchRunContext],
+    *,
+    spec: ResearchSpec | None = None,
 ) -> dict[str, object]:
+    selected = spec or campaign_research_spec()
     context = runtime.context
     structured = state["structured_output"]
     if structured is None:
@@ -540,22 +594,7 @@ async def research_validate_node(
             return _repair_update(state, code="missing_structured_output", paths=[])
         return {"termination": _termination(state, context, "missing_structured_output")}
     try:
-        rules = (
-            None
-            if state["rule_result"] is None
-            else SearchCampaignRulesResult.model_validate(state["rule_result"])
-        )
-        merchants = (
-            None
-            if state["merchant_result"] is None
-            else QueryMerchantsResult.model_validate(state["merchant_result"])
-        )
-        proposal = finalize_campaign_proposal_draft(
-            structured,
-            rules=rules,
-            merchants=merchants,
-            max_candidates=state["max_candidates"],
-        )
+        final_value = selected.finalize(structured, state)
     except ProposalEvidenceError:
         return {"termination": _termination(state, context, "evidence_validation_failed")}
     except ValidationError as exc:
@@ -564,14 +603,23 @@ async def research_validate_node(
             return _repair_update(state, code="schema_validation_failed", paths=paths)
         return {"termination": _termination(state, context, "schema_validation_failed")}
     return {
-        "proposal": cast(dict[str, JsonValue], proposal.model_dump(mode="json")),
+        selected.output_field: cast(dict[str, JsonValue], final_value.model_dump(mode="json")),
+        "final_result": cast(dict[str, JsonValue], final_value.model_dump(mode="json")),
         "pending_tool_calls": [],
-        "events": _event(state, "proposal_validated", abstained=proposal.abstained),
+        "events": _event(
+            state,
+            selected.validated_event_type,
+            abstained=cast(bool, getattr(final_value, "abstained", False)),
+        ),
     }
 
 
 def route_after_validate(state: ResearchState) -> str:
-    if state["proposal"] is not None or state["termination"] is not None:
+    if (
+        state.get("final_result") is not None
+        or state.get("proposal") is not None
+        or state["termination"] is not None
+    ):
         return END
     return "model"
 
@@ -592,10 +640,16 @@ def build_research_graph(
     *,
     checkpointer: BaseCheckpointSaver[Any] | None = None,
     nodes: ResearchNodes | None = None,
+    spec: ResearchSpec | None = None,
 ) -> CompiledStateGraph[ResearchState, ResearchRunContext, ResearchState, ResearchState]:
     """Compile the single permanent research graph without capturing a subject Context."""
 
-    selected = nodes or ResearchNodes()
+    selected_spec = spec or campaign_research_spec()
+    selected = nodes or ResearchNodes(
+        model=partial(research_model_node, spec=selected_spec),
+        tools=partial(research_tools_node, spec=selected_spec),
+        validate=partial(research_validate_node, spec=selected_spec),
+    )
     builder = StateGraph(ResearchState, context_schema=ResearchRunContext)
     builder.add_node("model", cast(Any, selected.model))
     builder.add_node("tools", cast(Any, selected.tools))

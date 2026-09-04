@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal, TypedDict
@@ -11,6 +12,8 @@ from pydantic import Field
 from oria.core.context import Context
 from oria.core.types import JsonValue, Message, ValueModel
 from oria.prompts import PromptManager
+
+from .spec import ResearchSpec
 
 
 class ResearchLimits(ValueModel):
@@ -55,6 +58,8 @@ class ResearchState(TypedDict):
     rule_result: dict[str, JsonValue] | None
     merchant_result: dict[str, JsonValue] | None
     proposal: dict[str, JsonValue] | None
+    tool_results: dict[str, dict[str, JsonValue]]
+    final_result: dict[str, JsonValue] | None
     termination: dict[str, JsonValue] | None
     finalization_only: bool
     repair_pending: bool
@@ -71,6 +76,8 @@ def initial_research_state(
     effective_at: str,
     max_candidates: int = 10,
     prompts: PromptManager | None = None,
+    spec: ResearchSpec | None = None,
+    prompt_variables: Mapping[str, object] | None = None,
 ) -> ResearchState:
     """Build JSON-serializable state with an explicitly fixed prompt version."""
 
@@ -78,11 +85,19 @@ def initial_research_state(
         raise ValueError("user request must be non-empty")
     if max_candidates < 1 or max_candidates > 100:
         raise ValueError("max_candidates must be between 1 and 100")
+    if spec is None:
+        from .graph import campaign_research_spec
+
+        spec = campaign_research_spec()
+    variables = (
+        {"effective_at": effective_at, "max_candidates": max_candidates}
+        if prompt_variables is None
+        else dict(prompt_variables)
+    )
     rendered = (prompts or PromptManager()).render(
-        "merchant_selection",
-        version=1,
-        effective_at=effective_at,
-        max_candidates=max_candidates,
+        spec.prompt_name,
+        version=spec.prompt_version,
+        **variables,
     )
     messages = [
         Message(role="system", content=rendered).model_dump(mode="json"),
@@ -103,6 +118,8 @@ def initial_research_state(
         rule_result=None,
         merchant_result=None,
         proposal=None,
+        tool_results={},
+        final_result=None,
         termination=None,
         finalization_only=False,
         repair_pending=False,
