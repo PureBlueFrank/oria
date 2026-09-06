@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "projection": "从本次工具返回提取的脱敏结果摘要，非完整原始响应",
+  "case_id": "sb-v1-001",
+  "split": "development",
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "profile": "deepseek-structured",
+  "completed_at": "2026-09-06T08:29:31.681409+00:00",
+  "termination": null,
+  "outcome": "attributed",
+  "abstained": false,
+  "model_turns": 4,
+  "tool_calls_total": 5,
+  "input_tokens": 61728,
+  "output_tokens": 3065,
+  "cost_upper_bound_usd": 0.03120612,
+  "request_ids": [
+    "84d7c142-7ed8-4843-86e7-1b2d4f546a09",
+    "458122a9-ff57-410b-aef1-d77a5aaaa276",
+    "d6c3d4b3-aabf-45a3-8a08-f19c04b5203d",
+    "5667777a-6949-41d5-86bf-94c609ee3e4a"
+  ],
+  "validation_repairs": 1,
+  "evidence": [
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/79/metrics/redemption_rate",
+      "value": 0.343826
+    },
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/79/metrics/redemptions",
+      "value": 142
+    },
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/79/metrics/confirmations",
+      "value": 413
+    },
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/85/metrics/redemption_rate",
+      "value": 0.347107
+    },
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/85/metrics/redemptions",
+      "value": 126
+    },
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/78/metrics/redemption_rate",
+      "value": 0.683784
+    },
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/80/metrics/redemption_rate",
+      "value": 0.686717
+    },
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/82/metrics/redemption_rate",
+      "value": 0.698925
+    },
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/73/metrics/redemption_rate",
+      "value": 0.821429
+    },
+    {
+      "tool_call_id": "call_00_GAsl8Gicc3gYqKeT4qLK2594",
+      "tool_name": "query_funnel",
+      "data_path": "/rows/61/metrics/redemption_rate",
+      "value": 0.812183
+    },
+    {
+      "tool_call_id": "call_01_xnS3cVeTl0fJ0v39dF5U2656",
+      "tool_name": "query_activity",
+      "data_path": "/activities/0/activity_id",
+      "value": "activity-east-full-service-summer"
+    },
+    {
+      "tool_call_id": "call_01_xnS3cVeTl0fJ0v39dF5U2656",
+      "tool_name": "query_activity",
+      "data_path": "/activities/0/activity_type",
+      "value": "merchant_incentive"
+    },
+    {
+      "tool_call_id": "call_01_xnS3cVeTl0fJ0v39dF5U2656",
+      "tool_name": "query_activity",
+      "data_path": "/activities/0/ends_on",
+      "value": "2026-08-30"
+    },
+    {
+      "tool_call_id": "call_01_xnS3cVeTl0fJ0v39dF5U2656",
+      "tool_name": "query_activity",
+      "data_path": "/activities/0/region",
+      "value": "east"
+    },
+    {
+      "tool_call_id": "call_01_xnS3cVeTl0fJ0v39dF5U2656",
+      "tool_name": "query_activity",
+      "data_path": "/activities/0/category",
+      "value": "full_service"
+    },
+    {
+      "tool_call_id": "call_00_mXDzykyt2IyozISdkGcL6386",
+      "tool_name": "drill_down",
+      "data_path": "/rows/6/metrics/redemption_rate",
+      "value": 0.343826
+    },
+    {
+      "tool_call_id": "call_00_mXDzykyt2IyozISdkGcL6386",
+      "tool_name": "drill_down",
+      "data_path": "/rows/6/metrics/redemptions",
+      "value": 142
+    },
+    {
+      "tool_call_id": "call_00_mXDzykyt2IyozISdkGcL6386",
+      "tool_name": "drill_down",
+      "data_path": "/rows/7/metrics/redemption_rate",
+      "value": 0.698925
+    },
+    {
+      "tool_call_id": "call_00_mXDzykyt2IyozISdkGcL6386",
+      "tool_name": "drill_down",
+      "data_path": "/rows/8/metrics/redemption_rate",
+      "value": 0.347107
+    },
+    {
+      "tool_call_id": "call_00_mXDzykyt2IyozISdkGcL6386",
+      "tool_name": "drill_down",
+      "data_path": "/rows/9/metrics/redemption_rate",
+      "value": 0.708661
+    },
+    {
+      "tool_call_id": "call_00_mXDzykyt2IyozISdkGcL6386",
+      "tool_name": "drill_down",
+      "data_path": "/rows/4/metrics/redemption_rate",
+      "value": 0.821429
+    },
+    {
+      "tool_call_id": "call_00_mXDzykyt2IyozISdkGcL6386",
+      "tool_name": "drill_down",
+      "data_path": "/rows/0/metrics/redemption_rate",
+      "value": 0.812183
+    }
+  ],
+  "quality_gate": "未验收：因果措辞偏确定，未覆盖三类开发案例和独立盲评",
+  "subsequent_change": "已补充因果措辞约束，待 Live 复验"
+}

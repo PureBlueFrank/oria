@@ -1,0 +1,20 @@
+{
+  "mode": "none",
+  "http_status": 200,
+  "source": "reports/verification/v0.4/20260906-remediation/development/20260906T135135613519Z-sb-v1-020.json",
+  "request_id": "2349ca90-e4af-4c90-bd03-3ecd089ae3aa",
+  "usage": {
+    "input_tokens": 23067,
+    "input_tokens_details": {
+      "cached_tokens": 640
+    },
+    "output_tokens": 24,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 23091
+  },
+  "output": {},
+  "validation": "ValidationError",
+  "cost_upper_bound_usd": 0.01018116
+}

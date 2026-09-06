@@ -1,0 +1,174 @@
+{
+  "mode": "none",
+  "http_status": 200,
+  "source": "reports/verification/v0.4/20260906-remediation/development/20260906T135135613519Z-sb-v1-020.json",
+  "request_id": "e3149de8-8d56-4790-8fb0-737f0f3f045d",
+  "usage": {
+    "input_tokens": 22742,
+    "input_tokens_details": {
+      "cached_tokens": 640
+    },
+    "output_tokens": 1841,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 24583
+  },
+  "output": {
+    "schema_version": 1,
+    "outcome": "attributed",
+    "confidence": 0.72,
+    "confidence_explanation": "数据明确显示华东正餐(full_service)在2026-08-31和09-01出现访问量、报名量、核销量同步大幅下降,而同期其他品类(饮料、快餐)及北方正餐均保持稳定。华东正餐存在一个merchant_incentive活动,结束于2026-08-30,与下降起点(08-31)精确吻合。下降同时体现在visit_rate(上游流量)和enrollment_rate(报名率)两个环节,且核销率(redemption_rate)也大幅下降,说明这不是单一环节问题而是整体活动结束导致的流量与转化同步收缩。对照期(08-03至08-17)数据为空,无法直接比较,但活动窗口与下降时间高度吻合。",
+    "abstained": false,
+    "conclusion": "华东正餐(full_service)报名和核销同时下降的最有证据支持的解释是:该商户的merchant_incentive活动(activity-east-full-service-summer,2026-08-01至2026-08-30)于08-30结束,活动结束后(08-31起)访问量、报名量、核销量同步大幅下滑。具体证据:华东正餐在08-31的visits从正常~1000+骤降至707,enrollments从~500降至347,redemptions从~270降至118;09-01进一步降至visits=646、enrollments=302、redemptions=100。同时visit_rate从~0.58降至0.387/0.372,enrollment_rate从~0.48降至0.491/0.467(报名率本身变化不大但上游流量骤降),redemption_rate从~0.70降至0.45/0.44。对照:同期华东饮料、快餐品类及北方正餐均保持稳定(visits~1000+,redemptions~250+),说明下降是华东正餐特有的,与该商户活动结束时间精确吻合。活动结束导致流量来源消失,进而报名和核销同步收缩。",
+    "hypotheses": [
+      {
+        "hypothesis_id": "H1_merchant_incentive_end",
+        "statement": "华东正餐商户的merchant_incentive活动(activity-east-full-service-summer,2026-08-01至08-30)于08-30结束后,活动带来的流量与转化激励消失,导致08-31起访问量、报名量、核销量同步大幅下降。活动结束时间(08-30)与下降起点(08-31)精确吻合,且下降仅出现在该商户/品类/区域组合,其他品类和北方正餐保持稳定。",
+        "uncertainty": "活动结束与下降的时间重合是强关联证据,但缺少活动期间(08-01至08-17)的对照数据(该时段查询返回空),无法量化活动对基线流量的贡献幅度。此外,报名率(enrollment_rate)在下降期间仍维持在~0.47-0.49,说明报名转化本身未恶化,下降主要由上游访问量骤降驱动,但访问量骤降是否完全归因于活动结束(而非其他未观测的流量渠道变化)无法完全排除。"
+      }
+    ],
+    "evidence": [
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/79",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.755043,
+            "confirmations": 262,
+            "enrollment_rate": 0.490806,
+            "enrollments": 347,
+            "impressions": 1829,
+            "redemption_rate": 0.450382,
+            "redemptions": 118,
+            "visit_rate": 0.38655,
+            "visits": 707
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/85",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-09-01",
+          "metrics": {
+            "confirmation_rate": 0.751656,
+            "confirmations": 227,
+            "enrollment_rate": 0.467492,
+            "enrollments": 302,
+            "impressions": 1738,
+            "redemption_rate": 0.440529,
+            "redemptions": 100,
+            "visit_rate": 0.371692,
+            "visits": 646
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/78",
+        "value": {
+          "category": "beverage",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.764,
+            "confirmations": 382,
+            "enrollment_rate": 0.479386,
+            "enrollments": 500,
+            "impressions": 1816,
+            "redemption_rate": 0.704188,
+            "redemptions": 269,
+            "visit_rate": 0.574339,
+            "visits": 1043
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/80",
+        "value": {
+          "category": "quick_service",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.75442,
+            "confirmations": 384,
+            "enrollment_rate": 0.465265,
+            "enrollments": 509,
+            "impressions": 1872,
+            "redemption_rate": 0.710938,
+            "redemptions": 273,
+            "visit_rate": 0.584402,
+            "visits": 1094
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/82",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.758403,
+            "confirmations": 361,
+            "enrollment_rate": 0.478873,
+            "enrollments": 476,
+            "impressions": 1747,
+            "redemption_rate": 0.695291,
+            "redemptions": 251,
+            "visit_rate": 0.568975,
+            "visits": 994
+          },
+          "region": "north"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_yGuveafJV2RYPqwROYBv9430",
+        "tool_name": "query_activity",
+        "data_path": "/activities/0",
+        "value": {
+          "activity_id": "activity-east-full-service-summer",
+          "activity_type": "merchant_incentive",
+          "category": "full_service",
+          "ends_on": "2026-08-30",
+          "merchant_id": "synthetic-merchant-east-full-service",
+          "region": "east",
+          "starts_on": "2026-08-01"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      }
+    ],
+    "requested_data": []
+  },
+  "validation": "passed",
+  "cost_upper_bound_usd": 0.012436599999999999
+}

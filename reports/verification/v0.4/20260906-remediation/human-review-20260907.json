@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "suite": "attribution",
+  "review_kind": "development_candidate_human_review",
+  "reviewer": "FrankLee",
+  "reviewed_at": "2026-09-07",
+  "scope": "deepseek-pro-structured 候选的 development 探针输出，不代表冻结 Holdout 复评",
+  "protocol_deviations": [
+    "评审者此前接触过案例背景与期望标签，非严格盲评",
+    "逐项整体评分（0/1/2 锚点参照 rubric v1 五维综合），未按五维逐项打分",
+    "抽样 3/7 干净通过项与 1/3 fail-closed 项，未覆盖全部 10 次探针",
+    "样本量 4，低于 Live 卡校准要求的 10 条；本评审仅用于候选开发验证"
+  ],
+  "items": [
+    {
+      "blind_item": "A",
+      "evidence_file": "development/20260906T161402128752Z-sb-v1-001.json",
+      "observed_outcome": "attributed",
+      "verdict": 2,
+      "verdict_label": "通过"
+    },
+    {
+      "blind_item": "B",
+      "evidence_file": "development/20260906T161543486615Z-sb-v1-015.json",
+      "observed_outcome": "insufficient",
+      "verdict": 2,
+      "verdict_label": "通过"
+    },
+    {
+      "blind_item": "C",
+      "evidence_file": "development/20260906T161657079104Z-sb-v1-020.json",
+      "observed_outcome": "conflicting",
+      "verdict": 2,
+      "verdict_label": "通过"
+    },
+    {
+      "blind_item": "D",
+      "evidence_file": "development/20260906T162341468683Z-sb-v1-020.json",
+      "observed_outcome": "terminated:schema_validation_failed",
+      "verdict": "拦停正确",
+      "verdict_label": "因果契约正确拦停自相矛盾输出（自报双环节无共同机制仍提交单因）"
+    }
+  ],
+  "conclusion": "FrankLee 评审通过所抽 3 个干净通过项（attributed/insufficient/conflicting 各一）的语义质量，并确认因果契约的 fail-closed 拦停行为正确。本评审满足 ADR-031 开发验证条件中的语义评审环节；候选配置是否晋升默认、冻结 Live target 是否调整，仍需另行决策，且任何冻结目标变更须以新的严格盲评（≥10 条、隐藏标签）为前提。",
+  "not_changed": [
+    "冻结 Live target 与 60 条原 failed 卡结论",
+    "Golden 数据集与 30/20 split",
+    "因果契约与证据逐值校验规则",
+    "默认 deepseek profile 配置"
+  ]
+}

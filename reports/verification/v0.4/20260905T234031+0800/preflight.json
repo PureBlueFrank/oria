@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "suite": "attribution",
+  "target_id": "deepseek",
+  "status": "blocked",
+  "request_count": 0,
+  "checked_at": "2026-09-05T23:50:37.933578+08:00",
+  "reason": "attribution Live credential is missing",
+  "dataset_version": "1",
+  "dataset_sha256": "b59078792fd00c3fff916183679402cf4cc340da98f7da27bee3dcea4923e40d",
+  "holdout_case_count": 20,
+  "repetitions": 3,
+  "expected_case_runs": 60,
+  "pricing_snapshot_id": "deepseek-20260830"
+}

@@ -1,0 +1,63 @@
+{
+  "termination": {
+    "status": "failed",
+    "reason": "policy_or_contract_violation",
+    "limits": {
+      "max_model_turns": 6,
+      "max_tool_calls": 10,
+      "max_input_tokens": 96000,
+      "max_output_tokens": 24000,
+      "max_total_tokens": 120000,
+      "max_cost": 0.075,
+      "max_inline_tool_bytes": 32768,
+      "max_validation_repairs": 1,
+      "no_progress_limit": 2
+    },
+    "observed_usage": {
+      "model_turns": 1,
+      "tool_calls_total": 0,
+      "input_tokens": 3978,
+      "output_tokens": 184,
+      "total_tokens": 4162,
+      "total_cost": 0.0
+    },
+    "last_safe_evidence_refs": []
+  },
+  "conclusion": null,
+  "structured_output": null,
+  "tool_results": {},
+  "model_turns": 1,
+  "tool_calls_total": 0,
+  "input_tokens": 3978,
+  "output_tokens": 184,
+  "events": [
+    {
+      "type": "model_completed",
+      "model_turn": 1,
+      "provider_request_id": "f654b076-5f38-4063-be73-48f52b449d71",
+      "provider_model": "deepseek-v4-flash"
+    },
+    {
+      "type": "tool_batch_rejected",
+      "error_code": "invalid_arguments"
+    }
+  ],
+  "case_id": "sb-v1-020",
+  "split": "development",
+  "expected_outcome": "conflicting",
+  "profile": "deepseek-structured",
+  "prompt_version": 2,
+  "limits": {
+    "max_model_turns": 6,
+    "max_tool_calls": 10,
+    "max_input_tokens": 96000,
+    "max_output_tokens": 24000,
+    "max_total_tokens": 120000,
+    "max_cost": 0.075,
+    "max_inline_tool_bytes": 32768,
+    "max_validation_repairs": 1,
+    "no_progress_limit": 2
+  },
+  "completed_at": "2026-09-06T14:09:01.948462+00:00",
+  "cost_upper_bound_usd": 0.0019932
+}

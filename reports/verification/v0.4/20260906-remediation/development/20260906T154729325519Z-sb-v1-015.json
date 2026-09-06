@@ -1,0 +1,2040 @@
+{
+  "termination": {
+    "status": "failed",
+    "reason": "evidence_validation_failed",
+    "limits": {
+      "max_model_turns": 12,
+      "max_tool_calls": 20,
+      "max_input_tokens": 200000,
+      "max_output_tokens": 32000,
+      "max_total_tokens": 232000,
+      "max_cost": 1.0,
+      "max_inline_tool_bytes": 32768,
+      "max_validation_repairs": 1,
+      "no_progress_limit": 2
+    },
+    "observed_usage": {
+      "model_turns": 8,
+      "tool_calls_total": 14,
+      "input_tokens": 89562,
+      "output_tokens": 3413,
+      "total_tokens": 92975,
+      "total_cost": 0.0
+    },
+    "last_safe_evidence_refs": [
+      "oria://tool/query_funnel/v1#ae_fe851a5c422531491d4977f5aa130c19",
+      "oria://tool/query_funnel/v1#ae_5eda97e3a817910b55918d8015f0c585",
+      "oria://tool/query_funnel/v1#ae_e74a58d0ea85111c2165782e4b5c9af9",
+      "oria://tool/query_funnel/v1#ae_70d7f3e07890ffa1419f76b6a410a1b6",
+      "oria://tool/drill_down/v1#ae_eaa45d763550e66e77cbefbce1e30111",
+      "oria://tool/query_activity/v1#ae_6a62d312281a0f2912f46f4816e8f03d",
+      "oria://tool/query_market_overview/v1#ae_404075b6aa796f104a37bf9abdc01c23",
+      "oria://tool/search_history_experience/v1",
+      "oria://tool/query_market_overview/v1#ae_581683e84c72ae801325a377072ed6e2",
+      "oria://tool/query_funnel/v1#ae_7be6866e1e388021450d4afde374a66a",
+      "oria://tool/query_activity/v1#ae_4e926efea3bd4d1c332e7e61e347bdad",
+      "oria://tool/query_activity/v1#ae_246cfebe506c303a7898432a0e6a24ea",
+      "oria://tool/query_market_overview/v1#ae_dd05fa76ff53591231bb767f7a0a12ff"
+    ]
+  },
+  "conclusion": null,
+  "structured_output": {
+    "schema_version": 1,
+    "outcome": "insufficient",
+    "abstained": true,
+    "conclusion": null,
+    "confidence": 0.25,
+    "confidence_explanation": "The anomaly is precisely localized (east + full_service + confirmation→redemption only, with stable confirmations and a stable market benchmark), which strongly suggests a tenant-specific redemption-stage change. However, the activity_windows table is empty (the premise \"活动数据缺失\" is confirmed), so the mechanism that would explain the drop is unobservable. Without activity records or any prior-period baseline, no candidate cause can be supported by evidence.",
+    "causal_assessment": {
+      "anomalous_conversion_stages": [
+        "confirmation_to_redemption"
+      ],
+      "shared_mechanism_observed": false,
+      "mechanism_evidence": []
+    },
+    "hypotheses": [],
+    "evidence": [
+      {
+        "tool_call_id": "tool_0205b25526b34028b82cf4b2d919cd25",
+        "tool_name": "drill_down",
+        "data_path": "/rows/13/metrics/redemption_rate",
+        "value": 0.531807,
+        "supports": []
+      },
+      {
+        "tool_call_id": "tool_0205b25526b34028b82cf4b2d919cd25",
+        "tool_name": "drill_down",
+        "data_path": "/rows/14/metrics/redemption_rate",
+        "value": 0.505376,
+        "supports": []
+      },
+      {
+        "tool_call_id": "tool_0205b25526b34028b82cf4b2d919cd25",
+        "tool_name": "drill_down",
+        "data_path": "/rows/12/metrics/redemption_rate",
+        "value": 0.695153,
+        "supports": []
+      },
+      {
+        "tool_call_id": "tool_0205b25526b34028b82cf4b2d919cd25",
+        "tool_name": "drill_down",
+        "data_path": "/rows/13/metrics/confirmations",
+        "value": 786,
+        "supports": []
+      },
+      {
+        "tool_call_id": "tool_0205b25526b34028b82cf4b2d919cd25",
+        "tool_name": "drill_down",
+        "data_path": "/rows/14/metrics/confirmations",
+        "value": 744,
+        "supports": []
+      },
+      {
+        "tool_call_id": "tool_8f6e629475784ec2ac7312489d3df2a9",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/1/metrics/redemption_rate",
+        "value": 0.710723,
+        "supports": []
+      },
+      {
+        "tool_call_id": "tool_8f6e629475784ec2ac7312489d3df2a9",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/3/metrics/redemption_rate",
+        "value": 0.691667,
+        "supports": []
+      },
+      {
+        "tool_call_id": "tool_9c5685f6f7304f20831cdd1482a0f5a6",
+        "tool_name": "query_market_overview",
+        "data_path": "/segments/0/current/redemption_rate",
+        "value": 0.694663,
+        "supports": []
+      },
+      {
+        "tool_call_id": "tool_1516015a94354724b67f2abecc714344",
+        "tool_name": "query_activity",
+        "data_path": "/activities",
+        "value": [],
+        "supports": []
+      }
+    ],
+    "requested_data": [
+      "华东正餐 2026-08-31 至 2026-09-01 期间的核销端活动/规则变更记录（activity_windows 表当前为空，需补充激励取消、核销通道关闭、核销规则调整等记录）",
+      "2026-08-18 之前（如 08-04 至 08-17）的华东正餐漏斗基线数据，用于确认 0.69-0.71 是否为正常核销率水平",
+      "华东正餐核销环节的商户侧明细（如核销失败原因、门店/商户维度拆分），以区分是系统故障、激励到期还是商户侧操作变化"
+    ]
+  },
+  "tool_results": {
+    "call_00_sN1sKQdt7XatO7c9tZrf0257": {
+      "tool_name": "query_funnel",
+      "arguments": {
+        "period": {
+          "start_date": "2026-08-18",
+          "end_date": "2026-09-01"
+        },
+        "dimensions": [
+          "region",
+          "category"
+        ]
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "dimensions": [
+            "region",
+            "category"
+          ],
+          "rows": [
+            {
+              "event_date": null,
+              "region": "east",
+              "category": "beverage",
+              "metrics": {
+                "impressions": 27099,
+                "visits": 15707,
+                "enrollments": 7595,
+                "confirmations": 5758,
+                "redemptions": 4032,
+                "visit_rate": 0.579615,
+                "enrollment_rate": 0.483542,
+                "confirmation_rate": 0.75813,
+                "redemption_rate": 0.700243
+              }
+            },
+            {
+              "event_date": null,
+              "region": "east",
+              "category": "full_service",
+              "metrics": {
+                "impressions": 26904,
+                "visits": 15548,
+                "enrollments": 7503,
+                "confirmations": 5687,
+                "redemptions": 3699,
+                "visit_rate": 0.577907,
+                "enrollment_rate": 0.48257,
+                "confirmation_rate": 0.757963,
+                "redemption_rate": 0.650431
+              }
+            },
+            {
+              "event_date": null,
+              "region": "east",
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 27048,
+                "visits": 15694,
+                "enrollments": 7453,
+                "confirmations": 5658,
+                "redemptions": 3948,
+                "visit_rate": 0.580228,
+                "enrollment_rate": 0.474895,
+                "confirmation_rate": 0.759157,
+                "redemption_rate": 0.697773
+              }
+            },
+            {
+              "event_date": null,
+              "region": "north",
+              "category": "beverage",
+              "metrics": {
+                "impressions": 27020,
+                "visits": 15656,
+                "enrollments": 7463,
+                "confirmations": 5681,
+                "redemptions": 3964,
+                "visit_rate": 0.579423,
+                "enrollment_rate": 0.476686,
+                "confirmation_rate": 0.761222,
+                "redemption_rate": 0.697764
+              }
+            },
+            {
+              "event_date": null,
+              "region": "north",
+              "category": "full_service",
+              "metrics": {
+                "impressions": 27370,
+                "visits": 15854,
+                "enrollments": 7632,
+                "confirmations": 5790,
+                "redemptions": 4059,
+                "visit_rate": 0.579247,
+                "enrollment_rate": 0.481393,
+                "confirmation_rate": 0.758648,
+                "redemption_rate": 0.701036
+              }
+            },
+            {
+              "event_date": null,
+              "region": "north",
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 26886,
+                "visits": 15506,
+                "enrollments": 7468,
+                "confirmations": 5688,
+                "redemptions": 3985,
+                "visit_rate": 0.576731,
+                "enrollment_rate": 0.48162,
+                "confirmation_rate": 0.76165,
+                "redemption_rate": 0.700598
+              }
+            }
+          ],
+          "evidence": {
+            "evidence_id": "ae_fe851a5c422531491d4977f5aa130c19",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "funnel_daily"
+            ],
+            "period": {
+              "start_date": "2026-08-18",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [
+              "region",
+              "category"
+            ],
+            "filters": {},
+            "row_count": 6,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_fe851a5c422531491d4977f5aa130c19"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_0f1e94bf50084035ac1bc29f42ef5f33",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_funnel/v1#ae_fe851a5c422531491d4977f5aa130c19",
+        "data_classification": "internal"
+      }
+    },
+    "call_01_fxTQVsHH3w0FDsqByees1136": {
+      "tool_name": "query_funnel",
+      "arguments": {
+        "period": {
+          "start_date": "2026-08-04",
+          "end_date": "2026-08-17"
+        },
+        "dimensions": [
+          "region",
+          "category"
+        ]
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "dimensions": [
+            "region",
+            "category"
+          ],
+          "rows": [],
+          "evidence": {
+            "evidence_id": "ae_5eda97e3a817910b55918d8015f0c585",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "funnel_daily"
+            ],
+            "period": {
+              "start_date": "2026-08-04",
+              "end_date": "2026-08-17"
+            },
+            "dimensions": [
+              "region",
+              "category"
+            ],
+            "filters": {},
+            "row_count": 0,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_5eda97e3a817910b55918d8015f0c585"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_f20fd420b9b74ce094ca4eb2acafdaa0",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_funnel/v1#ae_5eda97e3a817910b55918d8015f0c585",
+        "data_classification": "internal"
+      }
+    },
+    "call_00_HhMcOGq7tg6mARqBW59c1663": {
+      "tool_name": "query_funnel",
+      "arguments": {
+        "dimensions": [
+          "event_date",
+          "category"
+        ],
+        "period": {
+          "end_date": "2026-09-01",
+          "start_date": "2026-08-18"
+        },
+        "region": "east"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "dimensions": [
+            "event_date",
+            "category"
+          ],
+          "rows": [
+            {
+              "event_date": "2026-08-18",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1841,
+                "visits": 1065,
+                "enrollments": 524,
+                "confirmations": 397,
+                "redemptions": 275,
+                "visit_rate": 0.57849,
+                "enrollment_rate": 0.492019,
+                "confirmation_rate": 0.757634,
+                "redemption_rate": 0.692695
+              }
+            },
+            {
+              "event_date": "2026-08-18",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1790,
+                "visits": 1044,
+                "enrollments": 508,
+                "confirmations": 389,
+                "redemptions": 277,
+                "visit_rate": 0.58324,
+                "enrollment_rate": 0.48659,
+                "confirmation_rate": 0.765748,
+                "redemption_rate": 0.712082
+              }
+            },
+            {
+              "event_date": "2026-08-18",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1742,
+                "visits": 1027,
+                "enrollments": 488,
+                "confirmations": 366,
+                "redemptions": 258,
+                "visit_rate": 0.589552,
+                "enrollment_rate": 0.47517,
+                "confirmation_rate": 0.75,
+                "redemption_rate": 0.704918
+              }
+            },
+            {
+              "event_date": "2026-08-19",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1849,
+                "visits": 1070,
+                "enrollments": 525,
+                "confirmations": 398,
+                "redemptions": 275,
+                "visit_rate": 0.578691,
+                "enrollment_rate": 0.490654,
+                "confirmation_rate": 0.758095,
+                "redemption_rate": 0.690955
+              }
+            },
+            {
+              "event_date": "2026-08-19",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1830,
+                "visits": 1038,
+                "enrollments": 502,
+                "confirmations": 379,
+                "redemptions": 268,
+                "visit_rate": 0.567213,
+                "enrollment_rate": 0.483622,
+                "confirmation_rate": 0.75498,
+                "redemption_rate": 0.707124
+              }
+            },
+            {
+              "event_date": "2026-08-19",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1737,
+                "visits": 1030,
+                "enrollments": 497,
+                "confirmations": 377,
+                "redemptions": 264,
+                "visit_rate": 0.592976,
+                "enrollment_rate": 0.482524,
+                "confirmation_rate": 0.758551,
+                "redemption_rate": 0.700265
+              }
+            },
+            {
+              "event_date": "2026-08-20",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1801,
+                "visits": 1050,
+                "enrollments": 495,
+                "confirmations": 378,
+                "redemptions": 264,
+                "visit_rate": 0.583009,
+                "enrollment_rate": 0.471429,
+                "confirmation_rate": 0.763636,
+                "redemption_rate": 0.698413
+              }
+            },
+            {
+              "event_date": "2026-08-20",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1811,
+                "visits": 1027,
+                "enrollments": 482,
+                "confirmations": 366,
+                "redemptions": 258,
+                "visit_rate": 0.56709,
+                "enrollment_rate": 0.469328,
+                "confirmation_rate": 0.759336,
+                "redemption_rate": 0.704918
+              }
+            },
+            {
+              "event_date": "2026-08-20",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1866,
+                "visits": 1075,
+                "enrollments": 502,
+                "confirmations": 380,
+                "redemptions": 268,
+                "visit_rate": 0.576099,
+                "enrollment_rate": 0.466977,
+                "confirmation_rate": 0.756972,
+                "redemption_rate": 0.705263
+              }
+            },
+            {
+              "event_date": "2026-08-21",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1769,
+                "visits": 1023,
+                "enrollments": 491,
+                "confirmations": 370,
+                "redemptions": 262,
+                "visit_rate": 0.578293,
+                "enrollment_rate": 0.479961,
+                "confirmation_rate": 0.753564,
+                "redemption_rate": 0.708108
+              }
+            },
+            {
+              "event_date": "2026-08-21",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1757,
+                "visits": 1019,
+                "enrollments": 483,
+                "confirmations": 366,
+                "redemptions": 257,
+                "visit_rate": 0.579966,
+                "enrollment_rate": 0.473994,
+                "confirmation_rate": 0.757764,
+                "redemption_rate": 0.702186
+              }
+            },
+            {
+              "event_date": "2026-08-21",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1848,
+                "visits": 1055,
+                "enrollments": 517,
+                "confirmations": 392,
+                "redemptions": 271,
+                "visit_rate": 0.570887,
+                "enrollment_rate": 0.490047,
+                "confirmation_rate": 0.758221,
+                "redemption_rate": 0.691327
+              }
+            },
+            {
+              "event_date": "2026-08-22",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1854,
+                "visits": 1074,
+                "enrollments": 516,
+                "confirmations": 388,
+                "redemptions": 268,
+                "visit_rate": 0.579288,
+                "enrollment_rate": 0.480447,
+                "confirmation_rate": 0.751938,
+                "redemption_rate": 0.690722
+              }
+            },
+            {
+              "event_date": "2026-08-22",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1835,
+                "visits": 1050,
+                "enrollments": 515,
+                "confirmations": 394,
+                "redemptions": 272,
+                "visit_rate": 0.572207,
+                "enrollment_rate": 0.490476,
+                "confirmation_rate": 0.765049,
+                "redemption_rate": 0.690355
+              }
+            },
+            {
+              "event_date": "2026-08-22",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1865,
+                "visits": 1095,
+                "enrollments": 532,
+                "confirmations": 406,
+                "redemptions": 282,
+                "visit_rate": 0.587131,
+                "enrollment_rate": 0.485845,
+                "confirmation_rate": 0.763158,
+                "redemption_rate": 0.694581
+              }
+            },
+            {
+              "event_date": "2026-08-23",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1851,
+                "visits": 1070,
+                "enrollments": 517,
+                "confirmations": 390,
+                "redemptions": 276,
+                "visit_rate": 0.578066,
+                "enrollment_rate": 0.483178,
+                "confirmation_rate": 0.754352,
+                "redemption_rate": 0.707692
+              }
+            },
+            {
+              "event_date": "2026-08-23",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1756,
+                "visits": 1027,
+                "enrollments": 495,
+                "confirmations": 372,
+                "redemptions": 265,
+                "visit_rate": 0.584852,
+                "enrollment_rate": 0.481986,
+                "confirmation_rate": 0.751515,
+                "redemption_rate": 0.712366
+              }
+            },
+            {
+              "event_date": "2026-08-23",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1721,
+                "visits": 998,
+                "enrollments": 466,
+                "confirmations": 351,
+                "redemptions": 243,
+                "visit_rate": 0.579895,
+                "enrollment_rate": 0.466934,
+                "confirmation_rate": 0.753219,
+                "redemption_rate": 0.692308
+              }
+            },
+            {
+              "event_date": "2026-08-24",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1761,
+                "visits": 1005,
+                "enrollments": 490,
+                "confirmations": 368,
+                "redemptions": 260,
+                "visit_rate": 0.570698,
+                "enrollment_rate": 0.487562,
+                "confirmation_rate": 0.75102,
+                "redemption_rate": 0.706522
+              }
+            },
+            {
+              "event_date": "2026-08-24",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1731,
+                "visits": 996,
+                "enrollments": 488,
+                "confirmations": 366,
+                "redemptions": 253,
+                "visit_rate": 0.57539,
+                "enrollment_rate": 0.48996,
+                "confirmation_rate": 0.75,
+                "redemption_rate": 0.691257
+              }
+            },
+            {
+              "event_date": "2026-08-24",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1817,
+                "visits": 1057,
+                "enrollments": 495,
+                "confirmations": 379,
+                "redemptions": 270,
+                "visit_rate": 0.581728,
+                "enrollment_rate": 0.468307,
+                "confirmation_rate": 0.765657,
+                "redemption_rate": 0.712401
+              }
+            },
+            {
+              "event_date": "2026-08-25",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1788,
+                "visits": 1016,
+                "enrollments": 494,
+                "confirmations": 372,
+                "redemptions": 255,
+                "visit_rate": 0.568233,
+                "enrollment_rate": 0.48622,
+                "confirmation_rate": 0.753036,
+                "redemption_rate": 0.685484
+              }
+            },
+            {
+              "event_date": "2026-08-25",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1767,
+                "visits": 1027,
+                "enrollments": 507,
+                "confirmations": 388,
+                "redemptions": 266,
+                "visit_rate": 0.581211,
+                "enrollment_rate": 0.493671,
+                "confirmation_rate": 0.765286,
+                "redemption_rate": 0.685567
+              }
+            },
+            {
+              "event_date": "2026-08-25",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1830,
+                "visits": 1087,
+                "enrollments": 514,
+                "confirmations": 386,
+                "redemptions": 269,
+                "visit_rate": 0.593989,
+                "enrollment_rate": 0.472861,
+                "confirmation_rate": 0.750973,
+                "redemption_rate": 0.696891
+              }
+            },
+            {
+              "event_date": "2026-08-26",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1809,
+                "visits": 1062,
+                "enrollments": 505,
+                "confirmations": 380,
+                "redemptions": 266,
+                "visit_rate": 0.587065,
+                "enrollment_rate": 0.475518,
+                "confirmation_rate": 0.752475,
+                "redemption_rate": 0.7
+              }
+            },
+            {
+              "event_date": "2026-08-26",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1845,
+                "visits": 1084,
+                "enrollments": 509,
+                "confirmations": 385,
+                "redemptions": 271,
+                "visit_rate": 0.587534,
+                "enrollment_rate": 0.469557,
+                "confirmation_rate": 0.756385,
+                "redemption_rate": 0.703896
+              }
+            },
+            {
+              "event_date": "2026-08-26",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1757,
+                "visits": 1006,
+                "enrollments": 468,
+                "confirmations": 358,
+                "redemptions": 245,
+                "visit_rate": 0.572567,
+                "enrollment_rate": 0.465209,
+                "confirmation_rate": 0.764957,
+                "redemption_rate": 0.684358
+              }
+            },
+            {
+              "event_date": "2026-08-27",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1873,
+                "visits": 1073,
+                "enrollments": 519,
+                "confirmations": 397,
+                "redemptions": 283,
+                "visit_rate": 0.572878,
+                "enrollment_rate": 0.483691,
+                "confirmation_rate": 0.764933,
+                "redemption_rate": 0.712846
+              }
+            },
+            {
+              "event_date": "2026-08-27",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1729,
+                "visits": 1022,
+                "enrollments": 480,
+                "confirmations": 367,
+                "redemptions": 255,
+                "visit_rate": 0.591093,
+                "enrollment_rate": 0.469667,
+                "confirmation_rate": 0.764583,
+                "redemption_rate": 0.694823
+              }
+            },
+            {
+              "event_date": "2026-08-27",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1747,
+                "visits": 1018,
+                "enrollments": 478,
+                "confirmations": 365,
+                "redemptions": 251,
+                "visit_rate": 0.582713,
+                "enrollment_rate": 0.469548,
+                "confirmation_rate": 0.763598,
+                "redemption_rate": 0.687671
+              }
+            },
+            {
+              "event_date": "2026-08-28",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1756,
+                "visits": 1042,
+                "enrollments": 497,
+                "confirmations": 382,
+                "redemptions": 264,
+                "visit_rate": 0.593394,
+                "enrollment_rate": 0.476967,
+                "confirmation_rate": 0.768612,
+                "redemption_rate": 0.691099
+              }
+            },
+            {
+              "event_date": "2026-08-28",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1817,
+                "visits": 1037,
+                "enrollments": 505,
+                "confirmations": 380,
+                "redemptions": 269,
+                "visit_rate": 0.570721,
+                "enrollment_rate": 0.486982,
+                "confirmation_rate": 0.752475,
+                "redemption_rate": 0.707895
+              }
+            },
+            {
+              "event_date": "2026-08-28",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1848,
+                "visits": 1085,
+                "enrollments": 520,
+                "confirmations": 394,
+                "redemptions": 274,
+                "visit_rate": 0.587121,
+                "enrollment_rate": 0.479263,
+                "confirmation_rate": 0.757692,
+                "redemption_rate": 0.695431
+              }
+            },
+            {
+              "event_date": "2026-08-29",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1746,
+                "visits": 1004,
+                "enrollments": 481,
+                "confirmations": 369,
+                "redemptions": 262,
+                "visit_rate": 0.575029,
+                "enrollment_rate": 0.479084,
+                "confirmation_rate": 0.767152,
+                "redemption_rate": 0.710027
+              }
+            },
+            {
+              "event_date": "2026-08-29",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1732,
+                "visits": 1024,
+                "enrollments": 484,
+                "confirmations": 368,
+                "redemptions": 252,
+                "visit_rate": 0.591224,
+                "enrollment_rate": 0.472656,
+                "confirmation_rate": 0.760331,
+                "redemption_rate": 0.684783
+              }
+            },
+            {
+              "event_date": "2026-08-29",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1746,
+                "visits": 996,
+                "enrollments": 480,
+                "confirmations": 367,
+                "redemptions": 256,
+                "visit_rate": 0.570447,
+                "enrollment_rate": 0.481928,
+                "confirmation_rate": 0.764583,
+                "redemption_rate": 0.697548
+              }
+            },
+            {
+              "event_date": "2026-08-30",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1780,
+                "visits": 1053,
+                "enrollments": 510,
+                "confirmations": 384,
+                "redemptions": 270,
+                "visit_rate": 0.591573,
+                "enrollment_rate": 0.48433,
+                "confirmation_rate": 0.752941,
+                "redemption_rate": 0.703125
+              }
+            },
+            {
+              "event_date": "2026-08-30",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1850,
+                "visits": 1078,
+                "enrollments": 529,
+                "confirmations": 398,
+                "redemptions": 276,
+                "visit_rate": 0.582703,
+                "enrollment_rate": 0.490724,
+                "confirmation_rate": 0.752363,
+                "redemption_rate": 0.693467
+              }
+            },
+            {
+              "event_date": "2026-08-30",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1795,
+                "visits": 1051,
+                "enrollments": 490,
+                "confirmations": 368,
+                "redemptions": 259,
+                "visit_rate": 0.585515,
+                "enrollment_rate": 0.466223,
+                "confirmation_rate": 0.75102,
+                "redemption_rate": 0.703804
+              }
+            },
+            {
+              "event_date": "2026-08-31",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1873,
+                "visits": 1107,
+                "enrollments": 540,
+                "confirmations": 413,
+                "redemptions": 287,
+                "visit_rate": 0.59103,
+                "enrollment_rate": 0.487805,
+                "confirmation_rate": 0.764815,
+                "redemption_rate": 0.694915
+              }
+            },
+            {
+              "event_date": "2026-08-31",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1829,
+                "visits": 1037,
+                "enrollments": 510,
+                "confirmations": 385,
+                "redemptions": 133,
+                "visit_rate": 0.566976,
+                "enrollment_rate": 0.491803,
+                "confirmation_rate": 0.754902,
+                "redemption_rate": 0.345455
+              }
+            },
+            {
+              "event_date": "2026-08-31",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1866,
+                "visits": 1057,
+                "enrollments": 510,
+                "confirmations": 389,
+                "redemptions": 277,
+                "visit_rate": 0.566452,
+                "enrollment_rate": 0.482498,
+                "confirmation_rate": 0.762745,
+                "redemption_rate": 0.712082
+              }
+            },
+            {
+              "event_date": "2026-09-01",
+              "region": null,
+              "category": "beverage",
+              "metrics": {
+                "impressions": 1748,
+                "visits": 993,
+                "enrollments": 491,
+                "confirmations": 372,
+                "redemptions": 265,
+                "visit_rate": 0.568078,
+                "enrollment_rate": 0.494461,
+                "confirmation_rate": 0.757637,
+                "redemption_rate": 0.712366
+              }
+            },
+            {
+              "event_date": "2026-09-01",
+              "region": null,
+              "category": "full_service",
+              "metrics": {
+                "impressions": 1825,
+                "visits": 1038,
+                "enrollments": 506,
+                "confirmations": 384,
+                "redemptions": 127,
+                "visit_rate": 0.568767,
+                "enrollment_rate": 0.487476,
+                "confirmation_rate": 0.758893,
+                "redemption_rate": 0.330729
+              }
+            },
+            {
+              "event_date": "2026-09-01",
+              "region": null,
+              "category": "quick_service",
+              "metrics": {
+                "impressions": 1863,
+                "visits": 1057,
+                "enrollments": 496,
+                "confirmations": 380,
+                "redemptions": 261,
+                "visit_rate": 0.567364,
+                "enrollment_rate": 0.469253,
+                "confirmation_rate": 0.766129,
+                "redemption_rate": 0.686842
+              }
+            }
+          ],
+          "evidence": {
+            "evidence_id": "ae_e74a58d0ea85111c2165782e4b5c9af9",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "funnel_daily"
+            ],
+            "period": {
+              "start_date": "2026-08-18",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [
+              "event_date",
+              "category"
+            ],
+            "filters": {
+              "region": "east"
+            },
+            "row_count": 45,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_e74a58d0ea85111c2165782e4b5c9af9"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_4bc1c7b9fe78423f8fb255dd46623e92",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_funnel/v1#ae_e74a58d0ea85111c2165782e4b5c9af9",
+        "data_classification": "internal"
+      }
+    },
+    "call_01_0eyiz5aubXslvc4ExycX5354": {
+      "tool_name": "query_funnel",
+      "arguments": {
+        "dimensions": [
+          "event_date",
+          "category"
+        ],
+        "period": {
+          "end_date": "2026-08-17",
+          "start_date": "2026-08-01"
+        },
+        "region": "east"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "dimensions": [
+            "event_date",
+            "category"
+          ],
+          "rows": [],
+          "evidence": {
+            "evidence_id": "ae_70d7f3e07890ffa1419f76b6a410a1b6",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "funnel_daily"
+            ],
+            "period": {
+              "start_date": "2026-08-01",
+              "end_date": "2026-08-17"
+            },
+            "dimensions": [
+              "event_date",
+              "category"
+            ],
+            "filters": {
+              "region": "east"
+            },
+            "row_count": 0,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_70d7f3e07890ffa1419f76b6a410a1b6"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_3256cab6e4e34bcb8e119d70bf8b1cf9",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_funnel/v1#ae_70d7f3e07890ffa1419f76b6a410a1b6",
+        "data_classification": "internal"
+      }
+    },
+    "call_00_9IYC6DfHwZA7pZp4VjWX6411": {
+      "tool_name": "drill_down",
+      "arguments": {
+        "dimension": "category",
+        "value": "full_service",
+        "group_by": [
+          "event_date"
+        ],
+        "period": {
+          "end_date": "2026-09-01",
+          "start_date": "2026-08-18"
+        }
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "dimension": "category",
+          "value": "full_service",
+          "group_by": [
+            "event_date"
+          ],
+          "rows": [
+            {
+              "event_date": "2026-08-18",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3649,
+                "visits": 2105,
+                "enrollments": 1021,
+                "confirmations": 780,
+                "redemptions": 546,
+                "visit_rate": 0.57687,
+                "enrollment_rate": 0.485036,
+                "confirmation_rate": 0.763957,
+                "redemption_rate": 0.7
+              }
+            },
+            {
+              "event_date": "2026-08-19",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3553,
+                "visits": 2022,
+                "enrollments": 982,
+                "confirmations": 744,
+                "redemptions": 523,
+                "visit_rate": 0.569097,
+                "enrollment_rate": 0.485658,
+                "confirmation_rate": 0.757637,
+                "redemption_rate": 0.702957
+              }
+            },
+            {
+              "event_date": "2026-08-20",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3589,
+                "visits": 2072,
+                "enrollments": 985,
+                "confirmations": 749,
+                "redemptions": 523,
+                "visit_rate": 0.57732,
+                "enrollment_rate": 0.475386,
+                "confirmation_rate": 0.760406,
+                "redemption_rate": 0.698264
+              }
+            },
+            {
+              "event_date": "2026-08-21",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3586,
+                "visits": 2079,
+                "enrollments": 977,
+                "confirmations": 736,
+                "redemptions": 511,
+                "visit_rate": 0.579755,
+                "enrollment_rate": 0.469937,
+                "confirmation_rate": 0.753327,
+                "redemption_rate": 0.694293
+              }
+            },
+            {
+              "event_date": "2026-08-22",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3619,
+                "visits": 2099,
+                "enrollments": 1011,
+                "confirmations": 768,
+                "redemptions": 536,
+                "visit_rate": 0.579994,
+                "enrollment_rate": 0.481658,
+                "confirmation_rate": 0.759644,
+                "redemption_rate": 0.697917
+              }
+            },
+            {
+              "event_date": "2026-08-23",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3567,
+                "visits": 2102,
+                "enrollments": 1015,
+                "confirmations": 762,
+                "redemptions": 539,
+                "visit_rate": 0.589291,
+                "enrollment_rate": 0.482873,
+                "confirmation_rate": 0.750739,
+                "redemption_rate": 0.707349
+              }
+            },
+            {
+              "event_date": "2026-08-24",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3607,
+                "visits": 2099,
+                "enrollments": 1012,
+                "confirmations": 765,
+                "redemptions": 536,
+                "visit_rate": 0.581924,
+                "enrollment_rate": 0.482134,
+                "confirmation_rate": 0.755929,
+                "redemption_rate": 0.700654
+              }
+            },
+            {
+              "event_date": "2026-08-25",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3635,
+                "visits": 2110,
+                "enrollments": 1036,
+                "confirmations": 792,
+                "redemptions": 554,
+                "visit_rate": 0.580468,
+                "enrollment_rate": 0.490995,
+                "confirmation_rate": 0.764479,
+                "redemption_rate": 0.699495
+              }
+            },
+            {
+              "event_date": "2026-08-26",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3724,
+                "visits": 2187,
+                "enrollments": 1041,
+                "confirmations": 788,
+                "redemptions": 557,
+                "visit_rate": 0.587272,
+                "enrollment_rate": 0.475995,
+                "confirmation_rate": 0.756964,
+                "redemption_rate": 0.706853
+              }
+            },
+            {
+              "event_date": "2026-08-27",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3605,
+                "visits": 2092,
+                "enrollments": 996,
+                "confirmations": 761,
+                "redemptions": 529,
+                "visit_rate": 0.580305,
+                "enrollment_rate": 0.476099,
+                "confirmation_rate": 0.764056,
+                "redemption_rate": 0.695138
+              }
+            },
+            {
+              "event_date": "2026-08-28",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3581,
+                "visits": 2033,
+                "enrollments": 991,
+                "confirmations": 746,
+                "redemptions": 527,
+                "visit_rate": 0.567719,
+                "enrollment_rate": 0.487457,
+                "confirmation_rate": 0.752775,
+                "redemption_rate": 0.706434
+              }
+            },
+            {
+              "event_date": "2026-08-29",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3604,
+                "visits": 2103,
+                "enrollments": 1010,
+                "confirmations": 772,
+                "redemptions": 538,
+                "visit_rate": 0.583518,
+                "enrollment_rate": 0.480266,
+                "confirmation_rate": 0.764356,
+                "redemption_rate": 0.696891
+              }
+            },
+            {
+              "event_date": "2026-08-30",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3670,
+                "visits": 2145,
+                "enrollments": 1040,
+                "confirmations": 784,
+                "redemptions": 545,
+                "visit_rate": 0.584469,
+                "enrollment_rate": 0.484848,
+                "confirmation_rate": 0.753846,
+                "redemption_rate": 0.695153
+              }
+            },
+            {
+              "event_date": "2026-08-31",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3672,
+                "visits": 2101,
+                "enrollments": 1034,
+                "confirmations": 786,
+                "redemptions": 418,
+                "visit_rate": 0.572168,
+                "enrollment_rate": 0.492147,
+                "confirmation_rate": 0.760155,
+                "redemption_rate": 0.531807
+              }
+            },
+            {
+              "event_date": "2026-09-01",
+              "region": null,
+              "category": null,
+              "metrics": {
+                "impressions": 3613,
+                "visits": 2053,
+                "enrollments": 984,
+                "confirmations": 744,
+                "redemptions": 376,
+                "visit_rate": 0.568226,
+                "enrollment_rate": 0.479299,
+                "confirmation_rate": 0.756098,
+                "redemption_rate": 0.505376
+              }
+            }
+          ],
+          "evidence": {
+            "evidence_id": "ae_eaa45d763550e66e77cbefbce1e30111",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "funnel_daily"
+            ],
+            "period": {
+              "start_date": "2026-08-18",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [
+              "event_date"
+            ],
+            "filters": {
+              "category": "full_service"
+            },
+            "row_count": 15,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_eaa45d763550e66e77cbefbce1e30111"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_0205b25526b34028b82cf4b2d919cd25",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/drill_down/v1#ae_eaa45d763550e66e77cbefbce1e30111",
+        "data_classification": "internal"
+      }
+    },
+    "call_01_qH40Vlz5VobKg2VnwXsE2298": {
+      "tool_name": "query_activity",
+      "arguments": {
+        "period": {
+          "end_date": "2026-09-01",
+          "start_date": "2026-08-18"
+        },
+        "category": "full_service"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "activities": [],
+          "evidence": {
+            "evidence_id": "ae_6a62d312281a0f2912f46f4816e8f03d",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "activity_windows"
+            ],
+            "period": {
+              "start_date": "2026-08-18",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [],
+            "filters": {
+              "category": "full_service"
+            },
+            "row_count": 0,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_6a62d312281a0f2912f46f4816e8f03d"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_1516015a94354724b67f2abecc714344",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_activity/v1#ae_6a62d312281a0f2912f46f4816e8f03d",
+        "data_classification": "internal"
+      }
+    },
+    "call_00_bEX6k4rmQ3Pl06Dng1Yl9643": {
+      "tool_name": "query_market_overview",
+      "arguments": {
+        "category": "full_service",
+        "comparison": "previous_period",
+        "dimensions": [
+          "region",
+          "category"
+        ],
+        "period": {
+          "end_date": "2026-09-01",
+          "start_date": "2026-08-18"
+        },
+        "region": "east"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "comparison": "previous_period",
+          "segments": [
+            {
+              "region": "east",
+              "category": "full_service",
+              "current": {
+                "enrollments": 17966,
+                "redemptions": 12423,
+                "redemption_rate": 0.691473
+              },
+              "comparison": null,
+              "redemption_rate_change": null
+            }
+          ],
+          "evidence": {
+            "evidence_id": "ae_404075b6aa796f104a37bf9abdc01c23",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "market_daily"
+            ],
+            "period": {
+              "start_date": "2026-08-18",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [
+              "region",
+              "category"
+            ],
+            "filters": {
+              "comparison": "previous_period",
+              "comparison_start_date": "2026-08-03",
+              "comparison_end_date": "2026-08-17",
+              "region": "east",
+              "category": "full_service"
+            },
+            "row_count": 1,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_404075b6aa796f104a37bf9abdc01c23"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_c7f103f457984736940595af1d2785b8",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_market_overview/v1#ae_404075b6aa796f104a37bf9abdc01c23",
+        "data_classification": "internal"
+      }
+    },
+    "call_01_UZGDCwqbEV5S8FJ772Qs5728": {
+      "tool_name": "search_history_experience",
+      "arguments": {
+        "query": "正餐 full_service 核销率骤降 redemption rate drop 华东 east"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "query": "正餐 full_service 核销率骤降 redemption rate drop 华东 east",
+          "hits": []
+        },
+        "error": null,
+        "execution_id": "tool_4c667cf9b8114b99a5b56ac8293f63c5",
+        "idempotency_key": null,
+        "trust_level": "untrusted_data",
+        "provenance": "oria://tool/search_history_experience/v1",
+        "data_classification": "internal"
+      }
+    },
+    "call_00_ZgYqAfIIJJS5Gi7pKwBf0187": {
+      "tool_name": "query_market_overview",
+      "arguments": {
+        "category": "full_service",
+        "comparison": "previous_period",
+        "dimensions": [
+          "region"
+        ],
+        "period": {
+          "end_date": "2026-09-01",
+          "start_date": "2026-08-18"
+        }
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "comparison": "previous_period",
+          "segments": [
+            {
+              "region": "east",
+              "category": null,
+              "current": {
+                "enrollments": 17966,
+                "redemptions": 12423,
+                "redemption_rate": 0.691473
+              },
+              "comparison": null,
+              "redemption_rate_change": null
+            },
+            {
+              "region": "north",
+              "category": null,
+              "current": {
+                "enrollments": 17970,
+                "redemptions": 12358,
+                "redemption_rate": 0.687702
+              },
+              "comparison": null,
+              "redemption_rate_change": null
+            }
+          ],
+          "evidence": {
+            "evidence_id": "ae_581683e84c72ae801325a377072ed6e2",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "market_daily"
+            ],
+            "period": {
+              "start_date": "2026-08-18",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [
+              "region"
+            ],
+            "filters": {
+              "comparison": "previous_period",
+              "comparison_start_date": "2026-08-03",
+              "comparison_end_date": "2026-08-17",
+              "category": "full_service"
+            },
+            "row_count": 2,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_581683e84c72ae801325a377072ed6e2"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_acc40d5029ef4e5e84eb6ce432c76638",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_market_overview/v1#ae_581683e84c72ae801325a377072ed6e2",
+        "data_classification": "internal"
+      }
+    },
+    "call_01_iKgenNmEkj7qyFqba3n30536": {
+      "tool_name": "query_funnel",
+      "arguments": {
+        "dimensions": [
+          "event_date",
+          "region"
+        ],
+        "period": {
+          "end_date": "2026-09-01",
+          "start_date": "2026-08-31"
+        },
+        "category": "full_service"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "dimensions": [
+            "event_date",
+            "region"
+          ],
+          "rows": [
+            {
+              "event_date": "2026-08-31",
+              "region": "east",
+              "category": null,
+              "metrics": {
+                "impressions": 1829,
+                "visits": 1037,
+                "enrollments": 510,
+                "confirmations": 385,
+                "redemptions": 133,
+                "visit_rate": 0.566976,
+                "enrollment_rate": 0.491803,
+                "confirmation_rate": 0.754902,
+                "redemption_rate": 0.345455
+              }
+            },
+            {
+              "event_date": "2026-08-31",
+              "region": "north",
+              "category": null,
+              "metrics": {
+                "impressions": 1843,
+                "visits": 1064,
+                "enrollments": 524,
+                "confirmations": 401,
+                "redemptions": 285,
+                "visit_rate": 0.57732,
+                "enrollment_rate": 0.492481,
+                "confirmation_rate": 0.765267,
+                "redemption_rate": 0.710723
+              }
+            },
+            {
+              "event_date": "2026-09-01",
+              "region": "east",
+              "category": null,
+              "metrics": {
+                "impressions": 1825,
+                "visits": 1038,
+                "enrollments": 506,
+                "confirmations": 384,
+                "redemptions": 127,
+                "visit_rate": 0.568767,
+                "enrollment_rate": 0.487476,
+                "confirmation_rate": 0.758893,
+                "redemption_rate": 0.330729
+              }
+            },
+            {
+              "event_date": "2026-09-01",
+              "region": "north",
+              "category": null,
+              "metrics": {
+                "impressions": 1788,
+                "visits": 1015,
+                "enrollments": 478,
+                "confirmations": 360,
+                "redemptions": 249,
+                "visit_rate": 0.567673,
+                "enrollment_rate": 0.470936,
+                "confirmation_rate": 0.753138,
+                "redemption_rate": 0.691667
+              }
+            }
+          ],
+          "evidence": {
+            "evidence_id": "ae_7be6866e1e388021450d4afde374a66a",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "funnel_daily"
+            ],
+            "period": {
+              "start_date": "2026-08-31",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [
+              "event_date",
+              "region"
+            ],
+            "filters": {
+              "category": "full_service"
+            },
+            "row_count": 4,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_7be6866e1e388021450d4afde374a66a"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_8f6e629475784ec2ac7312489d3df2a9",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_funnel/v1#ae_7be6866e1e388021450d4afde374a66a",
+        "data_classification": "internal"
+      }
+    },
+    "call_00_LCAuDPDyY6Gz2HH3G6vG9533": {
+      "tool_name": "query_activity",
+      "arguments": {
+        "period": {
+          "end_date": "2026-09-01",
+          "start_date": "2026-08-25"
+        },
+        "merchant_id": "east"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "activities": [],
+          "evidence": {
+            "evidence_id": "ae_4e926efea3bd4d1c332e7e61e347bdad",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "activity_windows"
+            ],
+            "period": {
+              "start_date": "2026-08-25",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [],
+            "filters": {
+              "merchant_id": "east"
+            },
+            "row_count": 0,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_4e926efea3bd4d1c332e7e61e347bdad"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_09ae962c54c34016929910722f272433",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_activity/v1#ae_4e926efea3bd4d1c332e7e61e347bdad",
+        "data_classification": "internal"
+      }
+    },
+    "call_01_HPB6gY6FZRNOlVo5sZnQ3073": {
+      "tool_name": "query_activity",
+      "arguments": {
+        "period": {
+          "end_date": "2026-09-01",
+          "start_date": "2026-08-25"
+        },
+        "category": "full_service"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "activities": [],
+          "evidence": {
+            "evidence_id": "ae_246cfebe506c303a7898432a0e6a24ea",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "activity_windows"
+            ],
+            "period": {
+              "start_date": "2026-08-25",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [],
+            "filters": {
+              "category": "full_service"
+            },
+            "row_count": 0,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_246cfebe506c303a7898432a0e6a24ea"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_7bff15d3c9cc416d98c43feb124c78b7",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_activity/v1#ae_246cfebe506c303a7898432a0e6a24ea",
+        "data_classification": "internal"
+      }
+    },
+    "call_00_Wle3tiUvX42DrzAxxoNX1615": {
+      "tool_name": "query_market_overview",
+      "arguments": {
+        "category": "full_service",
+        "comparison": "previous_period",
+        "dimensions": [
+          "region",
+          "category"
+        ],
+        "period": {
+          "end_date": "2026-09-01",
+          "start_date": "2026-08-31"
+        },
+        "region": "east"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "comparison": "previous_period",
+          "segments": [
+            {
+              "region": "east",
+              "category": "full_service",
+              "current": {
+                "enrollments": 2417,
+                "redemptions": 1679,
+                "redemption_rate": 0.694663
+              },
+              "comparison": {
+                "enrollments": 2425,
+                "redemptions": 1681,
+                "redemption_rate": 0.693196
+              },
+              "redemption_rate_change": 0.001467
+            }
+          ],
+          "evidence": {
+            "evidence_id": "ae_dd05fa76ff53591231bb767f7a0a12ff",
+            "dataset_version": "scenario_b_synthetic_v3:missing_activity",
+            "source_tables": [
+              "market_daily"
+            ],
+            "period": {
+              "start_date": "2026-08-31",
+              "end_date": "2026-09-01"
+            },
+            "dimensions": [
+              "region",
+              "category"
+            ],
+            "filters": {
+              "comparison": "previous_period",
+              "comparison_start_date": "2026-08-29",
+              "comparison_end_date": "2026-08-30",
+              "region": "east",
+              "category": "full_service"
+            },
+            "row_count": 1,
+            "provenance": "oria://analytics/scenario_b_synthetic_v3:missing_activity/ae_dd05fa76ff53591231bb767f7a0a12ff"
+          }
+        },
+        "error": null,
+        "execution_id": "tool_9c5685f6f7304f20831cdd1482a0f5a6",
+        "idempotency_key": null,
+        "trust_level": "trusted_internal",
+        "provenance": "oria://tool/query_market_overview/v1#ae_dd05fa76ff53591231bb767f7a0a12ff",
+        "data_classification": "internal"
+      }
+    },
+    "call_01_aKKd8ewjsuHDbMt0aNv94234": {
+      "tool_name": "search_history_experience",
+      "arguments": {
+        "query": "redemption rate collapse confirmation stable east region full_service missing activity"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "schema_version": 1,
+          "query": "redemption rate collapse confirmation stable east region full_service missing activity",
+          "hits": []
+        },
+        "error": null,
+        "execution_id": "tool_6528c9570f9a46519c2a7db35e8f8b3a",
+        "idempotency_key": null,
+        "trust_level": "untrusted_data",
+        "provenance": "oria://tool/search_history_experience/v1",
+        "data_classification": "internal"
+      }
+    }
+  },
+  "model_turns": 8,
+  "tool_calls_total": 14,
+  "input_tokens": 89562,
+  "output_tokens": 3413,
+  "events": [
+    {
+      "type": "model_completed",
+      "model_turn": 1,
+      "provider_request_id": "a89be36a-2407-4d29-bc5b-afbd86fbe1a5",
+      "provider_model": "deepseek-v4-pro"
+    },
+    {
+      "type": "tools_completed",
+      "call_count": 2,
+      "new_evidence_count": 2
+    },
+    {
+      "type": "model_completed",
+      "model_turn": 2,
+      "provider_request_id": "17a873a8-df34-497e-9d5f-f6829c03bf3c",
+      "provider_model": "deepseek-v4-pro"
+    },
+    {
+      "type": "tools_completed",
+      "call_count": 2,
+      "new_evidence_count": 2
+    },
+    {
+      "type": "model_completed",
+      "model_turn": 3,
+      "provider_request_id": "bbd51f0e-1027-4a11-b13c-5facbe47c720",
+      "provider_model": "deepseek-v4-pro"
+    },
+    {
+      "type": "tools_completed",
+      "call_count": 2,
+      "new_evidence_count": 2
+    },
+    {
+      "type": "model_completed",
+      "model_turn": 4,
+      "provider_request_id": "9e551629-5713-402f-a1fb-d15ba9435d0a",
+      "provider_model": "deepseek-v4-pro"
+    },
+    {
+      "type": "tools_completed",
+      "call_count": 2,
+      "new_evidence_count": 2
+    },
+    {
+      "type": "model_completed",
+      "model_turn": 5,
+      "provider_request_id": "df512c3f-5b81-4d0e-901d-815843927a50",
+      "provider_model": "deepseek-v4-pro"
+    },
+    {
+      "type": "tools_completed",
+      "call_count": 2,
+      "new_evidence_count": 2
+    },
+    {
+      "type": "model_completed",
+      "model_turn": 6,
+      "provider_request_id": "8b11330b-7b4d-4949-be2f-8e0c8e2750a6",
+      "provider_model": "deepseek-v4-pro"
+    },
+    {
+      "type": "tools_completed",
+      "call_count": 2,
+      "new_evidence_count": 2
+    },
+    {
+      "type": "model_completed",
+      "model_turn": 7,
+      "provider_request_id": "2b33af4b-b012-49d6-908b-8f1c1bdfa5d2",
+      "provider_model": "deepseek-v4-pro"
+    },
+    {
+      "type": "tools_completed",
+      "call_count": 2,
+      "new_evidence_count": 2
+    },
+    {
+      "type": "model_completed",
+      "model_turn": 8,
+      "provider_request_id": "e3762d48-16ef-4fe1-9ca4-948ae46252a8",
+      "provider_model": "deepseek-v4-pro"
+    }
+  ],
+  "request_ids": [
+    "a89be36a-2407-4d29-bc5b-afbd86fbe1a5",
+    "17a873a8-df34-497e-9d5f-f6829c03bf3c",
+    "bbd51f0e-1027-4a11-b13c-5facbe47c720",
+    "9e551629-5713-402f-a1fb-d15ba9435d0a",
+    "df512c3f-5b81-4d0e-901d-815843927a50",
+    "8b11330b-7b4d-4949-be2f-8e0c8e2750a6",
+    "2b33af4b-b012-49d6-908b-8f1c1bdfa5d2",
+    "e3762d48-16ef-4fe1-9ca4-948ae46252a8"
+  ],
+  "case_id": "sb-v1-015",
+  "split": "development",
+  "expected_outcome": "insufficient",
+  "profile": "deepseek-pro-structured",
+  "prompt_version": 2,
+  "limits": {
+    "max_model_turns": 12,
+    "max_tool_calls": 20,
+    "max_input_tokens": 200000,
+    "max_output_tokens": 32000,
+    "max_total_tokens": 232000,
+    "max_cost": 1.0,
+    "max_inline_tool_bytes": 32768,
+    "max_validation_repairs": 1,
+    "no_progress_limit": 2
+  },
+  "completed_at": "2026-09-06T15:47:29.325387+00:00",
+  "cost_upper_bound_usd": null,
+  "cost_note": "pricing snapshot does not cover this model; cost not estimated, token usage is provider-reported"
+}

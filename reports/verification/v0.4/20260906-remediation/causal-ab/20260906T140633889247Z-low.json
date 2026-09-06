@@ -1,0 +1,174 @@
+{
+  "mode": "low",
+  "http_status": 200,
+  "source": "reports/verification/v0.4/20260906-remediation/development/20260906T135135613519Z-sb-v1-020.json",
+  "request_id": "b3639683-0641-4f8a-8f67-29ba320ed448",
+  "usage": {
+    "input_tokens": 22735,
+    "input_tokens_details": {
+      "cached_tokens": 22656
+    },
+    "output_tokens": 11521,
+    "output_tokens_details": {
+      "reasoning_tokens": 9632
+    },
+    "total_tokens": 34256
+  },
+  "output": {
+    "schema_version": 1,
+    "outcome": "attributed",
+    "conclusion": "最有证据支持的解释：华东东区正餐商户激励活动 activity-east-full-service-summer（merchant_incentive，仅覆盖 east/full_service，2026-08-01 至 2026-08-30）于 08-30 结束，自 08-31 起东区正餐漏斗在“曝光→访问”与“确认→核销”两环节同时出现独家性崩塌（访问量 08-30 的 1078→08-31 的 707→09-01 的 646，曝光量保持 ~1800 基本不变；核销率 08-30 的 0.693→08-31 的 0.450），从而机械地使报名量（347/302，报名率仍 ~0.47–0.49 稳定）与核销量（118/100）同步下跌。因该激励只作用于东区正餐，同期东区饮品/快餐及北区正餐均无此下跌，且未发现其他覆盖该细分的事件。此为观察性归因：报名量下降完全由访问转化崩塌传导（报名率稳定），而核销量下降叠加了独立的确认→核销转化率崩塌，二者归因于同一激励结束、机制上需该激励兼具引流与核销资金双重作用，仍需进一步确认。",
+    "hypotheses": [
+      {
+        "hypothesis_id": "H1_incentive_end",
+        "statement": "东区正餐商户激励 activity-east-full-service-summer 于 2026-08-30 结束，是 08-31 起东区正餐报名量与核销量同步下降的最有证据支持的解释。该激励仅覆盖 east/full_service（08-01 开始、08-30 结束），与异常细分完全一致；异常恰在其结束次日（08-31、09-01）出现，而同期东区饮品/快餐及北区各品类均稳定。激励结束同时拉低了曝光→访问转化（访问量从 ~1050 降到 707/646，曝光量稳定在 ~1800）并拉低了确认→核销转化（核销率 ~0.69→0.45），进而使报名量（报名率稳定但访问量下降）与核销量同步下跌。",
+        "uncertainty": "属观察性归因，未直接观测到“激励结束→访问与核销转化下降”的机制路径，仅有激励窗口结束(08-30)与东区正餐独有异常(08-31 起)在时间与影响范围上的高度重合，且未能取得激励期前对照（前一期查询返回 0 行/对比值为 null）。不能排除同期存在未观测的东区专属流量或履约/定价问题；报名量下跌与核销量中确认→核销率崩塌是漏斗中两个独立的转化信号，将二者统一归因于激励结束仍需机制层面的确认。"
+      }
+    ],
+    "evidence": [
+      {
+        "tool_call_id": "call_00_yGuveafJV2RYPqwROYBv9430",
+        "tool_name": "query_activity",
+        "data_path": "/activities/0",
+        "value": {
+          "activity_id": "activity-east-full-service-summer",
+          "activity_type": "merchant_incentive",
+          "category": "full_service",
+          "ends_on": "2026-08-30",
+          "merchant_id": "synthetic-merchant-east-full-service",
+          "region": "east",
+          "starts_on": "2026-08-01"
+        },
+        "supports": [
+          "H1_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/73",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-08-30",
+          "metrics": {
+            "confirmation_rate": 0.752363,
+            "confirmations": 398,
+            "enrollment_rate": 0.490724,
+            "enrollments": 529,
+            "impressions": 1850,
+            "redemption_rate": 0.693467,
+            "redemptions": 276,
+            "visit_rate": 0.582703,
+            "visits": 1078
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/79",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.755043,
+            "confirmations": 262,
+            "enrollment_rate": 0.490806,
+            "enrollments": 347,
+            "impressions": 1829,
+            "redemption_rate": 0.450382,
+            "redemptions": 118,
+            "visit_rate": 0.38655,
+            "visits": 707
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/85",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-09-01",
+          "metrics": {
+            "confirmation_rate": 0.751656,
+            "confirmations": 227,
+            "enrollment_rate": 0.467492,
+            "enrollments": 302,
+            "impressions": 1738,
+            "redemption_rate": 0.440529,
+            "redemptions": 100,
+            "visit_rate": 0.371692,
+            "visits": 646
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/80",
+        "value": {
+          "category": "quick_service",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.75442,
+            "confirmations": 384,
+            "enrollment_rate": 0.465265,
+            "enrollments": 509,
+            "impressions": 1872,
+            "redemption_rate": 0.710938,
+            "redemptions": 273,
+            "visit_rate": 0.584402,
+            "visits": 1094
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/82",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.758403,
+            "confirmations": 361,
+            "enrollment_rate": 0.478873,
+            "enrollments": 476,
+            "impressions": 1747,
+            "redemption_rate": 0.695291,
+            "redemptions": 251,
+            "visit_rate": 0.568975,
+            "visits": 994
+          },
+          "region": "north"
+        },
+        "supports": [
+          "H1_incentive_end"
+        ]
+      }
+    ],
+    "confidence": 0.55,
+    "confidence_explanation": "异常细分与唯一观测事件（东区正餐激励 08-30 结束）高度精确重合，异常起始与激励结束次日完全对应，且同期其他细分均稳定，指向单一解释。但因缺少激励期前的等长对照（前一期查询返回 0 行/对比 null），且访问转化崩塌与确认→核销率崩塌是漏斗中两个独立的转化信号，统一归因于激励结束仍需跨环节机制确认，故置信度中等偏低。",
+    "abstained": false,
+    "requested_data": []
+  },
+  "validation": "passed",
+  "cost_upper_bound_usd": 0.025211120000000004
+}

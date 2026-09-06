@@ -1,0 +1,73 @@
+{
+  "termination": {
+    "status": "failed",
+    "reason": "policy_or_contract_violation",
+    "limits": {
+      "max_model_turns": 6,
+      "max_tool_calls": 10,
+      "max_input_tokens": 160000,
+      "max_output_tokens": 24000,
+      "max_total_tokens": 184000,
+      "max_cost": 0.11,
+      "max_inline_tool_bytes": 32768,
+      "max_validation_repairs": 1,
+      "no_progress_limit": 2
+    },
+    "observed_usage": {
+      "model_turns": 2,
+      "tool_calls_total": 0,
+      "input_tokens": 8586,
+      "output_tokens": 367,
+      "total_tokens": 8953,
+      "total_cost": 0.0
+    },
+    "last_safe_evidence_refs": []
+  },
+  "conclusion": null,
+  "structured_output": null,
+  "tool_results": {},
+  "model_turns": 2,
+  "tool_calls_total": 0,
+  "input_tokens": 8586,
+  "output_tokens": 367,
+  "events": [
+    {
+      "type": "model_completed",
+      "model_turn": 1,
+      "provider_request_id": "e6c6a6d7-efa0-4e42-8c8d-046ca36cf6e0",
+      "provider_model": "deepseek-v4-flash"
+    },
+    {
+      "type": "tool_argument_repair",
+      "error_code": "invalid_arguments"
+    },
+    {
+      "type": "model_completed",
+      "model_turn": 2,
+      "provider_request_id": "58292e20-071b-4ba7-a40a-2583c461c661",
+      "provider_model": "deepseek-v4-flash"
+    },
+    {
+      "type": "tool_batch_rejected",
+      "error_code": "invalid_arguments"
+    }
+  ],
+  "case_id": "sb-v1-019",
+  "split": "development",
+  "expected_outcome": "conflicting",
+  "profile": "deepseek-structured",
+  "prompt_version": 2,
+  "limits": {
+    "max_model_turns": 6,
+    "max_tool_calls": 10,
+    "max_input_tokens": 160000,
+    "max_output_tokens": 24000,
+    "max_total_tokens": 184000,
+    "max_cost": 0.11,
+    "max_inline_tool_bytes": 32768,
+    "max_validation_repairs": 1,
+    "no_progress_limit": 2
+  },
+  "completed_at": "2026-09-06T14:43:53.430760+00:00",
+  "cost_upper_bound_usd": 0.00426228
+}

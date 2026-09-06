@@ -1,0 +1,198 @@
+{
+  "mode": "none",
+  "http_status": 200,
+  "source": "reports/verification/v0.4/20260906-remediation/development/20260906T135135613519Z-sb-v1-020.json",
+  "request_id": "9ebf14a5-eb35-4ee2-8ae8-7e7d3cf5589b",
+  "usage": {
+    "input_tokens": 22760,
+    "input_tokens_details": {
+      "cached_tokens": 640
+    },
+    "output_tokens": 1948,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 24708
+  },
+  "output": {
+    "schema_version": 1,
+    "outcome": "attributed",
+    "conclusion": "华东正餐(full_service)报名和核销同时下降的根因是：华东正餐商户激励活动(activity-east-full-service-summer, merchant_incentive)于2026-08-30结束。该活动在2026-08-01至08-30期间运行，覆盖了分析窗口的大部分时间。活动结束后(08-31和09-01)，华东正餐的访问量、报名量、确认量和核销量均出现显著下降，而报名率、确认率基本保持稳定，说明下降并非转化率恶化，而是上游流量(visits)骤降所致。具体表现为：08-31华东正餐visits从约1000+降至707，enrollments从约500降至347，redemptions从约270降至118；09-01进一步降至visits 646、enrollments 302、redemptions 100。而同期华东其他品类(beverage、quick_service)以及北方正餐均保持稳定，说明该下降是华东正餐特有的，与激励活动结束时间高度吻合。核销下降主要由上游报名量下降传导，核销率本身在活动结束后仍维持在0.44-0.45(低于活动期间约0.69-0.71的水平，但这是由确认量骤降导致的比率失真)。",
+    "hypotheses": [
+      {
+        "hypothesis_id": "H1_merchant_incentive_end",
+        "statement": "华东正餐商户激励活动(activity-east-full-service-summer, merchant_incentive, 2026-08-01至08-30)于08-30结束后，华东正餐的访问量、报名量、确认量和核销量在08-31和09-01出现同步骤降，而同期华东其他品类和北方正餐保持稳定，说明活动结束导致上游流量(visits)下降，进而传导至报名和核销数量下降。",
+        "uncertainty": "活动结束与指标下降在时间上高度吻合且影响范围(仅华东正餐)与活动范围一致，但缺少直接的机制证据(如活动带来的流量归因数据)证明visits下降完全由活动结束引起；报名率、确认率在活动结束后仍基本稳定，说明下降主要来自上游规模而非转化率恶化。"
+      }
+    ],
+    "evidence": [
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/79",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.755043,
+            "confirmations": 262,
+            "enrollment_rate": 0.490806,
+            "enrollments": 347,
+            "impressions": 1829,
+            "redemption_rate": 0.450382,
+            "redemptions": 118,
+            "visit_rate": 0.38655,
+            "visits": 707
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/85",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-09-01",
+          "metrics": {
+            "confirmation_rate": 0.751656,
+            "confirmations": 227,
+            "enrollment_rate": 0.467492,
+            "enrollments": 302,
+            "impressions": 1738,
+            "redemption_rate": 0.440529,
+            "redemptions": 100,
+            "visit_rate": 0.371692,
+            "visits": 646
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/1",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-08-18",
+          "metrics": {
+            "confirmation_rate": 0.765748,
+            "confirmations": 389,
+            "enrollment_rate": 0.48659,
+            "enrollments": 508,
+            "impressions": 1790,
+            "redemption_rate": 0.712082,
+            "redemptions": 277,
+            "visit_rate": 0.58324,
+            "visits": 1044
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/82",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.758403,
+            "confirmations": 361,
+            "enrollment_rate": 0.478873,
+            "enrollments": 476,
+            "impressions": 1747,
+            "redemption_rate": 0.695291,
+            "redemptions": 251,
+            "visit_rate": 0.568975,
+            "visits": 994
+          },
+          "region": "north"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/88",
+        "value": {
+          "category": "full_service",
+          "event_date": "2026-09-01",
+          "metrics": {
+            "confirmation_rate": 0.749491,
+            "confirmations": 368,
+            "enrollment_rate": 0.47257,
+            "enrollments": 491,
+            "impressions": 1804,
+            "redemption_rate": 0.709239,
+            "redemptions": 261,
+            "visit_rate": 0.575942,
+            "visits": 1039
+          },
+          "region": "north"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_guI31PCpv1PnIWaUPrqV1115",
+        "tool_name": "query_funnel",
+        "data_path": "/rows/80",
+        "value": {
+          "category": "quick_service",
+          "event_date": "2026-08-31",
+          "metrics": {
+            "confirmation_rate": 0.75442,
+            "confirmations": 384,
+            "enrollment_rate": 0.465265,
+            "enrollments": 509,
+            "impressions": 1872,
+            "redemption_rate": 0.710938,
+            "redemptions": 273,
+            "visit_rate": 0.584402,
+            "visits": 1094
+          },
+          "region": "east"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      },
+      {
+        "tool_call_id": "call_00_yGuveafJV2RYPqwROYBv9430",
+        "tool_name": "query_activity",
+        "data_path": "/activities/0",
+        "value": {
+          "activity_id": "activity-east-full-service-summer",
+          "activity_type": "merchant_incentive",
+          "category": "full_service",
+          "ends_on": "2026-08-30",
+          "merchant_id": "synthetic-merchant-east-full-service",
+          "region": "east",
+          "starts_on": "2026-08-01"
+        },
+        "supports": [
+          "H1_merchant_incentive_end"
+        ]
+      }
+    ],
+    "confidence": 0.72,
+    "confidence_explanation": "华东正餐在08-31和09-01的visits、enrollments、confirmations、redemptions同步骤降，而同期华东其他品类和北方正餐保持稳定，与华东正餐专属激励活动(08-30结束)在时间和范围上高度吻合。报名率、确认率基本稳定，说明下降来自上游流量而非转化率恶化。但缺少直接的流量归因机制证据(如活动带来的流量占比)，无法完全排除其他华东正餐特有因素(如商户自身经营变化)的贡献，故confidence未设为更高。",
+    "abstained": false,
+    "requested_data": []
+  },
+  "validation": "passed",
+  "cost_upper_bound_usd": 0.01258576
+}

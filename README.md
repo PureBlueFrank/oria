@@ -2,7 +2,7 @@
 
 Oria 是面向招商活动编排的 AI Agent 平台：用 LLM 处理需求理解、草案和候选集内软排序，用确定性规则、权限、审批、幂等和审计守住业务边界。
 
-当前可用的主线是可中断、可恢复的招商 Workflow；零配置 Demo 使用 Mock LLM 和合成数据，真实 LLM 仅有 DeepSeek 已完成 Live 验证。券、招商、商品库、选品、C 端投放和 IM 仍是 Mock Adapter；动态归因已完成合成数据基础和五个只读分析 Tool，Agent 尚未实现。
+当前可用的主线是可中断、可恢复的招商 Workflow；零配置 Demo 使用 Mock LLM 和合成数据，真实 LLM 仅有 DeepSeek 已完成前序 Live 验证。券、招商、商品库、选品、C 端投放和 IM 仍是 Mock Adapter；动态归因已完成合成数据、五个只读分析 Tool、有界 Agent、已审阅 Golden v1 和 T05 的 20×3 DeepSeek Live 运行，但自动通过仅 7/60；`FrankLee` 已确认 10 条盲评均失败，T05 以 failed 卡收口，真实模型归因质量未通过。
 
 ## 60 秒体验
 
@@ -86,7 +86,7 @@ flowchart TB
 - V0.3 T01–T09 已完成；T09 DeepSeek Live 卡于 2026-09-03 通过，证据见 [V0.3-T09 验证报告](reports/verification/v0.3/20260903T004622+0800/summary.md)。
 - 该 Live 卡只验证 `deepseek-v4-flash` 对本地合成规则/商家数据的草案和候选集内软排序；Kimi、智谱、OpenAI 和 Anthropic 仍只有 Fixture 契约。
 - 完整场景 A 已通过本地 SQLite、AsyncSqliteSaver、合成数据和 Mock Adapter 验证；真实券、招商、商品库、选品、C 端投放和 IM 未验证。
-- SQLite Community 结果不证明 PostgreSQL 多 worker、企业网络、SSO、网关或生产 SLA。V0.4 T01–T02 已完成，动态归因 Agent、冻结评测集和 Live 质量验证尚未实现。
+- SQLite Community 结果不证明 PostgreSQL 多 worker、企业网络、SSO、网关或生产 SLA。V0.4 T01–T04 已完成；T04 的 50 条案例包含 20 条可回答、24 条证据/权限不足、6 条冲突证据和 6 条真实会话历史案例，保留并冻结 30/20 split。8 条非空根因标签仅用于受控合成变体的有限归因；[Golden 全文](eval/datasets/scenario_b/CASES.md)已由 `FrankLee` 审阅并创建 Fixture baseline。T05 已在 DeepSeek `deepseek-v4-flash` 上完成 20×3 冻结 Holdout：60/60 完整执行但自动通过仅 7/60，`FrankLee` 已确认 10 条盲评均失败，真实模型质量卡以 failed 收口；[Live 证据](reports/verification/v0.4/20260906T104603+0800/summary.md)如实保留逐例结果、方差、coverage-risk、成本和失败分布。
 
 ## 开发与文档导航
 

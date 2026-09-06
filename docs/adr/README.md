@@ -44,5 +44,7 @@
 | ADR-028 | 确定性资格与 LLM 软排序 | 已接受 | [ADR-028](ADR-028-deterministic-eligibility-and-llm-ranking.md) |
 | ADR-029 | 外部事件等待与恢复 | 已接受 | [ADR-029](ADR-029-external-event-wait-and-resume.md) |
 | ADR-030 | 跨 seam 值类型深度不可变 | 已接受 | [ADR-030](ADR-030-deep-immutable-seam-values.md) |
+| ADR-031 | DeepSeek 专用结构化提交候选配置 | 提议中 | [ADR-031](ADR-031-deepseek-structured-candidate.md)；显式开发验证，不替代原配置 |
+| ADR-032 | 归因提交显式因果审计 | 待 review | [ADR-032](ADR-032-attribution-causal-audit.md)；跨环节机制检查与有界参数纠错 |
 
 新建 ADR 使用 [ADR 模板](000-template.md)。已接受 ADR 如需改变关键边界，应新建 ADR 并把原记录标为“已替代”，不直接覆盖历史理由。
