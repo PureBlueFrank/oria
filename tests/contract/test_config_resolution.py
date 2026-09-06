@@ -14,10 +14,55 @@ pytestmark = pytest.mark.contract
 _FINGERPRINT_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
+def test_deepseek_structured_profile_is_explicit_and_keeps_native_default() -> None:
+    environ = {"DEEPSEEK_API_KEY": "fixture-key", "ORIA_ENVIRONMENT": "test"}
+    native = resolve_runtime_config(llm_profile="deepseek", environ=environ)
+    candidate = resolve_runtime_config(llm_profile="deepseek-structured", environ=environ)
+    assert native.llm.structured_output_mode == "native_json_schema"
+    assert candidate.llm.structured_output_mode == "synthetic_tool"
+    assert candidate.llm.provider == native.llm.provider == "deepseek"
+    assert candidate.llm.model == native.llm.model
+    assert candidate.config_fingerprint != native.config_fingerprint
+
+
+def test_deepseek_pro_structured_profile_is_explicit_and_pinned() -> None:
+    environ = {"DEEPSEEK_API_KEY": "fixture-key", "ORIA_ENVIRONMENT": "test"}
+    flash = resolve_runtime_config(llm_profile="deepseek-structured", environ=environ)
+    pro = resolve_runtime_config(llm_profile="deepseek-pro-structured", environ=environ)
+    assert pro.llm.provider == "deepseek"
+    assert pro.llm.api_dialect == "responses"
+    assert pro.llm.model == "deepseek-v4-pro"
+    assert pro.llm.structured_output_mode == "synthetic_tool"
+    assert flash.llm.model == "deepseek-v4-flash"
+    assert pro.config_fingerprint != flash.config_fingerprint
+
+
 def _write_config(tmp_path: Path, name: str, content: str) -> Path:
     path = tmp_path / name
     path.write_text(content, encoding="utf-8")
     return path
+
+
+def test_deepseek_pro_model_rejected_outside_its_explicit_profile(tmp_path: Path) -> None:
+    """The v4-pro model is pinned to deepseek-pro-structured; native mode rejects it."""
+    config = _write_config(
+        tmp_path,
+        "pro-native.yaml",
+        """\
+llm:
+  profiles:
+    deepseek:
+      model: deepseek-v4-pro
+""",
+    )
+
+    with pytest.raises(ConfigResolutionError, match="explicit profile"):
+        resolve_runtime_config(
+            config_path=config,
+            llm_profile="deepseek",
+            environ={"DEEPSEEK_API_KEY": "fixture-key", "ORIA_ENVIRONMENT": "test"},
+            cwd=tmp_path,
+        )
 
 
 def test_community_demo_without_key_resolves_mock_sqlite_chroma(tmp_path: Path) -> None:

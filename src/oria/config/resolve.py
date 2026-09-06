@@ -68,6 +68,22 @@ def _defaults() -> dict[str, Any]:
                     "base_url": "https://api.deepseek.com",
                     "structured_output_mode": "native_json_schema",
                 },
+                "deepseek-structured": {
+                    "provider": "deepseek",
+                    "api_dialect": "responses",
+                    "model": "deepseek-v4-flash",
+                    "api_key": "${DEEPSEEK_API_KEY}",
+                    "base_url": "https://api.deepseek.com",
+                    "structured_output_mode": "synthetic_tool",
+                },
+                "deepseek-pro-structured": {
+                    "provider": "deepseek",
+                    "api_dialect": "responses",
+                    "model": "deepseek-v4-pro",
+                    "api_key": "${DEEPSEEK_API_KEY}",
+                    "base_url": "https://api.deepseek.com",
+                    "structured_output_mode": "synthetic_tool",
+                },
                 "kimi": {
                     "provider": "kimi",
                     "api_dialect": "chat_completions",
@@ -234,6 +250,13 @@ def _resolve_embedding(
     )
 
 
+_DEEPSEEK_PROFILE_MATRIX: dict[str, tuple[str, str]] = {
+    "deepseek": ("deepseek-v4-flash", "native_json_schema"),
+    "deepseek-structured": ("deepseek-v4-flash", "synthetic_tool"),
+    "deepseek-pro-structured": ("deepseek-v4-pro", "synthetic_tool"),
+}
+
+
 def _validate_matrix(
     config: RuntimeConfig,
     llm: ResolvedLLMProfile,
@@ -250,14 +273,19 @@ def _validate_matrix(
         raise ConfigResolutionError(f"LLM profile {llm.profile_id!r} requires an API key")
     if llm.provider != "mock" and llm.base_url is None:
         raise ConfigResolutionError(f"LLM profile {llm.profile_id!r} requires a base_url")
-    if llm.provider == "deepseek" and (
-        llm.api_dialect != "responses"
-        or llm.model != "deepseek-v4-flash"
-        or llm.structured_output_mode != "native_json_schema"
-    ):
-        raise ConfigResolutionError(
-            "DeepSeek requires responses dialect, deepseek-v4-flash, and native JSON schema"
-        )
+    if llm.provider == "deepseek":
+        pinned = _DEEPSEEK_PROFILE_MATRIX.get(llm.profile_id)
+        if (
+            llm.api_dialect != "responses"
+            or pinned is None
+            or (llm.model, llm.structured_output_mode) != pinned
+        ):
+            raise ConfigResolutionError(
+                "DeepSeek requires responses dialect and the pinned model/output mode of an "
+                "explicit profile: deepseek (deepseek-v4-flash, native JSON schema), "
+                "deepseek-structured (deepseek-v4-flash, synthetic_tool), or "
+                "deepseek-pro-structured (deepseek-v4-pro, synthetic_tool)"
+            )
     if embedding.provider == "sentence_transformers":
         if embedding.model is None or embedding.revision is None:
             raise ConfigResolutionError(
