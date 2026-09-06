@@ -6,7 +6,7 @@
 
 当前先完成面试收口，再继续平台扩展，执行顺序不可跳过：
 
-1. **P0：Scenario B 收口**——在已经推进该任务的既有会话完成 V0.4-T05 真实模型评测、重复采样、人工校准及验证报告，并固化当前代码、Golden 与 baseline。
+1. **P0：Scenario B 收口**——**已收口（2026-09-07）**：V0.4-T05 冻结 Live 卡以 failed 结论收口（不可更改）；修复在 `deepseek-pro-structured` 候选上完成 development 三类验证与 `FrankLee` 复评，代码、Golden、baseline 与证据已提交固化（`reports/verification/v0.4/20260906-remediation/`）。候选晋升默认或冻结 target 变更属另行决策，须严格盲评，不阻塞 P1。
 2. **P1：交互 Demo**——提供可直接点开操作的公开页面，以脱敏冻结 Trace 展示场景 A 完整链路，并展示场景 B 的归因、冲突和证据不足案例；第一版保持静态、简单、无需部署后端。
 3. **P2：证据和简历口径**——建立统一证据索引，同步 README、架构、路线与简历中的状态、数字和验证边界。简历以 `/Users/franklee/Documents/workspace/codexSpace/project-info/简历/李石军-AI-Agent简历.md` 为唯一底稿。
 
@@ -21,7 +21,7 @@
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 DeepSeek+BGE Live 卡通过 | 零配置 Demo 完成规则检索、硬资格商家预筛、LLM 软排序和带引用提案，且不产生业务写入。 |
 | V0.2 | Provider 与 RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡通过 | 统一六家 Provider 的 Fixture 契约，完成授权 RAG、三管线对照、冻结数据集和 DeepSeek Live 验证；其他 Provider 未 Live 验证。 |
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
-| V0.4 | 场景 B 动态归因 Agent | T01–T04 已完成；T05 已完成（Live failed） | 50 条 Golden 已由 `FrankLee` 审阅并冻结 30/20 split；DeepSeek 已完成 20×3 真实模型运行，自动通过 7/60，`FrankLee` 已确认 10 条盲评均失败。 |
+| V0.4 | 场景 B 动态归因 Agent | T01–T04 已完成；T05 已完成（Live failed）；修复已收口（2026-09-07） | 50 条 Golden 已由 `FrankLee` 审阅并冻结 30/20 split；DeepSeek 已完成 20×3 真实模型运行，自动通过 7/60，`FrankLee` 已确认 10 条盲评均失败；修复候选完成 development 三类验证与人工复评，未晋升默认。 |
 | V0.5 | 多智能体、上下文与记忆 | 未开始 | 计划交付上下文压缩、可治理 Memory、完整权限与 Guardrails、多智能体编排及公平对照实验。 |
 
 ## V0.1：场景 A 只读提案 MVP
@@ -74,9 +74,7 @@
 | V0.4-T04 | V0.4-T01,V0.4-T03 | 建立至少 50 条人工审阅 case、至少 20 条冻结 holdout、盲评 rubric 与 attribution eval CLI。 | **已完成**；50 条为 20 条可回答、24 条证据/权限不足和 6 条冲突证据，含 8 条受控变体的有限归因及 6 条真实会话历史案例；`FrankLee` 于 2026-09-05 审阅通过，30/20 split 已冻结，50/50 Fixture baseline 通过。 |
 | V0.4-T05 | V0.4-T04 | 在冻结 holdout 上执行真实模型场景、重复采样、校准和 coverage-risk 报告。 | **已完成 / failed**；DeepSeek `deepseek-v4-flash` 已完成 60/60，自动通过 7/60，199 个 request ID 唯一，成本上界 1.12635028 美元；`FrankLee` 已确认 10 条盲评均失败，本轮质量卡已收口。 |
 
-V0.4-T05 修复进行中：累计授权 4 美元。显式因果审计已使关注案例 020 重复返回 conflicting，001 仍能作有边界归因，015 重复正确弃答；本地全量 806 项通过，后续纠错反馈相关 30 项通过。扩展开发案例仍有输出格式/语义失败，不能晋升默认配置或宣称整批门禁通过。详见 [修复记录](reports/verification/v0.4/20260906-remediation/分析与修复.md) 与 ADR-032，不改变冻结 target 或原批次 failed 结论。
-
-2026-09-06 增补：`deepseek-pro-structured` 候选（deepseek-v4-pro）已加入并放开单案例开发预算（12 轮 / 20 工具 / 200k 输入 / 32k 输出，仅候选与开发配置）。交付层三根因已修复：工具 `execution_id` 前缀诱导误抄（改 `exec_`、投影剥离审计字段）、调查轮可绕过最终化投影提交（改仅最终阶段暴露提交函数）、根级校验修复反馈为空（改携带规则文案）。v4-pro 开发复验 001 attributed 2/2、015 insufficient 2/2、020 conflicting 3/6（其余 fail-closed，无错误答案流出），本地 813 项通过。候选未晋升默认，冻结卡继续 failed；v4-pro 未核价，本轮约 198 万 Token 不估算美元成本。2026-09-07 `FrankLee` 已复评 4 代表项（3 类通过各一 + 拦停样本），全部通过并确认拦停正确，记录见 `reports/verification/v0.4/20260906-remediation/human-review-20260907.json`（协议偏差已注明）；冻结 target 变更仍需严格盲评。
+V0.4-T05 修复已收口（2026-09-07）：累计授权 4 美元；原批次 60 条 failed 卡与既有盲评结论不变。修复在候选配置 `deepseek-pro-structured`（deepseek-v4-pro）上完成，未晋升默认：交付层三根因（工具 `execution_id` 前缀诱导误抄、调查轮绕过最终化投影提交、根级校验修复反馈为空）已修复；development 复验 001 attributed 2/2、015 insufficient 2/2、020 conflicting 3/6（其余为因果契约 fail-closed，无错误答案流出）；本地 813 项通过；`FrankLee` 已复评 4 代表项全部通过并确认拦停正确（`human-review-20260907.json`，协议偏差已注明）。v4-pro 未核价，探针约 198 万 Token 不估算美元成本。详见 [修复记录](reports/verification/v0.4/20260906-remediation/分析与修复.md) 与 ADR-031/032；冻结 target 变更须严格盲评。
 
 ## V0.5：多智能体、上下文与记忆
 
