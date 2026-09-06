@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from jsonschema import validate
 from pydantic import ValidationError
 
 from oria.agent.models import (
@@ -14,6 +15,45 @@ from oria.agent.models import (
 )
 
 pytestmark = pytest.mark.unit
+
+
+@pytest.mark.parametrize("outcome", ["attributed", "conflicting"])
+def test_multi_stage_claim_requires_observed_shared_mechanism(outcome: str) -> None:
+    value = {
+        "outcome": outcome,
+        "conclusion": "Common cause." if outcome == "attributed" else None,
+        "hypotheses": [
+            {"hypothesis_id": "h1", "statement": "Visit loss.", "uncertainty": "No bridge."},
+            {"hypothesis_id": "h2", "statement": "Redemption loss.", "uncertainty": "No bridge."},
+        ],
+        "evidence": [_evidence("call-funnel", "query_funnel", "/rows/0/visits", 120, ["h1", "h2"])],
+        "confidence": 0.4,
+        "confidence_explanation": "Independent changes.",
+        "abstained": False,
+        "causal_assessment": {
+            "anomalous_conversion_stages": ["impression_to_visit", "confirmation_to_redemption"],
+            "shared_mechanism_observed": False,
+            "mechanism_evidence": [],
+        },
+    }
+    if outcome == "attributed":
+        with pytest.raises(ValidationError, match="multiple anomalous stages"):
+            validate_attribution_conclusion(value, tool_results=_tool_results())
+    else:
+        result = validate_attribution_conclusion(value, tool_results=_tool_results())
+        assert result.outcome == "conflicting"
+        validate(result.model_dump(mode="json"), attribution_conclusion_schema().json_schema)
+        value["causal_assessment"]["shared_mechanism_observed"] = True
+        with pytest.raises(ValidationError, match="direct mechanism evidence"):
+            validate_attribution_conclusion(value, tool_results=_tool_results())
+
+
+def test_new_submission_schema_requires_nonnull_causal_audit() -> None:
+    schema = attribution_conclusion_schema().json_schema
+    assert "causal_assessment" in schema["required"]
+    assert schema["properties"]["causal_assessment"] == {
+        "$ref": "#/$defs/AttributionCausalAssessment"
+    }
 
 
 def _tool_results() -> dict[str, dict[str, Any]]:
@@ -130,6 +170,12 @@ def test_conflicting_and_insufficient_shapes_preserve_uncertainty() -> None:
         validate_attribution_conclusion(insufficient, tool_results=_tool_results()).abstained
         is True
     )
+
+    with pytest.raises(ValidationError, match="exactly one retained supported hypothesis"):
+        validate_attribution_conclusion(
+            {**conflicting, "outcome": "attributed", "conclusion": "Forced common cause."},
+            tool_results=_tool_results(),
+        )
 
     with pytest.raises(ValidationError, match="multiple hypotheses and no conclusion"):
         validate_attribution_conclusion(

@@ -27,6 +27,7 @@ from oria.agent.models import (
 )
 from oria.agent.observations import (
     build_observation,
+    canonical_json,
     failed_tool_result,
 )
 from oria.agent.spec import ResearchSpec, ResearchStateView
@@ -49,6 +50,12 @@ from oria.tools.models import (
 
 _TOOL_FAILURE_CODE = "tool_execution_failed"
 _CAMPAIGN_TOOL_NAMES = ("search_campaign_rules", "query_merchants")
+_FINALIZATION_INSTRUCTION = (
+    "finalization required: business tools are no longer available. Submit only the "
+    "complete structured response using existing tool evidence. If the evidence is "
+    "insufficient, abstain and list the data needed. Do not invent evidence or request "
+    "another business-tool call."
+)
 
 
 def _messages(state: ResearchState) -> list[Message]:
@@ -155,6 +162,7 @@ def _provider_failure_state(state: ResearchState, exc: ProviderException) -> Res
                 provider_request_id=exc.provider_request_id,
                 provider_model=exc.provider_model,
                 retryable=exc.retryable,
+                safe_message=exc.safe_message,
             ),
         },
     )
@@ -250,8 +258,14 @@ def _repair_update(
     feedback: dict[str, JsonValue] = {"error_code": code, "field_paths": json_paths}
     message = Message(
         role="system",
-        content="finalization repair: "
-        + json.dumps(feedback, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+        content=(
+            "finalization repair: return only a complete structured response; business "
+            "tools are unavailable. Reuse exact existing tool_call_id, tool_name, JSON "
+            "Pointer, and observed value when citing evidence. If the evidence is "
+            "insufficient, abstain and list the data needed. Do not invent evidence. "
+            "validation feedback: "
+            + json.dumps(feedback, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        ),
     )
     return {
         "messages": [*state["messages"], _dump_message(message)],
@@ -261,6 +275,57 @@ def _repair_update(
         "structured_output": None,
         "pending_tool_calls": [],
         "events": _event(state, "validation_repair", error_code=code, field_paths=json_paths),
+    }
+
+
+def _tool_batch_finalization_update(
+    state: ResearchState,
+    calls: list[ToolCall],
+    *,
+    code: str,
+    retry_arguments: bool = False,
+    argument_errors: list[dict[str, JsonValue]] | None = None,
+) -> dict[str, object]:
+    messages = list(state["messages"])
+    for call in calls:
+        result = failed_tool_result(
+            code=code,
+            execution_id=f"tool_rejected_{uuid.uuid4().hex}",
+        )
+        messages.append(
+            _dump_message(
+                Message(
+                    role="tool",
+                    tool_call_id=call.id,
+                    content=canonical_json(cast(JsonValue, result.model_dump(mode="json"))),
+                )
+            )
+        )
+    instruction = (
+        "The entire business-tool batch was rejected before execution because arguments "
+        "did not match the exposed schemas. Correct parameter names, types and required "
+        "fields and retry once. No business observation was obtained from this batch."
+        if retry_arguments
+        else _FINALIZATION_INSTRUCTION
+    )
+    messages.append(_dump_message(Message(role="system", content=instruction)))
+    if argument_errors:
+        messages.append(
+            _dump_message(
+                Message(role="system", content=canonical_json(cast(JsonValue, argument_errors)))
+            )
+        )
+    return {
+        "messages": messages,
+        "pending_tool_calls": [],
+        "structured_output": None,
+        "finalization_only": not retry_arguments,
+        "repair_pending": False,
+        "events": _event(
+            state,
+            "tool_argument_repair" if retry_arguments else "tool_batch_finalization",
+            error_code=code,
+        ),
     }
 
 
@@ -279,19 +344,53 @@ async def research_model_node(
     if llm is None:
         return {"termination": _termination(state, context, "llm_unavailable")}
     remaining_output = context.limits.max_output_tokens - state["output_tokens"]
+    remaining_repair_turns = context.limits.max_validation_repairs - state["validation_repairs"]
+    force_finalization = (
+        state["finalization_only"]
+        or state["model_turns"] + 1 + remaining_repair_turns >= context.limits.max_model_turns
+        or state["tool_calls_total"] >= context.limits.max_tool_calls
+    )
+    model_messages = _messages(state)
+    if force_finalization and not state["finalization_only"]:
+        model_messages.append(Message(role="system", content=_FINALIZATION_INSTRUCTION))
+    if force_finalization:
+        submission_instruction = (
+            "Submit the complete JSON object as arguments of __oria_submit_response__. "
+            "This final submission function is explicitly allowed; the earlier tool "
+            "allowlist and tool-call prohibition apply only to business research tools. "
+            "Do not return plain text or empty arguments. JSON Schema: "
+            if context.ctx.config.llm.structured_output_mode == "synthetic_tool"
+            else "Return exactly one JSON object matching this schema, without prose, "
+            "Markdown fences, or tool-call markup. JSON Schema: "
+        )
+        model_messages.append(
+            Message(
+                role="system",
+                content=submission_instruction
+                + canonical_json(selected.response_schema.json_schema),
+            )
+        )
+    tool_choice = "auto"
+    if force_finalization:
+        tool_choice = (
+            "required"
+            if context.ctx.config.llm.structured_output_mode == "synthetic_tool"
+            else "none"
+        )
     try:
         tools = (
             None
-            if state["finalization_only"]
+            if force_finalization
             else selected.adapt_tool_specs(context.ctx.tools.specs(selected.tool_names), state)
         )
         result = await llm.chat(
-            _messages(state),
+            model_messages,
             context.ctx,
             tools=tools,
             options=ChatOptions(
                 temperature=0,
                 max_output_tokens=remaining_output,
+                tool_choice=tool_choice,
                 parallel_tool_calls=True,
                 response_schema=selected.response_schema,
             ),
@@ -313,7 +412,21 @@ async def research_model_node(
             failure_update["termination"] = _termination(failed_state, context, usage_reason)
             return failure_update
         if failed_state["validation_repairs"] < context.limits.max_validation_repairs:
-            update = _repair_update(failed_state, code="structured_output_error", paths=[])
+            paths: list[str] = []
+            cause = exc.__cause__
+            if isinstance(cause, StructuredOutputError):
+                cause = cause.__cause__
+            if isinstance(cause, JsonSchemaValidationError):
+                prefix = [str(part) for part in cause.absolute_path]
+                if cause.validator == "required" and isinstance(cause.instance, dict):
+                    paths = [
+                        ".".join([*prefix, field])
+                        for field in cast(list[str], cause.validator_value)
+                        if field not in cause.instance
+                    ]
+                else:
+                    paths = [".".join(prefix)]
+            update = _repair_update(failed_state, code="structured_output_error", paths=paths)
             update.update(
                 {
                     "model_turns": failed_state["model_turns"],
@@ -355,6 +468,7 @@ async def research_model_node(
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "total_cost": total_cost,
+        "finalization_only": force_finalization,
         "repair_pending": False,
         "events": _event(
             state,
@@ -391,7 +505,7 @@ async def research_model_node(
             observed_state, context, "provider_contract_error"
         )
         return base_update
-    if state["finalization_only"] and result.tool_calls:
+    if force_finalization and result.tool_calls:
         base_update["termination"] = _termination(
             observed_state, context, "repair_tool_call_forbidden"
         )
@@ -460,29 +574,72 @@ async def research_tools_node(
         return update
     if _deadline_exceeded(context):
         return {"termination": _termination(state, context, "deadline_exceeded")}
-    if state["tool_calls_total"] + len(calls) > context.limits.max_tool_calls:
-        return {"termination": _termination(state, context, "max_tool_calls")}
     if len({call.id for call in calls}) != len(calls):
         return {"termination": _termination(state, context, "provider_contract_error")}
 
+    invalid_arguments = False
+    argument_errors: list[dict[str, JsonValue]] = []
     for call in calls:
         try:
             selected.validate_tool_call(call, state)
+        except (JsonSchemaValidationError, ValidationError, ValueError):
+            return {
+                "termination": _termination(state, context, "policy_or_contract_violation"),
+                "events": _event(state, "tool_batch_rejected", error_code="invalid_arguments"),
+            }
+        try:
             await context.ctx.tools.preflight(call.name, dict(call.args), context.ctx)
         except LookupError:
             code = "unknown_tool"
-        except (JsonSchemaValidationError, ValidationError, ValueError):
+        except (JsonSchemaValidationError, ValidationError, ValueError) as exc:
             code = "invalid_arguments"
+            detail: dict[str, JsonValue] = {"tool_call_id": call.id, "tool_name": call.name}
+            if isinstance(exc, JsonSchemaValidationError):
+                detail["field_path"] = ".".join(str(part) for part in exc.absolute_path)
+                detail["constraint"] = str(exc.validator)
+                detail["expected"] = cast(JsonValue, exc.validator_value)
+            elif isinstance(exc, ValidationError):
+                detail["field_paths"] = [
+                    ".".join(str(part) for part in error["loc"]) for error in exc.errors()
+                ]
+            argument_errors.append(detail)
         except PermissionError:
             code = "permission_denied"
         except Exception:
             code = "contract_failure"
         else:
             continue
+        if code == "invalid_arguments":
+            invalid_arguments = True
+            continue
         return {
             "termination": _termination(state, context, "policy_or_contract_violation"),
             "events": _event(state, "tool_batch_rejected", error_code=code),
         }
+
+    if invalid_arguments:
+        if (
+            selected.prompt_name == "attribution_reasoning"
+            and not any(event["type"] == "tool_argument_repair" for event in state["events"])
+            and state["model_turns"] + 2 < context.limits.max_model_turns
+        ):
+            return _tool_batch_finalization_update(
+                state,
+                calls,
+                code="invalid_arguments",
+                retry_arguments=True,
+                argument_errors=argument_errors,
+            )
+        if state["safe_evidence_refs"] and state["model_turns"] < context.limits.max_model_turns:
+            return _tool_batch_finalization_update(state, calls, code="invalid_arguments")
+        return {
+            "termination": _termination(state, context, "policy_or_contract_violation"),
+            "events": _event(state, "tool_batch_rejected", error_code="invalid_arguments"),
+        }
+    if state["tool_calls_total"] + len(calls) > context.limits.max_tool_calls:
+        if state["safe_evidence_refs"] and state["model_turns"] < context.limits.max_model_turns:
+            return _tool_batch_finalization_update(state, calls, code="max_tool_calls")
+        return {"termination": _termination(state, context, "max_tool_calls")}
 
     if _deadline_exceeded(context):
         return {"termination": _termination(state, context, "deadline_exceeded")}
@@ -598,7 +755,14 @@ async def research_validate_node(
     except ProposalEvidenceError:
         return {"termination": _termination(state, context, "evidence_validation_failed")}
     except ValidationError as exc:
-        paths = sorted({".".join(str(part) for part in error["loc"]) for error in exc.errors()})
+        paths = sorted(
+            {
+                # Field errors carry a loc path; root model validators carry only the
+                # rule message, which is the feedback the repair actually needs.
+                ".".join(str(part) for part in error["loc"]) or error["msg"]
+                for error in exc.errors()
+            }
+        )
         if state["validation_repairs"] < context.limits.max_validation_repairs:
             return _repair_update(state, code="schema_validation_failed", paths=paths)
         return {"termination": _termination(state, context, "schema_validation_failed")}

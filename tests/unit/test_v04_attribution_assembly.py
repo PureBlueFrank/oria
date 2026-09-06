@@ -31,7 +31,7 @@ def test_attribution_specialization_reuses_the_only_research_graph() -> None:
     )
     assert spec.tool_names == ATTRIBUTION_TOOL_NAMES
     assert spec.prompt_name == "attribution_reasoning"
-    assert spec.prompt_version == 1
+    assert spec.prompt_version == 2
     assert "research_model_node" not in inspect.getsource(attribution_module)
     assert "research_tools_node" not in inspect.getsource(attribution_module)
     assert "research_validate_node" not in inspect.getsource(attribution_module)
@@ -49,4 +49,4 @@ def test_attribution_initial_state_and_budget_are_scenario_specific() -> None:
     assert state["messages"][1]["content"] == "Why did conversion change?"
     assert state["conclusion"] is None
     assert limits.max_model_turns == 8
-    assert limits.max_tool_calls == 6
+    assert limits.max_tool_calls == 10

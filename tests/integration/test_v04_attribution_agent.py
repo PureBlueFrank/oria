@@ -292,6 +292,90 @@ class _ConflictingProvider:
         return result
 
 
+class _CausalViolationThenConflictingProvider(_ConflictingProvider):
+    """First submission violates the causal contract; the repair must name the rule."""
+
+    async def chat(self, messages, ctx, tools=None, options=None) -> ChatResult:
+        if self.calls == 1:
+            funnel = _tool_data(messages, "conflict-funnel")
+            self.calls += 1
+            return ChatResult(
+                content=(),
+                tool_calls=(),
+                structured_output={
+                    "schema_version": 1,
+                    "outcome": "attributed",
+                    "conclusion": "One local cause explains the change.",
+                    "hypotheses": [
+                        {
+                            "hypothesis_id": "single",
+                            "statement": "A single local cause explains the change.",
+                            "uncertainty": "Other factors are not excluded.",
+                        }
+                    ],
+                    "evidence": [
+                        _evidence(
+                            "conflict-funnel",
+                            "query_funnel",
+                            "/rows/1/metrics/redemption_rate",
+                            funnel["rows"][1]["metrics"]["redemption_rate"],
+                            "single",
+                        ),
+                    ],
+                    "confidence": 0.5,
+                    "confidence_explanation": "Bounded observation window.",
+                    "abstained": False,
+                    "requested_data": [],
+                    "causal_assessment": {
+                        "anomalous_conversion_stages": [
+                            "visit_to_enrollment",
+                            "confirmation_to_redemption",
+                        ],
+                        "shared_mechanism_observed": False,
+                        "mechanism_evidence": [],
+                    },
+                },
+                usage=Usage(input_tokens=2, output_tokens=3),
+            )
+        return await super().chat(messages, ctx, tools=tools, options=options)
+
+
+class _InvalidThenAdaptiveProvider(_AdaptiveAttributionProvider):
+    def __init__(self, *, always_invalid: bool = False, unknown: bool = False) -> None:
+        super().__init__("full_service")
+        self.invalid_sent = False
+        self.always_invalid = always_invalid
+        self.unknown = unknown
+
+    async def chat(self, messages, ctx, tools=None, options=None) -> ChatResult:
+        if not self.invalid_sent or self.always_invalid:
+            self.invalid_sent = True
+            calls = [ToolCall(id="bad-args", name="query_funnel", args={})]
+            if self.unknown:
+                calls.append(ToolCall(id="unknown", name="write_campaign", args={}))
+            return _tool_result(*calls)
+        return await super().chat(messages, ctx, tools=tools, options=options)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("always_invalid,unknown", [(False, False), (True, False), (False, True)])
+async def test_argument_repair_is_once_and_never_hides_unknown_tool(
+    tmp_path: Path, always_invalid: bool, unknown: bool
+) -> None:
+    state = await _run(
+        tmp_path, _InvalidThenAdaptiveProvider(always_invalid=always_invalid, unknown=unknown)
+    )
+    repairs = [event for event in state["events"] if event["type"] == "tool_argument_repair"]
+    assert len(repairs) == (0 if unknown else 1)
+    assert "bad-args" not in state["tool_results"]
+    if always_invalid or unknown:
+        assert state["termination"]["reason"] == "policy_or_contract_violation"
+        assert state["tool_calls_total"] == 0
+    else:
+        assert state["termination"] is None
+        assert state["conclusion"]["outcome"] == "attributed"
+
+
 class _RepeatingProvider:
     def __init__(self, *, parallel_calls: bool = False) -> None:
         self.calls = 0
@@ -404,6 +488,19 @@ async def test_conflicting_evidence_keeps_multiple_hypotheses_without_conclusion
     assert result["conclusion"]["outcome"] == "conflicting"
     assert result["conclusion"]["conclusion"] is None
     assert len(result["conclusion"]["hypotheses"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_causal_rule_violation_repair_feedback_names_the_broken_rule(
+    tmp_path: Path,
+) -> None:
+    result = await _run(tmp_path, _CausalViolationThenConflictingProvider())
+
+    assert result["termination"] is None
+    assert result["conclusion"]["outcome"] == "conflicting"
+    repair = next(event for event in result["events"] if event["type"] == "validation_repair")
+    assert repair["error_code"] == "schema_validation_failed"
+    assert any("shared mechanism" in str(path) for path in repair["field_paths"])
 
 
 @pytest.mark.asyncio

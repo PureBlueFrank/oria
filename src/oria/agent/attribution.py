@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -21,7 +21,7 @@ from oria.agent.state import (
     ResearchState,
     initial_research_state,
 )
-from oria.core.types import JsonValue
+from oria.core.types import JsonValue, Message
 from oria.prompts import PromptManager
 
 ATTRIBUTION_TOOL_NAMES = (
@@ -45,7 +45,7 @@ def attribution_research_spec() -> ResearchSpec:
 
     return ResearchSpec(
         prompt_name="attribution_reasoning",
-        prompt_version=1,
+        prompt_version=2,
         tool_names=ATTRIBUTION_TOOL_NAMES,
         response_schema=attribution_conclusion_schema(),
         output_field="conclusion",
@@ -57,24 +57,38 @@ def attribution_research_spec() -> ResearchSpec:
 def attribution_research_limits() -> ResearchLimits:
     """Return the Scenario B budget without changing loop termination semantics."""
 
-    return ResearchLimits(max_model_turns=8, max_tool_calls=6)
+    return ResearchLimits(max_model_turns=8, max_tool_calls=10)
 
 
 def initial_attribution_state(
     *,
     question: str,
     analysis_period: str,
+    conversation_history: Sequence[Message] = (),
     prompts: PromptManager | None = None,
 ) -> ResearchState:
     if not analysis_period.strip():
         raise ValueError("analysis period must be non-empty")
-    return initial_research_state(
+    if any(message.role not in {"user", "assistant"} for message in conversation_history):
+        raise ValueError("attribution history only accepts user/assistant messages")
+    if len(conversation_history) % 2 != 0 or any(
+        message.role != ("user" if index % 2 == 0 else "assistant")
+        for index, message in enumerate(conversation_history)
+    ):
+        raise ValueError("attribution history must contain complete user/assistant pairs")
+    state = initial_research_state(
         user_request=question,
         effective_at=analysis_period,
         prompts=prompts,
         spec=attribution_research_spec(),
         prompt_variables={"analysis_period": analysis_period},
     )
+    state["messages"] = [
+        state["messages"][0],
+        *(message.model_dump(mode="json") for message in conversation_history),
+        state["messages"][1],
+    ]
+    return state
 
 
 def build_attribution_graph(

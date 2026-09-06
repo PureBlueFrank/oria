@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from jsonschema import ValidationError as JsonSchemaValidationError
 
 from oria.agent import (
     ResearchLimits,
@@ -19,7 +20,15 @@ from oria.agent import (
 from oria.agent.observations import build_observation, canonical_json
 from oria.config import resolve_runtime_config
 from oria.core.runtime import build_runtime
-from oria.core.types import ChatResult, PolicyDecision, TextBlock, ToolCall, ToolResult, Usage
+from oria.core.types import (
+    ChatOptions,
+    ChatResult,
+    PolicyDecision,
+    TextBlock,
+    ToolCall,
+    ToolResult,
+    Usage,
+)
 from oria.data import initialize_data
 from oria.permission.local import local_cli_executor, local_operator
 from oria.providers.errors import StructuredOutputError
@@ -33,6 +42,8 @@ class _SequenceProvider:
         self.results = results
         self.calls = 0
         self.visible_tool_names: list[tuple[str, ...] | None] = []
+        self.options: list[ChatOptions | None] = []
+        self.received_messages: list[list[object]] = []
 
     async def chat(
         self,
@@ -41,7 +52,9 @@ class _SequenceProvider:
         tools: list[object] | None = None,
         options: object | None = None,
     ) -> ChatResult:
-        del messages, ctx, options
+        del ctx
+        self.received_messages.append(messages)
+        self.options.append(options if isinstance(options, ChatOptions) else None)
         self.visible_tool_names.append(
             None if tools is None else tuple(tool.name for tool in tools)
         )
@@ -120,9 +133,22 @@ async def _invoke(
     limits: ResearchLimits | None = None,
     deadline_at: datetime | None = None,
     deny_tools: bool = False,
+    synthetic_submission: bool = False,
 ) -> dict[str, Any]:
     services, ctx = await _runtime(tmp_path, provider)
     try:
+        if synthetic_submission:
+            object.__setattr__(
+                services,
+                "config",
+                services.config.model_copy(
+                    update={
+                        "llm": services.config.llm.model_copy(
+                            update={"structured_output_mode": "synthetic_tool"}
+                        ),
+                    }
+                ),
+            )
         if deny_tools:
             object.__setattr__(services, "policy", _DenyPolicy())
         return await build_research_graph().ainvoke(
@@ -230,7 +256,244 @@ async def test_plain_output_gets_one_finalization_only_repair(tmp_path: Path) ->
         ("search_campaign_rules", "query_merchants"),
         None,
     ]
+    assert [options.tool_choice for options in provider.options if options is not None] == [
+        "auto",
+        "none",
+    ]
     assert "plain text cannot be final" not in json.dumps(result["proposal"])
+
+
+@pytest.mark.asyncio
+async def test_synthetic_repair_explicitly_allows_only_final_submission(tmp_path: Path) -> None:
+    provider = _SequenceProvider(
+        [
+            ChatResult(
+                content=(TextBlock(text="not structured"),),
+                tool_calls=(),
+                usage=Usage(input_tokens=1, output_tokens=1),
+            ),
+            _abstain_result(),
+        ]
+    )
+    result = await _invoke(tmp_path, provider, synthetic_submission=True)
+    assert result["termination"] is None
+    assert provider.visible_tool_names[-1] is None
+    assert provider.options[-1] is not None
+    assert provider.options[-1].tool_choice == "required"
+    final_instruction = str(provider.received_messages[-1][-1])
+    assert "__oria_submit_response__" in final_instruction
+    assert "explicitly allowed" in final_instruction
+
+
+@pytest.mark.asyncio
+async def test_final_model_turns_are_reserved_for_submission_and_repair(tmp_path: Path) -> None:
+    provider = _SequenceProvider(
+        [
+            _tool_result(
+                ToolCall(
+                    id="evidence",
+                    name="search_campaign_rules",
+                    args={
+                        "intent": "merchant_recruitment",
+                        "effective_at": "2026-07-15T00:00:00+08:00",
+                    },
+                )
+            ),
+            _abstain_result(),
+        ]
+    )
+
+    result = await _invoke(
+        tmp_path,
+        provider,
+        limits=ResearchLimits(max_model_turns=3),
+    )
+
+    assert result["termination"] is None, result
+    assert result["proposal"]["abstained"] is True
+    assert provider.visible_tool_names == [
+        ("search_campaign_rules", "query_merchants"),
+        None,
+    ]
+    assert "finalization required" in str(provider.received_messages[1])
+    assert "JSON Schema" in str(provider.received_messages[1][-1])
+
+
+@pytest.mark.asyncio
+async def test_reserved_repair_turn_recovers_failed_final_submission(tmp_path: Path) -> None:
+    provider = _SequenceProvider(
+        [
+            _tool_result(
+                ToolCall(
+                    id="evidence",
+                    name="search_campaign_rules",
+                    args={
+                        "intent": "merchant_recruitment",
+                        "effective_at": "2026-07-15T00:00:00+08:00",
+                    },
+                )
+            ),
+            StructuredOutputError(
+                "invalid structured output",
+                retryable=False,
+                provider_request_id="failed-final-submission",
+                provider_model="test-model",
+                usage=Usage(input_tokens=2, output_tokens=2),
+            ),
+            _abstain_result(),
+        ]
+    )
+
+    result = await _invoke(
+        tmp_path,
+        provider,
+        limits=ResearchLimits(max_model_turns=3),
+    )
+
+    assert result["termination"] is None, result
+    assert result["proposal"]["abstained"] is True
+    assert result["model_turns"] == 3
+    assert provider.visible_tool_names == [
+        ("search_campaign_rules", "query_merchants"),
+        None,
+        None,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_over_budget_batch_after_evidence_falls_back_to_finalization(
+    tmp_path: Path,
+) -> None:
+    provider = _SequenceProvider(
+        [
+            _tool_result(
+                ToolCall(
+                    id="accepted",
+                    name="search_campaign_rules",
+                    args={
+                        "intent": "merchant_recruitment",
+                        "effective_at": "2026-07-15T00:00:00+08:00",
+                    },
+                )
+            ),
+            _tool_result(
+                ToolCall(
+                    id="rejected-1",
+                    name="search_campaign_rules",
+                    args={
+                        "intent": "merchant_recruitment",
+                        "effective_at": "2026-07-16T00:00:00+08:00",
+                    },
+                ),
+                ToolCall(
+                    id="rejected-2",
+                    name="search_campaign_rules",
+                    args={
+                        "intent": "merchant_recruitment",
+                        "effective_at": "2026-07-17T00:00:00+08:00",
+                    },
+                ),
+            ),
+            _abstain_result(),
+        ]
+    )
+
+    result = await _invoke(
+        tmp_path,
+        provider,
+        limits=ResearchLimits(max_tool_calls=2, max_model_turns=4),
+    )
+
+    assert result["termination"] is None, result
+    assert result["tool_calls_total"] == 1
+    assert provider.visible_tool_names[-1] is None
+    assert [
+        message["tool_call_id"] for message in result["messages"] if message["role"] == "tool"
+    ] == ["accepted", "rejected-1", "rejected-2"]
+    assert any(
+        event["type"] == "tool_batch_finalization" and event["error_code"] == "max_tool_calls"
+        for event in result["events"]
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("unknown_tool", [False, True])
+async def test_invalid_arguments_after_evidence_fall_back_to_finalization(
+    tmp_path: Path,
+    unknown_tool: bool,
+) -> None:
+    provider = _SequenceProvider(
+        [
+            _tool_result(
+                ToolCall(
+                    id="accepted",
+                    name="search_campaign_rules",
+                    args={
+                        "intent": "merchant_recruitment",
+                        "effective_at": "2026-07-15T00:00:00+08:00",
+                    },
+                )
+            ),
+            _tool_result(
+                ToolCall(
+                    id="invalid-after-evidence",
+                    name="search_campaign_rules",
+                    args={
+                        "intent": "merchant_recruitment",
+                        "effective_at": "2026-07-15T00:00:00",
+                    },
+                ),
+                *(
+                    [ToolCall(id="unknown", name="persist_campaign", args={})]
+                    if unknown_tool
+                    else []
+                ),
+            ),
+            _abstain_result(),
+        ]
+    )
+
+    result = await _invoke(tmp_path, provider)
+
+    if unknown_tool:
+        assert result["termination"]["reason"] == "policy_or_contract_violation"
+        assert result["events"][-1]["error_code"] == "unknown_tool"
+        assert result["tool_calls_total"] == 1
+        assert provider.calls == 2
+        return
+    assert result["termination"] is None, result
+    assert result["tool_calls_total"] == 1
+    assert provider.visible_tool_names[-1] is None
+    assert any(
+        event["type"] == "tool_batch_finalization" and event["error_code"] == "invalid_arguments"
+        for event in result["events"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_repair_receives_missing_schema_fields_without_response_values(
+    tmp_path: Path,
+) -> None:
+    schema_error = JsonSchemaValidationError(
+        "private response value",
+        validator="required",
+        validator_value=["outcome"],
+        instance={"private": "secret-content"},
+    )
+    inner = StructuredOutputError("schema mismatch", retryable=False)
+    inner.__cause__ = schema_error
+    outer = StructuredOutputError("schema mismatch", retryable=False)
+    outer.__cause__ = inner
+    provider = _SequenceProvider([outer, _abstain_result()])
+    result = await _invoke(tmp_path, provider)
+    assert result["termination"] is None
+    feedback = json.dumps(
+        [message.model_dump(mode="json") for message in provider.received_messages[1]]
+    )
+    assert "outcome" in feedback
+    assert "secret-content" not in feedback
+    repair = next(event for event in result["events"] if event["type"] == "validation_repair")
+    assert repair["field_paths"] == ["outcome"]
 
 
 @pytest.mark.asyncio
@@ -265,6 +528,7 @@ async def test_structured_provider_error_counts_turn_and_repairs_once(tmp_path: 
             "provider_request_id": "rejected-response-1",
             "provider_model": "test-model",
             "retryable": False,
+            "safe_message": "invalid structured output",
         }
     ]
     assert provider.visible_tool_names == [

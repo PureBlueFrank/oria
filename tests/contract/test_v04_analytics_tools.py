@@ -61,6 +61,9 @@ async def test_registry_exposes_five_strict_read_only_tools(tmp_path: Path) -> N
     try:
         assert set(registry) == _TOOLS
         assert registry.allowlist == frozenset(_TOOLS)
+        market = registry.get("query_market_overview")
+        assert "separate market population" in market.description
+        assert "equal-length" in market.json_schema["properties"]["comparison"]["description"]
         for name in _TOOLS:
             tool = registry.get(name)
             assert tool.schema_version == 1
@@ -70,6 +73,16 @@ async def test_registry_exposes_five_strict_read_only_tools(tmp_path: Path) -> N
             assert tool.result_schema["additionalProperties"] is False
             assert "tenant_id" not in tool.json_schema["properties"]
             assert "sql" not in tool.json_schema["properties"]
+        assert registry.get("query_activity").json_schema["anyOf"] == [
+            {
+                "properties": {"category": {"type": "string"}},
+                "required": ["category"],
+            },
+            {
+                "properties": {"merchant_id": {"type": "string"}},
+                "required": ["merchant_id"],
+            },
+        ]
     finally:
         await runtime.aclose()
 
@@ -96,7 +109,7 @@ async def test_tools_return_bounded_metrics_activities_market_and_citations(tmp_
         assert len(funnel.rows) == 2
         assert funnel.rows[0].metrics.redemption_rate > 0.65
         assert funnel.rows[1].metrics.redemption_rate < 0.37
-        assert funnel.evidence.dataset_version == ATTRIBUTION_DATASET_VERSION
+        assert funnel.evidence.dataset_version == f"{ATTRIBUTION_DATASET_VERSION}:standard"
         assert funnel.evidence.source_tables == ("funnel_daily",)
 
         drill_down = DrillDownResult.model_validate(

@@ -114,15 +114,37 @@ class ProposalEvidenceError(ValueError):
 
 class AttributionHypothesis(ValueModel):
     hypothesis_id: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
-    statement: str = Field(min_length=1, max_length=1000)
+    statement: str = Field(
+        min_length=1,
+        max_length=1000,
+        description="State a candidate explanation, explicitly conditional when its mechanism "
+        "is unobserved. Do not say an event caused an effect and then retract that assertion "
+        "only in uncertainty. Observed metric changes are facts; proposed causes are hypotheses.",
+    )
     uncertainty: str = Field(min_length=1, max_length=1000)
 
 
 class AttributionEvidenceRef(ValueModel):
-    tool_call_id: str = Field(min_length=1, max_length=128)
+    tool_call_id: str = Field(
+        min_length=1,
+        max_length=128,
+        description="The call_id of the tool call record exactly as issued (for example "
+        "call_00_...). Never copy the execution_id inside ToolResult; it is internal "
+        "audit metadata, not a citable call ID.",
+    )
     tool_name: str = Field(pattern=r"^[A-Za-z_][A-Za-z0-9_-]{0,127}$")
-    data_path: str = Field(min_length=1, max_length=1000)
-    value: JsonValue
+    data_path: str = Field(
+        min_length=1,
+        max_length=1000,
+        description="Exact JSON Pointer relative to ToolResult.data. Prefer a scalar leaf, "
+        "e.g. /rows/0/metrics/redemptions. /rows points to the entire array, not a summary.",
+    )
+    value: JsonValue = Field(
+        description="Copy the exact JSON value at data_path, preserving its type. "
+        "A numeric leaf must be a number, not a quoted number or sentence. "
+        "An object or array pointer requires the complete unchanged object or array. "
+        "Never put a paraphrase, computed value, or concatenated summary here.",
+    )
     supports: tuple[str, ...] = ()
 
     @model_validator(mode="after")
@@ -130,6 +152,30 @@ class AttributionEvidenceRef(ValueModel):
         if not self.data_path.startswith("/"):
             raise ValueError("attribution evidence data_path must be a JSON Pointer")
         return self
+
+
+class AttributionCausalAssessment(ValueModel):
+    anomalous_conversion_stages: tuple[
+        Literal[
+            "impression_to_visit",
+            "visit_to_enrollment",
+            "enrollment_to_confirmation",
+            "confirmation_to_redemption",
+        ],
+        ...,
+    ] = Field(
+        description="List independently anomalous adjacent conversion rates, not downstream "
+        "count changes. Include every observed anomalous stage, even when proposing a common cause."
+    )
+    shared_mechanism_observed: bool = Field(
+        description="True only when evidence directly documents how the same cause acts on "
+        "all listed stages. Matching dates, region/category and an activity_type label alone "
+        "are NOT mechanism evidence."
+    )
+    mechanism_evidence: tuple[AttributionEvidenceRef, ...] = Field(
+        description="Direct records documenting the cross-stage mechanism, not activity dates "
+        "or coincident metric drops. Empty when no such record was returned."
+    )
 
 
 class AttributionConclusion(ValueModel):
@@ -144,9 +190,25 @@ class AttributionConclusion(ValueModel):
     confidence_explanation: str = Field(min_length=1, max_length=1000)
     abstained: bool
     requested_data: tuple[str, ...] = ()
+    causal_assessment: AttributionCausalAssessment | None = None
 
     @model_validator(mode="after")
     def validate_outcome_shape(self) -> Self:
+        assessment = self.causal_assessment
+        if assessment is not None:
+            if any(ref not in self.evidence for ref in assessment.mechanism_evidence):
+                raise ValueError("mechanism evidence must also appear in validated evidence")
+            if assessment.shared_mechanism_observed != bool(assessment.mechanism_evidence):
+                raise ValueError("shared mechanism requires direct mechanism evidence")
+            if (
+                self.outcome == "attributed"
+                and len(set(assessment.anomalous_conversion_stages)) > 1
+                and not assessment.shared_mechanism_observed
+            ):
+                raise ValueError(
+                    "multiple anomalous stages without observed shared mechanism "
+                    "cannot be attributed to one cause"
+                )
         hypothesis_ids = tuple(item.hypothesis_id for item in self.hypotheses)
         if len(set(hypothesis_ids)) != len(hypothesis_ids):
             raise ValueError("attribution hypothesis IDs must be unique")
@@ -169,6 +231,11 @@ class AttributionConclusion(ValueModel):
             raise ValueError("every attribution hypothesis must have supporting evidence")
         if self.outcome == "attributed" and self.conclusion is None:
             raise ValueError("attributed outcome requires a conclusion")
+        if self.outcome == "attributed" and len(self.hypotheses) != 1:
+            raise ValueError(
+                "attributed requires exactly one retained supported hypothesis; "
+                "multiple unresolved supported explanations require conflicting"
+            )
         if self.outcome == "conflicting" and (
             self.conclusion is not None or len(self.hypotheses) < 2
         ):
@@ -191,9 +258,46 @@ def campaign_proposal_draft_schema() -> ResponseSchema:
 
 
 def attribution_conclusion_schema() -> ResponseSchema:
+    schema = AttributionConclusion.model_json_schema(mode="serialization")
+    # Archived v1 values remain readable; newly generated submissions require an audit.
+    schema["properties"]["causal_assessment"] = {"$ref": "#/$defs/AttributionCausalAssessment"}
+    schema["required"].append("causal_assessment")
+    schema["properties"] = {
+        name: schema["properties"][name]
+        for name in (
+            "causal_assessment",
+            "hypotheses",
+            "evidence",
+            "schema_version",
+            "outcome",
+            "conclusion",
+            "confidence",
+            "confidence_explanation",
+            "abstained",
+            "requested_data",
+        )
+    }
+    schema["description"] = (
+        "Complete causal_assessment before choosing outcome. If multiple adjacent conversion "
+        "stages are independently anomalous and shared_mechanism_observed=false, attributed "
+        "is invalid: preserve the supported independent explanations as conflicting, or "
+        "insufficient if the evidence does not support competing explanations. "
+        "Outcome invariants: insufficient requires abstained=true, conclusion=null and "
+        "nonempty requested_data. attributed/conflicting require abstained=false, empty "
+        "requested_data, nonempty hypotheses and evidence. attributed requires a conclusion "
+        "and exactly one retained supported hypothesis; never discard an unresolved "
+        "supported explanation just to meet this constraint. "
+        "conflicting requires conclusion=null and at least two hypotheses. Hypothesis IDs "
+        "must be unique; evidence.supports must reference those IDs, and every hypothesis "
+        "must have supporting evidence. Cite exact existing call IDs, tool names, JSON "
+        "Pointers relative to ToolResult.data and unchanged observed values. "
+        "For observational attribution, state the best-supported explanation rather than "
+        "claiming a proven cause or inventing an unobserved mechanism. The conclusion "
+        "must preserve the uncertainty stated in hypotheses."
+    )
     return ResponseSchema(
         name="attribution_conclusion_v1",
-        json_schema=AttributionConclusion.model_json_schema(mode="serialization"),
+        json_schema=schema,
     )
 
 

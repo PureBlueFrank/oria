@@ -6,7 +6,7 @@ import asyncio
 import uuid
 from typing import TYPE_CHECKING, Any, Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from oria.analytics.models import (
     ActivityWindow,
@@ -32,6 +32,16 @@ if TYPE_CHECKING:
 
 FunnelDimension = Literal["event_date", "region", "category"]
 MarketDimension = Literal["region", "category"]
+_REGION_DESCRIPTION = (
+    "Exact stored region code, not a translated display label. If unknown, discover codes "
+    "using query_funnel grouped by region and category with no region/category filters. "
+    "An empty filtered result does not prove the business data is absent."
+)
+_CATEGORY_DESCRIPTION = (
+    "Exact stored category code, not a translated display label. If unknown, discover codes "
+    "using query_funnel grouped by region and category with no region/category filters. "
+    "Reuse the returned code verbatim."
+)
 
 _ANALYTICS_POLICY = ToolPolicy(
     risk_level="low",
@@ -56,8 +66,12 @@ _HISTORY_POLICY = ToolPolicy(
 class QueryFunnelParams(ValueModel):
     period: AnalyticsPeriod
     dimensions: tuple[FunnelDimension, ...] = Field(min_length=1, max_length=3)
-    region: str | None = Field(default=None, min_length=1, max_length=128)
-    category: str | None = Field(default=None, min_length=1, max_length=128)
+    region: str | None = Field(
+        default=None, min_length=1, max_length=128, description=_REGION_DESCRIPTION
+    )
+    category: str | None = Field(
+        default=None, min_length=1, max_length=128, description=_CATEGORY_DESCRIPTION
+    )
 
     @model_validator(mode="after")
     def require_unique_dimensions(self) -> Self:
@@ -76,7 +90,12 @@ class QueryFunnelResult(ValueModel):
 class DrillDownParams(ValueModel):
     period: AnalyticsPeriod
     dimension: Literal["region", "category"]
-    value: str = Field(min_length=1, max_length=128)
+    value: str = Field(
+        min_length=1,
+        max_length=128,
+        description="Exact stored dimension code previously returned by query_funnel, "
+        "not a translated label.",
+    )
     group_by: tuple[FunnelDimension, ...] = Field(
         default=("event_date",), min_length=1, max_length=2
     )
@@ -100,8 +119,25 @@ class DrillDownResult(ValueModel):
 
 
 class QueryActivityParams(ValueModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "anyOf": [
+                {
+                    "properties": {"category": {"type": "string"}},
+                    "required": ["category"],
+                },
+                {
+                    "properties": {"merchant_id": {"type": "string"}},
+                    "required": ["merchant_id"],
+                },
+            ]
+        }
+    )
+
     period: AnalyticsPeriod
-    category: str | None = Field(default=None, min_length=1, max_length=128)
+    category: str | None = Field(
+        default=None, min_length=1, max_length=128, description=_CATEGORY_DESCRIPTION
+    )
     merchant_id: str | None = Field(default=None, min_length=1, max_length=128)
 
     @model_validator(mode="after")
@@ -119,12 +155,20 @@ class QueryActivityResult(ValueModel):
 
 class QueryMarketOverviewParams(ValueModel):
     period: AnalyticsPeriod
-    comparison: Literal["previous_period", "year_over_year"]
+    comparison: Literal["previous_period", "year_over_year"] = Field(
+        description="previous_period compares with the immediately preceding equal-length "
+        "window. Choose a current window whose comparison is inside the available dates; "
+        "null comparison values mean missing observations, not unchanged metrics."
+    )
     dimensions: tuple[MarketDimension, ...] = Field(
         default=("region", "category"), min_length=1, max_length=2
     )
-    region: str | None = Field(default=None, min_length=1, max_length=128)
-    category: str | None = Field(default=None, min_length=1, max_length=128)
+    region: str | None = Field(
+        default=None, min_length=1, max_length=128, description=_REGION_DESCRIPTION
+    )
+    category: str | None = Field(
+        default=None, min_length=1, max_length=128, description=_CATEGORY_DESCRIPTION
+    )
 
     @model_validator(mode="after")
     def require_unique_dimensions(self) -> Self:
@@ -251,7 +295,12 @@ class QueryActivityTool:
 class QueryMarketOverviewTool:
     name = "query_market_overview"
     schema_version = 1
-    description = "Compare tenant market metrics with the previous period or prior year."
+    description = (
+        "Compare tenant market benchmark metrics with the previous period or prior year. "
+        "market_daily is a separate market population, not the business funnel_daily total. "
+        "Different counts or rates across these populations alone do not imply a data error. "
+        "Use within-market changes as contextual controls, not as business funnel counts."
+    )
     json_schema: dict[str, Any] = QueryMarketOverviewParams.model_json_schema()
     result_schema: dict[str, Any] = QueryMarketOverviewResult.model_json_schema(
         mode="serialization"
@@ -366,7 +415,8 @@ def build_attribution_tool_registry(
 
 
 def _execution_id() -> str:
-    return f"tool_{uuid.uuid4().hex}"
+    """Internal audit ID; never use a tool-like prefix that models could cite."""
+    return f"exec_{uuid.uuid4().hex}"
 
 
 def _tool_result(tool_name: str, data: ValueModel, provenance: str) -> ToolResult:
