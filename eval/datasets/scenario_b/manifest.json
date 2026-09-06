@@ -9,8 +9,13 @@
   "case_count": 50,
   "critical_case_count": 7,
   "dataset_file": "v1.jsonl",
-  "dataset_sha256": "275cf5bce3b19328659b7a9458aaba02ade80f64e5cdffd388ab7f91f1dfec68",
-  "review_status": "pending_human_review",
-  "human_review_complete": false,
-  "baseline_created": false
+  "dataset_sha256": "b59078792fd00c3fff916183679402cf4cc340da98f7da27bee3dcea4923e40d",
+  "review_status": "approved",
+  "human_review_complete": true,
+  "baseline_created": true,
+  "development_case_count": 30,
+  "holdout_case_count": 20,
+  "holdout_frozen": true,
+  "rubric_file": "attribution-rubric-v1.yaml",
+  "rubric_sha256": "d91fbc296d3ff9eb175bdb4a3949f6c80d4b0a7b452f179bed263f8e2ed026af"
 }

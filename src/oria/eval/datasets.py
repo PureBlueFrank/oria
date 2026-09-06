@@ -10,7 +10,8 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
-from oria.core.types import JsonValue, ValueModel
+from oria.core.types import JsonValue, Message, ValueModel
+from oria.eval.attribution_data import AttributionFixtureVariant
 
 _DATASET_FILE = re.compile(r"^v[1-9][0-9]*\.jsonl$")
 
@@ -75,15 +76,18 @@ class AttributionGoldenCase(ValueModel):
 
     case_id: str = Field(pattern=r"^sb-v[1-9][0-9]*-[0-9]{3}$")
     schema_version: Literal[1] = 1
+    split: Literal["development", "holdout"]
     critical: bool
     tenant_id: str = Field(min_length=1)
     question: str = Field(min_length=1)
-    fixture_variant: str = Field(min_length=1)
+    fixture_variant: AttributionFixtureVariant
+    conversation_history: tuple[Message, ...] = ()
     expected_outcome: Literal["attributed", "conflicting", "insufficient"]
     expected_abstain: bool
     root_cause_code: str | None = None
     acceptable_hypotheses: tuple[str, ...] = ()
     required_evidence: tuple[str, ...] = ()
+    requested_data: tuple[str, ...] = ()
     golden_rationale: str = Field(min_length=1)
     expected_tools: tuple[str, ...] = ()
     forbidden_tools: tuple[str, ...] = ()
@@ -91,12 +95,27 @@ class AttributionGoldenCase(ValueModel):
 
     @model_validator(mode="after")
     def validate_outcome_shape(self) -> Self:
+        if any(message.role not in {"user", "assistant"} for message in self.conversation_history):
+            raise ValueError(
+                "attribution conversation history only accepts user/assistant messages"
+            )
+        if len(self.conversation_history) % 2 != 0 or any(
+            message.role != ("user" if index % 2 == 0 else "assistant")
+            for index, message in enumerate(self.conversation_history)
+        ):
+            raise ValueError(
+                "attribution conversation history must contain complete user/assistant pairs"
+            )
         if self.expected_outcome == "insufficient":
+            if not self.requested_data:
+                raise ValueError("insufficient cases must specify the missing authorized data")
             if not self.expected_abstain:
                 raise ValueError("insufficient cases must expect abstention")
             if self.root_cause_code is not None:
                 raise ValueError("insufficient cases cannot have a root cause code")
         else:
+            if self.requested_data:
+                raise ValueError("answered cases cannot require missing data")
             if self.expected_abstain:
                 raise ValueError("attributed/conflicting cases cannot expect abstention")
             if not self.acceptable_hypotheses or not self.required_evidence:
@@ -127,6 +146,11 @@ class GoldenManifest(ValueModel):
     review_status: Literal["pending_human_review", "approved"]
     human_review_complete: bool
     baseline_created: bool
+    development_case_count: int | None = Field(default=None, ge=1)
+    holdout_case_count: int | None = Field(default=None, ge=20)
+    holdout_frozen: bool | None = None
+    rubric_file: str | None = None
+    rubric_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
     @model_validator(mode="after")
     def validate_review_and_baseline_status(self) -> Self:
@@ -135,6 +159,31 @@ class GoldenManifest(ValueModel):
             raise ValueError("Golden manifest review fields disagree")
         if self.baseline_created and not approved:
             raise ValueError("Golden baseline cannot precede actual human review")
+        attribution_fields = (
+            self.development_case_count,
+            self.holdout_case_count,
+            self.holdout_frozen,
+            self.rubric_file,
+            self.rubric_sha256,
+        )
+        if self.suite == "scenario_b":
+            if any(value is None for value in attribution_fields):
+                raise ValueError("Scenario B manifest requires split and rubric identity")
+            assert self.development_case_count is not None
+            assert self.holdout_case_count is not None
+            if self.development_case_count + self.holdout_case_count != self.case_count:
+                raise ValueError("Scenario B split counts must equal the case count")
+            if (
+                self.rubric_file is None
+                or re.fullmatch(r"attribution-rubric-v[1-9][0-9]*\.yaml", self.rubric_file) is None
+            ):
+                raise ValueError("Scenario B rubric filename is invalid")
+            if self.holdout_frozen is True and not approved:
+                raise ValueError("Scenario B holdout cannot freeze before actual human review")
+            if approved and self.holdout_frozen is not True:
+                raise ValueError("Approved Scenario B data requires a frozen holdout")
+        elif any(value is not None for value in attribution_fields):
+            raise ValueError("Scenario A manifest cannot contain Scenario B split metadata")
         return self
 
 
@@ -193,6 +242,27 @@ def load_golden_dataset(
         raise GoldenDatasetError("Golden case count or identity is invalid")
     if sum(case.critical for case in cases) != manifest.critical_case_count:
         raise GoldenDatasetError("Golden critical-case count is invalid")
+    if manifest.suite == "scenario_b":
+        development_count = sum(
+            isinstance(case, AttributionGoldenCase) and case.split == "development"
+            for case in cases
+        )
+        holdout_count = sum(
+            isinstance(case, AttributionGoldenCase) and case.split == "holdout" for case in cases
+        )
+        if (
+            development_count != manifest.development_case_count
+            or holdout_count != manifest.holdout_case_count
+        ):
+            raise GoldenDatasetError("Scenario B split counts are invalid")
+        assert manifest.rubric_file is not None
+        rubric_path = manifest_path.parent.parent.parent / "config" / manifest.rubric_file
+        try:
+            rubric_payload = rubric_path.read_bytes()
+        except OSError as exc:
+            raise GoldenDatasetError("Scenario B rubric is unavailable") from exc
+        if hashlib.sha256(rubric_payload).hexdigest() != manifest.rubric_sha256:
+            raise GoldenDatasetError("Scenario B rubric integrity check failed")
     all_approved = all(case.review.status == "approved" for case in cases)
     manifest_approved = manifest.review_status == "approved" and manifest.human_review_complete
     if all_approved != manifest_approved:

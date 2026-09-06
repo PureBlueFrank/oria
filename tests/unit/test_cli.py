@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 from typing import cast
@@ -218,3 +219,56 @@ def test_rag_eval_requires_gate_and_lock_identity_together(tmp_path: Path) -> No
 
     assert result.exit_code == 2
     assert "gates and dependency lock must be bound together" in result.output
+
+
+def test_attribution_eval_fails_closed_before_human_review(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[2]
+    source_dataset = root / "eval/datasets/scenario_b/v1.jsonl"
+    source_manifest = root / "eval/datasets/scenario_b/manifest.json"
+    pending_dir = tmp_path / "eval/datasets/scenario_b"
+    pending_dir.mkdir(parents=True)
+    pending_config = tmp_path / "eval/config"
+    pending_config.mkdir()
+    rubric_payload = (root / "eval/config/attribution-rubric-v1.yaml").read_bytes()
+    (pending_config / "attribution-rubric-v1.yaml").write_bytes(rubric_payload)
+    cases = []
+    for line in source_dataset.read_text(encoding="utf-8").splitlines():
+        case = json.loads(line)
+        case["review"] = {
+            "status": "pending_human_review",
+            "reviewed_by": None,
+            "reviewed_at": None,
+        }
+        cases.append(case)
+    payload = "\n".join(json.dumps(case, ensure_ascii=False) for case in cases) + "\n"
+    (pending_dir / "v1.jsonl").write_text(payload, encoding="utf-8")
+    manifest = json.loads(source_manifest.read_text(encoding="utf-8"))
+    manifest.update(
+        {
+            "dataset_sha256": hashlib.sha256(payload.encode()).hexdigest(),
+            "review_status": "pending_human_review",
+            "human_review_complete": False,
+            "baseline_created": False,
+            "holdout_frozen": False,
+        }
+    )
+    pending_manifest = pending_dir / "manifest.json"
+    pending_manifest.write_text(json.dumps(manifest), encoding="utf-8")
+    result = CliRunner().invoke(
+        app,
+        [
+            "eval",
+            "run",
+            "--suite",
+            "attribution",
+            "--manifest",
+            str(pending_manifest),
+            "--rubric",
+            str(pending_config / "attribution-rubric-v1.yaml"),
+            "--data-dir",
+            str(tmp_path / "data"),
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "pending actual human review" in result.output

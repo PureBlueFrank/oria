@@ -18,9 +18,14 @@ from oria.core.protocols import Reranker
 from oria.data import DataInitializationError, initialize_data
 from oria.demo import DemoResult, DemoRunError, run_demo
 from oria.eval import (
+    AttributionEvalError,
+    AttributionEvalReport,
     RagDatasetError,
+    RagEvalReport,
+    load_attribution_rubric,
     load_rag_dataset,
     load_rag_eval_config,
+    run_attribution_eval,
     run_rag_eval,
     write_value_model,
 )
@@ -117,6 +122,8 @@ def _sha256_file(path: Path) -> str:
 
 _DEFAULT_RAG_MANIFEST = _default_eval_asset("datasets/rag/v1.manifest.json")
 _DEFAULT_RAG_CONFIG = _default_eval_asset("config/rag.yaml")
+_DEFAULT_ATTRIBUTION_MANIFEST = _default_eval_asset("datasets/scenario_b/manifest.json")
+_DEFAULT_ATTRIBUTION_RUBRIC = _default_eval_asset("config/attribution-rubric-v1.yaml")
 
 
 @app.callback()
@@ -332,7 +339,7 @@ def data_init(
 def eval_run(
     suite: Annotated[
         str,
-        typer.Option("--suite", help="Evaluation suite; currently only rag."),
+        typer.Option("--suite", help="Evaluation suite: rag or attribution."),
     ],
     verification: Annotated[
         EvalVerification,
@@ -343,21 +350,25 @@ def eval_run(
         typer.Option("--split", help="development, holdout, or all."),
     ] = "all",
     manifest: Annotated[
-        Path,
-        typer.Option("--manifest", help="Versioned RAG dataset manifest."),
-    ] = _DEFAULT_RAG_MANIFEST,
+        Path | None,
+        typer.Option("--manifest", help="Versioned dataset manifest."),
+    ] = None,
     eval_config: Annotated[
-        Path,
+        Path | None,
         typer.Option("--eval-config", help="Pinned community model configuration."),
-    ] = _DEFAULT_RAG_CONFIG,
+    ] = None,
+    rubric: Annotated[
+        Path | None,
+        typer.Option("--rubric", help="Blind attribution rubric."),
+    ] = None,
     data_dir: Annotated[
-        Path,
+        Path | None,
         typer.Option("--data-dir", help="Fresh evaluation runtime data root."),
-    ] = Path(".artifacts/eval/rag-data"),
+    ] = None,
     report_path: Annotated[
-        Path,
+        Path | None,
         typer.Option("--report", help="Machine-readable evaluation report."),
-    ] = Path(".artifacts/eval/rag_v1.json"),
+    ] = None,
     gates_path: Annotated[
         Path | None,
         typer.Option("--gates", help="Optional gate file bound into eval_fingerprint."),
@@ -367,9 +378,13 @@ def eval_run(
         typer.Option("--lock", help="Optional dependency lock bound into eval_fingerprint."),
     ] = None,
 ) -> None:
-    """Run the reviewed RAG suite without invoking an LLM provider."""
+    """Run a reviewed deterministic evaluation suite without network access."""
 
-    if suite != "rag" or split not in {"development", "holdout", "all"}:
+    if suite not in {"rag", "attribution"} or split not in {
+        "development",
+        "holdout",
+        "all",
+    }:
         typer.echo(
             json.dumps(
                 {"ok": False, "error": {"code": "invalid_eval_selection"}},
@@ -378,47 +393,77 @@ def eval_run(
             err=True,
         )
         raise typer.Exit(code=2)
+    report: AttributionEvalReport | RagEvalReport
     try:
-        pinned = load_rag_eval_config(eval_config)
-        dataset = load_rag_dataset(manifest)
-        if dataset.manifest.dataset_version != pinned.dataset_version:
-            raise RagDatasetError("RAG dataset version does not match pinned eval config")
-        if (gates_path is None) != (lock_path is None):
-            raise RagDatasetError("RAG gates and dependency lock must be bound together")
-        gates_sha256 = _sha256_file(gates_path) if gates_path is not None else None
-        lock_sha256 = _sha256_file(lock_path) if lock_path is not None else None
-        environ = {"ORIA_ENVIRONMENT": "test"}
-        if verification is EvalVerification.COMMUNITY:
-            environ["ORIA_EMBEDDING_PROFILE"] = "bge"
-        resolved = resolve_runtime_config(environ=environ, data_dir=data_dir)
-        if verification is EvalVerification.COMMUNITY:
-            if (
-                resolved.embedding.model != pinned.embedding.model
-                or resolved.embedding.revision != pinned.embedding.revision
-            ):
-                raise RagDatasetError("runtime embedding does not match pinned RAG config")
-            reranker: Reranker = CrossEncoderReranker(
-                model=pinned.reranker.model,
-                revision=pinned.reranker.revision,
-                trust_remote_code=pinned.reranker.trust_remote_code,
+        if suite == "attribution":
+            if verification is not EvalVerification.FIXTURE:
+                raise AttributionEvalError(
+                    "attribution community/live verification belongs to V0.4-T05"
+                )
+            if eval_config is not None or gates_path is not None or lock_path is not None:
+                raise AttributionEvalError(
+                    "attribution fixture eval does not accept RAG config, gates, or lock options"
+                )
+            manifest_path = manifest or _DEFAULT_ATTRIBUTION_MANIFEST
+            rubric_path = rubric or _DEFAULT_ATTRIBUTION_RUBRIC
+            load_attribution_rubric(rubric_path)
+            data_root = data_dir or Path(".artifacts/eval/attribution-data")
+            output_path = report_path or Path(".artifacts/eval/attribution_v1.json")
+            report = asyncio.run(
+                run_attribution_eval(
+                    manifest_path,
+                    rubric_path=rubric_path,
+                    data_dir=data_root,
+                    split=cast(Literal["development", "holdout", "all"], split),
+                )
             )
-            reranker_profile = f"{pinned.reranker.model}@{pinned.reranker.revision}"
         else:
-            reranker = FixtureReranker()
-            reranker_profile = "fixture"
-        report = asyncio.run(
-            run_rag_eval(
-                manifest,
-                config=resolved,
-                reranker=reranker,
-                reranker_profile=reranker_profile,
-                split=cast(Literal["development", "holdout", "all"], split),
-                gates_sha256=gates_sha256,
-                lock_sha256=lock_sha256,
+            if rubric is not None:
+                raise RagDatasetError("RAG eval does not accept an attribution rubric")
+            manifest_path = manifest or _DEFAULT_RAG_MANIFEST
+            config_path = eval_config or _DEFAULT_RAG_CONFIG
+            data_root = data_dir or Path(".artifacts/eval/rag-data")
+            output_path = report_path or Path(".artifacts/eval/rag_v1.json")
+            pinned = load_rag_eval_config(config_path)
+            dataset = load_rag_dataset(manifest_path)
+            if dataset.manifest.dataset_version != pinned.dataset_version:
+                raise RagDatasetError("RAG dataset version does not match pinned eval config")
+            if (gates_path is None) != (lock_path is None):
+                raise RagDatasetError("RAG gates and dependency lock must be bound together")
+            gates_sha256 = _sha256_file(gates_path) if gates_path is not None else None
+            lock_sha256 = _sha256_file(lock_path) if lock_path is not None else None
+            environ = {"ORIA_ENVIRONMENT": "test"}
+            if verification is EvalVerification.COMMUNITY:
+                environ["ORIA_EMBEDDING_PROFILE"] = "bge"
+            resolved = resolve_runtime_config(environ=environ, data_dir=data_root)
+            if verification is EvalVerification.COMMUNITY:
+                if (
+                    resolved.embedding.model != pinned.embedding.model
+                    or resolved.embedding.revision != pinned.embedding.revision
+                ):
+                    raise RagDatasetError("runtime embedding does not match pinned RAG config")
+                reranker: Reranker = CrossEncoderReranker(
+                    model=pinned.reranker.model,
+                    revision=pinned.reranker.revision,
+                    trust_remote_code=pinned.reranker.trust_remote_code,
+                )
+                reranker_profile = f"{pinned.reranker.model}@{pinned.reranker.revision}"
+            else:
+                reranker = FixtureReranker()
+                reranker_profile = "fixture"
+            report = asyncio.run(
+                run_rag_eval(
+                    manifest_path,
+                    config=resolved,
+                    reranker=reranker,
+                    reranker_profile=reranker_profile,
+                    split=cast(Literal["development", "holdout", "all"], split),
+                    gates_sha256=gates_sha256,
+                    lock_sha256=lock_sha256,
+                )
             )
-        )
-        write_value_model(report_path, report)
-    except (RuntimeError, ValueError) as exc:
+        write_value_model(output_path, report)
+    except (AttributionEvalError, RuntimeError, ValueError) as exc:
         typer.echo(
             json.dumps(
                 {
@@ -439,7 +484,7 @@ def eval_run(
                 "dataset_version": report.dataset_version,
                 "verification_level": report.verification_level,
                 "eval_fingerprint": report.eval_fingerprint,
-                "report": str(report_path),
+                "report": str(output_path),
             },
             ensure_ascii=False,
             sort_keys=True,

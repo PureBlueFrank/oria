@@ -7,7 +7,7 @@ import random
 import sqlite3
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Literal
+from typing import Literal, get_args
 
 from pydantic import Field
 
@@ -15,12 +15,28 @@ from oria.analytics.models import ActivityFact, FunnelDailyFact, MarketDailyFact
 from oria.analytics.schema import ANALYTICS_SCHEMA_VERSION, create_analytics_schema
 from oria.core.types import ValueModel
 
-ATTRIBUTION_DATASET_VERSION = "scenario_b_synthetic_v2"
-ATTRIBUTION_GENERATOR_VERSION = "scenario_b_generator_v2"
+ATTRIBUTION_DATASET_VERSION = "scenario_b_synthetic_v3"
+ATTRIBUTION_GENERATOR_VERSION: Literal["scenario_b_generator_v3"] = "scenario_b_generator_v3"
 ATTRIBUTION_GENERATOR_SEED = 20260902
 _GENERATED_AT = datetime(2026, 9, 2, tzinfo=UTC)
 _START_DATE = date(2026, 8, 18)
 _DAY_COUNT = 15
+
+AttributionFixtureVariant = Literal[
+    "standard",
+    "campaign_effect",
+    "market_conflict",
+    "mixed_funnel",
+    "overlapping_events",
+    "beverage_conflict",
+    "systemic_category",
+    "upstream_drop",
+    "campaign_enrollment",
+    "campaign_confirmation",
+    "missing_activity",
+    "no_anomaly",
+]
+ATTRIBUTION_FIXTURE_VARIANTS: frozenset[str] = frozenset(get_args(AttributionFixtureVariant))
 
 
 class AttributionLabel(ValueModel):
@@ -35,9 +51,10 @@ class AttributionLabel(ValueModel):
 
 
 class AttributionFixtureManifest(ValueModel):
-    dataset_version: Literal["scenario_b_synthetic_v2"] = "scenario_b_synthetic_v2"
+    dataset_version: str = Field(min_length=1)
     schema_version: Literal[2] = 2
-    generator_version: Literal["scenario_b_generator_v2"] = "scenario_b_generator_v2"
+    generator_version: Literal["scenario_b_generator_v3"] = ATTRIBUTION_GENERATOR_VERSION
+    fixture_variant: AttributionFixtureVariant
     generator_seed: int = Field(ge=0)
     source: Literal["synthetic"] = "synthetic"
     contains_real_entities: Literal[False] = False
@@ -49,7 +66,10 @@ class AttributionFixtureManifest(ValueModel):
     label_count: int = Field(gt=0)
 
 
-def _funnel_facts(seed: int) -> tuple[FunnelDailyFact, ...]:
+def _funnel_facts(
+    seed: int,
+    fixture_variant: AttributionFixtureVariant = "standard",
+) -> tuple[FunnelDailyFact, ...]:
     rng = random.Random(seed)
     facts: list[FunnelDailyFact] = []
     for offset in range(_DAY_COUNT):
@@ -58,17 +78,54 @@ def _funnel_facts(seed: int) -> tuple[FunnelDailyFact, ...]:
             for region in ("east", "north"):
                 for category in ("full_service", "quick_service", "beverage"):
                     impressions = 1800 + rng.randint(-80, 80)
-                    visits = int(impressions * (0.58 + rng.uniform(-0.015, 0.015)))
-                    enrollments = int(visits * (0.48 + rng.uniform(-0.015, 0.015)))
-                    confirmations = int(enrollments * (0.76 + rng.uniform(-0.01, 0.01)))
+                    visit_rate = 0.58 + rng.uniform(-0.015, 0.015)
+                    enrollment_rate = 0.48 + rng.uniform(-0.015, 0.015)
+                    confirmation_rate = 0.76 + rng.uniform(-0.01, 0.01)
                     redemption_rate = 0.7 + rng.uniform(-0.015, 0.015)
+                    is_local_east = tenant_id == "local-community" and region == "east"
+                    is_post = event_date >= date(2026, 8, 31)
+                    if is_local_east and category == "full_service":
+                        if fixture_variant == "campaign_effect":
+                            redemption_rate = (0.82 if not is_post else 0.34) + rng.uniform(
+                                -0.01, 0.01
+                            )
+                        elif (
+                            fixture_variant
+                            in {
+                                "standard",
+                                "market_conflict",
+                                "overlapping_events",
+                                "missing_activity",
+                            }
+                            and is_post
+                        ):
+                            redemption_rate = 0.34 + rng.uniform(-0.01, 0.01)
+                        elif fixture_variant == "mixed_funnel" and is_post:
+                            visit_rate = 0.38 + rng.uniform(-0.01, 0.01)
+                            redemption_rate = 0.45 + rng.uniform(-0.01, 0.01)
+                        elif fixture_variant == "upstream_drop" and is_post:
+                            visit_rate = 0.36 + rng.uniform(-0.01, 0.01)
+                        elif fixture_variant == "campaign_enrollment" and is_post:
+                            enrollment_rate = 0.28 + rng.uniform(-0.01, 0.01)
+                        elif fixture_variant == "campaign_confirmation" and is_post:
+                            confirmation_rate = 0.45 + rng.uniform(-0.01, 0.01)
                     if (
-                        tenant_id == "local-community"
-                        and region == "east"
+                        fixture_variant == "systemic_category"
+                        and tenant_id == "local-community"
                         and category == "full_service"
-                        and event_date >= date(2026, 8, 31)
+                        and is_post
                     ):
-                        redemption_rate = 0.34 + rng.uniform(-0.01, 0.01)
+                        redemption_rate = 0.45 + rng.uniform(-0.01, 0.01)
+                    if (
+                        fixture_variant == "beverage_conflict"
+                        and is_local_east
+                        and category == "beverage"
+                        and is_post
+                    ):
+                        redemption_rate = 0.4 + rng.uniform(-0.01, 0.01)
+                    visits = int(impressions * visit_rate)
+                    enrollments = int(visits * enrollment_rate)
+                    confirmations = int(enrollments * confirmation_rate)
                     facts.append(
                         FunnelDailyFact(
                             tenant_id=tenant_id,
@@ -85,8 +142,10 @@ def _funnel_facts(seed: int) -> tuple[FunnelDailyFact, ...]:
     return tuple(facts)
 
 
-def _activity_facts() -> tuple[ActivityFact, ...]:
-    return (
+def _activity_facts(
+    fixture_variant: AttributionFixtureVariant = "standard",
+) -> tuple[ActivityFact, ...]:
+    facts = [
         ActivityFact(
             tenant_id="local-community",
             activity_id="activity-east-full-service-summer",
@@ -117,10 +176,58 @@ def _activity_facts() -> tuple[ActivityFact, ...]:
             starts_on=date(2026, 7, 1),
             ends_on=date(2026, 9, 30),
         ),
-    )
+    ]
+    if fixture_variant == "missing_activity":
+        facts = [
+            fact
+            for fact in facts
+            if fact.category != "full_service" or fact.tenant_id != "local-community"
+        ]
+    if fixture_variant == "overlapping_events":
+        facts.append(
+            ActivityFact(
+                tenant_id="local-community",
+                activity_id="activity-east-full-service-rule-pilot",
+                region="east",
+                category="full_service",
+                activity_type="redemption_rule_pilot",
+                merchant_id="synthetic-merchant-east-full-service",
+                starts_on=date(2026, 8, 20),
+                ends_on=date(2026, 8, 30),
+            )
+        )
+    if fixture_variant == "beverage_conflict":
+        facts.extend(
+            (
+                ActivityFact(
+                    tenant_id="local-community",
+                    activity_id="activity-east-beverage-discount",
+                    region="east",
+                    category="beverage",
+                    activity_type="consumer_discount",
+                    merchant_id="synthetic-merchant-east-beverage",
+                    starts_on=date(2026, 8, 10),
+                    ends_on=date(2026, 8, 30),
+                ),
+                ActivityFact(
+                    tenant_id="local-community",
+                    activity_id="activity-east-beverage-validation-pilot",
+                    region="east",
+                    category="beverage",
+                    activity_type="redemption_rule_pilot",
+                    merchant_id="synthetic-merchant-east-beverage",
+                    starts_on=date(2026, 8, 20),
+                    ends_on=date(2026, 8, 30),
+                ),
+            )
+        )
+    return tuple(facts)
 
 
-def _market_facts(seed: int) -> tuple[MarketDailyFact, ...]:
+def _market_facts(
+    seed: int,
+    fixture_variant: AttributionFixtureVariant = "standard",
+) -> tuple[MarketDailyFact, ...]:
     rng = random.Random(seed ^ 0x5A5A)
     facts: list[MarketDailyFact] = []
     for offset in range(_DAY_COUNT):
@@ -129,6 +236,31 @@ def _market_facts(seed: int) -> tuple[MarketDailyFact, ...]:
             for region in ("east", "north"):
                 for category in ("full_service", "quick_service", "beverage"):
                     enrollments = 1200 + rng.randint(-30, 30)
+                    redemption_rate = 0.69 + rng.uniform(-0.01, 0.01)
+                    is_post = event_date >= date(2026, 8, 31)
+                    if (
+                        fixture_variant == "market_conflict"
+                        and tenant_id == "local-community"
+                        and region == "east"
+                        and category == "full_service"
+                        and is_post
+                    ):
+                        redemption_rate = 0.45 + rng.uniform(-0.01, 0.01)
+                    if (
+                        fixture_variant == "systemic_category"
+                        and tenant_id == "local-community"
+                        and category == "full_service"
+                        and is_post
+                    ):
+                        redemption_rate = 0.45 + rng.uniform(-0.01, 0.01)
+                    if (
+                        fixture_variant == "beverage_conflict"
+                        and tenant_id == "local-community"
+                        and region == "east"
+                        and category == "beverage"
+                        and is_post
+                    ):
+                        redemption_rate = 0.46 + rng.uniform(-0.01, 0.01)
                     facts.append(
                         MarketDailyFact(
                             tenant_id=tenant_id,
@@ -136,7 +268,7 @@ def _market_facts(seed: int) -> tuple[MarketDailyFact, ...]:
                             region=region,
                             category=category,
                             market_enrollments=enrollments,
-                            market_redemptions=int(enrollments * (0.69 + rng.uniform(-0.01, 0.01))),
+                            market_redemptions=int(enrollments * redemption_rate),
                         )
                     )
     return tuple(facts)
@@ -184,6 +316,7 @@ def generate_attribution_fixture(
     label_database: Path,
     *,
     seed: int = ATTRIBUTION_GENERATOR_SEED,
+    fixture_variant: AttributionFixtureVariant = "standard",
 ) -> AttributionFixtureManifest:
     """Create deterministic query facts and physically separate eval labels."""
     if seed < 0:
@@ -193,9 +326,9 @@ def generate_attribution_fixture(
     if query_database.exists() or label_database.exists():
         raise FileExistsError("attribution fixture output already exists")
 
-    funnel_facts = _funnel_facts(seed)
-    activity_facts = _activity_facts()
-    market_facts = _market_facts(seed)
+    funnel_facts = _funnel_facts(seed, fixture_variant)
+    activity_facts = _activity_facts(fixture_variant)
+    market_facts = _market_facts(seed, fixture_variant)
     labels = _labels()
 
     create_analytics_schema(query_database)
@@ -206,7 +339,7 @@ def generate_attribution_fixture(
         connection.execute(
             "INSERT INTO analytics_metadata VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                ATTRIBUTION_DATASET_VERSION,
+                f"{ATTRIBUTION_DATASET_VERSION}:{fixture_variant}",
                 ANALYTICS_SCHEMA_VERSION,
                 ATTRIBUTION_GENERATOR_VERSION,
                 seed,
@@ -283,6 +416,8 @@ def generate_attribution_fixture(
         )
 
     return AttributionFixtureManifest(
+        dataset_version=f"{ATTRIBUTION_DATASET_VERSION}:{fixture_variant}",
+        fixture_variant=fixture_variant,
         generator_seed=seed,
         funnel_fact_count=len(funnel_facts),
         activity_fact_count=len(activity_facts),

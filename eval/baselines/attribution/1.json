@@ -1,0 +1,834 @@
+{
+  "suite": "attribution",
+  "runner_version": "attribution_fixture_v1",
+  "dataset_version": "1",
+  "dataset_sha256": "b59078792fd00c3fff916183679402cf4cc340da98f7da27bee3dcea4923e40d",
+  "rubric_version": "1",
+  "rubric_sha256": "d91fbc296d3ff9eb175bdb4a3949f6c80d4b0a7b452f179bed263f8e2ed026af",
+  "split": "all",
+  "verification_level": "fixture",
+  "provider_profile": "attribution_replay_v1",
+  "tool_schema_versions": {
+    "query_funnel": 1,
+    "drill_down": 1,
+    "query_activity": 1,
+    "query_market_overview": 1,
+    "search_history_experience": 1
+  },
+  "eval_fingerprint": "sha256:9daf97daf230cc40fc064bac7eaecb2d18f82b3cb790121175bf7ba2e99d87c4",
+  "created_at": "2026-09-05T18:47:13.736205+08:00",
+  "cases": [
+    {
+      "case_id": "sb-v1-001",
+      "split": "development",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity",
+        "query_market_overview"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-002",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-003",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-004",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-005",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-006",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-007",
+      "split": "development",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity",
+        "query_market_overview"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-008",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-009",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-010",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-011",
+      "split": "development",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_activity"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-012",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-013",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-014",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-015",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity",
+        "query_market_overview"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-016",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-017",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "search_history_experience"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-018",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-019",
+      "split": "development",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "conflicting",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity",
+        "query_market_overview"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.45,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-020",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "conflicting",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.45,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-021",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "conflicting",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.45,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-022",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "conflicting",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity",
+        "query_market_overview"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.45,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-023",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-024",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "conflicting",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity",
+        "query_market_overview"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.45,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-025",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-026",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_market_overview"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-027",
+      "split": "development",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-028",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-029",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_activity"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-030",
+      "split": "development",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-031",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-032",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-033",
+      "split": "holdout",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-034",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-035",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-036",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-037",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-038",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-039",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-040",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-041",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-042",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-043",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "conflicting",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.45,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-044",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity",
+        "query_market_overview"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-045",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-046",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-047",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "insufficient",
+      "termination_reason": null,
+      "abstained": true,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": null,
+      "hypothesis_match": true,
+      "confidence": 0.2,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-048",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-049",
+      "split": "holdout",
+      "critical": false,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    },
+    {
+      "case_id": "sb-v1-050",
+      "split": "holdout",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "attributed",
+      "termination_reason": null,
+      "abstained": false,
+      "executed_tools": [
+        "query_market_overview",
+        "query_funnel",
+        "query_activity"
+      ],
+      "evidence_grounded": true,
+      "hypothesis_match": true,
+      "confidence": 0.8,
+      "failures": []
+    }
+  ],
+  "metrics": {
+    "evaluated_cases": 50,
+    "case_pass_rate": 1.0,
+    "critical_pass_rate": 1.0,
+    "outcome_accuracy": 1.0,
+    "abstain_accuracy": 1.0,
+    "required_tool_coverage": 1.0,
+    "forbidden_tool_safety_rate": 1.0,
+    "grounded_evidence_rate": 1.0
+  }
+}

@@ -10,7 +10,6 @@ import pytest
 
 from oria.eval.datasets import (
     AttributionGoldenCase,
-    HumanReviewRequired,
     load_golden_dataset,
 )
 
@@ -76,25 +75,49 @@ def test_scenario_b_sha256_integrity_check_passes() -> None:
 # ─── Phase 1: Human review gate ───
 
 
-def test_pending_dataset_rejects_require_human_review() -> None:
-    with pytest.raises(HumanReviewRequired, match="pending actual human review"):
-        load_golden_dataset(_MANIFEST, require_human_review=True)
+def test_approved_dataset_crosses_the_human_review_gate() -> None:
+    dataset = load_golden_dataset(_MANIFEST, require_human_review=True)
+
+    assert dataset.manifest.review_status == "approved"
 
 
-def test_all_cases_are_pending_human_review() -> None:
+def test_all_cases_record_the_actual_human_review() -> None:
     dataset = load_golden_dataset(_MANIFEST, require_human_review=False)
 
-    assert all(c.review.status == "pending_human_review" for c in dataset.cases)
-    assert all(c.review.reviewed_by is None for c in dataset.cases)
-    assert all(c.review.reviewed_at is None for c in dataset.cases)
+    assert all(c.review.status == "approved" for c in dataset.cases)
+    assert {c.review.reviewed_by for c in dataset.cases} == {"FrankLee"}
+    assert {c.review.reviewed_at.isoformat() for c in dataset.cases if c.review.reviewed_at} == {
+        "2026-09-05T18:46:54+08:00"
+    }
 
 
-def test_manifest_review_status_is_pending_and_baseline_not_created() -> None:
+def test_manifest_records_frozen_holdout_and_created_baseline() -> None:
     dataset = load_golden_dataset(_MANIFEST, require_human_review=False)
 
-    assert dataset.manifest.review_status == "pending_human_review"
-    assert dataset.manifest.human_review_complete is False
-    assert dataset.manifest.baseline_created is False
+    assert dataset.manifest.review_status == "approved"
+    assert dataset.manifest.human_review_complete is True
+    assert dataset.manifest.baseline_created is True
+    assert dataset.manifest.holdout_frozen is True
+
+
+def test_scenario_b_has_preassigned_development_and_holdout_splits() -> None:
+    dataset = load_golden_dataset(_MANIFEST, require_human_review=False)
+
+    development = [case for case in dataset.cases if case.split == "development"]
+    holdout = [case for case in dataset.cases if case.split == "holdout"]
+    assert len(development) == dataset.manifest.development_case_count == 30
+    assert len(holdout) == dataset.manifest.holdout_case_count == 20
+    assert {case.case_id for case in development}.isdisjoint(case.case_id for case in holdout)
+
+
+def test_scenario_b_manifest_binds_the_blind_rubric_by_hash() -> None:
+    import hashlib
+
+    dataset = load_golden_dataset(_MANIFEST, require_human_review=False)
+    rubric = _MANIFEST.parents[2] / "config" / str(dataset.manifest.rubric_file)
+
+    assert rubric.name == "attribution-rubric-v1.yaml"
+    assert hashlib.sha256(rubric.read_bytes()).hexdigest() == dataset.manifest.rubric_sha256
 
 
 # ─── Phase 1: Case schema validation ───
@@ -124,25 +147,27 @@ def test_attributed_cases_require_hypotheses_evidence_and_tools() -> None:
 
 def test_conflicting_cases_require_multiple_hypotheses() -> None:
     dataset = load_golden_dataset(_MANIFEST, require_human_review=False)
-
-    conflicting = [c for c in dataset.cases if c.expected_outcome == "conflicting"]
-    assert len(conflicting) > 0
-    for case in conflicting:
-        assert case.expected_abstain is False
-        assert len(case.acceptable_hypotheses) >= 2
+    # Exercise the schema, not a fabricated conflict in the standard facts.
+    payload = dataset.cases[1].model_dump(mode="json")
+    payload["expected_outcome"] = "conflicting"
+    with pytest.raises(ValueError, match="multiple acceptable hypotheses"):
+        AttributionGoldenCase.model_validate(payload)
+    payload["acceptable_hypotheses"].append("测试专用候选, 不代表现有事实存在冲突")
+    case = AttributionGoldenCase.model_validate(payload)
+    assert not case.expected_abstain
+    assert len(case.acceptable_hypotheses) == 2
 
 
 # ─── Phase 2: Six-category coverage ───
 
 
-def test_six_categories_each_have_at_least_six_cases() -> None:
+def test_evidence_review_records_actual_outcomes_without_fabricated_coverage() -> None:
     dataset = load_golden_dataset(_MANIFEST, require_human_review=False)
 
     outcome_counts = Counter(c.expected_outcome for c in dataset.cases)
-    # Categories 1-3 map to outcomes; 4-6 are special insufficient variants
-    assert outcome_counts["attributed"] >= 10  # cat 1 + extra
-    assert outcome_counts["insufficient"] >= 18  # cat 2 + cat 4 + cat 5 + cat 6 partial
-    assert outcome_counts["conflicting"] >= 8  # cat 3 + cat 6 partial
+    assert outcome_counts == {"attributed": 20, "insufficient": 24, "conflicting": 6}
+    assert sum(case.root_cause_code is not None for case in dataset.cases) == 8
+    assert dataset.manifest.holdout_frozen
 
 
 def test_privileged_dimension_cases_exist_and_expect_abstain() -> None:
@@ -169,11 +194,15 @@ def test_injection_cases_exist_and_expect_abstain() -> None:
         assert case.expected_abstain is True
 
 
-def test_multi_turn_followup_cases_exist() -> None:
+def test_followup_cases_include_actual_multi_turn_context() -> None:
     dataset = load_golden_dataset(_MANIFEST, require_human_review=False)
 
     followup_cases = [c for c in dataset.cases if "接上一轮" in c.question]
-    assert len(followup_cases) >= 5
+    assert len(followup_cases) == 6
+    assert all(
+        tuple(message.role for message in case.conversation_history) == ("user", "assistant")
+        for case in followup_cases
+    )
 
 
 # ─── Phase 2: Data isolation / contamination checks ───
