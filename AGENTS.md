@@ -1,38 +1,26 @@
-# Repository Guidelines
+# Oria 项目约定
 
-## 项目结构与模块组织
+## 项目与工具链
 
-仓库已建立 Python 3.11 `src` layout：业务代码放在 `src/oria/`，测试放在 `tests/`，静态资源放在 `assets/`，设计与架构说明放在 `docs/`。测试目录应尽量镜像源码结构，例如 `src/oria/agents/router.py` 对应 `tests/agents/test_router.py`。不要提交 `.DS_Store`、缓存、构建产物或本地 IDE 配置。
+- Python 3.11，锁定 uv 0.12.6；依赖由 `pyproject.toml` 与 `uv.lock` 管理，使用 `make sync` 同步，不在个人环境绕过锁文件安装。
+- 业务代码在 `src/oria/`，测试在 `tests/`，资源在 `assets/`，文档在 `docs/`。沿用现有结构和 `pyproject.toml` 中的 Ruff/mypy 规则；文件使用 UTF-8、LF 和末尾换行。
+- 常用入口：`make lint`（格式/Lint/类型）、`make test`（本地 F/C）、`make build`（发行包）、`make smoke`（CLI）；单项命令与配置诊断见 `README.md` 和详细路线 §2.1。按变更选择入口，不要求每次全部运行。
 
-## 构建、测试与本地开发
+## 按任务加载资料
 
-使用锁定的 `uv 0.12.6 + Python 3.11`，不得绕过 `uv.lock` 在个人环境直接安装依赖。当前可用入口：
+- 实现版本任务前，查 `docs/Oria详细执行路线.md` 的当前优先路线及对应任务 ID、依赖、退出门禁和验证场景；按涉及模块读取 `Oria架构设计.md` 与相关 ADR。无需遍读两份文档或重读本任务已核实且未变化的内容。
+- 上述两份详细文档为本地资料；仓库可见概览为 `ARCHITECTURE.md`、`ROADMAP.md`。缺少完成任务所必需的契约时说明缺口，不自行猜测门禁。
+- 文字、样式和指令维护按受影响内容检查，不套用版本实现流程。实质架构决策或偏离既有契约时记录 ADR；常规实现选择沿用现有设计。
 
-- `make sync`：按锁文件同步核心与开发依赖。
-- `make lint`：运行 Ruff 格式检查、Lint 和 mypy。
-- `make test`：运行不含 Live/Enterprise/Performance 的本地测试。
-- `make build`：构建 wheel 与 sdist。
-- `make smoke`：验证 `oria` CLI 入口。
-- `uv run oria config doctor [--output json]`：解析并校验当前配置；有效配置退出 0，输入或配置错误退出 2。JSON 输出使用 `ok` 与脱敏配置投影，适合自动化消费。
+## 验证与证据
 
-更细的单项命令见 `README.md` 和 `docs/Oria详细执行路线.md` §2.1。Live/Enterprise 必须显式提供运行开关与非空的已知 target，不得把默认未运行记为通过。
+- 行为变更由相关测试覆盖；缺陷修复先用回归用例复现。优先验证受影响的编排、工具、权限和恢复行为，不新增仅重复实现的测试；纯文字修改检查差异、引用和一致性即可。
+- 本地验证按影响范围执行；涉及公共契约、跨模块行为或阶段验收时扩大到相应门禁。通过后仅因新改动、失败或未决风险补跑；CI 必需检查和版本退出门禁不减免。
+- Fixture、Community、Live Provider、本地企业栈与 Enterprise 分开记录；Mock 通过不代表真实模型或企业接入。Live/Enterprise/Performance 须显式选择目标并落实环境与预算；Live/Enterprise 还须运行开关和非空已知 target。未运行、失败或阻塞如实记录。
+- 版本任务保存脱敏证据到 `reports/verification/`，更新详细路线中受影响的状态；对外状态变化同步 `ROADMAP.md`。保留失败历史，复用证据注明来源，不以重复运行挑选最好结果。marker 与评测契约见 `pyproject.toml` 和详细路线 §1–2。
 
-## 编码风格与命名约定
+## 安全与交付
 
-统一使用 UTF-8、LF 换行和文件末尾换行。遵循所选语言的官方风格，并将格式化、Lint 规则纳入仓库配置。若采用 Python，使用 4 空格缩进及 `snake_case`；若采用 JavaScript/TypeScript，使用 2 空格缩进、变量与函数用 `camelCase`、类型与组件用 `PascalCase`。模块应职责单一，避免为未确认的需求增加抽象或配置项。
-
-## 测试要求
-
-每项行为变更都应包含相应测试；缺陷修复应先添加能够复现问题的回归用例。测试名称描述可观察行为，例如 `test_rejects_expired_token` 或 `router.test.ts`。优先覆盖核心 Agent 编排、工具调用、权限边界和失败恢复。目前没有覆盖率门槛；pytest marker 固定为 `unit/contract/integration/live/enterprise/slow/security/recovery/performance`。PR Core 默认只运行无外部依赖的测试，Live/Enterprise 结果必须独立记录。
-
-## Oria 执行前置检查
-
-开始实现任务前，必须阅读 `Oria架构设计.md` 和 `docs/Oria详细执行路线.md`，确认版本、任务 ID、前置门禁、真实验证场景和测试用例。Fixture、社区真实组件、公开模型 Live、企业 Adapter 的结果必须分开记录；Mock 通过不得写成真实模型或企业接入通过。完成后保存脱敏验证证据并更新路线状态，未执行或失败项如实标记。
-
-## 提交与 Pull Request
-
-仓库已建立 Git 历史，前三个提交均采用 Conventional Commits；后续继续使用例如 `feat: add agent registry`、`fix: handle tool timeout` 的格式。每个提交聚焦一个目的。PR 应说明背景、主要改动、验证命令和已知风险，并关联相关 Issue；涉及界面变更时附截图，涉及配置变更时同步更新示例配置与文档。
-
-## 安全与配置
-
-不得提交密钥、令牌、真实客户数据或 `.env` 文件。新增环境变量时提供脱敏的 `.env.example`，并说明默认值、用途及最小权限要求。日志中避免记录提示词原文、凭证和个人信息。
+- 不提交密钥、令牌、真实客户数据、`.env`、缓存、构建产物或本地 IDE 配置；日志不记录提示词原文、凭证和个人信息。新增环境变量在脱敏 `.env.example` 与文档中说明默认值、用途和最小权限。
+- 不因开发助手能力提高而放宽 Oria 的鉴权、审批、租户隔离、幂等、冻结评测或阶段依赖约束。
+- 提交使用 Conventional Commits。PR 说明改动、验证和已知风险，关联已有 Issue；界面变化附截图，配置变化同步示例与文档。
