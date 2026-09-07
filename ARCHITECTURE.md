@@ -171,4 +171,4 @@ Production 只允许 standard profile，并逐步切换到 PostgreSQL、Milvus�
 | V0.7 | 加入 MCP、受信插件、隔离的不受信扩展与受约束 Redis 缓存，按实际 capability 声明兼容性。 |
 | V0.8 | 完成存量迁移、Milvus/OTel/Web UI、供应链与安全/恢复/压力演练，形成可复现旗舰演示。 |
 
-当前任务状态和每步产物见 [执行计划](ROADMAP.md)。架构决策的证据索引见 [ADR](docs/adr/README.md)。
+当前任务状态和每步产物见 [执行计划](ROADMAP.md)，可复核结果与验证边界见 [统一验证证据索引](reports/verification/README.md)，架构决策状态见 [ADR](docs/adr/README.md)。

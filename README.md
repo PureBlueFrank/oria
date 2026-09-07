@@ -2,7 +2,7 @@
 
 Oria 是面向招商活动编排的 AI Agent 平台：用 LLM 处理需求理解、草案和候选集内软排序，用确定性规则、权限、审批、幂等和审计守住业务边界。
 
-当前可用的主线是可中断、可恢复的招商 Workflow；零配置 Demo 使用 Mock LLM 和合成数据，真实 LLM 仅有 DeepSeek 已完成前序 Live 验证。券、招商、商品库、选品、C 端投放和 IM 仍是 Mock Adapter；动态归因已完成合成数据、五个只读分析 Tool、有界 Agent、已审阅 Golden v1 和 T05 的 20×3 DeepSeek Live 运行，但自动通过仅 7/60；`FrankLee` 已确认 10 条盲评均失败，T05 以 failed 卡收口，真实模型归因质量未通过。
+当前可用的主线是可中断、可恢复的招商 Workflow；零配置 Demo 使用 Mock LLM 和合成数据，真实 LLM 仅有 DeepSeek 已完成前序 Live 验证。券、招商、商品库、选品、C 端投放和 IM 仍是 Mock Adapter；动态归因已完成合成数据、五个只读分析 Tool、有界 Agent、已审阅 Golden v1 和 T05 的 20×3 DeepSeek Live 运行，但自动通过仅 7/60；`FrankLee` 已确认 10 条盲评均失败，T05 以 failed 卡收口，真实模型归因质量未通过。修复候选已完成 development 三类验证与代表项人工复评，但未晋升默认配置，也不改变原 Live failed 结论。
 
 ## 60 秒体验
 
@@ -89,6 +89,7 @@ flowchart TB
 - 该 Live 卡只验证 `deepseek-v4-flash` 对本地合成规则/商家数据的草案和候选集内软排序；Kimi、智谱、OpenAI 和 Anthropic 仍只有 Fixture 契约。
 - 完整场景 A 已通过本地 SQLite、AsyncSqliteSaver、合成数据和 Mock Adapter 验证；真实券、招商、商品库、选品、C 端投放和 IM 未验证。
 - SQLite Community 结果不证明 PostgreSQL 多 worker、企业网络、SSO、网关或生产 SLA。V0.4 T01–T04 已完成；T04 的 50 条案例包含 20 条可回答、24 条证据/权限不足、6 条冲突证据和 6 条真实会话历史案例，保留并冻结 30/20 split。8 条非空根因标签仅用于受控合成变体的有限归因；[Golden 全文](eval/datasets/scenario_b/CASES.md)已由 `FrankLee` 审阅并创建 Fixture baseline。T05 已在 DeepSeek `deepseek-v4-flash` 上完成 20×3 冻结 Holdout：60/60 完整执行但自动通过仅 7/60，`FrankLee` 已确认 10 条盲评均失败，真实模型质量卡以 failed 收口；[Live 证据](reports/verification/v0.4/20260906T104603+0800/summary.md)如实保留逐例结果、方差、coverage-risk、成本和失败分布。
+- `deepseek-pro-structured` 修复候选在 development 上完成 attributed 2/2、insufficient 2/2、conflicting 3/6 的干净通过，其余 3 次按因果/工具契约 fail closed；最终本地回归 813 passed。`FrankLee` 复评 4 个代表项通过，但该复评不是严格盲评，候选仍未晋升默认，详见[修复记录](reports/verification/v0.4/20260906-remediation/分析与修复.md)。
 
 ## 开发与文档导航
 
@@ -103,6 +104,6 @@ make smoke
 
 - 上手：[真实 DeepSeek](docs/guides/real-llm.md) · [完整本地 Workflow](docs/guides/local-workflow.md)
 - 参考：[数据模型与核心表](docs/reference/data-model.md) · [ADR 索引](docs/adr/README.md) · [威胁模型](docs/security/V0.3场景A威胁模型.md)
-- 规划与证据：[详细执行路线](docs/Oria详细执行路线.md) · [执行计划](ROADMAP.md) · [验证证据模板](reports/verification/TEMPLATE.md)
+- 规划与证据：[详细执行路线](docs/Oria详细执行路线.md) · [执行计划](ROADMAP.md) · [统一验证证据索引](reports/verification/README.md) · [验证证据模板](reports/verification/TEMPLATE.md)
 
 依赖必须通过 `uv.lock` 同步。仓库不提交密钥、令牌、真实客户数据或 `.env` 文件。
