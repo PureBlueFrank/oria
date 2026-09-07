@@ -13,6 +13,8 @@ uv sync --locked --group dev
 uv run oria demo
 ```
 
+只想看一眼完整流程而不运行任何东西？打开 [交互 Demo 页面](docs/demo/index.html)（静态、无后端、file:// 直接可用；GitHub Pages 启用后可直接在线访问）：场景 A 十步冻结 Trace 与场景 B 动态归因的归因/冲突/弃答/契约拦停案例，全部由 `scripts/generate_demo_trace.py` 从真实本地 Workflow 与已冻结脱敏探针证据生成。
+
 一次典型终端输出如下（ID 和路径每次不同）：
 
 ```text

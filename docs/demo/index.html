@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oria 交互 Demo · 场景 A 招商流程 / 场景 B 动态归因</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Oria 交互 Demo</h1>
+    <p class="subtitle">本地 Agent 编排平台的冻结 Trace 演示：场景 A 招商全流程 · 场景 B 动态归因</p>
+    <div class="disclaimer-banner">
+      <strong>验证边界：</strong>本页全部使用版本化合成数据。场景 A 由 Mock LLM 与 Mock 企业 Adapter 编排，
+      不代表真实券/招商/选品/C 端/IM 接入；场景 B 为 deepseek-v4-pro 候选配置在 development 案例上的真实 API 输出，
+      冻结 holdout Live 质量卡结论为 failed，本页不构成场景 B 真实模型质量已通过的声明。
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-panel="scenario-a">场景 A · 招商全流程（10 步冻结 Trace）</button>
+    <button class="tab" data-panel="scenario-b">场景 B · 动态归因（真实模型输出）</button>
+    <button class="tab" data-panel="evidence">证据与边界</button>
+  </nav>
+
+  <main>
+    <section id="scenario-a" class="panel active">
+      <div class="stage-stepper" id="stage-stepper"></div>
+      <div class="trace-layout">
+        <ol class="trace-timeline" id="trace-timeline"></ol>
+        <article class="trace-detail" id="trace-detail"></article>
+      </div>
+    </section>
+
+    <section id="scenario-b" class="panel">
+      <div class="case-cards" id="case-cards"></div>
+      <article class="case-detail" id="case-detail"></article>
+    </section>
+
+    <section id="evidence" class="panel">
+      <article class="evidence-doc">
+        <h2>证据与验证边界</h2>
+        <h3>本页数据来源</h3>
+        <ul>
+          <li>场景 A：<code>scripts/generate_demo_trace.py</code> 驱动真实本地 Workflow（Mock LLM、fixture embedder、Mock 企业 Adapter、SQLite + 官方 AsyncSqliteSaver）跑完 10 步并冻结视图模型。</li>
+          <li>场景 B：<code>reports/verification/v0.4/20260906-remediation/development/</code> 中三次干净通过的脱敏探针证据（每次运行的 request ID、工具返回与逐值校验结果均在证据文件中）。</li>
+          <li>契约拦停示例：同一冲突案例另一次运行被因果契约两次拒绝后终止（<code>schema_validation_failed</code>），无答案流出。</li>
+        </ul>
+        <h3>不能从本页得出的结论</h3>
+        <ul>
+          <li>Mock LLM / Mock Adapter 的运行不证明真实模型质量或真实企业系统兼容性。</li>
+          <li>场景 B 展示的是 development 案例上的候选验证；冻结 holdout 的 Live 质量卡为 failed，且不因本页内容改变。</li>
+          <li>deepseek-v4-pro 尚未核价，探针 Token 用量见修复记录，不估算美元成本。</li>
+        </ul>
+        <h3>仓库入口</h3>
+        <ul>
+          <li><a href="https://github.com/PureBlueFrank/oria" target="_blank" rel="noreferrer">GitHub: PureBlueFrank/oria</a></li>
+          <li><a href="https://github.com/PureBlueFrank/oria/blob/main/ROADMAP.md" target="_blank" rel="noreferrer">执行计划与版本状态</a></li>
+          <li><a href="https://github.com/PureBlueFrank/oria/blob/main/reports/verification/v0.4/20260906-remediation/分析与修复.md" target="_blank" rel="noreferrer">V0.4-T05 修复记录</a></li>
+          <li><a href="https://github.com/PureBlueFrank/oria/blob/main/reports/verification/v0.4/20260906-remediation/human-review-20260907.json" target="_blank" rel="noreferrer">人工复评记录（2026-09-07）</a></li>
+        </ul>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Oria · 本地优先的 Agent 编排平台演示 · 全部合成数据</span>
+  </footer>
+
+  <script src="data/scenario-a.js"></script>
+  <script src="data/scenario-b.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
