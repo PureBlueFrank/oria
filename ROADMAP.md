@@ -7,7 +7,7 @@
 当前先完成演示与证据验收，再继续平台扩展，执行顺序不可跳过：
 
 1. **P0：Scenario B 收口**——**已收口（2026-09-07）**：V0.4-T05 冻结 Live 卡以 failed 结论收口（不可更改）；修复在 `deepseek-pro-structured` 候选上完成 development 三类验证与 `FrankLee` 复评，代码、Golden、baseline 与证据已提交固化（`reports/verification/v0.4/20260906-remediation/`）。候选晋升默认或冻结 target 变更属另行决策，须严格盲评，不阻塞 P1。
-2. **P1：交互 Demo**——**已收口（2026-09-07）**：`docs/demo/` 静态页面（无后端、file:// 可直接打开）展示场景 A 十步冻结 Trace，以及场景 B 的归因、冲突、弃答与契约拦停案例；数据由 `scripts/generate_demo_trace.py` 从真实本地 Workflow（Mock Adapter、合成数据）与已冻结探针证据生成，页面已声明 Mock/Live 边界。公开在线访问需在仓库设置启用 GitHub Pages（/docs 目录）。
+2. **P1：交互 Demo**——**已收口（2026-09-07）**：`docs/demo/` 静态页面（无后端、file:// 可直接打开）展示场景 A 十步冻结 Trace，以及场景 B 的归因、冲突、弃答与契约拦停案例；`oria attribution ask` 补充场景 B 单案例分步 CLI 演示，默认为开发集 Mock 回放，显式 `--llm-profile` 时才进入 Live 动态选路。数据由真实本地 Workflow/Graph、Mock Adapter 与合成数据产生，所有入口均声明 Mock/Live 边界。公开在线访问需在仓库设置启用 GitHub Pages（/docs 目录）。
 3. **P2：证据索引与文档一致性**——**已收口（2026-09-07）**：新增[统一验证证据索引](reports/verification/README.md)，链接故障注入、RAG 对照、Scenario B Eval、Live 卡、Demo 与 ADR；README、架构与路线已统一状态、数字和验证边界。本轮只收口展示与证据，未启动 V0.5。
 
 演示和评测只使用贴近企业业务的版本化合成数据与 Mock Adapter，不接触企业内部敏感数据，也不把 Mock 结果表述为真实企业接入。真实业务 Adapter 作为有条件时的独立加分项，不阻塞本轮收口。

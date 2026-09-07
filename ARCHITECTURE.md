@@ -47,6 +47,8 @@ V0.1 先交付其中的只读提案切片；V0.3 在同一 Graph 上补齐完整
 
 它复用同一个有界 `model → tools → validate` 研究子图，加入只读分析工具、evaluator-optimizer、证据链、预算终止和证据不足时的 abstain。根因标签与生产查询库物理隔离，冻结 holdout 用于防止标签泄漏和逐题调参。
 
+CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development 案例上运行离线 Mock 回放，用于展示受治理的调查与证据链；显式传入非 Mock `--llm-profile` 才进入 Live，用同一 Graph 与工具验证模型的动态选路。演示入口不暴露 holdout，不代替冻结 eval 门禁。
+
 ## 分层架构
 
 ```text

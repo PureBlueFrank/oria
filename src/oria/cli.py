@@ -11,6 +11,7 @@ from typing import Annotated, Any, Literal, cast
 import typer
 
 from oria import __version__
+from oria.attribution_demo import AttributionAskError, run_attribution_ask
 from oria.chat.session import run_chat
 from oria.config import ConfigResolutionError, resolve_runtime_config
 from oria.config.models import ResolvedRuntimeConfig
@@ -39,6 +40,7 @@ from oria.orchestrator.local_executor import (
     inject_selection_decision,
     start_local_workflow,
 )
+from oria.presentation.attribution import render_attribution
 from oria.presentation.workflow import (
     MerchantMatch,
     MerchantMatches,
@@ -60,12 +62,14 @@ eval_app = typer.Typer(help="Run versioned evaluation suites.")
 workflow_app = typer.Typer(help="Start and resume the local Scenario A workflow.")
 approval_app = typer.Typer(help="Approve or reject an active workflow HITL request.")
 mock_app = typer.Typer(help="Inject authenticated synthetic Scenario A events.")
+attribution_app = typer.Typer(help="Run the bounded Scenario B attribution demonstration.")
 app.add_typer(config_app, name="config")
 app.add_typer(data_app, name="data")
 app.add_typer(eval_app, name="eval")
 app.add_typer(workflow_app, name="workflow")
 app.add_typer(approval_app, name="approval")
 app.add_typer(mock_app, name="mock")
+app.add_typer(attribution_app, name="attribution")
 
 
 class OutputFormat(StrEnum):
@@ -124,6 +128,71 @@ _DEFAULT_RAG_MANIFEST = _default_eval_asset("datasets/rag/v1.manifest.json")
 _DEFAULT_RAG_CONFIG = _default_eval_asset("config/rag.yaml")
 _DEFAULT_ATTRIBUTION_MANIFEST = _default_eval_asset("datasets/scenario_b/manifest.json")
 _DEFAULT_ATTRIBUTION_RUBRIC = _default_eval_asset("config/attribution-rubric-v1.yaml")
+
+
+@attribution_app.command("ask")
+def attribution_ask(
+    question: Annotated[
+        str | None,
+        typer.Argument(help="Reviewed development question; matching is deterministic and exact."),
+    ] = None,
+    case_id: Annotated[
+        str | None,
+        typer.Option("--case-id", help="Exact reviewed development case ID."),
+    ] = None,
+    llm_profile: Annotated[
+        str | None,
+        typer.Option(
+            "--llm-profile",
+            help="Use a configured non-Mock model in Live mode; omitted means offline replay.",
+        ),
+    ] = None,
+    output: Annotated[
+        OutputFormat,
+        typer.Option("--output", help="Output format: human or json."),
+    ] = OutputFormat.HUMAN,
+    data_dir: Annotated[
+        Path,
+        typer.Option(
+            "--data-dir",
+            help="Base data root; this command writes only below its reports-tmp directory.",
+        ),
+    ] = Path(".oria-data"),
+) -> None:
+    """Investigate one reviewed Scenario B development case with a bounded ReAct loop."""
+
+    try:
+        result = asyncio.run(
+            run_attribution_ask(
+                _DEFAULT_ATTRIBUTION_MANIFEST,
+                data_dir=data_dir,
+                case_id=case_id,
+                question=question,
+                llm_profile=llm_profile,
+            )
+        )
+    except AttributionAskError as exc:
+        payload = {"ok": False, "error": {"code": exc.code, "message": exc.detail}}
+        if output is OutputFormat.JSON:
+            typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        else:
+            typer.echo(f"Attribution demo blocked ({exc.code}): {exc.detail}", err=True)
+        raise typer.Exit(code=exc.exit_code) from None
+    except (AttributionEvalError, ConfigResolutionError, RagDatasetError, ValueError) as exc:
+        payload = {
+            "ok": False,
+            "error": {"code": "invalid_attribution_demo", "message": str(exc)},
+        }
+        if output is OutputFormat.JSON:
+            typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        else:
+            typer.echo(f"Attribution demo configuration invalid: {exc}", err=True)
+        raise typer.Exit(code=2) from None
+
+    if output is OutputFormat.JSON:
+        typer.echo(json.dumps(result.model_dump(mode="json"), ensure_ascii=False, sort_keys=True))
+    else:
+        typer.echo(render_attribution(result))
 
 
 @app.callback()

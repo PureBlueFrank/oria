@@ -19,11 +19,12 @@ Oria 以 LangGraph 承载 Workflow 与有界 Agent 循环，以 SQLite/Checkpoin
 
 ## 60 秒本地体验
 
-需要 Python 3.11 和 uv 0.12.6。以锁文件同步依赖，再运行默认 human 输出的只读提案：
+需要 Python 3.11 和 uv 0.12.6。以锁文件同步依赖，再分别体验场景 A 的只读提案和场景 B 的动态归因演示：
 
 ```bash
 uv sync --locked --group dev
 uv run oria demo
+uv run oria attribution ask
 ```
 
 一次典型终端输出如下（ID 和路径每次不同）：
@@ -39,13 +40,16 @@ Eligible merchants: 10
 Proposal report: <data-dir>/reports-tmp/run_<generated>.json
 ```
 
-`demo` 会自动迁移本地 SQLite、播种 12 家合成商家、建立 Chroma 投影，再运行带逐字段引用的招商提案。默认不需要账号、Key、网络或企业服务，也不会创建 Campaign/CouponBatch 或执行任何业务投放。
+`demo` 会自动迁移本地 SQLite、播种 12 家合成商家、建立 Chroma 投影，再运行带逐字段引用的招商提案。`attribution ask` 默认回放已审阅的 development 案例 `sb-v1-001`，通过真实有界归因 Graph 逐步查询漏斗、活动与大盘证据，并解释每一步为何继续。两个入口默认都不需要账号、Key、网络或企业服务，也不会执行任何业务投放。
+
+`attribution ask` 是场景 B 的演示入口，不是冻结评测入口。可用 `--case-id` 精确选择 development 案例，或传入与已审阅案例规范化后完全一致的自由问题；未知问题、未知 case 和 holdout 都会拒绝执行。传入 `--llm-profile <已配置的非 Mock profile>` 后切换 Live，使用同一 Graph、Runtime 和只读工具验证真实模型的动态工具选择与归因能力；这会发生真实网络调用，结果不等于质量门禁通过。详见[场景 B 归因演示](docs/guides/attribution-demo.md)。
 
 ## 选择你的路径
 
 | 路径 | 适合谁 | 依赖 | 入口 | 能证明什么 |
 | --- | --- | --- | --- | --- |
 | 零配置 Demo | 首次了解 Oria | 核心依赖，无 Key | `uv run oria demo` | Mock/Fixture 下的只读提案、引用和硬资格边界 |
+| 场景 B 归因演示 | 观察有界 ReAct 调查 | 默认无 Key；Live 需已配置模型 | `uv run oria attribution ask` | Mock 回放下的可执行证据链；Live 下才验证动态选路能力 |
 | 真实 DeepSeek | 体验真实模型草案/软排序 | `standard` extra、DeepSeek Key、首次 BGE 下载 | [真实 LLM 快速开始](docs/guides/real-llm.md) | 指定 DeepSeek 模型与本地 BGE 的调用；不证明企业 Adapter |
 | 完整本地 Workflow | 评估 10 步流程、HITL 和恢复 | 本地 SQLite、合成数据、Mock Adapter | [本地 Workflow 手册](docs/guides/local-workflow.md) | Community 业务语义、双审批/双等待与幂等对账 |
 | 开发验证 | 贡献者和架构评审者 | 开发依赖 | `make lint && make test` | 无 Live/Enterprise/Performance 的本地回归与静态门禁 |
@@ -113,7 +117,7 @@ make smoke
 
 `make test` 不运行 Live、Enterprise 和 Performance 标记。这些验证必须显式提供运行开关、非空已知 target 与所需凭证/组件，不能把 skip、Mock 或 Fixture 记为通过。
 
-- 上手：[真实 DeepSeek](docs/guides/real-llm.md) · [完整本地 Workflow](docs/guides/local-workflow.md)
+- 上手：[场景 B 归因演示](docs/guides/attribution-demo.md) · [真实 DeepSeek](docs/guides/real-llm.md) · [完整本地 Workflow](docs/guides/local-workflow.md)
 - 参考：[数据模型与核心表](docs/reference/data-model.md) · [ADR 索引](docs/adr/README.md) · [威胁模型](docs/security/V0.3场景A威胁模型.md)
 - 规划与证据：[详细执行路线](docs/Oria详细执行路线.md) · [执行计划](ROADMAP.md) · [统一验证证据索引](reports/verification/README.md) · [验证证据模板](reports/verification/TEMPLATE.md)
 

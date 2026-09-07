@@ -1,6 +1,8 @@
 # 场景 B 动态归因评测
 
-场景 B 的稳定入口是：
+> 本页是冻结数据集评测入口。面向人的单案例分步演示请使用 [`oria attribution ask`](attribution-demo.md)；后者默认只允许 development，不读取 holdout，也不替代 baseline/gate。
+
+场景 B 的冻结评测入口是：
 
 ```bash
 uv run oria eval run --suite attribution \
