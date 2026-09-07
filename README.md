@@ -1,10 +1,23 @@
 # Oria
 
-Oria 是面向招商活动编排的 AI Agent 平台：用 LLM 处理需求理解、草案和候选集内软排序，用确定性规则、权限、审批、幂等和审计守住业务边界。
+Oria 是一个面向招商活动全生命周期的开源 AI Agent 工程。
 
-当前可用的主线是可中断、可恢复的招商 Workflow；零配置 Demo 使用 Mock LLM 和合成数据，真实 LLM 仅有 DeepSeek 已完成前序 Live 验证。券、招商、商品库、选品、C 端投放和 IM 仍是 Mock Adapter；动态归因已完成合成数据、五个只读分析 Tool、有界 Agent、已审阅 Golden v1 和 T05 的 20×3 DeepSeek Live 运行，但自动通过仅 7/60；`FrankLee` 已确认 10 条盲评均失败，T05 以 failed 卡收口，真实模型归因质量未通过。修复候选已完成 development 三类验证与代表项人工复评，但未晋升默认配置，也不改变原 Live failed 结论。
+一次完整的招商活动会跨越需求理解、规则检索、商家与商品筛选、活动和券方案、多人审批、报名圈品、招后选品、渠道投放与结果通知。这里既有适合大模型处理的非结构化信息和开放式分析，也有不能交给模型自由决定的资格规则、权限边界和业务副作用。Oria 的目标，是把两者放进同一套可执行、可恢复、可审计的系统：让 LLM 负责理解、探索和解释，让确定性 Policy、状态机、审批、幂等账本与证据校验掌控最终边界。
 
-## 60 秒体验
+项目围绕两个互补场景展开：
+
+- **场景 A · 招商活动编排**：从招商需求和规则快照出发，完成硬资格过滤、候选集内软排序、活动与券草案、双审批、报名/圈品汇聚、业务确认、异步选品、C 端投放和商家通知。
+- **场景 B · 经营异常归因**：Agent 在受限的只读分析工具内自主选择调查路径，区分可归因、证据冲突和证据不足，并为结论保存可回查引用。
+
+Oria 以 LangGraph 承载 Workflow 与有界 Agent 循环，以 SQLite/Checkpoint、RAG、Policy、HITL、execution ledger、outbox 和分层 Eval 组成当前工程骨架；整体架构预留多智能体、上下文与记忆治理、Durable Job、MCP、企业数据后端和可观测性扩展，同时保持 Community 环境可以使用合成数据与 Mock Adapter 独立运行。
+
+## 在线演示
+
+**[打开 Oria 交互 Demo](https://purebluefrank.github.io/oria/demo/)**
+
+页面无需安装、账号或 API Key，直接展示场景 A 的十步冻结执行 Trace，以及场景 B 的归因、冲突、弃答和契约拦停案例。演示数据全部为版本化合成数据；企业系统由 Mock Adapter 模拟，不代表真实企业接入或生产效果。本地副本也可直接打开 [`docs/demo/index.html`](docs/demo/index.html)。
+
+## 60 秒本地体验
 
 需要 Python 3.11 和 uv 0.12.6。以锁文件同步依赖，再运行默认 human 输出的只读提案：
 
@@ -12,8 +25,6 @@ Oria 是面向招商活动编排的 AI Agent 平台：用 LLM 处理需求理解
 uv sync --locked --group dev
 uv run oria demo
 ```
-
-只想看一眼完整流程而不运行任何东西？打开 [交互 Demo 页面](docs/demo/index.html)（静态、无后端、file:// 直接可用；GitHub Pages 启用后可直接在线访问）：场景 A 十步冻结 Trace 与场景 B 动态归因的归因/冲突/弃答/契约拦停案例，全部由 `scripts/generate_demo_trace.py` 从真实本地 Workflow 与已冻结脱敏探针证据生成。
 
 一次典型终端输出如下（ID 和路径每次不同）：
 
