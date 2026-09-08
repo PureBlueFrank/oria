@@ -71,8 +71,29 @@ class GoldenCase(ValueModel):
         return self
 
 
+AttributionTaskType = Literal[
+    "causal_attribution",
+    "premise_refutation",
+    "descriptive_analysis",
+    "quantitative_analysis",
+    "scope_localization",
+    "evidence_abstention",
+    "tenant_access_control",
+    "tool_policy",
+    "prompt_injection",
+    "evidence_integrity",
+]
+
+AttributionAnswerability = Literal["supported", "conflicting", "insufficient"]
+
+
 class AttributionGoldenCase(ValueModel):
-    """Scenario B golden case for attribution eval with human-review gate."""
+    """Scenario B golden case for attribution eval with human-review gate.
+
+    ``expected_outcome``/``expected_abstain`` remain the machine-checked contract.
+    ``answerability`` and ``task_type`` decompose that contract so the evaluator can
+    report capability-level scores instead of one opaque pass/fail label.
+    """
 
     case_id: str = Field(pattern=r"^sb-v[1-9][0-9]*-[0-9]{3}$")
     schema_version: Literal[1] = 1
@@ -84,12 +105,17 @@ class AttributionGoldenCase(ValueModel):
     conversation_history: tuple[Message, ...] = ()
     expected_outcome: Literal["attributed", "conflicting", "insufficient"]
     expected_abstain: bool
+    answerability: AttributionAnswerability | None = None
+    task_type: AttributionTaskType | None = None
     root_cause_code: str | None = None
     acceptable_hypotheses: tuple[str, ...] = ()
     required_evidence: tuple[str, ...] = ()
     requested_data: tuple[str, ...] = ()
     golden_rationale: str = Field(min_length=1)
     expected_tools: tuple[str, ...] = ()
+    required_tools: tuple[str, ...] = ()
+    optional_tools: tuple[str, ...] = ()
+    tool_dependencies: tuple[tuple[str, str], ...] = ()
     forbidden_tools: tuple[str, ...] = ()
     review: GoldenReview
 
@@ -106,6 +132,17 @@ class AttributionGoldenCase(ValueModel):
             raise ValueError(
                 "attribution conversation history must contain complete user/assistant pairs"
             )
+        if self.answerability is not None:
+            _outcome_for = {
+                "supported": "attributed",
+                "conflicting": "conflicting",
+                "insufficient": "insufficient",
+            }
+            if self.expected_outcome != _outcome_for[self.answerability]:
+                raise ValueError("answerability must agree with expected_outcome")
+        if self.task_type == "evidence_abstention" and self.expected_outcome != "insufficient":
+            raise ValueError("evidence_abstention cases must expect insufficient")
+        effective_required = self.required_tools or self.expected_tools
         if self.expected_outcome == "insufficient":
             if not self.requested_data:
                 raise ValueError("insufficient cases must specify the missing authorized data")
@@ -120,11 +157,29 @@ class AttributionGoldenCase(ValueModel):
                 raise ValueError("attributed/conflicting cases cannot expect abstention")
             if not self.acceptable_hypotheses or not self.required_evidence:
                 raise ValueError("attributed/conflicting cases require hypotheses and evidence")
-            if not self.expected_tools:
-                raise ValueError("attributed/conflicting cases require expected tools")
+            if not effective_required:
+                raise ValueError("attributed/conflicting cases require required tools")
             if self.expected_outcome == "conflicting" and len(self.acceptable_hypotheses) < 2:
                 raise ValueError("conflicting cases require multiple acceptable hypotheses")
+        if set(self.required_tools).intersection(self.optional_tools):
+            raise ValueError("a tool cannot be both required and optional")
+        if (
+            set(self.forbidden_tools)
+            .intersection(self.required_tools)
+            .intersection(self.optional_tools)
+        ):
+            raise ValueError("forbidden tools cannot be required or optional")
+        if self.tool_dependencies:
+            required_set = set(self.required_tools).union(self.optional_tools)
+            for dependency, dependent in self.tool_dependencies:
+                if dependency not in required_set or dependent not in required_set:
+                    raise ValueError("tool dependencies must reference declared tools")
         return self
+
+
+def required_tools_for(case: AttributionGoldenCase) -> tuple[str, ...]:
+    """Resolve the machine-checked required tool set, preferring the V2 field."""
+    return case.required_tools or case.expected_tools
 
 
 GoldenCaseModel = GoldenCase | AttributionGoldenCase

@@ -35,6 +35,14 @@ AttributionFixtureVariant = Literal[
     "campaign_confirmation",
     "missing_activity",
     "no_anomaly",
+    "north_campaign_effect",
+    "north_market_conflict",
+    "campaign_effect_alt",
+    "campaign_effect_multi",
+    "campaign_enrollment_alt",
+    "market_conflict_alt",
+    "mixed_funnel_alt",
+    "systemic_category_alt",
 ]
 ATTRIBUTION_FIXTURE_VARIANTS: frozenset[str] = frozenset(get_args(AttributionFixtureVariant))
 
@@ -83,10 +91,19 @@ def _funnel_facts(
                     confirmation_rate = 0.76 + rng.uniform(-0.01, 0.01)
                     redemption_rate = 0.7 + rng.uniform(-0.015, 0.015)
                     is_local_east = tenant_id == "local-community" and region == "east"
+                    is_local_north = tenant_id == "local-community" and region == "north"
                     is_post = event_date >= date(2026, 8, 31)
                     if is_local_east and category == "full_service":
                         if fixture_variant == "campaign_effect":
                             redemption_rate = (0.82 if not is_post else 0.34) + rng.uniform(
+                                -0.01, 0.01
+                            )
+                        elif fixture_variant == "campaign_effect_alt":
+                            redemption_rate = (0.79 if not is_post else 0.38) + rng.uniform(
+                                -0.01, 0.01
+                            )
+                        elif fixture_variant == "campaign_effect_multi":
+                            redemption_rate = (0.80 if not is_post else 0.41) + rng.uniform(
                                 -0.01, 0.01
                             )
                         elif (
@@ -100,15 +117,29 @@ def _funnel_facts(
                             and is_post
                         ):
                             redemption_rate = 0.34 + rng.uniform(-0.01, 0.01)
+                        elif fixture_variant == "market_conflict_alt" and is_post:
+                            redemption_rate = 0.36 + rng.uniform(-0.01, 0.01)
                         elif fixture_variant == "mixed_funnel" and is_post:
                             visit_rate = 0.38 + rng.uniform(-0.01, 0.01)
                             redemption_rate = 0.45 + rng.uniform(-0.01, 0.01)
+                        elif fixture_variant == "mixed_funnel_alt" and is_post:
+                            visit_rate = 0.40 + rng.uniform(-0.01, 0.01)
+                            redemption_rate = 0.50 + rng.uniform(-0.01, 0.01)
                         elif fixture_variant == "upstream_drop" and is_post:
                             visit_rate = 0.36 + rng.uniform(-0.01, 0.01)
                         elif fixture_variant == "campaign_enrollment" and is_post:
                             enrollment_rate = 0.28 + rng.uniform(-0.01, 0.01)
+                        elif fixture_variant == "campaign_enrollment_alt" and is_post:
+                            enrollment_rate = 0.30 + rng.uniform(-0.01, 0.01)
                         elif fixture_variant == "campaign_confirmation" and is_post:
                             confirmation_rate = 0.45 + rng.uniform(-0.01, 0.01)
+                    if is_local_north and category == "full_service":
+                        if fixture_variant == "north_campaign_effect":
+                            redemption_rate = (0.74 if not is_post else 0.32) + rng.uniform(
+                                -0.01, 0.01
+                            )
+                        elif fixture_variant == "north_market_conflict" and is_post:
+                            redemption_rate = 0.32 + rng.uniform(-0.01, 0.01)
                     if (
                         fixture_variant == "systemic_category"
                         and tenant_id == "local-community"
@@ -116,6 +147,13 @@ def _funnel_facts(
                         and is_post
                     ):
                         redemption_rate = 0.45 + rng.uniform(-0.01, 0.01)
+                    if (
+                        fixture_variant == "systemic_category_alt"
+                        and tenant_id == "local-community"
+                        and category == "full_service"
+                        and is_post
+                    ):
+                        redemption_rate = 0.50 + rng.uniform(-0.01, 0.01)
                     if (
                         fixture_variant == "beverage_conflict"
                         and is_local_east
@@ -221,6 +259,19 @@ def _activity_facts(
                 ),
             )
         )
+    if fixture_variant in {"north_campaign_effect", "north_market_conflict"}:
+        facts.append(
+            ActivityFact(
+                tenant_id="local-community",
+                activity_id="activity-north-full-service-summer",
+                region="north",
+                category="full_service",
+                activity_type="merchant_incentive",
+                merchant_id="synthetic-merchant-north-full-service",
+                starts_on=date(2026, 8, 1),
+                ends_on=date(2026, 8, 30),
+            )
+        )
     return tuple(facts)
 
 
@@ -247,12 +298,27 @@ def _market_facts(
                     ):
                         redemption_rate = 0.45 + rng.uniform(-0.01, 0.01)
                     if (
+                        fixture_variant == "market_conflict_alt"
+                        and tenant_id == "local-community"
+                        and region == "east"
+                        and category == "full_service"
+                        and is_post
+                    ):
+                        redemption_rate = 0.48 + rng.uniform(-0.01, 0.01)
+                    if (
                         fixture_variant == "systemic_category"
                         and tenant_id == "local-community"
                         and category == "full_service"
                         and is_post
                     ):
                         redemption_rate = 0.45 + rng.uniform(-0.01, 0.01)
+                    if (
+                        fixture_variant == "systemic_category_alt"
+                        and tenant_id == "local-community"
+                        and category == "full_service"
+                        and is_post
+                    ):
+                        redemption_rate = 0.50 + rng.uniform(-0.01, 0.01)
                     if (
                         fixture_variant == "beverage_conflict"
                         and tenant_id == "local-community"
@@ -261,6 +327,14 @@ def _market_facts(
                         and is_post
                     ):
                         redemption_rate = 0.46 + rng.uniform(-0.01, 0.01)
+                    if (
+                        fixture_variant == "north_market_conflict"
+                        and tenant_id == "local-community"
+                        and region == "north"
+                        and category == "full_service"
+                        and is_post
+                    ):
+                        redemption_rate = 0.42 + rng.uniform(-0.01, 0.01)
                     facts.append(
                         MarketDailyFact(
                             tenant_id=tenant_id,

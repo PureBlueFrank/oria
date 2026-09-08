@@ -70,6 +70,19 @@ def test_followup_cases_carry_actual_conversation_history() -> None:
     assert histories == {f"sb-v1-{number:03d}": ("user", "assistant") for number in range(39, 45)}
 
 
+_V2_EXTENSION_FIELDS = {
+    "answerability",
+    "task_type",
+    "required_tools",
+    "optional_tools",
+    "tool_dependencies",
+}
+
+
+def _strip_v2_extension_fields(case: dict[str, object]) -> dict[str, object]:
+    return {key: value for key, value in case.items() if key not in _V2_EXTENSION_FIELDS}
+
+
 def test_generator_and_readable_review_match_the_draft() -> None:
     module = runpy.run_path(str(_ROOT / "scripts/generate_attribution_golden.py"))
     cases = module["_build_cases"]()
@@ -77,7 +90,9 @@ def test_generator_and_readable_review_match_the_draft() -> None:
     for index, case in enumerate(cases):
         case["split"] = "development" if index < 30 else "holdout"
         case["review"] = dataset.cases[index].review.model_dump(mode="json")
-    assert cases == [case.model_dump(mode="json") for case in dataset.cases]
+    assert cases == [
+        _strip_v2_extension_fields(case.model_dump(mode="json")) for case in dataset.cases
+    ]
     assert module["_review_document"](cases) == (_MANIFEST.parent / "CASES.md").read_text(
         encoding="utf-8"
     )

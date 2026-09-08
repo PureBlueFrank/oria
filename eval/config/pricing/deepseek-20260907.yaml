@@ -1,0 +1,30 @@
+schema_version: 1
+snapshot_id: deepseek-20260907
+currency: USD
+unit: per_million_tokens
+source_url: https://api-docs.deepseek.com/quick_start/pricing/
+verified_at: "2026-09-07T16:30:00+08:00"
+valid_until: "2026-09-14T23:59:59+08:00"
+models:
+  deepseek-v4-flash:
+    peak:
+      input_cache_hit_per_million_usd: 0.0028
+      input_cache_miss_per_million_usd: 0.14
+      output_per_million_usd: 0.28
+      reasoning_per_million_usd: 0.28
+    off_peak:
+      input_cache_hit_per_million_usd: 0.0014
+      input_cache_miss_per_million_usd: 0.07
+      output_per_million_usd: 0.14
+      reasoning_per_million_usd: 0.14
+  deepseek-v4-pro:
+    peak:
+      input_cache_hit_per_million_usd: 0.003625
+      input_cache_miss_per_million_usd: 0.435
+      output_per_million_usd: 0.87
+      reasoning_per_million_usd: 0.87
+    off_peak:
+      input_cache_hit_per_million_usd: 0.0018125
+      input_cache_miss_per_million_usd: 0.2175
+      output_per_million_usd: 0.435
+      reasoning_per_million_usd: 0.435

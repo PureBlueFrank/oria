@@ -67,6 +67,7 @@ def _defaults() -> dict[str, Any]:
                     "api_key": "${DEEPSEEK_API_KEY}",
                     "base_url": "https://api.deepseek.com",
                     "structured_output_mode": "native_json_schema",
+                    "reasoning_effort": "none",
                 },
                 "deepseek-structured": {
                     "provider": "deepseek",
@@ -75,6 +76,7 @@ def _defaults() -> dict[str, Any]:
                     "api_key": "${DEEPSEEK_API_KEY}",
                     "base_url": "https://api.deepseek.com",
                     "structured_output_mode": "synthetic_tool",
+                    "reasoning_effort": "none",
                 },
                 "deepseek-pro-structured": {
                     "provider": "deepseek",
@@ -83,6 +85,16 @@ def _defaults() -> dict[str, Any]:
                     "api_key": "${DEEPSEEK_API_KEY}",
                     "base_url": "https://api.deepseek.com",
                     "structured_output_mode": "synthetic_tool",
+                    "reasoning_effort": "none",
+                },
+                "deepseek-pro-thinking": {
+                    "provider": "deepseek",
+                    "api_dialect": "responses",
+                    "model": "deepseek-v4-pro",
+                    "api_key": "${DEEPSEEK_API_KEY}",
+                    "base_url": "https://api.deepseek.com",
+                    "structured_output_mode": "native_json_schema",
+                    "reasoning_effort": "high",
                 },
                 "kimi": {
                     "provider": "kimi",
@@ -235,6 +247,7 @@ def _resolve_llm(
         api_key=SecretStr(resolved_secret) if resolved_secret is not None else None,
         base_url=_expand(profile.base_url, environ),
         structured_output_mode=profile.structured_output_mode,
+        reasoning_effort=profile.reasoning_effort,
     )
 
 
@@ -250,10 +263,11 @@ def _resolve_embedding(
     )
 
 
-_DEEPSEEK_PROFILE_MATRIX: dict[str, tuple[str, str]] = {
-    "deepseek": ("deepseek-v4-flash", "native_json_schema"),
-    "deepseek-structured": ("deepseek-v4-flash", "synthetic_tool"),
-    "deepseek-pro-structured": ("deepseek-v4-pro", "synthetic_tool"),
+_DEEPSEEK_PROFILE_MATRIX: dict[str, tuple[str, str, str]] = {
+    "deepseek": ("deepseek-v4-flash", "native_json_schema", "none"),
+    "deepseek-structured": ("deepseek-v4-flash", "synthetic_tool", "none"),
+    "deepseek-pro-structured": ("deepseek-v4-pro", "synthetic_tool", "none"),
+    "deepseek-pro-thinking": ("deepseek-v4-pro", "native_json_schema", "high"),
 }
 
 
@@ -278,13 +292,14 @@ def _validate_matrix(
         if (
             llm.api_dialect != "responses"
             or pinned is None
-            or (llm.model, llm.structured_output_mode) != pinned
+            or (llm.model, llm.structured_output_mode, llm.reasoning_effort) != pinned
         ):
             raise ConfigResolutionError(
                 "DeepSeek requires responses dialect and the pinned model/output mode of an "
                 "explicit profile: deepseek (deepseek-v4-flash, native JSON schema), "
                 "deepseek-structured (deepseek-v4-flash, synthetic_tool), or "
-                "deepseek-pro-structured (deepseek-v4-pro, synthetic_tool)"
+                "deepseek-pro-structured (deepseek-v4-pro, synthetic_tool), or "
+                "deepseek-pro-thinking (deepseek-v4-pro, native JSON schema, high reasoning)"
             )
     if embedding.provider == "sentence_transformers":
         if embedding.model is None or embedding.revision is None:

@@ -1,3 +1,4 @@
+# ruff: noqa: RUF001
 """Scenario B specialization of the shared bounded research graph."""
 
 from __future__ import annotations
@@ -57,7 +58,19 @@ def attribution_research_spec() -> ResearchSpec:
 def attribution_research_limits() -> ResearchLimits:
     """Return the Scenario B budget without changing loop termination semantics."""
 
-    return ResearchLimits(max_model_turns=8, max_tool_calls=10)
+    return ResearchLimits(max_model_turns=8, max_tool_calls=10, max_validation_repairs=2)
+
+
+def _tenant_context_message(tenant_id: str) -> Message:
+    return Message(
+        role="system",
+        content=(
+            f"当前身份与授权范围：你以 {tenant_id} 租户的身份运行，所有分析工具都只在"
+            "当前租户的授权数据范围内查询。你无法通过任何工具参数切换到其他租户，"
+            "也不能访问、汇总或比较其他租户的数据。工具返回为空只表示当前租户授权"
+            "范围内无匹配记录，不能据此判断其他租户是否存在或不存在该数据。"
+        ),
+    )
 
 
 def initial_attribution_state(
@@ -65,6 +78,7 @@ def initial_attribution_state(
     question: str,
     analysis_period: str,
     conversation_history: Sequence[Message] = (),
+    tenant_id: str | None = None,
     prompts: PromptManager | None = None,
 ) -> ResearchState:
     if not analysis_period.strip():
@@ -83,11 +97,12 @@ def initial_attribution_state(
         spec=attribution_research_spec(),
         prompt_variables={"analysis_period": analysis_period},
     )
-    state["messages"] = [
-        state["messages"][0],
-        *(message.model_dump(mode="json") for message in conversation_history),
-        state["messages"][1],
-    ]
+    messages: list[dict[str, JsonValue]] = [state["messages"][0]]
+    if tenant_id:
+        messages.append(_tenant_context_message(tenant_id).model_dump(mode="json"))
+    messages.extend(message.model_dump(mode="json") for message in conversation_history)
+    messages.append(state["messages"][1])
+    state["messages"] = messages
     return state
 
 

@@ -117,9 +117,13 @@ class AttributionHypothesis(ValueModel):
     statement: str = Field(
         min_length=1,
         max_length=1000,
-        description="State a candidate explanation, explicitly conditional when its mechanism "
-        "is unobserved. Do not say an event caused an effect and then retract that assertion "
-        "only in uncertainty. Observed metric changes are facts; proposed causes are hypotheses.",
+        description="A candidate causal explanation, OR a direct report of a verified fact, "
+        "number, trend, or premise-refutation. For report tasks (an exact value, whether an "
+        "activity is active, a trend range, or whether a comparison premise holds), state the "
+        "verified finding verbatim and do not abstain merely because no causal root cause is "
+        "involved. For causal attribution, be explicitly conditional when the mechanism is "
+        "unobserved; do not say an event caused an effect and then retract that assertion only "
+        "in uncertainty. Observed metric changes are facts; proposed causes are hypotheses.",
     )
     uncertainty: str = Field(min_length=1, max_length=1000)
 
@@ -282,6 +286,11 @@ def attribution_conclusion_schema() -> ResponseSchema:
         "stages are independently anomalous and shared_mechanism_observed=false, attributed "
         "is invalid: preserve the supported independent explanations as conflicting, or "
         "insufficient if the evidence does not support competing explanations. "
+        "attributed also covers directly answerable report tasks (an exact value, whether an "
+        "activity is active, a trend range, or a premise verification): when the data answers "
+        "the question, report the verified fact as the conclusion and do not abstain merely "
+        "because no causal root cause is involved; in that case leave "
+        "anomalous_conversion_stages empty and set shared_mechanism_observed=false. "
         "Outcome invariants: insufficient requires abstained=true, conclusion=null and "
         "nonempty requested_data. attributed/conflicting require abstained=false, empty "
         "requested_data, nonempty hypotheses and evidence. attributed requires a conclusion "

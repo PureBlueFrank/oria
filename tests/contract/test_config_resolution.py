@@ -37,6 +37,23 @@ def test_deepseek_pro_structured_profile_is_explicit_and_pinned() -> None:
     assert pro.config_fingerprint != flash.config_fingerprint
 
 
+def test_deepseek_pro_thinking_profile_changes_only_model_and_reasoning() -> None:
+    environ = {"DEEPSEEK_API_KEY": "fixture-key", "ORIA_ENVIRONMENT": "test"}
+    flash = resolve_runtime_config(llm_profile="deepseek", environ=environ)
+    pro = resolve_runtime_config(llm_profile="deepseek-pro-thinking", environ=environ)
+
+    assert flash.llm.model == "deepseek-v4-flash"
+    assert flash.llm.reasoning_effort == "none"
+    assert pro.llm.model == "deepseek-v4-pro"
+    assert pro.llm.reasoning_effort == "high"
+    assert pro.llm.provider == flash.llm.provider == "deepseek"
+    assert pro.llm.api_dialect == flash.llm.api_dialect == "responses"
+    assert (
+        pro.llm.structured_output_mode == flash.llm.structured_output_mode == ("native_json_schema")
+    )
+    assert pro.config_fingerprint != flash.config_fingerprint
+
+
 def _write_config(tmp_path: Path, name: str, content: str) -> Path:
     path = tmp_path / name
     path.write_text(content, encoding="utf-8")
@@ -44,7 +61,7 @@ def _write_config(tmp_path: Path, name: str, content: str) -> Path:
 
 
 def test_deepseek_pro_model_rejected_outside_its_explicit_profile(tmp_path: Path) -> None:
-    """The v4-pro model is pinned to deepseek-pro-structured; native mode rejects it."""
+    """The v4-pro model remains pinned to an explicit pro profile."""
     config = _write_config(
         tmp_path,
         "pro-native.yaml",

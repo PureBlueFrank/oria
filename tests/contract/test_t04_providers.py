@@ -390,6 +390,62 @@ async def test_deepseek_responses_disables_thinking_for_explicit_tool_choice(
 
 
 @pytest.mark.asyncio
+async def test_deepseek_pro_thinking_keeps_high_reasoning_with_tool_choice(
+    tmp_path: Path,
+) -> None:
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(
+            200,
+            json=_response(
+                {
+                    "type": "function_call",
+                    "call_id": "call-1",
+                    "name": "oria_health_probe",
+                    "arguments": "{}",
+                }
+            ),
+        )
+
+    runtime, ctx = await _runtime_context(tmp_path)
+    profile = _profile().model_copy(
+        update={
+            "profile_id": "deepseek-pro-thinking",
+            "model": "deepseek-v4-pro",
+            "reasoning_effort": "high",
+        }
+    )
+    async with httpx.AsyncClient(
+        base_url="https://api.deepseek.com",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        try:
+            provider = OpenAICompatProvider(profile, client)
+            await provider.chat(
+                [Message(role="user", content="调用健康检查")],
+                ctx,
+                tools=[
+                    ToolSpec(
+                        name="oria_health_probe",
+                        schema_version=1,
+                        description="执行健康检查",
+                        json_schema={"type": "object", "properties": {}},
+                    )
+                ],
+                options=ChatOptions(tool_choice="required", max_output_tokens=128),
+            )
+        finally:
+            await runtime.aclose()
+
+    payload = json.loads(captured[0].content)
+    assert payload["model"] == "deepseek-v4-pro"
+    assert payload["tool_choice"] == "required"
+    assert payload["reasoning"] == {"effort": "high"}
+
+
+@pytest.mark.asyncio
 async def test_native_structured_output_is_locally_validated(tmp_path: Path) -> None:
     def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(

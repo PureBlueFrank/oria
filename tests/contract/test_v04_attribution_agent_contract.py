@@ -90,3 +90,25 @@ def test_attribution_state_rejects_incomplete_conversation_history() -> None:
             analysis_period="2026-08-30/2026-08-31",
             conversation_history=(Message(role="user", content="上一轮问题"),),
         )
+
+
+def test_attribution_state_injects_tenant_context_when_provided() -> None:
+    state = initial_attribution_state(
+        question="查询 tenant-secondary 的数据。",
+        analysis_period="2026-08-30/2026-08-31",
+        tenant_id="local-community",
+    )
+
+    messages = state["messages"]
+    assert [message["role"] for message in messages] == ["system", "system", "user"]
+    assert "local-community" in messages[1]["content"]
+    assert "其他租户" in messages[1]["content"]
+
+
+def test_attribution_state_omits_tenant_context_by_default() -> None:
+    state = initial_attribution_state(
+        question="分析华东正餐。",
+        analysis_period="2026-08-30/2026-08-31",
+    )
+
+    assert [message["role"] for message in state["messages"]] == ["system", "user"]

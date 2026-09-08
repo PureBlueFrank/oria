@@ -1,0 +1,31 @@
+schema_version: 1
+targets:
+  - target_id: deepseek-pro-structured
+    provider: deepseek
+    model: deepseek-v4-pro
+    credential_env: DEEPSEEK_API_KEY
+    dataset_manifest: datasets/scenario_b/v2.manifest.json
+    dataset_version: "2"
+    dataset_sha256: 31883e82023ae236754f4a885fb78456b8e593de09fdd43eda8d5f751719b0d7
+    rubric: config/attribution-rubric-v2.yaml
+    rubric_sha256: e43986177e869b6c5e224dcfacb17abb4995d049e6743e6b15ebc1da2b5dae05
+    baseline: baselines/attribution/2.json
+    baseline_fingerprint: sha256:11156cf2ecbb56481bcaff4fd9cad33ea39438dbc1f786ef43764229fb23202d
+    split: holdout
+    repetitions: 3
+    order_seed: attribution-live-v2
+    pricing_snapshot_id: deepseek-20260907
+    rate_tier: peak
+    budget:
+      max_cases: 60
+      max_model_requests: 480
+      max_input_tokens: 12000000
+      max_output_tokens: 1920000
+      max_cost_usd: 8.0
+      max_wall_seconds: 10800
+      per_case_max_model_turns: 8
+      per_case_max_tool_calls: 10
+      per_case_max_input_tokens: 200000
+      per_case_max_output_tokens: 32000
+      per_case_max_cost_usd: 0.15
+      per_case_timeout_seconds: 240

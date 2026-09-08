@@ -661,6 +661,8 @@ class OpenAICompatProvider:
             payload["temperature"] = options.temperature
         if options.max_output_tokens is not None:
             payload["max_output_tokens"] = options.max_output_tokens
+        if self._profile.provider == "deepseek":
+            payload["reasoning"] = {"effort": self._profile.reasoning_effort or "none"}
         if options.tool_choice is not None:
             payload["tool_choice"] = options.tool_choice
             if (
@@ -670,9 +672,6 @@ class OpenAICompatProvider:
                 and self._profile.structured_output_mode == "synthetic_tool"
             ):
                 payload["tool_choice"] = {"type": "function", "name": RESERVED_RESPONSE_TOOL}
-            if self._profile.provider == "deepseek":
-                # DeepSeek V4 enables thinking by default but rejects explicit tool_choice there.
-                payload["reasoning"] = {"effort": "none"}
         if options.parallel_tool_calls is not None:
             payload["parallel_tool_calls"] = options.parallel_tool_calls
         if stream:

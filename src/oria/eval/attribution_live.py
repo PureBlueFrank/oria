@@ -33,7 +33,12 @@ from oria.eval.attribution import (
     load_attribution_rubric,
 )
 from oria.eval.attribution_data import generate_attribution_fixture
-from oria.eval.datasets import AttributionGoldenCase, GoldenDataset, load_golden_dataset
+from oria.eval.datasets import (
+    AttributionGoldenCase,
+    GoldenDataset,
+    load_golden_dataset,
+    required_tools_for,
+)
 from oria.eval.nightly import (
     NightlyBudget,
     NightlyBudgetExceeded,
@@ -136,6 +141,7 @@ class AttributionLiveCaseRecord(ValueModel):
     critical: bool
     automated_pass: bool
     failures: tuple[str, ...]
+    failure_taxonomy: tuple[str, ...] = ()
     required_tool_coverage: float = Field(ge=0, le=1)
     forbidden_tool_safe: bool
     evidence_grounded: bool | None
@@ -453,6 +459,40 @@ def _pricing_cost(input_tokens: int, output_tokens: int, prices: TokenPrices) ->
     ) / 1_000_000
 
 
+_FAILURE_TAXONOMY = {
+    "required_tool_missing": "B_evidence_retrieval",
+    "forbidden_tool_executed": "F_tool_policy",
+    "outcome_mismatch": "D_outcome_mapping",
+    "abstain_mismatch": "D_outcome_mapping",
+    "evidence_not_grounded": "C_evidence_interpretation",
+    "runtime_termination": "B_evidence_retrieval",
+    "provider_request_id_missing": "H_evaluator_infrastructure",
+    "hypothesis_mismatch": "E_hypothesis_rendering",
+}
+
+
+def _failure_taxonomy(failures: tuple[str, ...], termination_reason: str | None) -> tuple[str, ...]:
+    """Map raw failures to a coarse capability taxonomy for multi-dim reporting."""
+    codes: list[str] = []
+    for failure in failures:
+        taxonomy = _FAILURE_TAXONOMY.get(failure)
+        if taxonomy is not None and taxonomy not in codes:
+            codes.append(taxonomy)
+    if termination_reason in {"structured_output_error", "schema_validation_failed"}:
+        code = "E_hypothesis_rendering"
+        if code not in codes:
+            codes.append(code)
+    elif termination_reason in {"policy_or_contract_violation"}:
+        code = "F_tool_policy"
+        if code not in codes:
+            codes.append(code)
+    elif termination_reason in {"max_tool_calls", "max_model_turns", "deadline_exceeded"}:
+        code = "B_evidence_retrieval"
+        if code not in codes:
+            codes.append(code)
+    return tuple(sorted(codes))
+
+
 def _case_record(
     *,
     case: AttributionGoldenCase,
@@ -476,7 +516,7 @@ def _case_record(
     )
     tool_results = cast(dict[str, dict[str, JsonValue]], state.get("tool_results", {}))
     executed_tools = tuple(cast(str, value["tool_name"]) for value in tool_results.values())
-    required = set(case.expected_tools)
+    required = set(required_tools_for(case))
     coverage = 1.0 if not required else len(required.intersection(executed_tools)) / len(required)
     forbidden_safe = not bool(set(case.forbidden_tools).intersection(executed_tools))
     evidence_grounded = (
@@ -504,6 +544,7 @@ def _case_record(
     output_tokens = cast(int, state.get("output_tokens", 0))
     provider_cost = cast(float, state.get("total_cost", 0.0))
     estimated_cost = _pricing_cost(input_tokens, output_tokens, prices)
+    termination_reason = None if termination is None else cast(str, termination.get("reason"))
     return AttributionLiveCaseRecord(
         case_id=case.case_id,
         repetition=repetition,
@@ -514,6 +555,7 @@ def _case_record(
         critical=case.critical,
         automated_pass=not failures,
         failures=tuple(failures),
+        failure_taxonomy=_failure_taxonomy(tuple(failures), termination_reason),
         required_tool_coverage=coverage,
         forbidden_tool_safe=forbidden_safe,
         evidence_grounded=evidence_grounded,
@@ -531,7 +573,7 @@ def _case_record(
         cost_usd=provider_cost if provider_cost > 0 else estimated_cost,
         cost_basis="provider_reported" if provider_cost > 0 else "pricing_upper_bound",
         latency_ms=latency_ms,
-        termination_reason=None if termination is None else cast(str, termination.get("reason")),
+        termination_reason=termination_reason,
     )
 
 
@@ -818,6 +860,7 @@ async def run_attribution_live(
                         question=case.question,
                         analysis_period=_ANALYSIS_PERIOD,
                         conversation_history=case.conversation_history,
+                        tenant_id=case.tenant_id,
                     ),
                     context=ResearchRunContext(
                         ctx=ctx,
@@ -831,6 +874,7 @@ async def run_attribution_live(
                                 + target.budget.per_case_max_output_tokens
                             ),
                             max_cost=target.budget.per_case_max_cost_usd,
+                            max_validation_repairs=2,
                         ),
                         deadline_at=datetime.now(UTC)
                         + timedelta(seconds=target.budget.per_case_timeout_seconds),

@@ -41,7 +41,12 @@ from oria.core.types import (
 )
 from oria.data import initialize_data
 from oria.eval.attribution_data import generate_attribution_fixture
-from oria.eval.datasets import AttributionGoldenCase, GoldenDataset, load_golden_dataset
+from oria.eval.datasets import (
+    AttributionGoldenCase,
+    GoldenDataset,
+    load_golden_dataset,
+    required_tools_for,
+)
 from oria.permission.local import LocalPolicyEngine
 from oria.tools.analytics import build_attribution_tool_registry
 
@@ -97,7 +102,7 @@ class AttributionCalibration(ValueModel):
 
 class AttributionRubric(ValueModel):
     suite: Literal["attribution"]
-    rubric_version: Literal["1"]
+    rubric_version: Literal["1", "2"]
     dataset_version: str = Field(pattern=r"^[1-9][0-9]*$")
     score_scale: AttributionScoreScale
     blind_input_fields: tuple[str, ...]
@@ -722,6 +727,7 @@ async def run_attribution_eval(
                     question=case.question,
                     analysis_period=_ANALYSIS_PERIOD,
                     conversation_history=case.conversation_history,
+                    tenant_id=case.tenant_id,
                 ),
                 config={"configurable": {"thread_id": case.case_id}},
                 context=ResearchRunContext(ctx=ctx, limits=attribution_research_limits()),
@@ -796,14 +802,17 @@ def _evaluate_case(
     executed_tools = tuple(cast(str, record["tool_name"]) for record in tool_results.values())
     expected_hypotheses = tuple(case.acceptable_hypotheses)
     observed_hypotheses = tuple(cast(str, hypothesis["statement"]) for hypothesis in hypotheses)
+    # Fixture replay reproduces the golden hypotheses verbatim; this is a dataset
+    # self-consistency assertion, not a semantic judge over live model wording.
     hypothesis_match = sorted(expected_hypotheses) == sorted(observed_hypotheses)
     evidence_grounded = None if case.expected_outcome == "insufficient" else termination is None
+    required = required_tools_for(case)
     failures: list[str] = []
     if outcome != case.expected_outcome:
         failures.append("outcome_mismatch")
     if abstained != case.expected_abstain:
         failures.append("abstain_mismatch")
-    if not set(case.expected_tools).issubset(executed_tools):
+    if not set(required).issubset(executed_tools):
         failures.append("required_tool_missing")
     if set(case.forbidden_tools).intersection(executed_tools):
         failures.append("forbidden_tool_executed")
@@ -868,7 +877,7 @@ def _metrics(
         )
         / count,
         required_tool_coverage=sum(
-            set(expected[result.case_id].expected_tools).issubset(result.executed_tools)
+            set(required_tools_for(expected[result.case_id])).issubset(result.executed_tools)
             for result in results
         )
         / count,

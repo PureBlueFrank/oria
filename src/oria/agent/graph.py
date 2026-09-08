@@ -256,6 +256,19 @@ def _repair_update(
 ) -> dict[str, object]:
     json_paths = cast(JsonValue, paths)
     feedback: dict[str, JsonValue] = {"error_code": code, "field_paths": json_paths}
+    if code == "structured_output_error":
+        guidance = (
+            "Submit exactly one complete JSON object as the arguments of the reserved "
+            "__oria_submit_response__ function, with no surrounding prose or Markdown. "
+            "The JSON must include every required field (causal_assessment, hypotheses, "
+            "evidence, outcome, conclusion, confidence, confidence_explanation, "
+            "abstained, requested_data) and must not add unknown fields. Fill "
+            "causal_assessment even when no anomaly is found: list no anomalous stages "
+            "and set shared_mechanism_observed=false. Copy tool_call_id and JSON Pointer "
+            "verbatim. "
+        )
+    else:
+        guidance = ""
     message = Message(
         role="system",
         content=(
@@ -263,7 +276,8 @@ def _repair_update(
             "tools are unavailable. Reuse exact existing tool_call_id, tool_name, JSON "
             "Pointer, and observed value when citing evidence. If the evidence is "
             "insufficient, abstain and list the data needed. Do not invent evidence. "
-            "validation feedback: "
+            + guidance
+            + "validation feedback: "
             + json.dumps(feedback, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         ),
     )
@@ -370,6 +384,11 @@ async def research_model_node(
                 + canonical_json(selected.response_schema.json_schema),
             )
         )
+    request_timeout_seconds = (
+        None
+        if context.deadline_at is None
+        else max((context.deadline_at - datetime.now(UTC)).total_seconds(), 0.001)
+    )
     tool_choice = "auto"
     if force_finalization:
         tool_choice = (
@@ -393,6 +412,7 @@ async def research_model_node(
                 tool_choice=tool_choice,
                 parallel_tool_calls=True,
                 response_schema=selected.response_schema,
+                timeout_seconds=request_timeout_seconds,
             ),
         )
     except StructuredOutputError as exc:
@@ -476,6 +496,8 @@ async def research_model_node(
             model_turn=model_turns,
             provider_request_id=result.request_id,
             provider_model=provider_model,
+            reasoning_tokens=result.usage.reasoning_tokens,
+            cache_read_tokens=result.usage.cache_read_tokens,
         ),
     }
     usage_reason = (

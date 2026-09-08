@@ -12,6 +12,7 @@ from oria._internal.immutable import FrozenDict
 LLMProviderName = Literal["mock", "deepseek", "kimi", "zhipu", "openai", "anthropic"]
 APIDialect = Literal["mock", "chat_completions", "responses", "anthropic_messages"]
 StructuredOutputMode = Literal["native_json_schema", "synthetic_tool", "unsupported"]
+ReasoningEffort = Literal["none", "low", "high", "max"]
 IMChannelName = Literal["mock", "daxiang", "feishu", "dingtalk"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -40,6 +41,7 @@ class LLMProfileConfig(InputConfigModel):
     api_key: SecretStr | None = Field(default=None, repr=False)
     base_url: str | None = None
     structured_output_mode: StructuredOutputMode = "unsupported"
+    reasoning_effort: ReasoningEffort | None = None
 
     @model_validator(mode="after")
     def validate_provider_dialect(self) -> LLMProfileConfig:
@@ -125,6 +127,7 @@ class ResolvedLLMProfile(ResolvedConfigModel):
     api_key: SecretStr | None = Field(default=None, repr=False)
     base_url: str | None = None
     structured_output_mode: StructuredOutputMode = "unsupported"
+    reasoning_effort: ReasoningEffort | None = None
 
 
 class ResolvedEmbeddingProfile(ResolvedConfigModel):

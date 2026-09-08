@@ -68,7 +68,7 @@ async def _run(args: argparse.Namespace) -> int:
         target_id=args.target,
         environ=os.environ,
         now=started_at,
-        known_targets=frozenset({"deepseek"}),
+        known_targets=frozenset({"deepseek", "deepseek-pro-structured"}),
     )
     if preflight.status == "blocked" or args.preflight_only:
         _write_json(args.output, preflight)

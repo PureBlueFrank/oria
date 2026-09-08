@@ -1,0 +1,21 @@
+{
+  "suite": "scenario_b",
+  "dataset_version": "2",
+  "schema_version": 1,
+  "source": "synthetic",
+  "contains_real_entities": false,
+  "license": "CC0-1.0",
+  "generator_seed": "20260908",
+  "case_count": 50,
+  "critical_case_count": 7,
+  "dataset_file": "v2.jsonl",
+  "dataset_sha256": "31883e82023ae236754f4a885fb78456b8e593de09fdd43eda8d5f751719b0d7",
+  "review_status": "approved",
+  "human_review_complete": true,
+  "baseline_created": true,
+  "development_case_count": 30,
+  "holdout_case_count": 20,
+  "holdout_frozen": true,
+  "rubric_file": "attribution-rubric-v2.yaml",
+  "rubric_sha256": "e43986177e869b6c5e224dcfacb17abb4995d049e6743e6b15ebc1da2b5dae05"
+}

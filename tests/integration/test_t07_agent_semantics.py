@@ -680,6 +680,15 @@ async def test_model_tool_and_deadline_limits_stop_without_extra_execution(tmp_p
     assert deadline_result["termination"]["reason"] == "deadline_exceeded"
     assert deadline_provider.calls == 0
 
+    deadline_options_provider = _SequenceProvider([_abstain_result()])
+    await _invoke(
+        tmp_path / "deadline-options",
+        deadline_options_provider,
+        deadline_at=datetime.now(UTC) + timedelta(seconds=1),
+    )
+    assert deadline_options_provider.options[0] is not None
+    assert 0 < deadline_options_provider.options[0].timeout_seconds <= 1
+
     slow_provider = _SlowSequenceProvider(
         [
             _tool_result(
