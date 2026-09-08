@@ -26,3 +26,6 @@ dist/
 # Local-only failed credential diagnostics
 /reports/verification/v0.3/20260902T232135+0800/
 /reports/verification/v0.3/20260902T233513+0800/
+
+# Runtime artifacts in verification reports (sqlite/chroma databases)
+reports/verification/**/runtime-data/

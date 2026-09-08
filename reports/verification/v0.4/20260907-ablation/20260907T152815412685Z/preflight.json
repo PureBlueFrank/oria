@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "experiment": "scenario_b_remediation_ablation_v1",
+  "diagnostic_only": true,
+  "case_id": "sb-v1-043",
+  "case_split": "holdout",
+  "fixture_variant": "mixed_funnel",
+  "repetitions": 5,
+  "expected_runs": 20,
+  "order_seed": "scenario-b-remediation-ablation-v1",
+  "orders": {
+    "1": [
+      "g10_model",
+      "g01_budget",
+      "g11_both",
+      "g00_control"
+    ],
+    "2": [
+      "g01_budget",
+      "g11_both",
+      "g10_model",
+      "g00_control"
+    ],
+    "3": [
+      "g11_both",
+      "g00_control",
+      "g01_budget",
+      "g10_model"
+    ],
+    "4": [
+      "g11_both",
+      "g01_budget",
+      "g10_model",
+      "g00_control"
+    ],
+    "5": [
+      "g10_model",
+      "g01_budget",
+      "g11_both",
+      "g00_control"
+    ]
+  },
+  "profiles": {
+    "g00_control": {
+      "profile": "deepseek",
+      "model": "deepseek-v4-flash",
+      "api_dialect": "responses",
+      "structured_output_mode": "native_json_schema",
+      "reasoning_effort": "none",
+      "config_fingerprint": "sha256:6b998fd425cde14050bb130bbc05e942f8523909d1b75358b27811a3c385fb7a"
+    },
+    "g01_budget": {
+      "profile": "deepseek",
+      "model": "deepseek-v4-flash",
+      "api_dialect": "responses",
+      "structured_output_mode": "native_json_schema",
+      "reasoning_effort": "none",
+      "config_fingerprint": "sha256:6b998fd425cde14050bb130bbc05e942f8523909d1b75358b27811a3c385fb7a"
+    },
+    "g10_model": {
+      "profile": "deepseek-pro-thinking",
+      "model": "deepseek-v4-pro",
+      "api_dialect": "responses",
+      "structured_output_mode": "native_json_schema",
+      "reasoning_effort": "high",
+      "config_fingerprint": "sha256:fe686b5fbee6b3ac4932a378b402549fe0e8c103ae237d1dfe4d896ef5d4991b"
+    },
+    "g11_both": {
+      "profile": "deepseek-pro-thinking",
+      "model": "deepseek-v4-pro",
+      "api_dialect": "responses",
+      "structured_output_mode": "native_json_schema",
+      "reasoning_effort": "high",
+      "config_fingerprint": "sha256:fe686b5fbee6b3ac4932a378b402549fe0e8c103ae237d1dfe4d896ef5d4991b"
+    }
+  },
+  "limits": {
+    "max_total_cost_usd": 7.95,
+    "max_input_tokens": 96000,
+    "max_output_tokens": 24000,
+    "per_run_max_cost_usd": 0.075,
+    "timeout_seconds": 240
+  },
+  "worst_case_reserved_cost_usd": 0.8280000000000001,
+  "pricing_snapshot_id": "deepseek-20260907",
+  "pricing_sha256": "3da69623267f1f0a99a6139223d8e536ed7b56458fee11dcc82949232ba833a5",
+  "manifest_sha256": "45a7d6f6eefb79c81cb7e8844181fc24212ad047ac612fb19b18740597079c43",
+  "prompt_version": 2,
+  "code_hashes": {
+    "src/oria/agent/graph.py": "d7854a3b61af9bee6052b9515ade188e36b42f02141ab73eca791855d1943128",
+    "src/oria/agent/models.py": "6315ce69b23eb9c48e4fc398c2193a0d3548ae0a21efe1eb1611afb7f7a5e6f3",
+    "src/oria/config/resolve.py": "8fcbffa146080dcf8adcec9c25969bcb12cf439624f5b0582469a2d5b78ffeab",
+    "src/oria/providers/openai_compat.py": "05f9d05abd87c63e1b9ac701f81c46b836500d4225b2c4fc375714f45f2243da",
+    "src/oria/prompts/attribution_reasoning/v2.jinja": "91c62cfc559f64f68fc8eecc6cd464f2eafeb2b2e62036b19b4f8f7801cfcce5"
+  }
+}

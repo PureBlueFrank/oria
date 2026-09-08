@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "task_id": "V0.2-T06",
+  "target_id": "deepseek",
+  "status": "passed",
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "api_dialect": "responses",
+  "config_fingerprint": "sha256:ae596784f83ac37d02ecc599443461d1cb9039738c0224b059865cc00544cff6",
+  "request_count": 4,
+  "successful_request_count": 3,
+  "request_ids": [
+    "fb7d3785-1704-4e42-b653-53c21fff2ec1",
+    "4697169c-7cad-4d74-a685-481362db647b",
+    "e7edc39b-a4e9-40e4-beec-11ba57e289aa"
+  ],
+  "usage": {
+    "input_tokens": 304,
+    "output_tokens": 33,
+    "reasoning_tokens": 0,
+    "cache_read_tokens": 0
+  },
+  "checks": {
+    "text": true,
+    "stream": true,
+    "tool_call": true,
+    "authentication_error_mapping": true
+  },
+  "elapsed_ms": 8199.44013499935
+}
