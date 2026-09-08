@@ -60,6 +60,39 @@ def _evidence(
     }
 
 
+def _audited(result: ChatResult) -> ChatResult:
+    if result.structured_output is None:
+        return result
+    value = result.model_dump(mode="json")["structured_output"]
+    value.setdefault(
+        "causal_assessment",
+        {
+            "anomalous_conversion_stages": [],
+            "shared_mechanism_observed": False,
+            "mechanism_evidence": [],
+        },
+    )
+    value["decision_assessment"] = {
+        "task_kind": "causal",
+        "requested_scope_available": True,
+        "missing_requirements": value.get("requested_data", []),
+        "candidates": [
+            {
+                "hypothesis_id": hypothesis["hypothesis_id"],
+                "status": "supported",
+                "evidence_indices": [
+                    index
+                    for index, ref in enumerate(value["evidence"])
+                    if hypothesis["hypothesis_id"] in ref["supports"]
+                ],
+                "refutation_indices": [],
+            }
+            for hypothesis in value["hypotheses"]
+        ],
+    }
+    return result.model_copy(update={"structured_output": value})
+
+
 class _AdaptiveAttributionProvider:
     def __init__(self, category: str, *, corrupt_evidence: bool = False) -> None:
         self.category = category
@@ -137,7 +170,7 @@ class _AdaptiveAttributionProvider:
                 usage=Usage(input_tokens=2, output_tokens=2),
             )
         self.calls += 1
-        return result
+        return _audited(result)
 
     def _market_call(self) -> ToolCall:
         return ToolCall(
@@ -289,7 +322,7 @@ class _ConflictingProvider:
                 usage=Usage(input_tokens=2, output_tokens=3),
             )
         self.calls += 1
-        return result
+        return _audited(result)
 
 
 class _CausalViolationThenConflictingProvider(_ConflictingProvider):
@@ -299,43 +332,45 @@ class _CausalViolationThenConflictingProvider(_ConflictingProvider):
         if self.calls == 1:
             funnel = _tool_data(messages, "conflict-funnel")
             self.calls += 1
-            return ChatResult(
-                content=(),
-                tool_calls=(),
-                structured_output={
-                    "schema_version": 1,
-                    "outcome": "attributed",
-                    "conclusion": "One local cause explains the change.",
-                    "hypotheses": [
-                        {
-                            "hypothesis_id": "single",
-                            "statement": "A single local cause explains the change.",
-                            "uncertainty": "Other factors are not excluded.",
-                        }
-                    ],
-                    "evidence": [
-                        _evidence(
-                            "conflict-funnel",
-                            "query_funnel",
-                            "/rows/1/metrics/redemption_rate",
-                            funnel["rows"][1]["metrics"]["redemption_rate"],
-                            "single",
-                        ),
-                    ],
-                    "confidence": 0.5,
-                    "confidence_explanation": "Bounded observation window.",
-                    "abstained": False,
-                    "requested_data": [],
-                    "causal_assessment": {
-                        "anomalous_conversion_stages": [
-                            "visit_to_enrollment",
-                            "confirmation_to_redemption",
+            return _audited(
+                ChatResult(
+                    content=(),
+                    tool_calls=(),
+                    structured_output={
+                        "schema_version": 1,
+                        "outcome": "attributed",
+                        "conclusion": "One local cause explains the change.",
+                        "hypotheses": [
+                            {
+                                "hypothesis_id": "local",
+                                "statement": "A single local cause explains the change.",
+                                "uncertainty": "Other factors are not excluded.",
+                            }
                         ],
-                        "shared_mechanism_observed": False,
-                        "mechanism_evidence": [],
+                        "evidence": [
+                            _evidence(
+                                "conflict-funnel",
+                                "query_funnel",
+                                "/rows/1/metrics/redemption_rate",
+                                funnel["rows"][1]["metrics"]["redemption_rate"],
+                                "local",
+                            ),
+                        ],
+                        "confidence": 0.5,
+                        "confidence_explanation": "Bounded observation window.",
+                        "abstained": False,
+                        "requested_data": [],
+                        "causal_assessment": {
+                            "anomalous_conversion_stages": [
+                                "visit_to_enrollment",
+                                "confirmation_to_redemption",
+                            ],
+                            "shared_mechanism_observed": False,
+                            "mechanism_evidence": [],
+                        },
                     },
-                },
-                usage=Usage(input_tokens=2, output_tokens=3),
+                    usage=Usage(input_tokens=2, output_tokens=3),
+                )
             )
         return await super().chat(messages, ctx, tools=tools, options=options)
 
@@ -411,6 +446,7 @@ async def _run(
     provider: object,
     *,
     limits: ResearchLimits | None = None,
+    question: str = "Explain the observed conversion change.",
 ) -> dict[str, Any]:
     query_database = tmp_path / "scenario-b" / "analytics.db"
     generate_attribution_fixture(query_database, tmp_path / "evaluation-only" / "labels.db")
@@ -433,7 +469,7 @@ async def _run(
         graph = build_attribution_graph(checkpointer=InMemorySaver())
         return await graph.ainvoke(
             initial_attribution_state(
-                question="Explain the observed conversion change.",
+                question=question,
                 analysis_period="2026-08-30/2026-08-31",
             ),
             config={"configurable": {"thread_id": "v04-attribution-fixture"}},
@@ -516,16 +552,17 @@ async def test_forged_evidence_fails_without_optimizer_repair(tmp_path: Path) ->
 
 
 @pytest.mark.asyncio
-async def test_attribution_uses_shared_no_progress_termination(tmp_path: Path) -> None:
+async def test_attribution_rejects_tools_after_no_progress_finalization(tmp_path: Path) -> None:
     provider = _RepeatingProvider()
 
     result = await _run(tmp_path, provider)
 
-    assert result["termination"]["reason"] == "no_progress"
+    assert result["termination"]["reason"] == "repair_tool_call_forbidden"
     assert result["no_progress_streak"] == 2
     assert result["tool_calls_total"] == 3
     assert len(result["seen_evidence_fingerprints"]) == 1
-    assert provider.calls == 3
+    assert provider.calls == 4
+    assert any(event["type"] == "no_progress_finalization" for event in result["events"])
 
 
 @pytest.mark.asyncio
@@ -544,3 +581,187 @@ async def test_attribution_rejects_an_over_budget_batch_before_execution(
     assert result["tool_calls_total"] == 0
     assert result["tool_results"] == {}
     assert provider.calls == 1
+
+
+class _NoProgressFinalProvider(_RepeatingProvider):
+    def __init__(self, *, malformed: bool = False):
+        super().__init__()
+        self.malformed = malformed
+
+    async def chat(self, messages, ctx, tools=None, options=None):
+        if self.calls < 3:
+            return await super().chat(messages, ctx, tools, options)
+        assert tools is None
+        self.calls += 1
+        if self.malformed:
+            return ChatResult(
+                content=(),
+                tool_calls=(),
+                usage=Usage(input_tokens=1, output_tokens=1),
+                structured_output={"outcome": "attributed"},
+            )
+        return _audited(
+            ChatResult(
+                content=(),
+                tool_calls=(),
+                usage=Usage(input_tokens=1, output_tokens=1),
+                structured_output={
+                    "outcome": "insufficient",
+                    "conclusion": None,
+                    "hypotheses": [],
+                    "evidence": [],
+                    "confidence": 0.1,
+                    "confidence_explanation": "Repeated data cannot isolate a cause.",
+                    "abstained": True,
+                    "requested_data": ["Independent causal evidence."],
+                },
+            )
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("malformed", [False, True])
+async def test_no_progress_gets_one_bounded_finalization_then_repair_or_failure(
+    tmp_path, malformed
+):
+    provider = _NoProgressFinalProvider(malformed=malformed)
+    result = await _run(tmp_path, provider)
+    assert result["tool_calls_total"] == 3
+    assert sum(e["type"] == "no_progress_finalization" for e in result["events"]) == 1
+    if malformed:
+        assert result["conclusion"] is None
+        assert result["termination"]["reason"] == "schema_validation_failed"
+        assert result["validation_repairs"] == 2
+        assert provider.calls == 6
+    else:
+        assert result["termination"] is None
+        assert result["conclusion"]["outcome"] == "insufficient"
+        assert provider.calls == 4
+
+
+class _DecisionMismatchProvider(_AdaptiveAttributionProvider):
+    def __init__(self, *, evade: bool):
+        super().__init__("quick_service")
+        self.evade = evade
+        self.submissions = 0
+
+    async def chat(self, messages, ctx, tools=None, options=None):
+        result = await super().chat(messages, ctx, tools, options)
+        if result.structured_output is None:
+            return result
+        value = result.model_dump(mode="json")["structured_output"]
+        self.submissions += 1
+        if self.submissions == 1 or self.evade:
+            value.update(
+                outcome="attributed",
+                conclusion="Cannot answer the requested cause.",
+                abstained=False,
+                requested_data=[],
+            )
+        return result.model_copy(update={"structured_output": value})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("evade", [False, True])
+async def test_decision_mismatch_repairs_all_fields_or_fails_closed(tmp_path, evade):
+    result = await _run(tmp_path, _DecisionMismatchProvider(evade=evade))
+    feedback = " ".join(str(m["content"]) for m in result["messages"] if m["role"] == "system")
+    assert "decision rules require insufficient" in feedback
+    if evade:
+        assert result["conclusion"] is None
+        assert result["termination"]["reason"] == "schema_validation_failed"
+        assert result["validation_repairs"] == 2
+    else:
+        assert result["termination"] is None
+        assert result["conclusion"]["outcome"] == "insufficient"
+        assert result["conclusion"]["abstained"] is True
+        assert result["validation_repairs"] == 1
+
+
+class _DropCandidateDuringRepairProvider(_ConflictingProvider):
+    async def chat(self, messages, ctx, tools=None, options=None):
+        result = await super().chat(messages, ctx, tools, options)
+        if result.structured_output is None:
+            return result
+        value = result.model_dump(mode="json")["structured_output"]
+        value.update(outcome="attributed", conclusion="Only the local explanation remains.")
+        value["hypotheses"] = value["hypotheses"][:1]
+        value["evidence"][1]["supports"] = []
+        if self.calls > 2:
+            value["decision_assessment"]["candidates"] = value["decision_assessment"]["candidates"][
+                :1
+            ]
+        return result.model_copy(update={"structured_output": value})
+
+
+@pytest.mark.asyncio
+async def test_repair_cannot_evade_conflicting_by_deleting_a_supported_candidate(tmp_path):
+    result = await _run(tmp_path, _DropCandidateDuringRepairProvider())
+    assert result["conclusion"] is None
+    assert result["termination"]["reason"] == "decision_validation_failed"
+    assert result["validation_repairs"] == 2
+    assert result["tool_calls_total"] == 2
+
+
+class _NoProgressReportProvider(_RepeatingProvider):
+    async def chat(self, messages, ctx, tools=None, options=None):
+        if self.calls < 3:
+            return await super().chat(messages, ctx, tools, options)
+        assert tools is None
+        self.calls += 1
+        data = _tool_data(messages, "repeat-0-0")
+        count = data["rows"][0]["metrics"]["redemptions"]
+        result = _audited(
+            ChatResult(
+                content=(),
+                tool_calls=(),
+                usage=Usage(input_tokens=1, output_tokens=1),
+                structured_output={
+                    "outcome": "attributed",
+                    "conclusion": f"Observed redemptions: {count}.",
+                    "hypotheses": [
+                        {
+                            "hypothesis_id": "fact",
+                            "statement": f"Redemptions: {count}.",
+                            "uncertainty": "Requested window only.",
+                        }
+                    ],
+                    "evidence": [
+                        _evidence(
+                            "repeat-0-0",
+                            "query_funnel",
+                            "/rows/0/metrics/redemptions",
+                            count,
+                            "fact",
+                        )
+                    ],
+                    "confidence": 0.8,
+                    "confidence_explanation": "Direct observation.",
+                    "abstained": False,
+                    "requested_data": [],
+                },
+            )
+        )
+        result.structured_output["decision_assessment"]["task_kind"] = "report"
+        return result
+
+
+@pytest.mark.asyncio
+async def test_no_progress_can_finalize_available_facts_without_forced_abstention(tmp_path):
+    result = await _run(tmp_path, _NoProgressReportProvider(), question="Report redemptions.")
+    assert result["termination"] is None
+    assert result["conclusion"]["outcome"] == "attributed"
+    assert result["tool_calls_total"] == 3
+    assert result["validation_repairs"] == 0
+
+
+@pytest.mark.asyncio
+async def test_no_progress_finalization_does_not_extend_the_model_budget(tmp_path):
+    result = await _run(
+        tmp_path,
+        _NoProgressFinalProvider(),
+        limits=ResearchLimits(max_model_turns=3, max_tool_calls=10, max_validation_repairs=1),
+    )
+    assert result["conclusion"] is None
+    assert result["model_turns"] <= 3
+    assert result["termination"] is not None

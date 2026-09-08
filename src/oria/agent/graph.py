@@ -20,6 +20,7 @@ from pydantic import ValidationError
 
 from oria.agent.models import (
     AgentTermination,
+    AttributionDecisionError,
     CampaignProposal,
     ProposalEvidenceError,
     campaign_proposal_draft_schema,
@@ -258,10 +259,12 @@ def _repair_update(
     feedback: dict[str, JsonValue] = {"error_code": code, "field_paths": json_paths}
     if code == "structured_output_error":
         guidance = (
-            "Submit exactly one complete JSON object as the arguments of the reserved "
-            "__oria_submit_response__ function, with no surrounding prose or Markdown. "
+            "Submit exactly one complete JSON object using the configured submission mechanism "
+            "(the reserved function in synthetic-tool mode, a JSON object otherwise), "
+            "with no surrounding prose or Markdown. "
             "The JSON must include every required field (causal_assessment, hypotheses, "
-            "evidence, outcome, conclusion, confidence, confidence_explanation, "
+            "decision_assessment, evidence, outcome, conclusion, confidence, "
+            "confidence_explanation, "
             "abstained, requested_data) and must not add unknown fields. Fill "
             "causal_assessment even when no anomaly is found: list no anomalous stages "
             "and set shared_mechanism_observed=false. Copy tool_call_id and JSON Pointer "
@@ -281,9 +284,22 @@ def _repair_update(
             + json.dumps(feedback, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         ),
     )
+    messages = list(state["messages"])
+    if state["structured_output"] is not None:
+        # Structured submissions are not necessarily present in provider text blocks.
+        # Keep the rejected draft as assistant data, never elevate it to system instructions.
+        messages.append(
+            _dump_message(
+                Message(role="assistant", content=canonical_json(state["structured_output"]))
+            )
+        )
     return {
-        "messages": [*state["messages"], _dump_message(message)],
+        "messages": [*messages, _dump_message(message)],
         "validation_repairs": state["validation_repairs"] + 1,
+        "validation_drafts": [
+            *state.get("validation_drafts", []),
+            *([state["structured_output"]] if state["structured_output"] is not None else []),
+        ],
         "finalization_only": True,
         "repair_pending": True,
         "structured_output": None,
@@ -575,6 +591,29 @@ async def _execute_safely(call: ToolCall, context: ResearchRunContext) -> ToolRe
         )
 
 
+def _no_progress_update(
+    state: ResearchState, context: ResearchRunContext, spec: ResearchSpec
+) -> dict[str, object]:
+    if not spec.finalize_on_no_progress or state["finalization_only"]:
+        return {"termination": _termination(state, context, "no_progress")}
+    return {
+        "finalization_only": True,
+        "pending_tool_calls": [],
+        "messages": [
+            *state["messages"],
+            _dump_message(
+                Message(
+                    role="system",
+                    content="No new evidence after repeated research. "
+                    + _FINALIZATION_INSTRUCTION
+                    + " Preserve all supported candidates; no progress is not evidence of absence.",
+                )
+            ),
+        ],
+        "events": [*state["events"], {"type": "no_progress_finalization"}],
+    }
+
+
 async def research_tools_node(
     state: ResearchState,
     runtime: Runtime[ResearchRunContext],
@@ -592,7 +631,7 @@ async def research_tools_node(
         }
         if streak >= context.limits.no_progress_limit:
             shadow = cast(ResearchState, {**state, **update})
-            update["termination"] = _termination(shadow, context, "no_progress")
+            update.update(_no_progress_update(shadow, context, selected))
         return update
     if _deadline_exceeded(context):
         return {"termination": _termination(state, context, "deadline_exceeded")}
@@ -751,7 +790,7 @@ async def research_tools_node(
         status = cast(Literal["failed", "waiting"], raw_status)
         update["termination"] = _termination(shadow, context, reason, status=status)
     elif streak >= context.limits.no_progress_limit:
-        update["termination"] = _termination(shadow, context, "no_progress")
+        update.update(_no_progress_update(shadow, context, selected))
     return update
 
 
@@ -776,12 +815,16 @@ async def research_validate_node(
         final_value = selected.finalize(structured, state)
     except ProposalEvidenceError:
         return {"termination": _termination(state, context, "evidence_validation_failed")}
+    except AttributionDecisionError as exc:
+        if state["validation_repairs"] < context.limits.max_validation_repairs:
+            return _repair_update(state, code="decision_validation_failed", paths=[str(exc)])
+        return {"termination": _termination(state, context, "decision_validation_failed")}
     except ValidationError as exc:
         paths = sorted(
             {
                 # Field errors carry a loc path; root model validators carry only the
                 # rule message, which is the feedback the repair actually needs.
-                ".".join(str(part) for part in error["loc"]) or error["msg"]
+                ".".join(str(part) for part in error["loc"]) + ": " + error["msg"]
                 for error in exc.errors()
             }
         )

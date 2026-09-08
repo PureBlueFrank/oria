@@ -1,0 +1,20 @@
+............................F..                                          [100%]
+=================================== FAILURES ===================================
+____ test_repair_cannot_evade_conflicting_by_deleting_a_supported_candidate ____
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-5/test_repair_cannot_evade_confl0')
+
+    @pytest.mark.asyncio
+    async def test_repair_cannot_evade_conflicting_by_deleting_a_supported_candidate(tmp_path):
+        result = await _run(tmp_path, _DropCandidateDuringRepairProvider())
+        assert result["conclusion"] is None
+>       assert result["termination"]["reason"] == "decision_validation_failed"
+E       AssertionError: assert 'provider_failure' == 'decision_validation_failed'
+E         
+E         - decision_validation_failed
+E         + provider_failure
+
+tests/integration/test_v04_attribution_agent.py:701: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_v04_attribution_agent.py::test_repair_cannot_evade_conflicting_by_deleting_a_supported_candidate
+1 failed, 30 passed in 14.01s

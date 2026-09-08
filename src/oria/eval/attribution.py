@@ -513,7 +513,7 @@ class _AttributionReplayProvider:
         return ChatResult(
             content=(),
             tool_calls=(),
-            structured_output=self._conclusion(case, messages),
+            structured_output=self._submission(case, messages),
             usage=Usage(input_tokens=1, output_tokens=1),
             finish_reason="stop",
         )
@@ -533,6 +533,37 @@ class _AttributionReplayProvider:
             request_id=None,
             finish_reason=result.finish_reason,
         )
+
+    @staticmethod
+    def _submission(case: AttributionGoldenCase, messages: list[Message]) -> dict[str, JsonValue]:
+        # Replay-only schema adaptation. Never called by the Live provider or finalizer.
+        value = _AttributionReplayProvider._conclusion(case, messages)
+        hypotheses = cast(list[dict[str, JsonValue]], value["hypotheses"])
+        evidence = cast(list[dict[str, JsonValue]], value["evidence"])
+        value["causal_assessment"] = {
+            "anomalous_conversion_stages": [],
+            "shared_mechanism_observed": False,
+            "mechanism_evidence": [],
+        }
+        value["decision_assessment"] = {
+            "task_kind": "causal",
+            "requested_scope_available": True,
+            "missing_requirements": value["requested_data"],
+            "candidates": [
+                {
+                    "hypothesis_id": hypothesis["hypothesis_id"],
+                    "status": "supported",
+                    "evidence_indices": [
+                        index
+                        for index, ref in enumerate(evidence)
+                        if hypothesis["hypothesis_id"] in cast(list[JsonValue], ref["supports"])
+                    ],
+                    "refutation_indices": [],
+                }
+                for hypothesis in hypotheses
+            ],
+        }
+        return value
 
     @staticmethod
     def _conclusion(

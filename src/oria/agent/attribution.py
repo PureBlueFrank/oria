@@ -14,6 +14,7 @@ from oria.agent.models import (
     AttributionConclusion,
     attribution_conclusion_schema,
     validate_attribution_conclusion,
+    validate_attribution_repair,
 )
 from oria.agent.spec import ResearchSpec, ResearchStateView
 from oria.agent.state import (
@@ -38,7 +39,13 @@ def _finalize_attribution(
     value: dict[str, JsonValue], state: ResearchStateView
 ) -> AttributionConclusion:
     tool_results = cast(Mapping[str, Mapping[str, JsonValue]], state.get("tool_results", {}))
-    return validate_attribution_conclusion(value, tool_results=tool_results)
+    conclusion = validate_attribution_conclusion(
+        value, tool_results=tool_results, require_decision=True
+    )
+    validate_attribution_repair(
+        conclusion, state.get("validation_drafts", []), tool_results=tool_results
+    )
+    return conclusion
 
 
 def attribution_research_spec() -> ResearchSpec:
@@ -46,12 +53,13 @@ def attribution_research_spec() -> ResearchSpec:
 
     return ResearchSpec(
         prompt_name="attribution_reasoning",
-        prompt_version=2,
+        prompt_version=3,
         tool_names=ATTRIBUTION_TOOL_NAMES,
         response_schema=attribution_conclusion_schema(),
         output_field="conclusion",
         validated_event_type="attribution_validated",
         finalize=_finalize_attribution,
+        finalize_on_no_progress=True,
     )
 
 

@@ -76,6 +76,8 @@
 
 V0.4-T05 修复已收口（2026-09-07）：累计授权 4 美元；原批次 60 条 failed 卡与既有盲评结论不变。修复在候选配置 `deepseek-pro-structured`（deepseek-v4-pro）上完成，未晋升默认：交付层三根因（工具 `execution_id` 前缀诱导误抄、调查轮绕过最终化投影提交、根级校验修复反馈为空）已修复；development 复验 001 attributed 2/2、015 insufficient 2/2、020 conflicting 3/6（其余为因果契约 fail-closed，无错误答案流出）；本地 813 项通过；`FrankLee` 已复评 4 代表项全部通过并确认拦停正确（`human-review-20260907.json`，协议偏差已注明）。v4-pro 未核价，探针约 198 万 Token 不估算美元成本。详见 [修复记录](reports/verification/v0.4/20260906-remediation/分析与修复.md) 与 ADR-031/032；冻结 target 变更须严格盲评。
 
+2026-09-08 决策规则整改：新增强制决策审计，将多候选冲突、证据缺口和输出一致性纳入程序校验；修复阶段保留候选与缺口，无进展进入有界收尾。冻结数据与历史报告不变，本轮未运行新 Live，不改变原 failed 卡或 V2 待人工盲评状态。见 [ADR-033](docs/adr/ADR-033-attribution-decision-rules.md) 与 [本轮本地证据](reports/verification/v0.4/20260908-decision-rules/summary.md)。
+
 ## V0.5：多智能体、上下文与记忆
 
 | ID | 依赖 | 任务与产物 | 完成验证 |

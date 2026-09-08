@@ -51,6 +51,7 @@ class ResearchState(TypedDict):
     model_turns: int
     tool_calls_total: int
     validation_repairs: int
+    validation_drafts: list[dict[str, JsonValue]]
     seen_evidence_fingerprints: list[str]
     no_progress_streak: int
     pending_tool_calls: list[dict[str, JsonValue]]
@@ -112,6 +113,7 @@ def initial_research_state(
         model_turns=0,
         tool_calls_total=0,
         validation_repairs=0,
+        validation_drafts=[],
         seen_evidence_fingerprints=[],
         no_progress_streak=0,
         pending_tool_calls=[],

@@ -13,7 +13,7 @@ pytestmark = pytest.mark.unit
 def test_attribution_prompt_has_fixed_version_and_golden_render() -> None:
     prompts = PromptManager()
 
-    assert prompts.list_versions("attribution_reasoning") == (1, 2)
+    assert prompts.list_versions("attribution_reasoning") == (1, 2, 3)
     rendered = prompts.render(
         "attribution_reasoning",
         version=1,

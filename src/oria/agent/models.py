@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from decimal import Decimal
-from typing import Any, Literal, Self, cast
+from typing import Annotated, Any, Literal, Self, cast
 
-from pydantic import Field, model_validator
+from pydantic import Field, ValidationError, model_validator
 
 from oria.core.types import CitationBlock, JsonValue, ResponseSchema, ValueModel
 from oria.domain.models import BenefitTierRule
@@ -112,6 +112,10 @@ class ProposalEvidenceError(ValueError):
     """A non-repairable mismatch against trusted tools or citations."""
 
 
+class AttributionDecisionError(ValueError):
+    """Repairable inconsistency with a prior evidence-backed decision audit."""
+
+
 class AttributionHypothesis(ValueModel):
     hypothesis_id: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
     statement: str = Field(
@@ -182,6 +186,48 @@ class AttributionCausalAssessment(ValueModel):
     )
 
 
+class AttributionCandidateDecision(ValueModel):
+    """All observed candidates, including those excluded from the final answer."""
+
+    hypothesis_id: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
+    status: Literal["supported", "ruled_out"]
+    evidence_indices: tuple[Annotated[int, Field(ge=0)], ...] = Field(min_length=1)
+    refutation_indices: tuple[Annotated[int, Field(ge=0)], ...] = Field(
+        description="Indices into evidence of direct counterevidence ruling this candidate out. "
+        "Other segments being stable, missing comparisons, or a stronger alternative do not "
+        "refute an observed local signal. Empty for supported candidates."
+    )
+
+    @model_validator(mode="after")
+    def validate_refutation(self) -> Self:
+        if (self.status == "ruled_out") != bool(self.refutation_indices):
+            raise ValueError("ruled_out requires observed refutation; supported forbids refutation")
+        if set(self.evidence_indices) & set(self.refutation_indices):
+            raise ValueError("support and refutation must be distinct observations")
+        return self
+
+
+class AttributionDecisionAssessment(ValueModel):
+    task_kind: Literal["causal", "report"] = Field(
+        description="Classify the actual user request, including history. A why question stays "
+        "causal even if only descriptive facts are available."
+    )
+    requested_scope_available: bool = Field(
+        description="False when requested dimensions, authorization or data scope are unavailable. "
+        "Explaining a tool limitation does not satisfy the original request."
+    )
+    missing_requirements: tuple[Annotated[str, Field(min_length=1)], ...] = Field(
+        description="Missing prerequisites to answer the actual request. For causal questions, "
+        "stable metrics alone do not explain why. Do not put missing discrimination between "
+        "two already supported explanations here: that is conflicting."
+    )
+    candidates: tuple[AttributionCandidateDecision, ...] = Field(
+        description="Inventory every evidence-supported explanation before outcome selection, "
+        "including local events and same-segment market signals. Do not drop alternatives "
+        "during repair. Report tasks list the directly verified finding."
+    )
+
+
 class AttributionConclusion(ValueModel):
     """Evidence-grounded three-state output for Scenario B."""
 
@@ -195,9 +241,11 @@ class AttributionConclusion(ValueModel):
     abstained: bool
     requested_data: tuple[str, ...] = ()
     causal_assessment: AttributionCausalAssessment | None = None
+    decision_assessment: AttributionDecisionAssessment | None = None
 
     @model_validator(mode="after")
     def validate_outcome_shape(self) -> Self:
+        self.validate_decision()
         assessment = self.causal_assessment
         if assessment is not None:
             if any(ref not in self.evidence for ref in assessment.mechanism_evidence):
@@ -246,6 +294,58 @@ class AttributionConclusion(ValueModel):
             raise ValueError("conflicting outcome requires multiple hypotheses and no conclusion")
         return self
 
+    def validate_decision(self) -> None:
+        audit = self.decision_assessment
+        if audit is None:  # Archived outputs remain readable; runtime requires the audit.
+            return
+        ids = [candidate.hypothesis_id for candidate in audit.candidates]
+        if len(ids) != len(set(ids)):
+            raise ValueError("decision candidate IDs must be unique")
+        supported = {
+            candidate.hypothesis_id
+            for candidate in audit.candidates
+            if candidate.status == "supported"
+        }
+        expected = (
+            "insufficient"
+            if not audit.requested_scope_available
+            else "conflicting"
+            if len(supported) > 1
+            else "insufficient"
+            if audit.missing_requirements or not supported
+            else "attributed"
+        )
+        if self.outcome != expected:
+            raise ValueError(
+                f"decision rules require {expected}; repair outcome and all dependent fields"
+            )
+        if self.outcome != "insufficient" and supported != {
+            hypothesis.hypothesis_id for hypothesis in self.hypotheses
+        }:
+            raise ValueError("retain every supported decision candidate in final hypotheses")
+        for candidate in audit.candidates:
+            for index in (*candidate.evidence_indices, *candidate.refutation_indices):
+                if index >= len(self.evidence) or self.evidence[index].value is None:
+                    raise ValueError(
+                        "decision evidence index must reference a non-null observation"
+                    )
+            if (
+                candidate.status == "supported"
+                and self.outcome != "insufficient"
+                and not all(
+                    candidate.hypothesis_id in self.evidence[index].supports
+                    for index in candidate.evidence_indices
+                )
+            ):
+                raise ValueError("candidate support must match evidence.supports")
+
+
+class AttributionSubmission(AttributionConclusion):
+    """Current runtime contract, separate from backwards-readable stored values."""
+
+    causal_assessment: AttributionCausalAssessment
+    decision_assessment: AttributionDecisionAssessment
+
 
 def campaign_proposal_schema() -> ResponseSchema:
     return ResponseSchema(
@@ -262,13 +362,13 @@ def campaign_proposal_draft_schema() -> ResponseSchema:
 
 
 def attribution_conclusion_schema() -> ResponseSchema:
-    schema = AttributionConclusion.model_json_schema(mode="serialization")
+    schema = AttributionSubmission.model_json_schema(mode="serialization")
     # Archived v1 values remain readable; newly generated submissions require an audit.
     schema["properties"]["causal_assessment"] = {"$ref": "#/$defs/AttributionCausalAssessment"}
-    schema["required"].append("causal_assessment")
     schema["properties"] = {
         name: schema["properties"][name]
         for name in (
+            "decision_assessment",
             "causal_assessment",
             "hypotheses",
             "evidence",
@@ -282,7 +382,14 @@ def attribution_conclusion_schema() -> ResponseSchema:
         )
     }
     schema["description"] = (
-        "Complete causal_assessment before choosing outcome. If multiple adjacent conversion "
+        "Complete decision_assessment and causal_assessment before choosing outcome. "
+        "Unavailable requested scope requires insufficient; otherwise multiple supported "
+        "candidates "
+        "require conflicting even when discrimination is missing. Missing prerequisites or zero "
+        "supported candidates require insufficient; exactly one with no missing prerequisites "
+        "permits attributed. Never replace a why question with a "
+        "descriptive answer or encode a refusal as attributed. "
+        "If multiple adjacent conversion "
         "stages are independently anomalous and shared_mechanism_observed=false, attributed "
         "is invalid: preserve the supported independent explanations as conflicting, or "
         "insufficient if the evidence does not support competing explanations. "
@@ -342,8 +449,10 @@ def validate_attribution_conclusion(
     value: dict[str, JsonValue],
     *,
     tool_results: Mapping[str, Mapping[str, JsonValue]],
+    require_decision: bool = False,
 ) -> AttributionConclusion:
-    conclusion = AttributionConclusion.model_validate(value)
+    model = AttributionSubmission if require_decision else AttributionConclusion
+    conclusion = model.model_validate(value)
     seen_refs: set[tuple[str, str]] = set()
     for evidence in conclusion.evidence:
         identity = (evidence.tool_call_id, evidence.data_path)
@@ -361,6 +470,68 @@ def validate_attribution_conclusion(
         if not _same_json_value(observed, evidence.value):
             raise ProposalEvidenceError("attribution evidence value does not match ToolResult")
     return conclusion
+
+
+def validate_attribution_repair(
+    conclusion: AttributionConclusion,
+    drafts: Sequence[dict[str, JsonValue]],
+    *,
+    tool_results: Mapping[str, Mapping[str, JsonValue]],
+) -> None:
+    current = conclusion.decision_assessment
+    if current is None:
+        return
+    candidates = {item.hypothesis_id: item for item in current.candidates}
+    for draft in drafts:
+        try:
+            prior = AttributionDecisionAssessment.model_validate(draft.get("decision_assessment"))
+            raw_refs = draft.get("evidence", [])
+            if not isinstance(raw_refs, list):
+                continue
+            refs = tuple(AttributionEvidenceRef.model_validate(ref) for ref in raw_refs)
+        except ValidationError:
+            continue  # An unparseable audit cannot establish candidate obligations.
+        if prior.task_kind != current.task_kind:
+            raise AttributionDecisionError("repair cannot change the original task_kind")
+        if not prior.requested_scope_available and current.requested_scope_available:
+            raise AttributionDecisionError("repair cannot make unavailable scope available")
+        if not set(prior.missing_requirements).issubset(current.missing_requirements):
+            raise AttributionDecisionError(
+                "repair cannot erase missing prerequisites without research"
+            )
+        for candidate in prior.candidates:
+            if candidate.status != "supported":
+                continue
+            if any(index >= len(refs) for index in candidate.evidence_indices):
+                continue
+            observed_refs = [refs[index] for index in candidate.evidence_indices]
+            for ref in observed_refs:
+                record = tool_results.get(ref.tool_call_id, {})
+                result = record.get("result")
+                if not isinstance(result, Mapping) or result.get("ok") is not True:
+                    raise ProposalEvidenceError("prior decision used unsuccessful evidence")
+                if record.get("tool_name") != ref.tool_name or not _same_json_value(
+                    _resolve_json_pointer(result.get("data"), ref.data_path), ref.value
+                ):
+                    raise ProposalEvidenceError("prior decision evidence does not match ToolResult")
+            replacement = candidates.get(candidate.hypothesis_id)
+            if replacement is None:
+                raise AttributionDecisionError(
+                    "repair must retain supported candidates or cite refutation"
+                )
+            # Evidence indices may move, but support cannot be silently replaced or erased.
+            retained = [conclusion.evidence[index] for index in replacement.evidence_indices]
+            if not all(
+                any(
+                    (old.tool_call_id, old.data_path, old.value)
+                    == (new.tool_call_id, new.data_path, new.value)
+                    for new in retained
+                )
+                for old in observed_refs
+            ):
+                raise AttributionDecisionError(
+                    "repair must preserve candidate supporting observations"
+                )
 
 
 def validate_campaign_proposal(

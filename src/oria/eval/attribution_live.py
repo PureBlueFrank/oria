@@ -18,6 +18,7 @@ from pydantic import Field, model_validator
 from oria.agent import (
     ResearchLimits,
     ResearchRunContext,
+    attribution_research_spec,
     build_attribution_graph,
     initial_attribution_state,
 )
@@ -934,7 +935,12 @@ async def run_attribution_live(
     complete = (
         reason is None and len(records) == expected and ledger.complete(expected_cases=expected)
     )
+    spec = attribution_research_spec()
     fingerprint_payload = {
+        "decision_contract_version": 1,
+        "prompt_name": spec.prompt_name,
+        "prompt_version": spec.prompt_version,
+        "response_schema": spec.response_schema.json_schema,
         "runner_version": _RUNNER_VERSION,
         "target_id": target.target_id,
         "provider": target.provider,

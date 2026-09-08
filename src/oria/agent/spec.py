@@ -34,6 +34,7 @@ class ResearchSpec:
     output_field: str
     validated_event_type: str
     finalize: Finalizer
+    finalize_on_no_progress: bool = False
     result_state_fields: tuple[tuple[str, str], ...] = ()
     adapt_tool_specs: ToolSpecAdapter = unchanged_tool_specs
     validate_tool_call: ToolCallValidator = accept_tool_call

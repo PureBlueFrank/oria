@@ -1,0 +1,53 @@
+.......................FF..                                              [100%]
+=================================== FAILURES ===================================
+_ test_no_progress_gets_one_bounded_finalization_then_repair_or_failure[False] _
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-3/test_no_progress_gets_one_boun0')
+malformed = False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("malformed", [False, True])
+    async def test_no_progress_gets_one_bounded_finalization_then_repair_or_failure(
+        tmp_path, malformed
+    ):
+        provider = _NoProgressFinalProvider(malformed=malformed)
+        result = await _run(tmp_path, provider)
+        assert result["tool_calls_total"] == 3
+        assert sum(e["type"] == "no_progress_finalization" for e in result["events"]) == 1
+        if malformed:
+            assert result["conclusion"] is None
+            assert result["termination"]["reason"] == "schema_validation_failed"
+            assert result["validation_repairs"] == 2
+            assert provider.calls == 6
+        else:
+>           assert result["termination"] is None
+E           AssertionError: assert {'status': 'failed', 'reason': 'provider_failure', 'limits': {'max_model_turns': 8, 'max_tool_calls': 10, 'max_input_t...00, ...}, 'observed_usage': {'model_turns': 4, 'tool_calls_total': 3, 'input_tokens': 6, 'output_tokens': 3, ...}, ...} is None
+
+tests/integration/test_v04_attribution_agent.py:632: AssertionError
+_ test_no_progress_gets_one_bounded_finalization_then_repair_or_failure[True] __
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-3/test_no_progress_gets_one_boun1')
+malformed = True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("malformed", [False, True])
+    async def test_no_progress_gets_one_bounded_finalization_then_repair_or_failure(
+        tmp_path, malformed
+    ):
+        provider = _NoProgressFinalProvider(malformed=malformed)
+        result = await _run(tmp_path, provider)
+        assert result["tool_calls_total"] == 3
+        assert sum(e["type"] == "no_progress_finalization" for e in result["events"]) == 1
+        if malformed:
+            assert result["conclusion"] is None
+>           assert result["termination"]["reason"] == "schema_validation_failed"
+E           AssertionError: assert 'provider_failure' == 'schema_validation_failed'
+E             
+E             - schema_validation_failed
+E             + provider_failure
+
+tests/integration/test_v04_attribution_agent.py:628: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_v04_attribution_agent.py::test_no_progress_gets_one_bounded_finalization_then_repair_or_failure[False]
+FAILED tests/integration/test_v04_attribution_agent.py::test_no_progress_gets_one_bounded_finalization_then_repair_or_failure[True]
+2 failed, 25 passed in 11.12s

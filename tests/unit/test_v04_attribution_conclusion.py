@@ -42,7 +42,22 @@ def test_multi_stage_claim_requires_observed_shared_mechanism(outcome: str) -> N
     else:
         result = validate_attribution_conclusion(value, tool_results=_tool_results())
         assert result.outcome == "conflicting"
-        validate(result.model_dump(mode="json"), attribution_conclusion_schema().json_schema)
+        current = result.model_dump(mode="json")
+        current["decision_assessment"] = {
+            "task_kind": "causal",
+            "requested_scope_available": True,
+            "missing_requirements": [],
+            "candidates": [
+                {
+                    "hypothesis_id": name,
+                    "status": "supported",
+                    "evidence_indices": [0],
+                    "refutation_indices": [],
+                }
+                for name in ("h1", "h2")
+            ],
+        }
+        validate(current, attribution_conclusion_schema().json_schema)
         value["causal_assessment"]["shared_mechanism_observed"] = True
         with pytest.raises(ValidationError, match="direct mechanism evidence"):
             validate_attribution_conclusion(value, tool_results=_tool_results())
