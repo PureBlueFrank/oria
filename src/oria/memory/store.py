@@ -26,7 +26,6 @@ _SENSITIVE_KEY = re.compile(
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _PHONE = re.compile(r"^\+?\d{10,15}$")
 _MAX_FACT_STRING_LENGTH = 256
-_MAX_LEDGER_ENTRIES = 128
 
 
 @dataclass(slots=True)
@@ -111,12 +110,6 @@ def extract_facts(messages: Sequence[Message], ledger: FactLedger | None = None)
                     value=fact_value,
                 )
             )
-    if len(accumulated) > _MAX_LEDGER_ENTRIES:
-        accumulated = accumulated[-_MAX_LEDGER_ENTRIES:]
-        accumulated = [
-            entry.model_copy(update={"ordinal": index})
-            for index, entry in enumerate(accumulated)
-        ]
     return FactLedger(entries=tuple(accumulated))
 
 
