@@ -11,6 +11,12 @@ from .models import (
     estimate_message_tokens,
     estimate_tokens,
 )
+from .persistent import (
+    LOW_SENSITIVITY,
+    MINIMUM_INJECTION_CONFIDENCE,
+    PersistentMemory,
+    redact_memory_content,
+)
 from .store import InMemoryMemory, compress_history, extract_facts
 
 __all__ = [
@@ -18,12 +24,16 @@ __all__ = [
     "DEFAULT_MAX_CONTEXT_TOKENS",
     "DEFAULT_MESSAGE_OVERHEAD_TOKENS",
     "DEFAULT_RESERVE_TOKENS",
+    "LOW_SENSITIVITY",
+    "MINIMUM_INJECTION_CONFIDENCE",
     "ContextBudget",
     "FactLedger",
     "FactLedgerEntry",
     "InMemoryMemory",
+    "PersistentMemory",
     "compress_history",
     "estimate_message_tokens",
     "estimate_tokens",
     "extract_facts",
+    "redact_memory_content",
 ]

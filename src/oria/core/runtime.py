@@ -53,7 +53,7 @@ from oria.domain.services import (
     PackageCampaignRuleService,
 )
 from oria.ingress.local import LocalCLIIngressAdapter
-from oria.memory import ContextBudget, InMemoryMemory
+from oria.memory import ContextBudget, PersistentMemory
 from oria.orchestrator.checkpoint import open_tenant_sqlite_saver
 from oria.orchestrator.scenario_a import (
     DefaultScenarioAWorkflowService,
@@ -80,6 +80,7 @@ from oria.rag.snapshots import LocalRuleSnapshotStore
 from oria.resources.loader import load_demo_data
 from oria.storage.assortment import SQLiteAssortmentWorkflowRepository
 from oria.storage.database import DatabaseResources
+from oria.storage.memory import SQLiteMemoryRepository
 from oria.storage.platform import (
     SQLiteApprovalInvalidationRepository,
     SQLiteApprovalRepository,
@@ -425,7 +426,12 @@ async def build_runtime(
             llm=llm,
             embedder=embedder,
             retriever=retriever,
-            memory=InMemoryMemory(ContextBudget()),
+            memory=PersistentMemory(
+                ContextBudget(),
+                SQLiteMemoryRepository(database_resources.platform_sessions),
+                projection_id=embedding_projection,
+                clock=clock,
+            ),
             objects=objects,
             knowledge=knowledge,
             rule_snapshots=rule_snapshots,

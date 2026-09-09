@@ -32,6 +32,8 @@ _LOCAL_ACTIONS = frozenset(
         "config:read",
         "document:read",
         "merchant:read",
+        "memory:export",
+        "memory:read",
         "product:read",
         "rule:read",
     }
@@ -41,6 +43,8 @@ _WRITE_ACTION_ROLES: dict[str, frozenset[str]] = {
     "ingress:submit": frozenset({"operator"}),
     "knowledge:delete": frozenset({"operator"}),
     "knowledge:write": frozenset({"operator"}),
+    "memory:delete": frozenset({"operator"}),
+    "memory:write": frozenset({"operator"}),
     "campaign:draft:write": frozenset({"campaign_admin"}),
     "campaign:launch:request": frozenset({"campaign_admin"}),
     "enrollment:item:write": frozenset({"campaign_admin", "integration_adapter"}),
