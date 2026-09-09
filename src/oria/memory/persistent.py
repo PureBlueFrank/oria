@@ -25,7 +25,7 @@ from .store import InMemoryMemory
 MINIMUM_INJECTION_CONFIDENCE = 0.7
 LOW_SENSITIVITY = frozenset({"low", "public", "internal"})
 MAX_MEMORY_CONTENT_LENGTH = 4000
-_EMAIL = re.compile(r"\b[^\s@]+@[^\s@]+\.[^\s@]+\b")
+_EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _PHONE = re.compile(r"(?<!\d)\+?\d[\d -]{8,}\d(?!\d)")
 _SECRET = re.compile(
     r"(?i)\b(api[_ -]?key|authorization|bearer|password|secret|token)\b\s*[:=]\s*\S+"

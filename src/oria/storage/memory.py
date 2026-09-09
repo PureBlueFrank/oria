@@ -6,7 +6,7 @@ import hashlib
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import text
@@ -42,7 +42,7 @@ class SQLiteMemoryRepository:
         now: datetime,
     ) -> None:
         content_hash = _content_hash(item.content)
-        values = item.model_dump(mode="json") | {
+        values = item.model_dump() | {
             "memory_id": item.id,
             "embedding_json": json.dumps(embedding, separators=(",", ":")),
             "projection_id": projection_id,
@@ -241,6 +241,11 @@ def _content_hash(content: str) -> str:
 
 
 def _item_from_row(row: Any) -> MemoryItem:
+    expires_at = row["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if expires_at is not None and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
     return MemoryItem(
         id=str(row["memory_id"]),
         tenant_id=str(row["tenant_id"]),
@@ -249,6 +254,6 @@ def _item_from_row(row: Any) -> MemoryItem:
         provenance=str(row["provenance"]),
         confidence=float(row["confidence"]),
         sensitivity=str(row["sensitivity"]),
-        expires_at=row["expires_at"],
+        expires_at=expires_at,
         score=float(row["score"]),
     )
