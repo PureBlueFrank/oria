@@ -25,6 +25,7 @@ class ResearchLimits(ValueModel):
     max_cost: float = Field(default=5.0, ge=0)
     max_inline_tool_bytes: int = Field(default=32 * 1024, ge=256)
     max_validation_repairs: int = Field(default=1, ge=1, le=3)
+    max_provider_retries: int = Field(default=2, ge=0, le=5)
     no_progress_limit: Literal[2] = 2
 
 

@@ -191,11 +191,19 @@ class AttributionCandidateDecision(ValueModel):
 
     hypothesis_id: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
     status: Literal["supported", "ruled_out"]
-    evidence_indices: tuple[Annotated[int, Field(ge=0)], ...] = Field(min_length=1)
+    evidence_indices: tuple[Annotated[int, Field(ge=0)], ...] = Field(
+        default=(),
+        description="Indices into evidence of the observations supporting this candidate. "
+        "For a supported candidate, list the supporting observations. For a ruled_out "
+        "candidate, list only observations that initially motivated it (often empty); the "
+        "counter-evidence goes in refutation_indices instead, and the two lists must never "
+        "share an index.",
+    )
     refutation_indices: tuple[Annotated[int, Field(ge=0)], ...] = Field(
+        default=(),
         description="Indices into evidence of direct counterevidence ruling this candidate out. "
         "Other segments being stable, missing comparisons, or a stronger alternative do not "
-        "refute an observed local signal. Empty for supported candidates."
+        "refute an observed local signal. Empty for supported candidates.",
     )
 
     @model_validator(mode="after")

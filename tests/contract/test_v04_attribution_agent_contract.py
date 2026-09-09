@@ -20,7 +20,7 @@ def test_attribution_spec_fixes_prompt_tools_output_and_strict_schema() -> None:
     schema = attribution_conclusion_schema()
 
     assert spec.prompt_name == "attribution_reasoning"
-    assert spec.prompt_version == 3
+    assert spec.prompt_version == 4
     assert spec.tool_names == ATTRIBUTION_TOOL_NAMES
     assert spec.response_schema == schema
     assert spec.output_field == "conclusion"

@@ -249,16 +249,11 @@ def campaign_research_spec() -> ResearchSpec:
     )
 
 
-def _repair_update(
-    state: ResearchState,
-    *,
-    code: str,
-    paths: list[str],
-) -> dict[str, object]:
-    json_paths = cast(JsonValue, paths)
-    feedback: dict[str, JsonValue] = {"error_code": code, "field_paths": json_paths}
+def _decision_repair_guidance(code: str, paths: list[str]) -> str:
+    """Translate raw decision/schema validation errors into actionable repair steps."""
+
     if code == "structured_output_error":
-        guidance = (
+        return (
             "Submit exactly one complete JSON object using the configured submission mechanism "
             "(the reserved function in synthetic-tool mode, a JSON object otherwise), "
             "with no surrounding prose or Markdown. "
@@ -270,8 +265,80 @@ def _repair_update(
             "and set shared_mechanism_observed=false. Copy tool_call_id and JSON Pointer "
             "verbatim. "
         )
-    else:
-        guidance = ""
+    joined = "\n".join(paths)
+    steps: list[str] = []
+    if "support and refutation must be distinct" in joined:
+        steps.append(
+            "A ruled_out candidate lists the same evidence index in both evidence_indices "
+            "and refutation_indices. These two lists must never overlap: an observation that "
+            "supports a candidate goes only in evidence_indices (status=supported, empty "
+            "refutation_indices); an observation that actually refutes it goes only in "
+            "refutation_indices (status=ruled_out). Remove the shared index from the list it "
+            "does not belong to, or change the candidate status to match what the observation "
+            "actually shows."
+        )
+    if "retain every supported decision candidate" in joined:
+        steps.append(
+            "The set of candidates you marked status=supported does not exactly match the final "
+            "hypotheses. Make them identical: every supported candidate must appear as a "
+            "hypothesis, and every hypothesis must be a supported candidate. If that yields more "
+            "than one supported candidate, set outcome=conflicting (conclusion=null) and keep them "
+            "all; if it yields exactly one, set outcome=attributed with that single hypothesis. Do "
+            "not silently drop a supported candidate or invent a hypothesis without support."
+        )
+    if "decision rules require" in joined:
+        steps.append(
+            "The program computes a required outcome from your decision_assessment (scope -> "
+            "insufficient; multiple supported candidates -> conflicting; missing evidence or zero "
+            "candidates -> insufficient; exactly one supported candidate -> attributed). Set "
+            "outcome to that required value and align conclusion, hypotheses, abstained and "
+            "requested_data to match, without erasing supported candidates or inventing refutation."
+        )
+    if "ruled_out requires observed refutation" in joined:
+        steps.append(
+            "A candidate may be ruled_out only when it also has a distinct refutation observation "
+            "in refutation_indices; a supported candidate must leave refutation_indices empty."
+        )
+    if "candidate support must match evidence.supports" in joined:
+        steps.append(
+            "Every evidence_indices entry of a supported candidate must point to an evidence item "
+            "whose supports list includes that candidate's hypothesis_id."
+        )
+    if "non-null observation" in joined:
+        steps.append(
+            "Decision evidence indices must reference evidence items whose value is a non-null "
+            "observation; a null comparison cannot serve as support or refutation."
+        )
+    if "shared mechanism" in joined or "multiple anomalous stages" in joined:
+        steps.append(
+            "Multiple independently anomalous stages can only be attributed to one cause when a "
+            "shared mechanism is directly observed; otherwise keep each independent explanation as "
+            "its own supported candidate and output conflicting."
+        )
+    if "hypothesis IDs must be unique" in joined:
+        steps.append("hypothesis_id values must be unique across all hypotheses.")
+    if "references an unknown hypothesis" in joined:
+        steps.append(
+            "Every evidence item's supports list may only reference hypothesis_id values that "
+            "actually appear in hypotheses."
+        )
+    if not steps:
+        steps.append(
+            "Correct the reported fields to satisfy the validation feedback above, reusing "
+            "existing evidence and preserving every supported candidate."
+        )
+    return " ".join(steps) + " "
+
+
+def _repair_update(
+    state: ResearchState,
+    *,
+    code: str,
+    paths: list[str],
+) -> dict[str, object]:
+    json_paths = cast(JsonValue, paths)
+    feedback: dict[str, JsonValue] = {"error_code": code, "field_paths": json_paths}
+    guidance = _decision_repair_guidance(code, paths)
     message = Message(
         role="system",
         content=(
@@ -359,6 +426,44 @@ def _tool_batch_finalization_update(
     }
 
 
+async def _provider_chat_with_retry(
+    llm: Any,
+    messages: list[Message],
+    ctx: Any,
+    *,
+    tools: object,
+    options: ChatOptions,
+    context: ResearchRunContext,
+    retries: list[dict[str, JsonValue]],
+) -> Any:
+    """Invoke the provider, retrying transient failures within a bounded budget.
+
+    Only retryable errors (rate limits, transient unavailability, timeouts) are retried.
+    Structured-output errors are never retryable and propagate to the existing repair path.
+    Each retry is appended to ``retries`` as an audit event and does not consume a model turn.
+    """
+
+    remaining = context.limits.max_provider_retries
+    while True:
+        try:
+            return await llm.chat(messages, ctx, tools=tools, options=options)
+        except ProviderException as exc:
+            if not exc.retryable or remaining <= 0 or _deadline_exceeded(context):
+                raise
+            remaining -= 1
+            retries.append(
+                {
+                    "type": "provider_retry",
+                    "error_code": exc.code,
+                    "retry_after": exc.retry_after,
+                }
+            )
+            delay = 0.0 if exc.retry_after is None else exc.retry_after
+            if delay > 0:
+                await asyncio.sleep(min(delay, 5.0))
+            continue
+
+
 async def research_model_node(
     state: ResearchState,
     runtime: Runtime[ResearchRunContext],
@@ -412,13 +517,15 @@ async def research_model_node(
             if context.ctx.config.llm.structured_output_mode == "synthetic_tool"
             else "none"
         )
+    retry_events: list[dict[str, JsonValue]] = []
     try:
         tools = (
             None
             if force_finalization
             else selected.adapt_tool_specs(context.ctx.tools.specs(selected.tool_names), state)
         )
-        result = await llm.chat(
+        result = await _provider_chat_with_retry(
+            llm,
             model_messages,
             context.ctx,
             tools=tools,
@@ -426,10 +533,12 @@ async def research_model_node(
                 temperature=0,
                 max_output_tokens=remaining_output,
                 tool_choice=tool_choice,
-                parallel_tool_calls=True,
+                parallel_tool_calls=not force_finalization,
                 response_schema=selected.response_schema,
                 timeout_seconds=request_timeout_seconds,
             ),
+            context=context,
+            retries=retry_events,
         )
     except StructuredOutputError as exc:
         failed_state = _provider_failure_state(state, exc)
@@ -479,6 +588,9 @@ async def research_model_node(
     except ProviderException as exc:
         failed_state = _provider_failure_state(state, exc)
         update = _provider_failure_update(failed_state)
+        if retry_events:
+            failed_events = cast(list[dict[str, JsonValue]], update["events"])
+            update["events"] = [*state["events"], *retry_events, failed_events[-1]]
         update["termination"] = _termination(failed_state, context, "provider_failure")
         return update
     except Exception:
@@ -499,6 +611,17 @@ async def research_model_node(
     raw_response = result.internal_raw_response()
     if raw_response is not None and isinstance(raw_response.get("model"), str):
         provider_model = cast(str, raw_response["model"])
+    completion_events = _event(
+        state,
+        "model_completed",
+        model_turn=model_turns,
+        provider_request_id=result.request_id,
+        provider_model=provider_model,
+        reasoning_tokens=result.usage.reasoning_tokens,
+        cache_read_tokens=result.usage.cache_read_tokens,
+    )
+    if retry_events:
+        completion_events = [*completion_events[:-1], *retry_events, completion_events[-1]]
     base_update: dict[str, object] = {
         "model_turns": model_turns,
         "input_tokens": input_tokens,
@@ -506,15 +629,7 @@ async def research_model_node(
         "total_cost": total_cost,
         "finalization_only": force_finalization,
         "repair_pending": False,
-        "events": _event(
-            state,
-            "model_completed",
-            model_turn=model_turns,
-            provider_request_id=result.request_id,
-            provider_model=provider_model,
-            reasoning_tokens=result.usage.reasoning_tokens,
-            cache_read_tokens=result.usage.cache_read_tokens,
-        ),
+        "events": completion_events,
     }
     usage_reason = (
         "deadline_exceeded"

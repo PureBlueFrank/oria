@@ -40,6 +40,8 @@
 - [T05 DeepSeek Live failed 卡](v0.4/20260906T104603+0800/summary.md)：20 个 Holdout × 3 次，自动通过 7/60，199 个唯一 request ID，人工确认 10 条盲评均失败。
 - [修复分析与 development 验证](v0.4/20260906-remediation/分析与修复.md)：交付层根因、因果契约、`deepseek-v4-pro` 候选、813 项本地回归及限制。
 - [代表项人工复评](v0.4/20260906-remediation/human-review-20260907.json)：4 个代表项通过，同时明确非严格盲评等协议偏差。
+- [决策规则整改](v0.4/20260908-decision-rules/summary.md)：强制决策审计、prompt v3、修复保留候选与有界收尾；本地门禁通过，未运行新 Live。
+- [Live 收口后加固与三轮复跑](v0.4/20260908-live-optimization/summary.md)：provider 重试、可执行修复反馈、prompt v4、JSON 打捞、finalization 单次提交；三轮 Live 自动通过率 71.7%/76.7%/75.0%，结论为约 75% 模型能力天花板，未宣称质量通过。
 
 ## Demo 与架构证据
 

@@ -31,7 +31,7 @@ def test_attribution_specialization_reuses_the_only_research_graph() -> None:
     )
     assert spec.tool_names == ATTRIBUTION_TOOL_NAMES
     assert spec.prompt_name == "attribution_reasoning"
-    assert spec.prompt_version == 3
+    assert spec.prompt_version == 4
     assert "research_model_node" not in inspect.getsource(attribution_module)
     assert "research_tools_node" not in inspect.getsource(attribution_module)
     assert "research_validate_node" not in inspect.getsource(attribution_module)

@@ -7,6 +7,7 @@ from langgraph.graph import END
 
 from oria.agent.graph import (
     ResearchNodes,
+    _decision_repair_guidance,
     build_research_graph,
     route_after_model,
     route_after_tools,
@@ -67,6 +68,40 @@ def test_validate_and_tool_routes_stop_only_on_terminal_state() -> None:
 def test_permanent_graph_contains_only_bounded_research_nodes() -> None:
     nodes = build_research_graph().get_graph().nodes
     assert tuple(nodes) == ("__start__", "model", "tools", "validate", "__end__")
+
+
+def test_decision_repair_guidance_translates_raw_rule_errors_into_actions() -> None:
+    guidance = _decision_repair_guidance(
+        "schema_validation_failed",
+        [
+            "decision_assessment.candidates.1: Value error, "
+            "support and refutation must be distinct observations"
+        ],
+    )
+    assert "never overlap" in guidance
+
+    guidance = _decision_repair_guidance(
+        "schema_validation_failed",
+        [": Value error, retain every supported decision candidate in final hypotheses"],
+    )
+    assert "conflicting" in guidance
+
+    guidance = _decision_repair_guidance(
+        "schema_validation_failed",
+        [
+            ": Value error, decision rules require insufficient; "
+            "repair outcome and all dependent fields"
+        ],
+    )
+    assert "required outcome" in guidance
+
+    guidance = _decision_repair_guidance("schema_validation_failed", ["unrecognized rule"])
+    assert "preserving every supported candidate" in guidance
+
+
+def test_decision_repair_guidance_keeps_structured_output_instructions() -> None:
+    guidance = _decision_repair_guidance("structured_output_error", [""])
+    assert "complete JSON object" in guidance
 
 
 @pytest.mark.asyncio

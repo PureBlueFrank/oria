@@ -53,7 +53,7 @@ def attribution_research_spec() -> ResearchSpec:
 
     return ResearchSpec(
         prompt_name="attribution_reasoning",
-        prompt_version=3,
+        prompt_version=4,
         tool_names=ATTRIBUTION_TOOL_NAMES,
         response_schema=attribution_conclusion_schema(),
         output_field="conclusion",

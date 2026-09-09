@@ -31,7 +31,7 @@ from oria.core.types import (
 )
 from oria.data import initialize_data
 from oria.permission.local import local_cli_executor, local_operator
-from oria.providers.errors import StructuredOutputError
+from oria.providers.errors import ProviderUnavailable, StructuredOutputError
 from oria.rag.demo import demo_rule_document
 
 pytestmark = pytest.mark.integration
@@ -562,6 +562,74 @@ async def test_rejected_structured_response_usage_can_exhaust_budget(tmp_path: P
     assert result["model_turns"] == 1
     assert result["input_tokens"] == 11
     assert provider.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_retryable_provider_failure_is_retried_without_consuming_model_turns(
+    tmp_path: Path,
+) -> None:
+    provider = _SequenceProvider(
+        [
+            ProviderUnavailable("transient outage", retryable=True),
+            _abstain_result(),
+        ]
+    )
+
+    result = await _invoke(
+        tmp_path,
+        provider,
+        limits=ResearchLimits(max_provider_retries=2),
+    )
+
+    assert result["termination"] is None, result
+    assert result["proposal"]["abstained"] is True
+    assert result["model_turns"] == 1
+    retries = [event for event in result["events"] if event["type"] == "provider_retry"]
+    assert retries == [
+        {"type": "provider_retry", "error_code": "provider_unavailable", "retry_after": None}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_non_retryable_provider_failure_still_terminates(tmp_path: Path) -> None:
+    provider = _SequenceProvider(
+        [
+            ProviderUnavailable("hard outage", retryable=False),
+        ]
+    )
+
+    result = await _invoke(
+        tmp_path,
+        provider,
+        limits=ResearchLimits(max_provider_retries=2),
+    )
+
+    assert result["termination"]["reason"] == "provider_failure"
+    assert result["model_turns"] == 1
+    assert not any(event["type"] == "provider_retry" for event in result["events"])
+
+
+@pytest.mark.asyncio
+async def test_retry_budget_exhausted_terminates_after_bounded_attempts(
+    tmp_path: Path,
+) -> None:
+    provider = _SequenceProvider(
+        [
+            ProviderUnavailable("persistent outage", retryable=True),
+            ProviderUnavailable("persistent outage", retryable=True),
+            ProviderUnavailable("persistent outage", retryable=True),
+        ]
+    )
+
+    result = await _invoke(
+        tmp_path,
+        provider,
+        limits=ResearchLimits(max_provider_retries=2),
+    )
+
+    assert result["termination"]["reason"] == "provider_failure"
+    retries = [event for event in result["events"] if event["type"] == "provider_retry"]
+    assert len(retries) == 2
 
 
 @pytest.mark.asyncio
