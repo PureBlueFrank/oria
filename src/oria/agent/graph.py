@@ -44,6 +44,7 @@ from oria.core.types import (
     ToolSpec,
 )
 from oria.memory import FactLedger, FactLedgerEntry, InMemoryMemory, compress_history
+from oria.permission.tools import authorized_tool_names
 from oria.providers.errors import ProviderException, StructuredOutputError
 from oria.tools.models import (
     QueryMerchantsParams,
@@ -568,10 +569,19 @@ async def research_model_node(
         )
     retry_events: list[dict[str, JsonValue]] = []
     try:
+        visible_tool_names = (
+            ()
+            if force_finalization
+            else await authorized_tool_names(
+                context.ctx.tools,
+                context.ctx,
+                selected.tool_names,
+            )
+        )
         tools = (
             None
             if force_finalization
-            else selected.adapt_tool_specs(context.ctx.tools.specs(selected.tool_names), state)
+            else selected.adapt_tool_specs(context.ctx.tools.specs(visible_tool_names), state)
         )
         result = await _provider_chat_with_retry(
             llm,
