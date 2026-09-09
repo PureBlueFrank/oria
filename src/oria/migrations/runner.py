@@ -182,6 +182,30 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("received_at", "DATETIME", 1, 0),
             ("processed_at", "DATETIME", 0, 0),
         ),
+        "memory_items": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("subject_id", "VARCHAR", 1, 2),
+            ("memory_id", "VARCHAR", 1, 3),
+            ("content", "TEXT", 1, 0),
+            ("provenance", "VARCHAR", 1, 0),
+            ("confidence", "FLOAT", 1, 0),
+            ("sensitivity", "VARCHAR", 1, 0),
+            ("expires_at", "DATETIME", 0, 0),
+            ("score", "FLOAT", 1, 0),
+            ("content_hash", "VARCHAR", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+            ("updated_at", "DATETIME", 1, 0),
+            ("deleted_at", "DATETIME", 0, 0),
+        ),
+        "memory_embeddings": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("subject_id", "VARCHAR", 1, 2),
+            ("memory_id", "VARCHAR", 1, 3),
+            ("projection_id", "VARCHAR", 1, 0),
+            ("embedding_json", "TEXT", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+            ("updated_at", "DATETIME", 1, 0),
+        ),
     },
     "business": {
         "product_snapshots": _business_columns(
@@ -427,6 +451,19 @@ _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
                 (
                     "external_waits",
                     (("tenant_id", "tenant_id"), ("wait_id", "wait_id")),
+                )
+            }
+        ),
+        "memory_items": frozenset(),
+        "memory_embeddings": frozenset(
+            {
+                (
+                    "memory_items",
+                    (
+                        ("tenant_id", "tenant_id"),
+                        ("subject_id", "subject_id"),
+                        ("memory_id", "memory_id"),
+                    ),
                 )
             }
         ),

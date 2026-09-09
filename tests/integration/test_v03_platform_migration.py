@@ -85,7 +85,7 @@ def test_empty_platform_database_upgrades_to_current_head_and_rolls_back_to_base
 
     command.upgrade(config, "head")
 
-    assert _revision(database) == "platform_0007"
+    assert _revision(database) == "platform_0008"
     assert _tables(database) >= V03_T02_TABLES
 
     command.downgrade(config, "base")

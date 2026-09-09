@@ -204,7 +204,7 @@ def test_platform_and_business_revision_chains_upgrade_independently(tmp_path: P
     command.upgrade(_config(business), "head")
     command.downgrade(_config(business), "business_0002")
 
-    assert _revision(platform, "platform") == "platform_0007"
+    assert _revision(platform, "platform") == "platform_0008"
     assert _revision(business) == "business_0002"
     assert "tool_executions" not in _tables(platform)
     assert LEDGER_TABLES.isdisjoint(_tables(business))
