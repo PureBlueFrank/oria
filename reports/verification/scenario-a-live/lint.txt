@@ -1,0 +1,6 @@
+uv run ruff format --check .
+297 files already formatted
+uv run ruff check .
+All checks passed!
+uv run mypy src/oria
+Success: no issues found in 147 source files

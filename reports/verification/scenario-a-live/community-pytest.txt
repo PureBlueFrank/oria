@@ -1,0 +1,26 @@
+........................................................................ [  8%]
+........................................................................ [ 16%]
+........................................................................ [ 24%]
+........................................................................ [ 32%]
+........................................................................ [ 40%]
+........................................................................ [ 48%]
+........................................................................ [ 56%]
+........................................................................ [ 64%]
+........................................................................ [ 72%]
+........................................................................ [ 80%]
+........................................................................ [ 88%]
+........................................................................ [ 96%]
+.................................                                        [100%]
+=============================== warnings summary ===============================
+tests/integration/test_v03_business_migration.py::test_empty_business_database_upgrades_to_v03_and_rolls_back_to_base
+tests/integration/test_v03_execution_ledger_migration.py::test_business_0004_enforces_and_downgrades_launch_saga_states
+  /Users/franklee/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/contextlib.py:144: SAWarning: WARNING: SQL-parsed foreign key constraint '('tenant_id', 'campaign_id', 'merchant_id', 'enrollments', 'tenant_id', 'campaign_id', 'merchant_id')' could not be located in PRAGMA foreign_keys for table enrollment_items
+    next(self.gen)
+
+tests/integration/test_v03_execution_ledger_migration.py::test_business_0003_empty_upgrade_is_repeatable_and_downgrades_cleanly
+tests/integration/test_v03_execution_ledger_migration.py::test_platform_and_business_revision_chains_upgrade_independently
+  /Users/franklee/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/contextlib.py:144: SAWarning: WARNING: SQL-parsed foreign key constraint '('tenant_id', 'enrollment_id', 'enrollments', 'tenant_id', 'enrollment_id')' could not be located in PRAGMA foreign_keys for table enrollment_items
+    next(self.gen)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+897 passed, 1 deselected, 4 warnings in 271.72s (0:04:31)
