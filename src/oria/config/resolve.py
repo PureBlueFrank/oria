@@ -120,6 +120,13 @@ def _defaults() -> dict[str, Any]:
                     "base_url": "https://api.openai.com/v1",
                     "structured_output_mode": "native_json_schema",
                 },
+                "codex-subscription-gpt56-sol-high": {
+                    "provider": "codex",
+                    "api_dialect": "responses",
+                    "model": "gpt-5.6-sol",
+                    "structured_output_mode": "native_json_schema",
+                    "reasoning_effort": "high",
+                },
                 "anthropic": {
                     "provider": "anthropic",
                     "api_dialect": "anthropic_messages",
@@ -283,10 +290,23 @@ def _validate_matrix(
             raise ConfigResolutionError("standard profile requires a non-mock LLM")
         if embedding.provider == "fixture":
             raise ConfigResolutionError("standard profile requires a non-fixture embedder")
-    if llm.provider != "mock" and llm.api_key is None:
+    if llm.provider not in {"mock", "codex"} and llm.api_key is None:
         raise ConfigResolutionError(f"LLM profile {llm.profile_id!r} requires an API key")
-    if llm.provider != "mock" and llm.base_url is None:
+    if llm.provider not in {"mock", "codex"} and llm.base_url is None:
         raise ConfigResolutionError(f"LLM profile {llm.profile_id!r} requires a base_url")
+    if llm.provider == "codex" and (
+        llm.profile_id != "codex-subscription-gpt56-sol-high"
+        or llm.api_dialect != "responses"
+        or llm.model != "gpt-5.6-sol"
+        or llm.structured_output_mode != "native_json_schema"
+        or llm.reasoning_effort != "high"
+        or llm.api_key is not None
+        or llm.base_url is not None
+    ):
+        raise ConfigResolutionError(
+            "Codex subscription access requires the pinned "
+            "codex-subscription-gpt56-sol-high profile"
+        )
     if llm.provider == "deepseek":
         pinned = _DEEPSEEK_PROFILE_MATRIX.get(llm.profile_id)
         if (

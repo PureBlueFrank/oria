@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
 from oria._internal.immutable import FrozenDict
 
-LLMProviderName = Literal["mock", "deepseek", "kimi", "zhipu", "openai", "anthropic"]
+LLMProviderName = Literal["mock", "deepseek", "kimi", "zhipu", "openai", "anthropic", "codex"]
 APIDialect = Literal["mock", "chat_completions", "responses", "anthropic_messages"]
 StructuredOutputMode = Literal["native_json_schema", "synthetic_tool", "unsupported"]
 ReasoningEffort = Literal["none", "low", "high", "max"]
@@ -23,6 +23,7 @@ _PROVIDER_DIALECTS: dict[str, frozenset[str]] = {
     "zhipu": frozenset({"chat_completions"}),
     "openai": frozenset({"chat_completions", "responses"}),
     "anthropic": frozenset({"anthropic_messages"}),
+    "codex": frozenset({"responses"}),
 }
 
 

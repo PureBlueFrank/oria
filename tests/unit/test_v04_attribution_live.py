@@ -7,15 +7,19 @@ import pytest
 from pydantic import ValidationError
 
 from oria.eval import (
+    AttributionGoldenCase,
     AttributionLiveCaseRecord,
     AttributionLiveConfig,
+    AttributionLiveError,
     attribution_calibration,
     attribution_coverage_risk,
     attribution_live_metrics,
     attribution_live_variance,
     load_attribution_live_config,
+    load_golden_dataset,
     preflight_attribution_live,
 )
+from oria.eval.attribution_live import _record_hit_subscription_limit, _resume_records
 
 ROOT = Path(__file__).parents[2]
 CONFIG = ROOT / "eval/config/attribution-live-v1.yaml"
@@ -163,6 +167,45 @@ def test_live_preflight_accepts_only_reviewed_frozen_identity_before_provider_se
     assert card.holdout_case_count == 20
     assert card.repetitions == 3
     assert card.expected_case_runs == 60
+
+
+def test_resume_records_reject_duplicate_case_repetitions() -> None:
+    target = load_attribution_live_config(CONFIG).targets[0]
+    dataset = load_golden_dataset(ROOT / "eval/datasets/scenario_b/manifest.json")
+    cases = tuple(
+        case
+        for case in dataset.cases
+        if isinstance(case, AttributionGoldenCase) and case.split == "holdout"
+    )
+    case = next(case for case in cases if not case.critical)
+    record = _record(
+        case_id=case.case_id,
+        repetition=1,
+        expected=case.expected_outcome,
+        observed=case.expected_outcome,
+        expected_abstain=case.expected_abstain,
+        observed_abstain=case.expected_abstain,
+        confidence=0.8,
+    )
+
+    with pytest.raises(AttributionLiveError, match="duplicate case repetition"):
+        _resume_records(records=(record, record), cases=cases, target=target)
+
+
+def test_subscription_limit_record_is_detected_for_clean_resume() -> None:
+    record = _record(
+        case_id="sb-v1-044",
+        repetition=1,
+        expected="attributed",
+        observed="runtime_failure",
+        expected_abstain=False,
+        observed_abstain=False,
+        confidence=0.0,
+    ).model_copy(
+        update={"events": ({"type": "provider_failed", "error_code": "rate_limit_error"},)}
+    )
+
+    assert _record_hit_subscription_limit(record) is True
 
 
 def test_live_metrics_variance_calibration_and_coverage_risk_are_descriptive() -> None:

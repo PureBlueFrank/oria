@@ -61,6 +61,7 @@ from oria.orchestrator.scenario_a import (
 from oria.permission.audit import PlatformAuditService
 from oria.permission.local import LocalPolicyEngine
 from oria.providers.anthropic import AnthropicProvider
+from oria.providers.codex_app_server import CodexAppServerProvider
 from oria.providers.demo import DemoMockLLMProvider
 from oria.providers.embeddings import BGEEmbedder, FixtureEmbedder
 from oria.providers.openai_compat import OpenAICompatProvider
@@ -120,6 +121,13 @@ async def build_runtime(
         llm: LLMProvider
         if resolved.llm.provider == "mock":
             llm = DemoMockLLMProvider()
+        elif resolved.llm.provider == "codex":
+            llm = await exit_stack.enter_async_context(
+                CodexAppServerProvider(
+                    resolved.llm,
+                    work_dir=resolved.data_paths.root / "codex-app-server",
+                )
+            )
         elif resolved.llm.provider in {"deepseek", "kimi", "zhipu", "openai", "anthropic"}:
             if resolved.llm.base_url is None:
                 raise ValueError(f"{resolved.llm.provider} profile requires a base_url")

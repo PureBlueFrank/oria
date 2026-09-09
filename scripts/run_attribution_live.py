@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import json
 import os
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -15,11 +16,14 @@ from oria.core.types import ValueModel
 from oria.data import initialize_data
 from oria.eval.attribution_live import (
     AttributionLiveError,
+    AttributionLiveRunReport,
     load_attribution_live_config,
     preflight_attribution_live,
     run_attribution_live,
     select_attribution_live_target,
 )
+
+_CODEX_SUBSCRIPTION_TARGET = "codex-subscription-gpt56-sol-high"
 
 
 def _arguments() -> argparse.Namespace:
@@ -47,6 +51,16 @@ def _arguments() -> argparse.Namespace:
         default=Path(".artifacts/eval/attribution-live-v1/blind-review.json"),
     )
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume completed case repetitions from the existing output report",
+    )
+    parser.add_argument(
+        "--max-new-case-runs",
+        type=int,
+        help="pause cleanly after this many newly completed case repetitions",
+    )
     return parser.parse_args()
 
 
@@ -61,14 +75,32 @@ def _write_json(path: Path, value: object) -> None:
 
 async def _run(args: argparse.Namespace) -> int:
     started_at = datetime.now().astimezone()
+    resume_report: AttributionLiveRunReport | None = None
+    if args.resume and args.output.exists():
+        try:
+            resume_report = AttributionLiveRunReport.model_validate_json(
+                args.output.read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError) as exc:
+            raise AttributionLiveError("existing Live report cannot be resumed") from exc
+        if resume_report.target_id != args.target:
+            raise AttributionLiveError("existing Live report target does not match --target")
+        if resume_report.status == "completed_pending_human_review":
+            print(resume_report.model_dump_json())
+            return 0
     run_data_dir = args.data_dir / "runs" / started_at.strftime("%Y%m%dT%H%M%S%f%z")
+    live_environ = dict(os.environ)
+    if args.target == _CODEX_SUBSCRIPTION_TARGET and _codex_chatgpt_auth_ready():
+        live_environ["ORIA_CODEX_CHATGPT_AUTH_READY"] = "1"
     preflight = preflight_attribution_live(
         config_path=args.config,
         pricing_dir=args.pricing_dir,
         target_id=args.target,
-        environ=os.environ,
+        environ=live_environ,
         now=started_at,
-        known_targets=frozenset({"deepseek", "deepseek-pro-structured"}),
+        known_targets=frozenset(
+            {"deepseek", "deepseek-pro-structured", _CODEX_SUBSCRIPTION_TARGET}
+        ),
     )
     if preflight.status == "blocked" or args.preflight_only:
         _write_json(args.output, preflight)
@@ -77,7 +109,17 @@ async def _run(args: argparse.Namespace) -> int:
 
     config = load_attribution_live_config(args.config)
     target = select_attribution_live_target(config, args.target)
-    runtime_environ = dict(os.environ)
+    if resume_report is not None and (
+        resume_report.provider != target.provider
+        or resume_report.model != target.model
+        or resume_report.dataset_version != target.dataset_version
+        or resume_report.dataset_sha256 != target.dataset_sha256
+        or resume_report.rubric_sha256 != target.rubric_sha256
+        or resume_report.baseline_fingerprint != target.baseline_fingerprint
+        or resume_report.pricing_snapshot_id != target.pricing_snapshot_id
+    ):
+        raise AttributionLiveError("existing Live report does not match the frozen target")
+    runtime_environ = dict(live_environ)
     runtime_environ.update(
         {
             "ORIA_ENVIRONMENT": "test",
@@ -100,7 +142,9 @@ async def _run(args: argparse.Namespace) -> int:
             target=target,
             base_runtime=runtime,
             data_dir=run_data_dir,
-            started_at=started_at,
+            started_at=resume_report.started_at if resume_report is not None else started_at,
+            resume_records=() if resume_report is None else resume_report.cases,
+            max_new_case_runs=args.max_new_case_runs,
         )
     _write_json(args.output, report)
     _write_json(args.blind_output, blind_packet)
@@ -118,7 +162,22 @@ async def _run(args: argparse.Namespace) -> int:
             sort_keys=True,
         )
     )
-    return 0 if report.status == "completed_pending_human_review" else 2
+    return 0 if report.status != "failed" else 2
+
+
+def _codex_chatgpt_auth_ready() -> bool:
+    try:
+        completed = subprocess.run(
+            ["codex", "login", "status"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    output = completed.stdout + completed.stderr
+    return completed.returncode == 0 and "Logged in using ChatGPT" in output
 
 
 def main() -> int:

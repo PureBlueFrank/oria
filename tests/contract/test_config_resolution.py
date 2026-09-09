@@ -54,6 +54,21 @@ def test_deepseek_pro_thinking_profile_changes_only_model_and_reasoning() -> Non
     assert pro.config_fingerprint != flash.config_fingerprint
 
 
+def test_codex_subscription_profile_is_keyless_and_pinned() -> None:
+    resolved = resolve_runtime_config(
+        llm_profile="codex-subscription-gpt56-sol-high",
+        environ={"ORIA_ENVIRONMENT": "test"},
+    )
+
+    assert resolved.llm.provider == "codex"
+    assert resolved.llm.api_dialect == "responses"
+    assert resolved.llm.model == "gpt-5.6-sol"
+    assert resolved.llm.reasoning_effort == "high"
+    assert resolved.llm.structured_output_mode == "native_json_schema"
+    assert resolved.llm.api_key is None
+    assert resolved.llm.base_url is None
+
+
 def _write_config(tmp_path: Path, name: str, content: str) -> Path:
     path = tmp_path / name
     path.write_text(content, encoding="utf-8")

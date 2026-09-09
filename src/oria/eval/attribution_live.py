@@ -79,7 +79,7 @@ class AttributionLiveBudget(NightlyBudget):
 
 class AttributionLiveTarget(ValueModel):
     target_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
-    provider: Literal["deepseek"]
+    provider: Literal["deepseek", "codex"]
     model: str = Field(min_length=1)
     credential_env: str = Field(pattern=r"^[A-Z][A-Z0-9_]*$")
     dataset_manifest: str = Field(min_length=1)
@@ -245,7 +245,7 @@ class AttributionLiveRunReport(ValueModel):
     suite: Literal["attribution"] = "attribution"
     runner_version: Literal["attribution_live_v1"] = _RUNNER_VERSION
     verification_level: Literal["live"] = "live"
-    status: Literal["completed_pending_human_review", "failed"]
+    status: Literal["completed_pending_human_review", "in_progress", "failed"]
     target_id: str
     provider: str
     model: str
@@ -578,6 +578,42 @@ def _case_record(
     )
 
 
+def _resume_records(
+    *,
+    records: tuple[AttributionLiveCaseRecord, ...],
+    cases: tuple[AttributionGoldenCase, ...],
+    target: AttributionLiveTarget,
+) -> tuple[AttributionLiveCaseRecord, ...]:
+    """Validate records before replaying them into a resumed run's budget ledger."""
+
+    cases_by_id = {case.case_id: case for case in cases}
+    seen: set[tuple[str, int]] = set()
+    for record in records:
+        key = (record.case_id, record.repetition)
+        if key in seen:
+            raise AttributionLiveError("resume records contain a duplicate case repetition")
+        seen.add(key)
+        case = cases_by_id.get(record.case_id)
+        if case is None or record.repetition > target.repetitions:
+            raise AttributionLiveError("resume records do not match the frozen holdout")
+        if (
+            record.expected_outcome != case.expected_outcome
+            or record.expected_abstain != case.expected_abstain
+            or record.critical != case.critical
+        ):
+            raise AttributionLiveError("resume record labels do not match the frozen holdout")
+        if not record.provider_models or set(record.provider_models) != {target.model}:
+            raise AttributionLiveError("resume record model does not match the frozen Live target")
+    return records
+
+
+def _record_hit_subscription_limit(record: AttributionLiveCaseRecord) -> bool:
+    return any(
+        event.get("type") == "provider_failed" and event.get("error_code") == "rate_limit_error"
+        for event in record.events
+    )
+
+
 def attribution_live_metrics(
     records: tuple[AttributionLiveCaseRecord, ...],
 ) -> AttributionLiveMetrics:
@@ -793,8 +829,10 @@ async def run_attribution_live(
     base_runtime: RuntimeServices,
     data_dir: Path,
     started_at: datetime,
+    resume_records: tuple[AttributionLiveCaseRecord, ...] = (),
+    max_new_case_runs: int | None = None,
 ) -> tuple[AttributionLiveRunReport, AttributionLiveBlindPacket]:
-    """Run the complete frozen holdout three times through the selected real provider."""
+    """Run or resume the frozen holdout through the selected real provider."""
 
     dataset, rubric, baseline, snapshot = _validated_assets(
         config_path=config_path,
@@ -809,6 +847,8 @@ async def run_attribution_live(
         or base_runtime.config.llm.model != target.model
     ):
         raise AttributionLiveError("runtime provider/model does not match the frozen Live target")
+    if max_new_case_runs is not None and max_new_case_runs < 1:
+        raise AttributionLiveError("staged Live case-run limit must be positive")
     prices = getattr(snapshot.models[target.model], target.rate_tier)
     cases = tuple(
         case
@@ -824,10 +864,37 @@ async def run_attribution_live(
 
     graph = build_attribution_graph()
     ledger = NightlyBudgetLedger(target.budget, prices)
-    records: list[AttributionLiveCaseRecord] = []
+    validated_resume = _resume_records(records=resume_records, cases=cases, target=target)
+    records: list[AttributionLiveCaseRecord] = list(validated_resume)
+    completed_keys = {(record.case_id, record.repetition) for record in records}
+    for record in records:
+        try:
+            reservation = ledger.reserve(
+                input_tokens=target.budget.per_case_max_input_tokens,
+                max_output_tokens=target.budget.per_case_max_output_tokens,
+            )
+            ledger.settle(
+                reservation,
+                cache_hit_tokens=0,
+                cache_miss_tokens=record.input_tokens,
+                output_tokens=record.output_tokens,
+                reasoning_tokens=0,
+            )
+        except NightlyBudgetExceeded as exc:
+            raise AttributionLiveError("resume records exceed the frozen Live budget") from exc
+    if sum(item.model_turns for item in records) > target.budget.max_model_requests:
+        raise AttributionLiveError("resume records exceed the Live model-request budget")
     reason: str | None = None
+    resumable_pause = False
+    new_case_runs = 0
     for repetition in range(1, target.repetitions + 1):
         for case in _case_order(cases, seed=target.order_seed, repetition=repetition):
+            if (case.case_id, repetition) in completed_keys:
+                continue
+            if max_new_case_runs is not None and new_case_runs >= max_new_case_runs:
+                reason = "staged case-run limit reached"
+                resumable_pause = True
+                break
             try:
                 reservation = ledger.reserve(
                     input_tokens=target.budget.per_case_max_input_tokens,
@@ -894,6 +961,12 @@ async def run_attribution_live(
                 prices=prices,
                 latency_ms=latency_ms,
             )
+            if _record_hit_subscription_limit(record):
+                ledger.cancel(reservation)
+                reason = "Codex subscription usage limit reached"
+                resumable_pause = True
+                await runtime.aclose()
+                break
             try:
                 ledger.settle(
                     reservation,
@@ -907,6 +980,8 @@ async def run_attribution_live(
                 await runtime.aclose()
                 break
             records.append(record)
+            completed_keys.add((case.case_id, repetition))
+            new_case_runs += 1
             await runtime.aclose()
             if record.provider_models and set(record.provider_models) != {target.model}:
                 reason = "provider response model does not match the frozen Live target"
@@ -964,7 +1039,13 @@ async def run_attribution_live(
     ).hexdigest()
     provider_reported = all(item.cost_basis == "provider_reported" for item in records)
     report = AttributionLiveRunReport(
-        status="completed_pending_human_review" if complete else "failed",
+        status=(
+            "completed_pending_human_review"
+            if complete
+            else "in_progress"
+            if resumable_pause
+            else "failed"
+        ),
         target_id=target.target_id,
         provider=target.provider,
         model=target.model,
