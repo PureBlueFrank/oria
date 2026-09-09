@@ -59,3 +59,14 @@ uv run python scripts/run_attribution_live.py \
 候选配置 `deepseek-structured` 已显式加入，使用同一 Responses 模型和专用结构化提交函数；最终提交包含由原工具结果生成的数组位置索引。单条开发案例已完成 attributed 输出并通过 22 条精确证据校验，仍有因果措辞及三类案例复验待办；不替换默认 `deepseek` 或冻结 Live target。候选决策与采用条件见 `docs/adr/ADR-031-deepseek-structured-candidate.md`。
 
 2026-09-06 增补：新增 `deepseek-pro-structured` 候选（deepseek-v4-pro），交付层三个根因已修复——工具 `execution_id` 的 `tool_` 前缀诱导误抄（改 `exec_` 并在投影中剥离）、调查轮可主动提交绕过最终化投影（改为仅最终阶段暴露提交函数）、根级校验修复反馈为空（改为携带规则文案）。v4-pro 开发复验：001 attributed 2/2、015 insufficient 2/2、020 conflicting 3/6（其余为契约 fail-closed，无错误答案流出）。候选未晋升默认配置，冻结 Live 卡继续为 failed，待新独立盲评。开发探针入口 `scripts/run_attribution_dev_probe.py`（仅接受 development 案例）。
+
+2026-09-10：`codex-subscription-gpt56-sol-high` 在冻结 V2 holdout 上完成 60/60，自动通过率 91.67%，并以 10/10 达线、平均 0.98 通过严格人工盲评，现为场景 B 推荐 Live target。V2 配置通过 `recommended_target` 固化推荐值，但 runner 继续要求显式选择，避免自动消耗订阅额度：
+
+```bash
+uv run python scripts/run_attribution_live.py \
+  --config eval/config/attribution-live-v2.yaml \
+  --target codex-subscription-gpt56-sol-high \
+  --preflight-only
+```
+
+V2 数据集、rubric 与 baseline 保持冻结，本次不启动 V3。完整采用边界见 [ADR-034](../adr/ADR-034-gpt56-sol-recommended-live-target.md)。

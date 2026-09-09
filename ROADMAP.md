@@ -6,7 +6,7 @@
 
 当前先完成演示与证据验收，再继续平台扩展，执行顺序不可跳过：
 
-1. **P0：Scenario B 收口**——**已收口（2026-09-07）**：V0.4-T05 冻结 Live 卡以 failed 结论收口（不可更改）；修复在 `deepseek-pro-structured` 候选上完成 development 三类验证与 `FrankLee` 复评，代码、Golden、baseline 与证据已提交固化（`reports/verification/v0.4/20260906-remediation/`）。候选晋升默认或冻结 target 变更属另行决策，须严格盲评，不阻塞 P1。
+1. **P0：Scenario B 收口**——**已收口（2026-09-10）**：V0.4-T05 原 DeepSeek 冻结 Live 卡以 failed 结论收口（不可更改）；GPT-5.6 Sol 随后在冻结 V2 holdout 上完成 60/60 并通过严格人工盲评，`FrankLee` 已确认将 `codex-subscription-gpt56-sol-high` 晋升为场景 B 推荐 Live target。Runner 仍强制显式选择，不改变 Mock 默认或自动发起 Live；V2 保持冻结，不启动 V3。
 2. **P1：交互 Demo**——**已收口（2026-09-07）**：`docs/demo/` 静态页面（无后端、file:// 可直接打开）展示场景 A 十步冻结 Trace，以及场景 B 的归因、冲突、弃答与契约拦停案例；`oria attribution ask` 补充场景 B 单案例分步 CLI 演示，默认为开发集 Mock 回放，显式 `--llm-profile` 时才进入 Live 动态选路。数据由真实本地 Workflow/Graph、Mock Adapter 与合成数据产生，所有入口均声明 Mock/Live 边界。公开在线访问需在仓库设置启用 GitHub Pages（/docs 目录）。
 3. **P2：证据索引与文档一致性**——**已收口（2026-09-07）**：新增[统一验证证据索引](reports/verification/README.md)，链接故障注入、RAG 对照、Scenario B Eval、Live 卡、Demo 与 ADR；README、架构与路线已统一状态、数字和验证边界。本轮只收口展示与证据，未启动 V0.5。
 
@@ -21,7 +21,7 @@
 | V0.1 | 场景 A 只读提案 MVP | T01–T10 已完成；Core 与必需 DeepSeek+BGE Live 卡通过 | 零配置 Demo 完成规则检索、硬资格商家预筛、LLM 软排序和带引用提案，且不产生业务写入。 |
 | V0.2 | Provider 与 RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡通过 | 统一六家 Provider 的 Fixture 契约，完成授权 RAG、三管线对照、冻结数据集和 DeepSeek Live 验证；其他 Provider 未 Live 验证。 |
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
-| V0.4 | 场景 B 动态归因 Agent | T01–T04 已完成；T05 已完成（Live failed）；修复已收口（2026-09-07） | 50 条 Golden 已由 `FrankLee` 审阅并冻结 30/20 split；DeepSeek 已完成 20×3 真实模型运行，自动通过 7/60，`FrankLee` 已确认 10 条盲评均失败；修复候选完成 development 三类验证与人工复评，未晋升默认。 |
+| V0.4 | 场景 B 动态归因 Agent | T01–T05 已完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 50 条 Golden 已审阅并冻结 30/20 split；GPT-5.6 Sol 完成 20×3，自动通过 55/60，严格盲评 10/10 达线、平均 0.98。 |
 | V0.5 | 多智能体、上下文与记忆 | 未开始 | 计划交付上下文压缩、可治理 Memory、完整权限与 Guardrails、多智能体编排及公平对照实验。 |
 
 ## V0.1：场景 A 只读提案 MVP
@@ -80,7 +80,7 @@ V0.4-T05 修复已收口（2026-09-07）：累计授权 4 美元；原批次 60 
 
 2026-09-09 Live 收口后加固与三轮复跑：在决策规则整改基础上做工程加固——可重试 provider 故障有界重试（不占用模型轮）、决策规则/schema 校验反馈翻译为可执行修复指令、新增 prompt v4（明确 support/refutation 索引不相交、保留全部 supported 候选、因果追问须覆盖 funnel+activity 证据）、structured 输出 JSON 打捞（去代码围栏/尾逗号/前后散文）、finalization 关闭并行工具调用以稳定保留提交、放宽 `evidence_indices` 为可选并补语义描述。本地 `make lint`/`make test` 878 项通过。随后用 `deepseek-pro-structured` 对冻结 holdout 复跑三轮 Live：自动通过率分别为 71.7%（43/60）、76.7%（46/60）、75.0%（45/60），`required_tool_coverage` 稳定 100%。结论：通过率卡在约 75% 的模型能力天花板——剩余失败集中在决策契约四元交叉对账（candidates/hypotheses/evidence.supports/outcome）、synthetic_tool 结构化输出偶发失败与幻觉工具名/伪造引用，均属 deepseek-v4-pro 能力上限而非工程缺陷；不把 75% 表述为质量通过或接近 100%，自动门禁仍为 `completed_pending_human_review`，须人工盲评。证据见 [本轮报告](reports/verification/v0.4/20260908-live-optimization/summary.md)。
 
-2026-09-09 GPT-5.6 Sol 第 4 轮 Live 完成：新增 ChatGPT 订阅鉴权的 Codex App Server provider，固定 `gpt-5.6-sol` / `high` 并沿用冻结 V2 holdout 20×3；Runner 支持断点续跑和订阅额度触顶安全停批，分两阶段跑完全部 60/60 case-run。自动通过率 91.67%（55/60），outcome/abstain 96.67%、禁用工具安全 100%、grounded evidence 97.62%，三轮重复 85%/95%/95%；对比 deepseek-pro-structured 的 75% 提升约 16.7 个百分点。`make lint` 与 886 项非 Live 测试通过。自动门禁仍为 `completed_pending_human_review`，须人工盲评 10 条后方可接受 Live card。见 [本轮报告](reports/verification/v0.4/20260909-gpt56-sol-round4/README.md)。
+2026-09-10 GPT-5.6 Sol 第 4 轮 Live 完成并通过人工盲评：新增 ChatGPT 订阅鉴权的 Codex App Server provider，固定 `gpt-5.6-sol` / `high` 并沿用冻结 V2 holdout 20×3；Runner 支持断点续跑和订阅额度触顶安全停批，分两阶段跑完全部 60/60 case-run。自动通过率 91.67%（55/60），outcome/abstain 96.67%、禁用工具安全 100%、grounded evidence 97.62%，三轮重复 85%/95%/95%；对比 deepseek-pro-structured 的 75% 提升约 16.7 个百分点。原 Live 运行时 `make lint` 与 886 项非 Live 测试通过。`FrankLee` 完成 10 条严格独立盲评，10/10 达线、平均 0.98，Live 质量卡接受。一次解盲后改分的样本已排除并以另一条未披露样本补足，原始评分与修订轨迹完整保留。`codex-subscription-gpt56-sol-high` 已晋升为场景 B 推荐 Live target，但 runner 仍强制显式选择；V2 保持冻结，不启动 V3。采用变更的 31 项定向测试、完整静态检查与 927 项非 Live 测试通过。原始运行 JSON 的 `completed_pending_human_review` 状态保持不可变；本结论不改变历史 DeepSeek failed 卡，也不等同于 API 或企业环境验证。见 [本轮报告](reports/verification/v0.4/20260909-gpt56-sol-round4/README.md)和 [ADR-034](docs/adr/ADR-034-gpt56-sol-recommended-live-target.md)。
 
 ## V0.5：多智能体、上下文与记忆
 
@@ -101,4 +101,4 @@ V0.4-T05 修复已收口（2026-09-07）：累计授权 4 美元；原批次 60 
 - **Live（L）**：调用明确记录的真实公开模型 API，只证明该日期、模型和配置下的调用与质量结果；不能外推到其他模型或未来版本。
 - **Enterprise（E-like/E）**：E-like 使用本地 PostgreSQL、Milvus、Redis、OTel 等企业栈组件，E 使用真实企业环境与 Adapter；两者均按目标独立验证，不能互相或由 Mock 替代。
 
-当前已验证到：V0.1/V0.2/V0.3 Core 与各自必需 DeepSeek Live 卡均已通过；V0.3 Community 使用 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据完成验证。V0.4 T01–T04 的合成数据、标签隔离、五个只读归因 Tool、动态 Agent、人工审阅 Golden 与冻结 Fixture baseline 已通过。T05 已完成 DeepSeek 20×3 真实模型运行并由 `FrankLee` 确认盲评结论，但质量卡为 failed；不得声明 V0.4 动态归因 Live 质量已验证。真实企业 Adapter、DeepSeek 以外 Provider、E-like 多 worker和 V0.5 单/多 Agent 对照仍未验证。
+当前已验证到：V0.1/V0.2/V0.3 Core 与各自必需 DeepSeek Live 卡均已通过；V0.3 Community 使用 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据完成验证。V0.4 T01–T05、合成数据、标签隔离、五个只读归因 Tool、动态 Agent、人工审阅 Golden 与冻结 Fixture baseline 已完成；原 DeepSeek Live 卡 failed，GPT-5.6 Sol 推荐 Live 卡已通过严格人工盲评。真实企业 Adapter、OpenAI API 通道、Codex 与 DeepSeek 以外 Provider、E-like 多 worker 和 V0.5 单/多 Agent 对照仍未验证。

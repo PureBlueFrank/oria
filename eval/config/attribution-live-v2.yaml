@@ -1,4 +1,5 @@
 schema_version: 1
+recommended_target: codex-subscription-gpt56-sol-high
 targets:
   - target_id: deepseek-pro-structured
     provider: deepseek

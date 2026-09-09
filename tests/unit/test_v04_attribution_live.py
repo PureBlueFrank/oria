@@ -23,6 +23,7 @@ from oria.eval.attribution_live import _record_hit_subscription_limit, _resume_r
 
 ROOT = Path(__file__).parents[2]
 CONFIG = ROOT / "eval/config/attribution-live-v1.yaml"
+CONFIG_V2 = ROOT / "eval/config/attribution-live-v2.yaml"
 PRICING = ROOT / "eval/config/pricing"
 NOW = datetime.fromisoformat("2026-09-05T19:00:00+08:00")
 
@@ -134,6 +135,22 @@ def test_live_budget_rejects_aggregate_bound_below_case_reservations() -> None:
     payload["targets"][0]["budget"]["max_input_tokens"] = 1
 
     with pytest.raises(ValidationError, match="worst-case reservations"):
+        AttributionLiveConfig.model_validate(payload)
+
+
+def test_v2_recommends_a_configured_codex_subscription_target() -> None:
+    config = load_attribution_live_config(CONFIG_V2)
+
+    assert config.recommended_target == "codex-subscription-gpt56-sol-high"
+    assert config.recommended_target in {target.target_id for target in config.targets}
+
+
+def test_recommended_live_target_must_be_configured() -> None:
+    config = load_attribution_live_config(CONFIG_V2)
+    payload = config.model_dump(mode="json")
+    payload["recommended_target"] = "missing-target"
+
+    with pytest.raises(ValidationError, match="recommended attribution Live target"):
         AttributionLiveConfig.model_validate(payload)
 
 

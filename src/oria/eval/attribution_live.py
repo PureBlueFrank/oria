@@ -99,12 +99,17 @@ class AttributionLiveTarget(ValueModel):
 
 class AttributionLiveConfig(ValueModel):
     schema_version: Literal[1] = 1
+    recommended_target: str | None = None
     targets: tuple[AttributionLiveTarget, ...]
 
     @model_validator(mode="after")
     def validate_targets(self) -> Self:
         if not self.targets or len({item.target_id for item in self.targets}) != len(self.targets):
             raise ValueError("attribution Live targets must be non-empty and unique")
+        if self.recommended_target is not None and self.recommended_target not in {
+            item.target_id for item in self.targets
+        }:
+            raise ValueError("recommended attribution Live target must be configured")
         return self
 
 

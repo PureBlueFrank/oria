@@ -1,10 +1,11 @@
-# V0.4 第 4 轮 GPT-5.6 Sol Live 评测（完成，待人工盲评）
+# V0.4 第 4 轮 GPT-5.6 Sol Live 评测（完成，人工盲评通过）
 
-状态：`completed_pending_human_review`。本轮 2026-09-09 08:45:23 +08:00 启动，分两阶段完成全部 **60/60 case-run**：首窗跑 15 条后在五小时用量窗口 90% 处主动停批，窗口回落后续跑剩余 45 条。自动通过率 **91.67%（55/60）**。人工盲评仍 `pending`——须独立评分至少 10 条 architecture-blind 项目后方可接受 Live card，且不得用 LLM judge 替代。
+原始运行状态：`completed_pending_human_review`（不回写）。本轮 2026-09-09 08:45:23 +08:00 启动，分两阶段完成全部 **60/60 case-run**：首窗跑 15 条后在五小时用量窗口 90% 处主动停批，窗口回落后续跑剩余 45 条。自动通过率 **91.67%（55/60）**。`FrankLee` 已完成 10 条严格独立盲评，10/10 达到 0.80，平均分 0.98，人工安全维度无失败；本轮 Live 质量卡接受。一次解盲后改分的样本已从独立统计排除，并以另一条未披露样本补足，完整轨迹保留在人工记录中。
 
 ## 冻结配置与调用路径
 
 - target：`codex-subscription-gpt56-sol-high`
+- target 状态：场景 B 推荐 Live target；runner 仍要求显式选择
 - provider / model：`codex` / `gpt-5.6-sol`
 - reasoning effort：`high`
 - 数据：Scenario B V2，SHA-256 `31883e82023ae236754f4a885fb78456b8e593de09fdd43eda8d5f751719b0d7`
@@ -57,6 +58,13 @@ uv run python scripts/run_attribution_live.py \
 - 定向测试：32 passed（Codex App Server envelope、工具约束、用量解析、固定 profile、Live 预检及断点记录校验）
 - `make test`：886 passed、1 deselected、4 个既有 SQLite migration warning；Live、Enterprise 与 Performance 标记未运行
 - [原始报告](live-run.json)，SHA-256 `cf847467291703399a3c7f95ec4992955c2ef5363ac9d400fb92f136bb5c4962`
-- [盲评包](blind-review.json)，SHA-256 `068c1bfbb303ffa7c8777e791a258033a65fc6a5dc500aa992b0eec5299d92e9`；人工盲评完成前不得开始抽样结论
+- [盲评包](blind-review.json)，SHA-256 `068c1bfbb303ffa7c8777e791a258033a65fc6a5dc500aa992b0eec5299d92e9`
+- [人工盲评记录](human-review.md)，SHA-256 `9413ea737f8ad219a8959617992c268704fea0300d154757c581fe0dbf16e496`：10 条严格独立样本全部达线、平均 0.98；评分排除、补样、解盲与修订历史完整保留。
 
 本调用面验证的是 ChatGPT 订阅下的 Codex 模型入口，不等同于 OpenAI API 的传输、配额或可用性验证。鉴权方式和 App Server 接口依据官方 [Codex authentication](https://learn.chatgpt.com/docs/auth) 与 [Codex App Server](https://learn.chatgpt.com/docs/app-server)；模型能力和 API 参考价格依据官方 [GPT-5.6 Sol model](https://developers.openai.com/api/docs/models/gpt-5.6-sol)。
+
+## 采用决策
+
+`FrankLee` 于 2026-09-10 确认将 `codex-subscription-gpt56-sol-high` 晋升为场景 B 推荐 Live target。配置以机器可读的 `recommended_target` 固化，但 Live runner 继续强制显式传入 `--target`，不会因推荐值自动发起外部调用。V2 数据集、rubric 与 baseline 保持冻结，不启动 V3。详见 [ADR-034](../../../../docs/adr/ADR-034-gpt56-sol-recommended-live-target.md)。
+
+采用变更验证：推荐 target 配置契约与运行时配置定向测试 31 passed；`make lint` 通过（Ruff format/check、mypy 147 个源码文件）；完整非 Live/Enterprise/Performance 套件 927 passed、1 deselected、4 个既有 SQLite migration warning。本次未重新运行 Live。
