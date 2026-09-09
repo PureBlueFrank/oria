@@ -132,7 +132,7 @@ class LocalPolicyEngine:
     async def authorize(self, request: AuthorizationRequest, ctx: Context) -> PolicyDecision:
         denial_code = self._denial_code(request, ctx)
         allowed = denial_code is None
-        attribute_constraints, _ = self._attribute_constraints(request)
+        attribute_constraints = self._attribute_constraints(request)[0] if allowed else {}
         acl_filter = None
         if allowed and request.action in _DOCUMENT_READ_ACTIONS:
             acl_filter = ACLFilter(
@@ -144,9 +144,7 @@ class LocalPolicyEngine:
         decision = PolicyDecision(
             allow=allowed,
             constraints=(
-                {"tenant_id": request.actor.tenant_id, **attribute_constraints}
-                if allowed
-                else {}
+                {"tenant_id": request.actor.tenant_id, **attribute_constraints} if allowed else {}
             ),
             policy_version=LOCAL_POLICY_VERSION,
             reason=(

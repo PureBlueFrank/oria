@@ -119,7 +119,7 @@ async def test_local_policy_rejects_cross_tenant_and_untrusted_requests(tmp_path
 
         allowed = await runtime.policy.authorize(_auth_request(actor, executor), ctx)
         assert allowed.allow is True
-        assert allowed.policy_version == LOCAL_POLICY_VERSION == "local-v1"
+        assert allowed.policy_version == LOCAL_POLICY_VERSION == "local-v2"
         assert allowed.constraints == {"tenant_id": LOCAL_TENANT_ID}
         assert allowed.reason == "allowed by trusted local profile"
 

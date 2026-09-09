@@ -48,7 +48,7 @@ def _approved(binding: ApprovalBusinessBinding) -> Approval:
         tool_name="LaunchPlan",
         canonical_args_hash=HASH,
         checkpoint_id="checkpoint-stale",
-        policy_version="local-v1",
+        policy_version="local-v2",
         expires_at=NOW + timedelta(days=30),
         status="approved",
         requester="requester",

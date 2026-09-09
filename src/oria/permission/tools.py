@@ -13,7 +13,10 @@ if TYPE_CHECKING:
     from oria.tools.registry import ToolRegistry
 
 
-def tool_authorization_request(tool: Tool, ctx: Context) -> AuthorizationRequest:
+def tool_authorization_request(
+    tool: Tool,
+    ctx: Context,
+) -> AuthorizationRequest:
     """Build the canonical authorization request for one tool capability."""
 
     return AuthorizationRequest(

@@ -407,7 +407,7 @@ async def test_policy_version_change_invalidates_approved_binding_on_resume() ->
         reason=None,
         ctx=_context(LAUNCH_APPROVER),  # type: ignore[arg-type]
     )
-    policy.version = "local-v2"
+    policy.version = "local-v3"
 
     with pytest.raises(PermissionError, match="binding"):
         await service.authorize_resume(
