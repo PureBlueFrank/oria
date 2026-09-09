@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 LOCAL_TENANT_ID = "local-community"
 LOCAL_USER_SUBJECT_ID = "local-operator"
 LOCAL_CLI_SUBJECT_ID = "oria-cli"
-LOCAL_POLICY_VERSION = "local-v1"
+LOCAL_POLICY_VERSION = "local-v2"
 
 _LOCAL_ACTIONS = frozenset(
     {
@@ -79,7 +79,11 @@ _DENIAL_REASONS = {
     "unknown_action": "action is not allowed by the local read policy",
     "role_denied": "actor role is not authorized for the write action",
     "assignment_denied": "confirmation task is not assigned to the actor",
+    "invalid_attributes": "authorization resource attributes are invalid",
+    "attribute_mismatch": "principal attributes do not match the resource scope",
 }
+
+_RESOURCE_ATTRIBUTE_KEYS = frozenset({"organization", "region", "labels"})
 
 
 def local_operator() -> Principal:
@@ -127,6 +131,7 @@ class LocalPolicyEngine:
     async def authorize(self, request: AuthorizationRequest, ctx: Context) -> PolicyDecision:
         denial_code = self._denial_code(request, ctx)
         allowed = denial_code is None
+        attribute_constraints, _ = self._attribute_constraints(request)
         acl_filter = None
         if allowed and request.action in _DOCUMENT_READ_ACTIONS:
             acl_filter = ACLFilter(
@@ -137,7 +142,11 @@ class LocalPolicyEngine:
             )
         decision = PolicyDecision(
             allow=allowed,
-            constraints={"tenant_id": request.actor.tenant_id} if allowed else {},
+            constraints=(
+                {"tenant_id": request.actor.tenant_id, **attribute_constraints}
+                if allowed
+                else {}
+            ),
             policy_version=LOCAL_POLICY_VERSION,
             reason=(
                 "allowed by trusted local profile"
@@ -182,7 +191,65 @@ class LocalPolicyEngine:
             and executor_roles is None
         ):
             return "unknown_action"
+        _, attribute_denial = self._attribute_constraints(request)
+        if attribute_denial is not None:
+            return attribute_denial
         return None
+
+    @staticmethod
+    def _attribute_constraints(
+        request: AuthorizationRequest,
+    ) -> tuple[dict[str, str | list[str]], str | None]:
+        """Match policy-owned resource scope against authenticated actor attributes.
+
+        Resource scope is carried in ``AuthorizationContext.attributes`` because
+        ``ResourceRef`` deliberately remains an identity-only seam type. Callers may
+        provide a ``resource_attributes`` object or the three canonical keys directly.
+        Unknown context fields are ignored so operational metadata cannot become policy.
+        """
+
+        raw_scope = request.context.attributes.get("resource_attributes")
+        if raw_scope is None:
+            scope = {
+                key: request.context.attributes[key]
+                for key in _RESOURCE_ATTRIBUTE_KEYS
+                if key in request.context.attributes
+            }
+        elif isinstance(raw_scope, dict):
+            scope = {key: raw_scope[key] for key in _RESOURCE_ATTRIBUTE_KEYS if key in raw_scope}
+        else:
+            return {}, "invalid_attributes"
+
+        organization = scope.get("organization")
+        region = scope.get("region")
+        labels = scope.get("labels")
+        if organization is not None and (not isinstance(organization, str) or not organization):
+            return {}, "invalid_attributes"
+        if region is not None and (not isinstance(region, str) or not region):
+            return {}, "invalid_attributes"
+        if labels is not None and (
+            not isinstance(labels, list)
+            or any(not isinstance(label, str) or not label for label in labels)
+        ):
+            return {}, "invalid_attributes"
+
+        required_labels = frozenset(labels or [])
+        actor_attributes = request.actor.attributes
+        if organization is not None and actor_attributes.organization != organization:
+            return {}, "attribute_mismatch"
+        if region is not None and actor_attributes.region != region:
+            return {}, "attribute_mismatch"
+        if not required_labels.issubset(actor_attributes.labels):
+            return {}, "attribute_mismatch"
+
+        constraints: dict[str, str | list[str]] = {}
+        if organization is not None:
+            constraints["organization"] = organization
+        if region is not None:
+            constraints["region"] = region
+        if required_labels:
+            constraints["labels"] = sorted(required_labels)
+        return constraints, None
 
     @staticmethod
     def _audit_classification(request: AuthorizationRequest) -> str:
