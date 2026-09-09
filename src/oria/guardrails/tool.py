@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class ToolAuthorizationGuardrail:
-    phase: Literal["tool"] = "tool"
+    phase: Literal["input", "output", "tool"] = "tool"
 
     async def check(self, content: Any, ctx: Context) -> GuardrailResult:
         if not isinstance(content, AuthorizationRequest):

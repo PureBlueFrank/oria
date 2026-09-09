@@ -13,14 +13,12 @@ from oria.core.context import Context
 from oria.core.protocols import Tool
 from oria.core.registry import RegistrySealedError
 from oria.core.types import (
-    AuthorizationContext,
-    AuthorizationRequest,
     JsonValue,
-    ResourceRef,
     ResponseSchema,
     ToolResult,
     ToolSpec,
 )
+from oria.permission.tools import tool_authorization_request
 
 
 class ToolRegistry:
@@ -101,35 +99,39 @@ class ToolRegistry:
             self.get(name)
         return tuple(self._specs[name] for name in selected)
 
-    async def preflight(self, name: str, params: dict[str, Any], ctx: Context) -> None:
-        """Validate one call without invoking the tool implementation."""
-
+    def _validate_call(self, name: str, params: dict[str, Any]) -> Tool:
         tool = self.get(name)
         input_schema = self._specs[name].json_schema
         validators.validator_for(input_schema)(
             input_schema, format_checker=FormatChecker()
         ).validate(params)
         tool.validate_params(params)
+        return tool
+
+    async def preflight(self, name: str, params: dict[str, Any], ctx: Context) -> None:
+        """Validate and authorize one call without invoking the tool implementation."""
+
+        tool = self._validate_call(name, params)
         decision = await ctx.policy.authorize(
-            AuthorizationRequest(
-                actor=ctx.actor,
-                executor=ctx.executor,
-                action=tool.policy.required_action,
-                resource=ResourceRef(
-                    resource_type=tool.policy.resource_type,
-                    resource_id=tool.name,
-                    tenant_id=ctx.tenant_id,
-                ),
-                context=AuthorizationContext(correlation_id=ctx.run_id),
-            ),
+            tool_authorization_request(tool, ctx),
             ctx,
         )
         if not decision.allow or decision.constraints.get("tenant_id") != ctx.tenant_id:
             raise PermissionError("tool execution is not authorized")
 
     async def execute(self, name: str, params: dict[str, Any], ctx: Context) -> ToolResult:
-        await self.preflight(name, params, ctx)
-        tool = self.get(name)
+        tool = self._validate_call(name, params)
+        request = tool_authorization_request(tool, ctx)
+        try:
+            guardrail = ctx.guardrails.get("tool.authorization")
+        except (AttributeError, KeyError):
+            decision = await ctx.policy.authorize(request, ctx)
+            allowed = decision.allow and decision.constraints.get("tenant_id") == ctx.tenant_id
+        else:
+            guardrail_result = await guardrail.check(request, ctx)
+            allowed = guardrail_result.passed and guardrail_result.action == "block"
+        if not allowed:
+            raise PermissionError("tool execution is not authorized")
         result_schema = self._result_schemas[name]
         retry = tool.policy.retry_policy
         for attempt in range(1, retry.max_attempts + 1):

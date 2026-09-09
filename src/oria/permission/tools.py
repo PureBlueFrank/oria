@@ -25,7 +25,9 @@ def tool_authorization_request(tool: Tool, ctx: Context) -> AuthorizationRequest
             resource_id=tool.name,
             tenant_id=ctx.tenant_id,
         ),
-        context=AuthorizationContext(correlation_id=ctx.correlation_id),
+        context=AuthorizationContext(
+            correlation_id=getattr(ctx, "correlation_id", ctx.run_id),
+        ),
     )
 
 

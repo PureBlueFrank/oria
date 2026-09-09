@@ -44,7 +44,7 @@ def contains_prompt_injection(content: Any) -> bool:
 
 
 class PromptInjectionGuardrail:
-    phase: Literal["input"] = "input"
+    phase: Literal["input", "output", "tool"] = "input"
 
     async def check(self, content: Any, ctx: Context) -> GuardrailResult:
         del ctx
@@ -57,7 +57,7 @@ class PromptInjectionGuardrail:
 
 
 class RAGInjectionGuardrail:
-    phase: Literal["input"] = "input"
+    phase: Literal["input", "output", "tool"] = "input"
 
     async def check(self, content: Any, ctx: Context) -> GuardrailResult:
         del ctx

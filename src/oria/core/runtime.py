@@ -52,6 +52,12 @@ from oria.domain.services import (
     DomainServiceRegistry,
     PackageCampaignRuleService,
 )
+from oria.guardrails import (
+    OutputSafetyGuardrail,
+    PromptInjectionGuardrail,
+    RAGInjectionGuardrail,
+    ToolAuthorizationGuardrail,
+)
 from oria.ingress.local import LocalCLIIngressAdapter
 from oria.memory import ContextBudget, PersistentMemory
 from oria.orchestrator.checkpoint import open_tenant_sqlite_saver
@@ -411,6 +417,10 @@ async def build_runtime(
         tools.register(SaveMemoryTool(memory))
         tools.register(SearchMemoryTool(memory))
         guardrails: ServiceRegistry[Guardrail] = ServiceRegistry()
+        guardrails.register("input.prompt_injection", PromptInjectionGuardrail())
+        guardrails.register("input.rag_injection", RAGInjectionGuardrail())
+        guardrails.register("tool.authorization", ToolAuthorizationGuardrail())
+        guardrails.register("output.safety", OutputSafetyGuardrail())
         nodes: ServiceRegistry[Node] = ServiceRegistry()
         agents: ServiceRegistry[object] = ServiceRegistry()
         ingress: ServiceRegistry[IngressAdapter] = ServiceRegistry()

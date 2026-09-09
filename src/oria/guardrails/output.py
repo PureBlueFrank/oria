@@ -38,7 +38,7 @@ def redact_output_content(content: Any) -> JsonValue:
 
 
 class OutputSafetyGuardrail:
-    phase: Literal["output"] = "output"
+    phase: Literal["input", "output", "tool"] = "output"
 
     async def check(self, content: Any, ctx: Context) -> GuardrailResult:
         del ctx

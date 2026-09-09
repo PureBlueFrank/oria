@@ -38,6 +38,7 @@ from oria.core.types import (
     ChatOptions,
     JsonValue,
     Message,
+    TextBlock,
     ToolCall,
     ToolCallBlock,
     ToolResult,
@@ -78,6 +79,26 @@ def _load_fact_ledger(state: ResearchState) -> FactLedger:
 
 def _dump_fact_ledger(ledger: FactLedger) -> list[dict[str, JsonValue]]:
     return [cast(dict[str, JsonValue], entry.model_dump(mode="json")) for entry in ledger.entries]
+
+
+async def _guardrail_warning(
+    name: str,
+    content: object,
+    ctx: Context,
+) -> str | None:
+    """Run a warning-only guardrail and return only its safe reason code."""
+
+    result = await ctx.guardrails.get(name).check(content, ctx)
+    if result.action != "warn":
+        raise RuntimeError("input guardrails must be warning-only")
+    return None if result.passed else result.reason
+
+
+async def _redact_model_output(content: JsonValue, ctx: Context) -> JsonValue:
+    result = await ctx.guardrails.get("output.safety").check(content, ctx)
+    if result.action != "redact":
+        raise RuntimeError("output guardrail must return a redact action")
+    return cast(JsonValue, result.model_dump(mode="json")["sanitized_content"])
 
 
 async def _govern_context(
@@ -529,6 +550,17 @@ async def research_model_node(
     )
     if context_update:
         state = cast(ResearchState, {**state, **context_update})
+    input_warnings: list[str] = []
+    for message in model_messages:
+        if message.role != "user":
+            continue
+        warning = await _guardrail_warning(
+            "input.prompt_injection",
+            message.content,
+            context.ctx,
+        )
+        if warning is not None:
+            input_warnings.append(warning)
     if force_finalization and not state["finalization_only"]:
         model_messages.append(Message(role="system", content=_FINALIZATION_INSTRUCTION))
     if force_finalization:
@@ -680,6 +712,10 @@ async def research_model_node(
         reasoning_tokens=result.usage.reasoning_tokens,
         cache_read_tokens=result.usage.cache_read_tokens,
     )
+    completion_events.extend(
+        {"type": "guardrail_warning", "source": "user_input", "reason": reason}
+        for reason in input_warnings
+    )
     if retry_events:
         completion_events = [*completion_events[:-1], *retry_events, completion_events[-1]]
     base_update: dict[str, object] = {
@@ -724,7 +760,17 @@ async def research_model_node(
             observed_state, context, "repair_tool_call_forbidden"
         )
         return base_update
-    blocks = list(result.content)
+    blocks = [
+        TextBlock(
+            text=cast(
+                str,
+                await _redact_model_output(block.text, context.ctx),
+            )
+        )
+        if isinstance(block, TextBlock)
+        else block
+        for block in result.content
+    ]
     present_call_ids = {block.id for block in blocks if isinstance(block, ToolCallBlock)}
     blocks.extend(
         ToolCallBlock(id=call.id, name=call.name, args=call.args)
@@ -739,7 +785,14 @@ async def research_model_node(
                 cast(dict[str, JsonValue], call.model_dump(mode="json"))
                 for call in result.tool_calls
             ],
-            "structured_output": result.structured_output,
+            "structured_output": (
+                None
+                if result.structured_output is None
+                else cast(
+                    dict[str, JsonValue],
+                    await _redact_model_output(result.structured_output, context.ctx),
+                )
+            ),
         }
     )
     return base_update
@@ -891,6 +944,7 @@ async def research_tools_node(
     safe_refs = list(state["safe_evidence_refs"])
     tool_results = dict(state.get("tool_results", {}))
     result_updates: dict[str, object] = {}
+    rag_warnings: list[str] = []
     result_fields = dict(selected.result_state_fields)
     side_effect_termination: tuple[str, str] | None = None
     for call, result in zip(calls, results, strict=True):
@@ -917,6 +971,14 @@ async def research_tools_node(
         messages.append(
             _dump_message(Message(role="tool", tool_call_id=call.id, content=built.canonical_json))
         )
+        if call.name == "search_campaign_rules":
+            warning = await _guardrail_warning(
+                "input.rag_injection",
+                built.canonical_json,
+                context.ctx,
+            )
+            if warning is not None:
+                rag_warnings.append(warning)
         if built.fingerprint is not None and built.fingerprint not in seen:
             seen.add(built.fingerprint)
             new_fingerprints.append(built.fingerprint)
@@ -944,6 +1006,15 @@ async def research_tools_node(
                 )
 
     streak = 0 if new_fingerprints else state["no_progress_streak"] + 1
+    completed_events = _event(
+        state,
+        "tools_completed",
+        call_count=len(calls),
+        new_evidence_count=len(new_fingerprints),
+    )
+    completed_events.extend(
+        {"type": "guardrail_warning", "source": "rag", "reason": reason} for reason in rag_warnings
+    )
     update = {
         "messages": messages,
         "pending_tool_calls": [],
@@ -952,12 +1023,7 @@ async def research_tools_node(
         "no_progress_streak": streak,
         "tool_results": tool_results,
         "safe_evidence_refs": list(dict.fromkeys(safe_refs)),
-        "events": _event(
-            state,
-            "tools_completed",
-            call_count=len(calls),
-            new_evidence_count=len(new_fingerprints),
-        ),
+        "events": completed_events,
     }
     update.update(result_updates)
     shadow = cast(ResearchState, {**state, **update})
