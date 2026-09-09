@@ -1,6 +1,6 @@
 # 场景 B：基于证据的 50 条案例（V2）
 
-状态：待人工审阅，未冻结。由 generate_attribution_golden_v2.py 同步生成，不手工修改此文件。
+状态：已由 FrankLee 于 2026-09-08T01:44:08+08:00 完成人工审阅并冻结。由 generate_attribution_golden_v2.py 同步生成，不手工修改此文件。
 
 ## 能力维度说明
 

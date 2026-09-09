@@ -15,6 +15,7 @@ pytestmark = pytest.mark.contract
 
 _ROOT = Path(__file__).resolve().parents[2]
 _MANIFEST = _ROOT / "eval/datasets/scenario_b/manifest.json"
+_V2_MANIFEST = _ROOT / "eval/datasets/scenario_b/v2.manifest.json"
 
 
 @pytest.mark.parametrize("number", [5, 8, 15, 23, 47])
@@ -94,6 +95,18 @@ def test_generator_and_readable_review_match_the_draft() -> None:
         _strip_v2_extension_fields(case.model_dump(mode="json")) for case in dataset.cases
     ]
     assert module["_review_document"](cases) == (_MANIFEST.parent / "CASES.md").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_v2_generator_and_readable_review_match_the_frozen_dataset() -> None:
+    module = runpy.run_path(str(_ROOT / "scripts/generate_attribution_golden_v2.py"))
+    cases = module["_build_cases"]()
+    dataset = load_golden_dataset(_V2_MANIFEST, require_human_review=True)
+    for index, case in enumerate(cases):
+        case["review"] = dataset.cases[index].review.model_dump(mode="json")
+
+    assert module["_review_document"](cases) == (_V2_MANIFEST.parent / "CASES.v2.md").read_text(
         encoding="utf-8"
     )
 

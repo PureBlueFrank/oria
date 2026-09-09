@@ -49,6 +49,8 @@ V0.1 先交付其中的只读提案切片；V0.3 在同一 Graph 上补齐完整
 
 CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development 案例上运行离线 Mock 回放，用于展示受治理的调查与证据链；显式传入非 Mock `--llm-profile` 才进入 Live，用同一 Graph 与工具验证模型的动态选路。演示入口不暴露 holdout，不代替冻结 eval 门禁。
 
+当前 V0.4 已完成 50 条 V2 Golden 的人工审阅与 30/20 冻结 split。历史 DeepSeek Live 卡失败并保留；GPT-5.6 Sol 在同一冻结 V2 holdout 上完成 20×3，并以 10/10 达线、平均 0.98 通过严格人工盲评，现为场景 B 推荐 Live target。该结论仅覆盖 Codex/ChatGPT 订阅通道与合成数据，不代表 OpenAI API 或企业数据接入。
+
 ## 分层架构
 
 ```text
@@ -68,6 +70,8 @@ Agent Runtime：Workflow / ReAct / Multi-Agent / Context / Memory
 流程已知、跨天、需要持久化编排时使用 Workflow；探索性、实时、依赖中间发现时使用 Agent loop。两者共享 Checkpoint、HITL、工具协议和治理能力，不维护第二套执行循环。
 
 ## 模块职责
+
+下表是跨 V0.1–V0.8 的目标模块图。当前已实现到 V0.4 的目录包括 `core/providers/prompts/agent/orchestrator/domain/tools/rag/storage/permission/eval/obs/adapters/ingress` 等；`guardrails/memory/api/jobs/web` 属 V0.5 及以后规划，不能据此表宣称已经交付。
 
 | 模块 | 主要职责 |
 | --- | --- |

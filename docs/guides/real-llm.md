@@ -204,4 +204,4 @@ Mock 企业 Adapter 场景的更多说明、拒绝分支和重放排错详见 [�
 - Key 只通过环境变量或 secrets manager 注入，不写入 YAML 样例、README、日志、报告或仓库。
 - 真实 LLM 只作用于草案和候选集内软排序；商家/商品硬资格始终由确定性 Policy 执行。
 - 券、招商、商品库、选品、C 端投放和 IM 仍使用 Mock Adapter 与合成数据，不代表任何真实企业系统已接入。
-- 除 DeepSeek 外的 Provider 当前仅完成 Fixture 契约验证，不在“已 Live”列表中。
+- 本指南对应的场景 A 运行时中，DeepSeek 以外 Provider 尚无通过的正式 Live 卡。场景 B 另有经 ChatGPT 订阅/Codex App Server 验证的 GPT-5.6 Sol 推荐 Live target；它不等同于 OpenAI API 通道，也不改变本指南的场景 A 能力边界。

@@ -45,7 +45,7 @@
 | ADR-029 | 外部事件等待与恢复 | 已接受 | [ADR-029](ADR-029-external-event-wait-and-resume.md) |
 | ADR-030 | 跨 seam 值类型深度不可变 | 已接受 | [ADR-030](ADR-030-deep-immutable-seam-values.md) |
 | ADR-031 | DeepSeek 专用结构化提交候选配置 | 提议中 | [ADR-031](ADR-031-deepseek-structured-candidate.md)；显式开发验证，不替代原配置 |
-| ADR-032 | 归因提交显式因果审计 | 待 review | [ADR-032](ADR-032-attribution-causal-audit.md)；跨环节机制检查与有界参数纠错 |
+| ADR-032 | 归因提交显式因果审计 | 已接受 | [ADR-032](ADR-032-attribution-causal-audit.md)；本地契约与 GPT-5.6 Sol 冻结 Live 验收 |
 | ADR-033 | 归因决策规则与有界收尾 | 已接受 | [ADR-033](ADR-033-attribution-decision-rules.md)；GPT-5.6 Sol 冻结 Live 与人工盲评验证 |
 | ADR-034 | GPT-5.6 Sol 推荐 Live target | 已接受 | [ADR-034](ADR-034-gpt56-sol-recommended-live-target.md)；显式选择，不触发隐式外部调用 |
 

@@ -8,7 +8,7 @@
 
 1. **P0：Scenario B 收口**——**已收口（2026-09-10）**：V0.4-T05 原 DeepSeek 冻结 Live 卡以 failed 结论收口（不可更改）；GPT-5.6 Sol 随后在冻结 V2 holdout 上完成 60/60 并通过严格人工盲评，`FrankLee` 已确认将 `codex-subscription-gpt56-sol-high` 晋升为场景 B 推荐 Live target。Runner 仍强制显式选择，不改变 Mock 默认或自动发起 Live；V2 保持冻结，不启动 V3。
 2. **P1：交互 Demo**——**已收口（2026-09-07）**：`docs/demo/` 静态页面（无后端、file:// 可直接打开）展示场景 A 十步冻结 Trace，以及场景 B 的归因、冲突、弃答与契约拦停案例；`oria attribution ask` 补充场景 B 单案例分步 CLI 演示，默认为开发集 Mock 回放，显式 `--llm-profile` 时才进入 Live 动态选路。数据由真实本地 Workflow/Graph、Mock Adapter 与合成数据产生，所有入口均声明 Mock/Live 边界。公开在线访问需在仓库设置启用 GitHub Pages（/docs 目录）。
-3. **P2：证据索引与文档一致性**——**已收口（2026-09-07）**：新增[统一验证证据索引](reports/verification/README.md)，链接故障注入、RAG 对照、Scenario B Eval、Live 卡、Demo 与 ADR；README、架构与路线已统一状态、数字和验证边界。本轮只收口展示与证据，未启动 V0.5。
+3. **P2：证据索引与文档一致性**——**已复核（2026-09-10）**：统一验证证据索引已覆盖故障注入、RAG 对照、Scenario B Eval、Live 卡、Demo 与 ADR；当前文档已同步 V2 冻结状态、GPT-5.6 Sol 推荐结论、验证数字和能力边界。未启动 V0.5。
 
 演示和评测只使用贴近企业业务的版本化合成数据与 Mock Adapter，不接触企业内部敏感数据，也不把 Mock 结果表述为真实企业接入。真实业务 Adapter 作为有条件时的独立加分项，不阻塞本轮收口。
 

@@ -1301,10 +1301,27 @@ def _build_cases() -> list[dict]:
 
 
 def _review_document(cases: list[dict]) -> str:
+    reviews = [case["review"] for case in cases]
+    approved = bool(reviews) and all(review["status"] == "approved" for review in reviews)
+    if approved:
+        reviewers = {review["reviewed_by"] for review in reviews}
+        reviewed_at_values = {review["reviewed_at"] for review in reviews}
+        assert len(reviewers) == 1 and len(reviewed_at_values) == 1
+        reviewer = reviewers.pop()
+        reviewed_at = reviewed_at_values.pop()
+        status = (
+            f"状态：已由 {reviewer} 于 {reviewed_at} 完成人工审阅并冻结。"
+            "由 generate_attribution_golden_v2.py 同步生成，不手工修改此文件。"
+        )
+    else:
+        status = (
+            "状态：待人工审阅，未冻结。"
+            "由 generate_attribution_golden_v2.py 同步生成，不手工修改此文件。"
+        )
     lines = [
         "# 场景 B：基于证据的 50 条案例（V2）",
         "",
-        "状态：待人工审阅，未冻结。由 generate_attribution_golden_v2.py 同步生成，不手工修改此文件。",
+        status,
         "",
         "## 能力维度说明",
         "",

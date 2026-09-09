@@ -10,7 +10,7 @@
 | V0.2 | Core、RAG Community 对照与必需 DeepSeek Live 通过 | 授权 RAG、三管线对照、六家 Provider 的 Fixture 契约及 DeepSeek Live | DeepSeek 以外 Provider 的 Live 能力 |
 | V0.3 | Core、Community 十步 Workflow 与必需 DeepSeek Live 通过 | SQLite 单 worker、Mock Adapter 下的审批、恢复、幂等、故障注入和对账 | PostgreSQL 多 worker或真实券、招商、商品库、选品、C 端、IM 接入 |
 | V0.4 | T01–T05 完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 合成分析数据、只读 Tool、动态 Agent、冻结 Golden、原 DeepSeek 失败事实及 GPT-5.6 Sol Live 通过卡 | 真实企业数据、OpenAI API 通道或其他 Provider 效果 |
-| P0–P2 | 2026-09-07 收口 | Scenario B 失败卡与修复证据、静态交互 Demo、统一证据入口和一致口径 | V0.5 已开始或后续平台能力已交付 |
+| P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | V0.5 已开始或后续平台能力已交付 |
 
 ## 关键证据
 
@@ -53,7 +53,7 @@
 
 ## 演示与证据验收收口
 
-[2026-09-07 收口验证记录](CLOSEOUT-20260907.md)汇总 P0–P2 的产物、文档一致性检查和未验证边界。本轮没有启动 V0.5，也没有改变 V0.4 的冻结数据、默认 target 或原 Live failed 结论。
+[2026-09-07 收口验证记录](CLOSEOUT-20260907.md)保留当时 P0–P2 的产物、文档一致性检查和未验证边界。2026-09-10 后续复核已新增 GPT-5.6 Sol 推荐 Live 卡：V2 继续冻结，runner 仍要求显式选择，未启动 V0.5，也不改写原 DeepSeek failed 结论。
 
 ## 证据解释规则
 

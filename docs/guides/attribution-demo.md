@@ -39,7 +39,7 @@ export DEEPSEEK_API_KEY='<your-key>'
 uv run oria attribution ask --llm-profile deepseek-pro-structured
 ```
 
-Live 模式用于观察真实模型是否会根据中间 ToolResult 改变下一步查询，并产生可回查的归因、冲突或弃答。这一命令会发生真实网络请求，并受 Graph 的模型轮次、工具调用、Token、成本、无进展和结构校验上限约束。单次演示成功不等于冻结 holdout 质量门禁通过；当前 V0.4-T05 的 DeepSeek 冻结 Live 卡仍为 failed。本次 CLI 实现和回归不执行 Live 网络测试。
+Live 模式用于观察真实模型是否会根据中间 ToolResult 改变下一步查询，并产生可回查的归因、冲突或弃答。这一命令会发生真实网络请求，并受 Graph 的模型轮次、工具调用、Token、成本、无进展和结构校验上限约束。单次演示成功不等于冻结 holdout 质量门禁通过；历史 DeepSeek 冻结 Live 卡仍为 failed，后续 GPT-5.6 Sol 已在冻结 V2 holdout 上通过严格人工盲评并成为场景 B 推荐 Live target。正式冻结评测及采用边界见 [attribution eval 入口](attribution-eval.md)。
 
 ## 运行产物与边界
 
