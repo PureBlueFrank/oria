@@ -15,11 +15,12 @@ _MANIFEST = (
 )
 
 
-def test_golden_draft_has_thirty_unique_critical_synthetic_cases() -> None:
+def test_golden_has_forty_five_unique_critical_synthetic_cases() -> None:
     dataset = load_golden_dataset(_MANIFEST, require_human_review=False)
 
-    assert len(dataset.cases) == 30
-    assert len({case.case_id for case in dataset.cases}) == 30
+    assert len(dataset.cases) == 45
+    assert len({case.case_id for case in dataset.cases}) == 45
+    assert sum(case.fixture_variant == "standard" for case in dataset.cases) == 25
     assert all(case.critical for case in dataset.cases)
     assert dataset.manifest.source == "synthetic"
     assert dataset.manifest.contains_real_entities is False

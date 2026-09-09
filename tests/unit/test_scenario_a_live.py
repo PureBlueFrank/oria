@@ -90,7 +90,7 @@ async def test_runner_reuses_scoring_and_checkpoints_real_context(
     )
     expected = await _evaluate_case(load_golden_dataset(MANIFEST).cases[0], state, ctx)
     assert report.status == "in_progress"
-    assert report.dataset_case_count == 30
+    assert report.dataset_case_count == 45
     assert report.cases[0].automated_pass == expected.passed
     assert report.cases[0].failures == expected.failures
     assert report.cases[0].outcome == "runtime_failure"
@@ -116,7 +116,7 @@ async def test_runner_reuses_scoring_and_checkpoints_real_context(
         environ=ENVIRON,
     )
     assert complete.status == "completed"  # Scoring failures do not enforce Golden gates.
-    assert len(complete.cases) == 30
+    assert len(complete.cases) == 45
     assert complete.metrics.case_pass_rate < 1
 
     invoke.side_effect = RuntimeError("secret provider response")

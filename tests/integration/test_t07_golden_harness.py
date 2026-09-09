@@ -29,14 +29,14 @@ async def test_all_approved_cases_match_the_frozen_baseline(tmp_path: Path) -> N
     gates = load_scenario_a_gates(_GATES)
 
     assert_scenario_a_gates(report, gates=gates, baseline=baseline)
-    assert len(report.cases) == 30
+    assert len(report.cases) == 45
     assert all(case.passed for case in report.cases)
     assert report.metrics.case_pass_rate == 1.0
     assert report.metrics.critical_pass_rate == 1.0
 
     regressed = report.model_copy(
         update={
-            "metrics": report.metrics.model_copy(update={"case_pass_rate": 29 / 30}),
+            "metrics": report.metrics.model_copy(update={"case_pass_rate": 44 / 45}),
         }
     )
     with pytest.raises(GoldenGateError, match="required metric failed"):

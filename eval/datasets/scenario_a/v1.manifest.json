@@ -6,10 +6,10 @@
   "contains_real_entities": false,
   "license": "CC0-1.0",
   "generator_seed": "oria-v01-t07-golden-draft",
-  "case_count": 30,
-  "critical_case_count": 30,
+  "case_count": 45,
+  "critical_case_count": 45,
   "dataset_file": "v1.jsonl",
-  "dataset_sha256": "6f706e5307d39054cc2dd232eecefbf9099cccdcd6f42c398bf0b1363a81f325",
+  "dataset_sha256": "c85c61e85b1fae74eaf09e219023ef3289c90c56af6a6a15b77c8a62c5b6e4af",
   "review_status": "approved",
   "human_review_complete": true,
   "baseline_created": true

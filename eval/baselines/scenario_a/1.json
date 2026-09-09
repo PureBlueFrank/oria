@@ -1,16 +1,16 @@
 {
   "suite": "scenario_a",
   "dataset_version": "1",
-  "dataset_sha256": "6f706e5307d39054cc2dd232eecefbf9099cccdcd6f42c398bf0b1363a81f325",
+  "dataset_sha256": "c85c61e85b1fae74eaf09e219023ef3289c90c56af6a6a15b77c8a62c5b6e4af",
   "runner_version": "scenario_a_v1",
   "prompt_version": "merchant_selection/v1",
   "provider_profile": "scenario_a_replay_v1",
   "embedding_profile": "fixture",
   "tool_schema_versions": {
-    "query_merchants": 1,
-    "search_campaign_rules": 1
+    "search_campaign_rules": 1,
+    "query_merchants": 1
   },
-  "created_at": "2026-08-29T00:38:48.380227+08:00",
+  "created_at": "2026-09-09T17:22:21.005257+08:00",
   "cases": [
     {
       "case_id": "sa-v1-001",
@@ -807,6 +807,576 @@
       "recommended_ids": [],
       "unresolved_items": [],
       "citations_valid": null,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-031",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-032",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-033",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-034",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-035",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-036",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-037",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-038",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-039",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-040",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-041",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-042",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-043",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-044",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
+      "failures": []
+    },
+    {
+      "case_id": "sa-v1-045",
+      "critical": true,
+      "passed": true,
+      "observed_outcome": "proposal",
+      "termination_reason": null,
+      "executed_tools": [
+        "search_campaign_rules",
+        "query_merchants"
+      ],
+      "eligible_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "recommended_ids": [
+        "demo-m001",
+        "demo-m002",
+        "demo-m005",
+        "demo-m006",
+        "demo-m007",
+        "demo-m008",
+        "demo-m009",
+        "demo-m010",
+        "demo-m011",
+        "demo-m012"
+      ],
+      "unresolved_items": [],
+      "citations_valid": true,
       "failures": []
     }
   ],
