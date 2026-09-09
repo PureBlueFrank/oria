@@ -6,13 +6,14 @@ import hashlib
 import uuid
 from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from oria.core.protocols import AuditService
 from oria.core.types import (
     ACLFilter,
     AuthorizationRequest,
     EventEnvelope,
+    JsonValue,
     PolicyDecision,
     Principal,
 )
@@ -199,7 +200,7 @@ class LocalPolicyEngine:
     @staticmethod
     def _attribute_constraints(
         request: AuthorizationRequest,
-    ) -> tuple[dict[str, str | list[str]], str | None]:
+    ) -> tuple[dict[str, JsonValue], str | None]:
         """Match policy-owned resource scope against authenticated actor attributes.
 
         Resource scope is carried in ``AuthorizationContext.attributes`` because
@@ -233,7 +234,7 @@ class LocalPolicyEngine:
         ):
             return {}, "invalid_attributes"
 
-        required_labels = frozenset(labels or [])
+        required_labels = frozenset(cast(list[str], labels or []))
         actor_attributes = request.actor.attributes
         if organization is not None and actor_attributes.organization != organization:
             return {}, "attribute_mismatch"
@@ -242,13 +243,13 @@ class LocalPolicyEngine:
         if not required_labels.issubset(actor_attributes.labels):
             return {}, "attribute_mismatch"
 
-        constraints: dict[str, str | list[str]] = {}
+        constraints: dict[str, JsonValue] = {}
         if organization is not None:
             constraints["organization"] = organization
         if region is not None:
             constraints["region"] = region
         if required_labels:
-            constraints["labels"] = sorted(required_labels)
+            constraints["labels"] = cast(JsonValue, sorted(required_labels))
         return constraints, None
 
     @staticmethod

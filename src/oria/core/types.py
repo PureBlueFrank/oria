@@ -553,6 +553,7 @@ class GuardrailResult(ValueModel):
     passed: bool
     reason: str | None = None
     action: Literal["block", "redact", "warn"]
+    sanitized_content: JsonValue = None
 
 
 class NodeError(ValueModel):
