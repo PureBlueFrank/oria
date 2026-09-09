@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from pydantic import Field
 
@@ -49,6 +49,7 @@ class ResearchState(TypedDict):
     effective_at: str
     max_candidates: int
     messages: list[dict[str, JsonValue]]
+    fact_ledger: NotRequired[list[dict[str, JsonValue]]]
     model_turns: int
     tool_calls_total: int
     validation_repairs: int
@@ -111,6 +112,7 @@ def initial_research_state(
         effective_at=effective_at,
         max_candidates=max_candidates,
         messages=messages,
+        fact_ledger=[],
         model_turns=0,
         tool_calls_total=0,
         validation_repairs=0,

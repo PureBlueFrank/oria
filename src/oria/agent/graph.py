@@ -33,6 +33,7 @@ from oria.agent.observations import (
 )
 from oria.agent.spec import ResearchSpec, ResearchStateView
 from oria.agent.state import ResearchRunContext, ResearchState
+from oria.core.context import Context
 from oria.core.types import (
     ChatOptions,
     JsonValue,
@@ -42,6 +43,7 @@ from oria.core.types import (
     ToolResult,
     ToolSpec,
 )
+from oria.memory import FactLedger, FactLedgerEntry, InMemoryMemory, compress_history
 from oria.providers.errors import ProviderException, StructuredOutputError
 from oria.tools.models import (
     QueryMerchantsParams,
@@ -65,6 +67,44 @@ def _messages(state: ResearchState) -> list[Message]:
 
 def _dump_message(message: Message) -> dict[str, JsonValue]:
     return cast(dict[str, JsonValue], message.model_dump(mode="json"))
+
+
+def _load_fact_ledger(state: ResearchState) -> FactLedger:
+    return FactLedger(
+        entries=tuple(
+            FactLedgerEntry.model_validate(item) for item in state.get("fact_ledger", [])
+        )
+    )
+
+
+def _dump_fact_ledger(ledger: FactLedger) -> list[dict[str, JsonValue]]:
+    return [
+        cast(dict[str, JsonValue], entry.model_dump(mode="json"))
+        for entry in ledger.entries
+    ]
+
+
+async def _govern_context(
+    state: ResearchState,
+    messages: list[Message],
+    ctx: Context,
+) -> tuple[list[Message], FactLedger, dict[str, object]]:
+    memory = ctx.memory
+    ledger = _load_fact_ledger(state)
+    if not isinstance(memory, InMemoryMemory):
+        return messages, ledger, {}
+    await memory.replace(messages, ctx, ledger=ledger)
+    await memory.compress(ctx)
+    governed = await memory.load(ctx)
+    governed_ledger = await memory.fact_ledger(ctx)
+    dumped_messages = [_dump_message(message) for message in governed]
+    dumped_ledger = _dump_fact_ledger(governed_ledger)
+    update: dict[str, object] = {}
+    if dumped_messages != state["messages"]:
+        update["messages"] = dumped_messages
+    if dumped_ledger != state.get("fact_ledger", []):
+        update["fact_ledger"] = dumped_ledger
+    return governed, governed_ledger, update
 
 
 def _event(
@@ -486,6 +526,13 @@ async def research_model_node(
         or state["tool_calls_total"] >= context.limits.max_tool_calls
     )
     model_messages = _messages(state)
+    model_messages, fact_ledger, context_update = await _govern_context(
+        state,
+        model_messages,
+        context.ctx,
+    )
+    if context_update:
+        state = cast(ResearchState, {**state, **context_update})
     if force_finalization and not state["finalization_only"]:
         model_messages.append(Message(role="system", content=_FINALIZATION_INSTRUCTION))
     if force_finalization:
@@ -504,6 +551,13 @@ async def research_model_node(
                 content=submission_instruction
                 + canonical_json(selected.response_schema.json_schema),
             )
+        )
+    memory = context.ctx.memory
+    if isinstance(memory, InMemoryMemory):
+        model_messages, _, _ = compress_history(
+            model_messages,
+            memory.budget,
+            fact_ledger,
         )
     request_timeout_seconds = (
         None
@@ -555,7 +609,7 @@ async def research_model_node(
         )
         if usage_reason is not None:
             failure_update["termination"] = _termination(failed_state, context, usage_reason)
-            return failure_update
+            return {**context_update, **failure_update}
         if failed_state["validation_repairs"] < context.limits.max_validation_repairs:
             paths: list[str] = []
             cause = exc.__cause__
@@ -580,11 +634,11 @@ async def research_model_node(
                     "total_cost": failed_state["total_cost"],
                 }
             )
-            return update
+            return {**context_update, **update}
         failure_update["termination"] = _termination(
             failed_state, context, "structured_output_error"
         )
-        return failure_update
+        return {**context_update, **failure_update}
     except ProviderException as exc:
         failed_state = _provider_failure_state(state, exc)
         update = _provider_failure_update(failed_state)
@@ -592,13 +646,14 @@ async def research_model_node(
             failed_events = cast(list[dict[str, JsonValue]], update["events"])
             update["events"] = [*state["events"], *retry_events, failed_events[-1]]
         update["termination"] = _termination(failed_state, context, "provider_failure")
-        return update
+        return {**context_update, **update}
     except Exception:
         failed_state = cast(
             ResearchState,
             {**state, "model_turns": state["model_turns"] + 1},
         )
         return {
+            **context_update,
             "model_turns": failed_state["model_turns"],
             "termination": _termination(failed_state, context, "provider_failure"),
         }
@@ -623,6 +678,7 @@ async def research_model_node(
     if retry_events:
         completion_events = [*completion_events[:-1], *retry_events, completion_events[-1]]
     base_update: dict[str, object] = {
+        **context_update,
         "model_turns": model_turns,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,

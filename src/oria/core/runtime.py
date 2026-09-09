@@ -53,6 +53,7 @@ from oria.domain.services import (
     PackageCampaignRuleService,
 )
 from oria.ingress.local import LocalCLIIngressAdapter
+from oria.memory import ContextBudget, InMemoryMemory
 from oria.orchestrator.checkpoint import open_tenant_sqlite_saver
 from oria.orchestrator.scenario_a import (
     DefaultScenarioAWorkflowService,
@@ -424,6 +425,7 @@ async def build_runtime(
             llm=llm,
             embedder=embedder,
             retriever=retriever,
+            memory=InMemoryMemory(ContextBudget()),
             objects=objects,
             knowledge=knowledge,
             rule_snapshots=rule_snapshots,

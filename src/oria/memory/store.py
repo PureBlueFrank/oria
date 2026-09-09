@@ -195,12 +195,20 @@ class InMemoryMemory:
             record = self._records.setdefault(_namespace(ctx), _SessionRecord())
             record.messages.append(msg)
 
-    async def replace(self, messages: Sequence[Message], ctx: Context) -> None:
+    async def replace(
+        self,
+        messages: Sequence[Message],
+        ctx: Context,
+        *,
+        ledger: FactLedger | None = None,
+    ) -> None:
         """Synchronize checkpoint-backed history before applying context governance."""
 
         async with self._lock:
             record = self._records.setdefault(_namespace(ctx), _SessionRecord())
             record.messages = list(messages)
+            if ledger is not None:
+                record.ledger = ledger
 
     async def search(self, query: str, ctx: Context, k: int = 5) -> list[MemoryItem]:
         """Return no long-term memories; opt-in vector search belongs to V0.5-T02."""
