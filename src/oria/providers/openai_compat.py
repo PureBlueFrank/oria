@@ -732,6 +732,13 @@ class OpenAICompatProvider:
             payload["temperature"] = options.temperature
         if options.max_output_tokens is not None:
             payload["max_tokens"] = options.max_output_tokens
+        if self._profile.provider == "kimi" and self._profile.reasoning_effort is not None:
+            # Kimi K3 compat (curl-verified): thinking is on by default and rejects
+            # synthetic_tool's tool_choice="specified"; with reasoning_effort="none"
+            # only temperature=0.6 is accepted (graph default 0 and the non-thinking
+            # default 1.0 are both rejected).
+            payload["reasoning_effort"] = self._profile.reasoning_effort
+            payload["temperature"] = 0.6 if self._profile.reasoning_effort == "none" else 1.0
         if options.tool_choice is not None:
             payload["tool_choice"] = options.tool_choice
         if options.parallel_tool_calls is not None:

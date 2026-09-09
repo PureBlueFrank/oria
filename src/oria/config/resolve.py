@@ -110,7 +110,7 @@ def _defaults() -> dict[str, Any]:
                     "model": "kimi-k3",
                     "api_key": "${MOONSHOT_API_KEY}",
                     "base_url": "https://api.moonshot.cn/v1",
-                    "structured_output_mode": "native_json_schema",
+                    "structured_output_mode": "synthetic_tool",
                     "reasoning_effort": "none",
                 },
                 "zhipu": {

@@ -179,6 +179,37 @@ async def test_chat_completions_maps_messages_tools_reasoning_and_usage(
 
 
 @pytest.mark.asyncio
+async def test_chat_completions_kimi_reasoning_none_pins_temperature() -> None:
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(
+            200,
+            json=_completion({"role": "assistant", "content": "ok"}),
+        )
+
+    profile = _profile("kimi", mode="synthetic_tool").model_copy(
+        update={"reasoning_effort": "none"}
+    )
+    async with httpx.AsyncClient(
+        base_url="https://provider.invalid/v1", transport=httpx.MockTransport(handler)
+    ) as client:
+        await OpenAICompatProvider(profile, client).chat(
+            [Message(role="user", content="hi")],
+            None,  # type: ignore[arg-type]
+            tools=[_tool()],
+            options=ChatOptions(temperature=0, max_output_tokens=64),
+        )
+
+    payload = json.loads(captured[0].content)
+    # Kimi K3 with reasoning_effort="none" rejects thinking + any temperature
+    # other than 0.6 (the graph defaults to 0, non-thinking default to 1.0).
+    assert payload["reasoning_effort"] == "none"
+    assert payload["temperature"] == 0.6
+
+
+@pytest.mark.asyncio
 async def test_chat_completions_native_schema_is_explicit_and_locally_validated() -> None:
     captured: list[dict[str, Any]] = []
     responses = iter(
