@@ -96,7 +96,7 @@ flowchart TB
 - 读写都绑定 tenant、actor/executor 与 PolicyDecision，RAG 在召回前强制 ACL 过滤。
 - 合成数据、Fixture、Community、Live 和 Enterprise 证据分层记录，Mock 结果不会冒充真实接入。
 
-更完整的分层和数据边界见 [架构概览](ARCHITECTURE.md) 与 [Oria 架构设计](Oria架构设计.md)。
+更完整的分层和数据边界见 [架构概览](ARCHITECTURE.md)。
 
 ## 验证状态与限制
 
@@ -120,6 +120,6 @@ make smoke
 
 - 上手：[场景 B 归因演示](docs/guides/attribution-demo.md) · [真实 DeepSeek](docs/guides/real-llm.md) · [完整本地 Workflow](docs/guides/local-workflow.md)
 - 参考：[数据模型与核心表](docs/reference/data-model.md) · [ADR 索引](docs/adr/README.md) · [威胁模型](docs/security/V0.3场景A威胁模型.md)
-- 规划与证据：[详细执行路线](docs/Oria详细执行路线.md) · [执行计划](ROADMAP.md) · [统一验证证据索引](reports/verification/README.md) · [验证证据模板](reports/verification/TEMPLATE.md)
+- 规划与证据：[执行计划](ROADMAP.md) · [统一验证证据索引](reports/verification/README.md) · [验证证据模板](reports/verification/TEMPLATE.md)
 
 依赖必须通过 `uv.lock` 同步。仓库不提交密钥、令牌、真实客户数据或 `.env` 文件。

@@ -71,7 +71,7 @@ Agent Runtime：Workflow / ReAct / Multi-Agent / Context / Memory
 
 ## 模块职责
 
-下表是跨 V0.1–V0.8 的目标模块图。当前已实现到 V0.4 的目录包括 `core/providers/prompts/agent/orchestrator/domain/tools/rag/storage/permission/eval/obs/adapters/ingress` 等；`guardrails/memory/api/jobs/web` 属 V0.5 及以后规划，不能据此表宣称已经交付。
+下表是跨 V0.1–V0.8 的目标模块图。当前已实现到 V0.4 的目录包括 `core/providers/prompts/agent/orchestrator/domain/tools/rag/storage/permission/eval/adapters/ingress` 等；`guardrails/memory/obs/api/jobs/web` 属 V0.5 及以后规划，不能据此表宣称已经交付。
 
 | 模块 | 主要职责 |
 | --- | --- |

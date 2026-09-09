@@ -45,4 +45,4 @@ Platform DB 保存知识目录、审批、外部等待、集成事件与平台�
 
 - [本地 Workflow 操作手册](../guides/local-workflow.md)
 - [V0.3 场景 A 威胁模型](../security/V0.3场景A威胁模型.md)
-- [Oria 详细执行路线](../Oria详细执行路线.md)
+- [公开执行计划](../../ROADMAP.md)

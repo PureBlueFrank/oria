@@ -1,6 +1,6 @@
 # Oria 验证证据索引
 
-本页是项目验证证据的统一入口。版本状态以 [ROADMAP](../../ROADMAP.md) 为准，详细门禁与场景以[详细执行路线](../../docs/Oria详细执行路线.md)为准，架构决策状态以 [ADR 索引](../../docs/adr/README.md)为准。本索引只汇总已有证据，不把 Fixture、Mock 或 Community 结果提升为 Live/Enterprise 结论。
+本页是项目验证证据的统一入口。版本状态、公开门禁与场景以 [ROADMAP](../../ROADMAP.md) 为准，架构决策状态以 [ADR 索引](../../docs/adr/README.md)为准。本索引只汇总已有证据，不把 Fixture、Mock 或 Community 结果提升为 Live/Enterprise 结论。
 
 ## 当前结论
 
