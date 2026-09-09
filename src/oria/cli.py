@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import sys
+import uuid
 from collections.abc import Coroutine
 from enum import StrEnum
 from importlib import resources
@@ -16,6 +17,7 @@ from oria.chat.session import run_chat
 from oria.config import ConfigResolutionError, resolve_runtime_config
 from oria.config.models import ResolvedRuntimeConfig
 from oria.core.protocols import Reranker
+from oria.core.runtime import build_runtime
 from oria.data import DataInitializationError, initialize_data
 from oria.demo import DemoResult, DemoRunError, run_demo
 from oria.eval import (
@@ -30,6 +32,7 @@ from oria.eval import (
     run_rag_eval,
     write_value_model,
 )
+from oria.memory import PersistentMemory
 from oria.orchestrator.local_executor import (
     LocalWorkflowResult,
     close_enrollment_window,
@@ -40,6 +43,7 @@ from oria.orchestrator.local_executor import (
     inject_selection_decision,
     start_local_workflow,
 )
+from oria.permission.local import local_cli_executor, local_operator
 from oria.presentation.attribution import render_attribution
 from oria.presentation.workflow import (
     MerchantMatch,
@@ -63,6 +67,7 @@ workflow_app = typer.Typer(help="Start and resume the local Scenario A workflow.
 approval_app = typer.Typer(help="Approve or reject an active workflow HITL request.")
 mock_app = typer.Typer(help="Inject authenticated synthetic Scenario A events.")
 attribution_app = typer.Typer(help="Run the bounded Scenario B attribution demonstration.")
+memory_app = typer.Typer(help="View, delete, and export opted-in long-term memories.")
 app.add_typer(config_app, name="config")
 app.add_typer(data_app, name="data")
 app.add_typer(eval_app, name="eval")
@@ -70,6 +75,7 @@ app.add_typer(workflow_app, name="workflow")
 app.add_typer(approval_app, name="approval")
 app.add_typer(mock_app, name="mock")
 app.add_typer(attribution_app, name="attribution")
+app.add_typer(memory_app, name="memory")
 
 
 class OutputFormat(StrEnum):
@@ -585,6 +591,156 @@ def _workflow_config(
         else:
             typer.echo(f"Configuration invalid: {exc}", err=True)
         raise typer.Exit(code=2) from None
+
+
+async def _memory_items(
+    config: ResolvedRuntimeConfig,
+    *,
+    operation: Literal["view", "delete", "export"],
+    memory_id: str | None = None,
+) -> dict[str, object]:
+    await initialize_data(config)
+    runtime = await build_runtime(config)
+    try:
+        memory = runtime.memory
+        if not isinstance(memory, PersistentMemory):
+            raise RuntimeError("long-term memory is unavailable")
+        invocation_id = uuid.uuid4().hex
+        ctx = runtime.new_context(
+            actor=local_operator(),
+            executor=local_cli_executor(),
+            session_id=f"memory-cli-{invocation_id}",
+            thread_id=f"memory-cli-{invocation_id}",
+            run_id=f"memory-cli-{invocation_id}",
+        )
+        if operation == "delete":
+            if memory_id is None:
+                raise ValueError("memory_id is required for deletion")
+            deleted = await memory.delete(memory_id, ctx)
+            return {"schema_version": 1, "memory_id": memory_id, "deleted": deleted}
+        if operation == "export":
+            items = await memory.export(ctx)
+        else:
+            items = [
+                item.model_dump(mode="json", exclude={"tenant_id", "subject_id"})
+                for item in await memory.view(ctx)
+            ]
+        return {"schema_version": 1, "items": items}
+    finally:
+        await runtime.aclose()
+
+
+def _run_memory_command(
+    config: ResolvedRuntimeConfig,
+    *,
+    operation: Literal["view", "delete", "export"],
+    output: OutputFormat,
+    memory_id: str | None = None,
+) -> None:
+    try:
+        payload = asyncio.run(_memory_items(config, operation=operation, memory_id=memory_id))
+    except (DataInitializationError, LookupError, PermissionError, RuntimeError, ValueError) as exc:
+        error = {"ok": False, "error": {"code": "memory_operation_failed", "message": str(exc)}}
+        if output is OutputFormat.JSON:
+            typer.echo(json.dumps(error, ensure_ascii=False, sort_keys=True))
+        else:
+            typer.echo(f"Memory operation failed: {exc}", err=True)
+        raise typer.Exit(code=1) from None
+    if output is OutputFormat.JSON or operation == "export":
+        typer.echo(json.dumps({"ok": True, "data": payload}, ensure_ascii=False, sort_keys=True))
+        return
+    if operation == "delete":
+        status = "deleted" if payload["deleted"] else "not found"
+        typer.echo(f"Memory {payload['memory_id']}: {status}")
+        return
+    items = cast(list[dict[str, object]], payload["items"])
+    if not items:
+        typer.echo("No active long-term memories.")
+        return
+    for item in items:
+        typer.echo(
+            f"{item['id']} | confidence={item['confidence']} | "
+            f"sensitivity={item['sensitivity']} | expires_at={item['expires_at']}"
+        )
+        typer.echo(str(item["content"]))
+
+
+def _memory_config(
+    *,
+    output: OutputFormat,
+    config_path: Path | None,
+    runtime_profile: str | None,
+    embedding_profile: str | None,
+    data_dir: Path | None,
+) -> ResolvedRuntimeConfig:
+    return _workflow_config(
+        output=output,
+        config_path=config_path,
+        data_dir=data_dir,
+        runtime_profile=runtime_profile,
+        llm_profile=None,
+        embedding_profile=embedding_profile,
+    )
+
+
+@memory_app.command("view")
+def memory_view(
+    output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """List active, unexpired memories in the trusted local user's namespace."""
+
+    config = _memory_config(
+        output=output,
+        config_path=config_path,
+        runtime_profile=runtime_profile,
+        embedding_profile=embedding_profile,
+        data_dir=data_dir,
+    )
+    _run_memory_command(config, operation="view", output=output)
+
+
+@memory_app.command("delete")
+def memory_delete(
+    memory_id: Annotated[str, typer.Argument(help="Opaque memory object ID.")],
+    output: Annotated[OutputFormat, typer.Option("--output")] = OutputFormat.HUMAN,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """Delete one memory body, vector projection, and cached search result."""
+
+    config = _memory_config(
+        output=output,
+        config_path=config_path,
+        runtime_profile=runtime_profile,
+        embedding_profile=embedding_profile,
+        data_dir=data_dir,
+    )
+    _run_memory_command(config, operation="delete", output=output, memory_id=memory_id)
+
+
+@memory_app.command("export")
+def memory_export(
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    runtime_profile: Annotated[str | None, typer.Option("--runtime-profile")] = None,
+    embedding_profile: Annotated[str | None, typer.Option("--embedding-profile")] = None,
+    data_dir: Annotated[Path | None, typer.Option("--data-dir")] = None,
+) -> None:
+    """Export active, unexpired memories as redacted JSON."""
+
+    config = _memory_config(
+        output=OutputFormat.JSON,
+        config_path=config_path,
+        runtime_profile=runtime_profile,
+        embedding_profile=embedding_profile,
+        data_dir=data_dir,
+    )
+    _run_memory_command(config, operation="export", output=OutputFormat.JSON)
 
 
 def _run_workflow_operation(

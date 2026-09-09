@@ -160,7 +160,13 @@ class PersistentMemory(InMemoryMemory):
     async def export(self, ctx: Context) -> list[dict[str, object]]:
         await self._authorize("memory:export", "namespace", ctx.tenant_id, ctx)
         candidates = await self._repository.list_active(ctx, now=self._clock())
-        return [candidate.item.model_dump(mode="json") for candidate in candidates]
+        return [
+            candidate.item.model_dump(
+                mode="json",
+                exclude={"tenant_id", "subject_id"},
+            )
+            for candidate in candidates
+        ]
 
     async def _authorize(
         self,
