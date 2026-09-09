@@ -104,6 +104,15 @@ def _defaults() -> dict[str, Any]:
                     "base_url": "https://api.moonshot.cn/v1",
                     "structured_output_mode": "synthetic_tool",
                 },
+                "kimi-k3": {
+                    "provider": "kimi",
+                    "api_dialect": "chat_completions",
+                    "model": "kimi-k3",
+                    "api_key": "${MOONSHOT_API_KEY}",
+                    "base_url": "https://api.moonshot.cn/v1",
+                    "structured_output_mode": "native_json_schema",
+                    "reasoning_effort": "none",
+                },
                 "zhipu": {
                     "provider": "zhipu",
                     "api_dialect": "chat_completions",

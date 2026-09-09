@@ -390,3 +390,22 @@ def test_fingerprint_and_public_projection_exclude_secrets(tmp_path: Path) -> No
     assert real_key not in repr(with_key.llm)
     assert real_key not in str(with_key.llm)
     assert real_key not in str(with_key.llm.api_key)
+
+
+def test_kimi_k3_profile_is_pinned_and_uses_native_schema() -> None:
+    resolved = resolve_runtime_config(
+        llm_profile="kimi-k3", environ={"MOONSHOT_API_KEY": "fixture-key"}
+    )
+    assert resolved.llm.provider == "kimi"
+    assert resolved.llm.model == "kimi-k3"
+    assert resolved.llm.api_dialect == "chat_completions"
+    assert resolved.llm.base_url == "https://api.moonshot.cn/v1"
+    assert resolved.llm.structured_output_mode == "native_json_schema"
+    assert resolved.llm.reasoning_effort == "none"
+    assert resolved.llm.api_key is not None
+    assert resolved.llm.api_key.get_secret_value() == "fixture-key"
+
+
+def test_kimi_k3_profile_requires_credentials() -> None:
+    with pytest.raises(ConfigResolutionError):
+        resolve_runtime_config(llm_profile="kimi-k3", environ={})
