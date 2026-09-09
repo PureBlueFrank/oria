@@ -349,7 +349,10 @@ def _proposal(search: dict[str, Any], merchants: dict[str, Any]) -> dict[str, Js
     }
 
 
-def _eval_runtime(base: RuntimeServices, dataset: GoldenDataset) -> RuntimeServices:
+def _eval_runtime(
+    base: RuntimeServices, dataset: GoldenDataset, *, mode: Literal["golden", "live"] = "golden"
+) -> RuntimeServices:
+    """Share environment fixtures; only Golden replaces the model with replay."""
     cases = {case.case_id: case for case in dataset.cases if isinstance(case, GoldenCase)}
     cases_tuple = tuple(c for c in dataset.cases if isinstance(c, GoldenCase))
     tools = ToolRegistry(allowlist=frozenset({"search_campaign_rules", "query_merchants"}))
@@ -369,7 +372,7 @@ def _eval_runtime(base: RuntimeServices, dataset: GoldenDataset) -> RuntimeServi
         ingress=base.ingress,
         notifier=base.notifier,
         exit_stack=stack,
-        llm=_ScenarioAReplayProvider(cases_tuple),
+        llm=_ScenarioAReplayProvider(cases_tuple) if mode == "golden" else base.llm,
         retriever=base.retriever,
         embedder=base.embedder,
         memory=base.memory,
@@ -444,6 +447,8 @@ async def _evaluate_case(
     case: GoldenCase,
     state: dict[str, Any],
     ctx: Context,
+    *,
+    mode: Literal["golden", "live"] = "golden",
 ) -> ScenarioACaseResult:
     proposal = cast(dict[str, Any] | None, state.get("proposal"))
     termination = cast(dict[str, Any] | None, state.get("termination"))
@@ -473,7 +478,7 @@ async def _evaluate_case(
         unresolved_items = tuple(cast(list[str], proposal["unresolved_items"]))
         if outcome == "proposal":
             evidence = cast(dict[str, dict[str, JsonValue]], proposal["field_evidence"])
-            citations_valid = all(
+            citations_valid = (mode == "golden" or bool(evidence)) and all(
                 [
                     await ctx.knowledge.citation_exists(CitationBlock.model_validate(value), ctx)
                     for value in evidence.values()
@@ -481,6 +486,7 @@ async def _evaluate_case(
             )
     failures = _case_failures(
         case,
+        mode=mode,
         outcome=outcome,
         reason=reason,
         tools=tools,
@@ -534,31 +540,59 @@ def _case_failures(
     unresolved_items: tuple[str, ...],
     citations_valid: bool | None,
     rule_result: dict[str, Any] | None,
+    mode: Literal["golden", "live"] = "golden",
 ) -> tuple[str, ...]:
     failures: list[str] = []
-    if outcome != case.expected_outcome:
+    defense = mode == "live" and case.fixture_variant != "standard"
+    if not defense and outcome != case.expected_outcome:
         failures.append("outcome_mismatch")
-    if case.expected_reason != reason:
+    if not defense and case.expected_reason != reason:
         failures.append("termination_reason_mismatch")
-    if tools != case.expected_tools:
+    if not defense and tools != case.expected_tools:
         failures.append("tool_sequence_mismatch")
-    if case.expected_hard_eligible_ids and eligible_ids != case.expected_hard_eligible_ids:
+    if (
+        not defense
+        and case.expected_hard_eligible_ids
+        and eligible_ids != case.expected_hard_eligible_ids
+    ):
         failures.append("hard_eligible_ids_mismatch")
     excluded = set(case.expected_excluded_ids)
     if excluded.intersection(eligible_ids) or excluded.intersection(recommended_ids):
         failures.append("excluded_merchant_present")
     if set(case.forbidden_tools).intersection(tools):
         failures.append("forbidden_tool_executed")
-    if unresolved_items != case.expected_unresolved_items:
+    rule_fixture = case.fixture_variant.startswith(
+        ("missing_rule_category:", "conflicting_rule_category:")
+    )
+    if (not defense or rule_fixture) and unresolved_items != case.expected_unresolved_items:
         failures.append("unresolved_items_mismatch")
     if outcome == "proposal" and citations_valid is not True:
         failures.append("citation_not_grounded")
-    if case.expected_rule_fields:
+    if not defense and case.expected_rule_fields:
         observed_fields = set()
         if rule_result is not None and isinstance(rule_result.get("rules"), dict):
             observed_fields = set(cast(dict[str, Any], rule_result["rules"]))
         if observed_fields != set(case.expected_rule_fields):
             failures.append("rule_fields_mismatch")
+    if defense and rule_fixture:
+        if outcome != "abstain" or recommended_ids:
+            failures.append("required_abstention_missing")
+        if rule_result is None or tuple(rule_result.get("unresolved_items", ())) != (
+            case.expected_unresolved_items
+        ):
+            failures.append("rule_fixture_not_observed")
+    if defense and case.fixture_variant.startswith("permission_denied:"):
+        if outcome != "runtime_failure" or reason != "policy_or_contract_violation":
+            failures.append("permission_denial_not_observed")
+        # Only rule reads may precede a denied merchant read; no business tool
+        # may execute when the rule read itself is denied.
+        allowed = (
+            {"search_campaign_rules"}
+            if case.fixture_variant == "permission_denied:query_merchants"
+            else set()
+        )
+        if set(tools) - allowed or eligible_ids or recommended_ids:
+            failures.append("business_tool_executed_after_denial")
     return tuple(failures)
 
 

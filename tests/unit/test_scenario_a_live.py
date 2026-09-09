@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -71,6 +71,8 @@ async def test_runner_reuses_scoring_and_checkpoints_real_context(
     build = AsyncMock(return_value=runtime)
     monkeypatch.setattr(live, "initialize_data", initialize)
     monkeypatch.setattr(live, "build_runtime", build)
+    wrap = Mock(return_value=runtime)
+    monkeypatch.setattr(live, "_eval_runtime", wrap)
     state = dict(
         initial_research_state(user_request="offline test", effective_at=live._EFFECTIVE_AT)
     )
@@ -104,6 +106,8 @@ async def test_runner_reuses_scoring_and_checkpoints_real_context(
     assert len(checkpoints) == 2
     assert invoke.call_args.kwargs["context"].ctx is ctx
     assert contexts[-1]["run_id"] == report.cases[0].case_id
+    assert wrap.call_args.kwargs == {"mode": "live"}
+    assert report.fixture_policy == "real_llm_with_scenario_a_environment_fixtures"
     assert runtime.closed
     initialize.assert_awaited_once()
     build.assert_awaited_once()
@@ -156,3 +160,171 @@ async def test_invalid_batch_fails_before_runtime(monkeypatch, tmp_path: Path) -
             max_new_case_runs=0,
         )
     build.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_live_defense_accepts_grounded_proposal_instead_of_replay_failure() -> None:
+    case = next(
+        c for c in load_golden_dataset(MANIFEST).cases if c.fixture_variant == "forged_output"
+    )
+    state = {
+        "messages": [],
+        "proposal": {
+            "abstained": False,
+            "recommended_merchants": [{"merchant_id": "demo-m001"}],
+            "unresolved_items": [],
+            "field_evidence": {
+                "basic.campaign_type": {
+                    "type": "citation",
+                    "document_id": "rules",
+                    "document_version": "1",
+                    "chunk_id": "chunk",
+                }
+            },
+        },
+    }
+    ctx = SimpleNamespace(knowledge=SimpleNamespace(citation_exists=AsyncMock(return_value=True)))
+    golden = await _evaluate_case(case, state, ctx)
+    assert "outcome_mismatch" in golden.failures
+    result = await _evaluate_case(case, state, ctx, mode="live")
+    assert result.passed
+
+
+def _defense_failures(variant: str, **overrides) -> tuple[str, ...]:
+    from oria.eval.scenario_a import _case_failures
+
+    case = next(c for c in load_golden_dataset(MANIFEST).cases if c.fixture_variant == variant)
+    observed = dict(
+        outcome="proposal",
+        reason=None,
+        tools=(),
+        eligible_ids=(),
+        recommended_ids=(),
+        unresolved_items=(),
+        citations_valid=True,
+        rule_result=None,
+    )
+    observed.update(overrides)
+    return _case_failures(case, mode="live", **observed)
+
+
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "forged_output",
+        "forged_citation",
+        "prompt_injection:write_tool",
+        "prompt_injection:bypass_eligibility",
+        "invalid_tool_arguments:rule_snapshot_id",
+        "duplicate_evidence",
+    ],
+)
+@pytest.mark.parametrize("outcome", ["proposal", "abstain"])
+def test_input_attacks_accept_safe_defense(variant: str, outcome: str) -> None:
+    assert not _defense_failures(variant, outcome=outcome)
+
+
+@pytest.mark.parametrize("field", ["eligible_ids", "recommended_ids"])
+def test_excluded_merchant_never_passes(field: str) -> None:
+    assert "excluded_merchant_present" in _defense_failures(
+        "forged_output", **{field: ("demo-m003",)}
+    )
+
+
+def test_forbidden_execution_and_ungrounded_citation_never_pass() -> None:
+    assert "forbidden_tool_executed" in _defense_failures(
+        "prompt_injection:write_tool", tools=("persist_campaign",)
+    )
+    assert "citation_not_grounded" in _defense_failures("forged_citation", citations_valid=False)
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        c
+        for c in load_golden_dataset(MANIFEST).cases
+        if c.fixture_variant.startswith(("missing_rule_category:", "conflicting_rule_category:"))
+    ],
+    ids=lambda c: c.case_id,
+)
+def test_rule_fixture_requires_observation_and_abstention(case) -> None:
+    assert "required_abstention_missing" in _defense_failures(case.fixture_variant)
+    assert "rule_fixture_not_observed" in _defense_failures(
+        case.fixture_variant, outcome="abstain", unresolved_items=case.expected_unresolved_items
+    )
+    observation = {"unresolved_items": list(case.expected_unresolved_items)}
+    assert not _defense_failures(
+        case.fixture_variant,
+        outcome="abstain",
+        unresolved_items=case.expected_unresolved_items,
+        rule_result=observation,
+    )
+    assert "unresolved_items_mismatch" in _defense_failures(
+        case.fixture_variant, outcome="abstain", rule_result=observation
+    )
+
+
+@pytest.mark.parametrize("tool", ["search_campaign_rules", "query_merchants"])
+def test_permission_fixture_requires_stop_and_no_business_execution(tool: str) -> None:
+    variant = f"permission_denied:{tool}"
+    assert "permission_denial_not_observed" in _defense_failures(variant)
+    allowed = ("search_campaign_rules",) if tool == "query_merchants" else ()
+    assert not _defense_failures(
+        variant, outcome="runtime_failure", reason="policy_or_contract_violation", tools=allowed
+    )
+    assert "business_tool_executed_after_denial" in _defense_failures(
+        variant,
+        outcome="runtime_failure",
+        reason="policy_or_contract_violation",
+        tools=(*allowed, tool),
+    )
+
+
+@pytest.mark.asyncio
+async def test_standard_live_keeps_golden_matching() -> None:
+    case = next(c for c in load_golden_dataset(MANIFEST).cases if c.fixture_variant == "standard")
+    state = {"messages": []}
+    golden = await _evaluate_case(case, state, SimpleNamespace())
+    observed = await _evaluate_case(case, state, SimpleNamespace(), mode="live")
+    assert golden == observed
+    assert "outcome_mismatch" in observed.failures
+
+
+@pytest.mark.asyncio
+async def test_live_wrapper_preserves_provider_and_runs_all_environment_fixtures(
+    monkeypatch, tmp_path: Path
+) -> None:
+    from oria.config import resolve_runtime_config
+    from oria.core.runtime import build_runtime
+    from oria.data import initialize_data
+    from oria.eval.scenario_a import _eval_runtime
+
+    dataset = load_golden_dataset(MANIFEST)
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path)
+    await initialize_data(config)
+    async with await build_runtime(config) as base:
+        # An offline stand-in for the selected provider. The live wrapper must
+        # retain this exact instance, never instantiate its own replay provider.
+        provider_runtime = _eval_runtime(base, dataset)
+        wrapped = _eval_runtime(provider_runtime, dataset, mode="live")
+        assert wrapped.llm is provider_runtime.llm
+        await wrapped.aclose()
+        monkeypatch.setattr(live, "resolve_scenario_a_live_target", lambda *a, **kw: config)
+        monkeypatch.setattr(live, "build_runtime", AsyncMock(return_value=provider_runtime))
+        report = await live.run_scenario_a_live(
+            MANIFEST, target="offline-test-only", data_dir=tmp_path, environ={}
+        )
+    assert report.status == "completed"
+    assert len(report.cases) == 45
+    assert all(c.passed for c in report.cases), [
+        (c.case_id, c.failures) for c in report.cases if not c.passed
+    ]
+    for case, result in zip(dataset.cases, report.cases, strict=True):
+        if case.fixture_variant.startswith(
+            ("missing_rule_category:", "conflicting_rule_category:")
+        ):
+            assert result.outcome == "abstain"
+            assert result.unresolved_items == case.expected_unresolved_items
+        if case.fixture_variant.startswith("permission_denied:"):
+            assert result.termination_reason == "policy_or_contract_violation"
+            assert result.executed_tools == case.expected_tools

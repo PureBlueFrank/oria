@@ -1,4 +1,4 @@
-"""Opt-in Scenario A evaluation using unmodified runtime services."""
+"""Opt-in Scenario A evaluation using a real model and Scenario A environment fixtures."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from oria.eval.scenario_a import (
     _EFFECTIVE_AT,
     ScenarioACaseResult,
     ScenarioAMetrics,
+    _eval_runtime,
     _evaluate_case,
     _metrics,
 )
@@ -48,7 +49,7 @@ class ScenarioALiveReport(ValueModel):
     schema_version: Literal[1] = 1
     suite: Literal["scenario_a"] = "scenario_a"
     verification_level: Literal["live"] = "live"
-    runner_version: Literal["scenario_a_live_v1"] = "scenario_a_live_v1"
+    runner_version: Literal["scenario_a_live_v2"] = "scenario_a_live_v2"
     dataset_version: str
     dataset_sha256: str
     dataset_case_count: int
@@ -61,8 +62,8 @@ class ScenarioALiveReport(ValueModel):
     metrics: ScenarioAMetrics | None = None
     usage: ScenarioALiveUsage = ScenarioALiveUsage()
     error_type: str | None = None
-    fixture_policy: Literal["real_runtime_no_fixture_injection"] = (
-        "real_runtime_no_fixture_injection"
+    fixture_policy: Literal["real_llm_with_scenario_a_environment_fixtures"] = (
+        "real_llm_with_scenario_a_environment_fixtures"
     )
 
 
@@ -95,7 +96,7 @@ async def run_scenario_a_live(
     max_new_case_runs: int | None = None,
     checkpoint: Callable[[ScenarioALiveReport], None] | None = None,
 ) -> ScenarioALiveReport:
-    """Run real LLM, tools, knowledge and policy; score without Golden gates.
+    """Run real LLM with rule/permission fixtures; score without Golden gates.
 
     A bounded run starts from the first case; this initial version does not resume.
     Completed records are checkpointed after every case, including on failure.
@@ -119,14 +120,14 @@ async def run_scenario_a_live(
     results: list[ScenarioALiveCase] = []
     try:
         await initialize_data(config)
-        runtime = await build_runtime(config)
-        async with runtime:
+        base = await build_runtime(config)
+        async with base, _eval_runtime(base, dataset, mode="live") as runtime:
             ingest_ctx = runtime.new_context(
                 actor=local_operator(),
                 executor=local_cli_executor(),
                 session_id="scenario-a-live",
                 thread_id="ingest",
-                run_id="ingest",
+                run_id=dataset.cases[0].case_id,
             )
             if runtime.knowledge is None:
                 raise ValueError("Scenario A Live requires knowledge service")
@@ -146,7 +147,7 @@ async def run_scenario_a_live(
                     config={"configurable": {"thread_id": case.case_id}},
                     context=ResearchRunContext(ctx=ctx),
                 )
-                scored = await _evaluate_case(case, state, ctx)
+                scored = await _evaluate_case(case, state, ctx, mode="live")
                 results.append(
                     ScenarioALiveCase(
                         **scored.model_dump(),
