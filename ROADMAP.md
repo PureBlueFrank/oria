@@ -80,6 +80,8 @@ V0.4-T05 修复已收口（2026-09-07）：累计授权 4 美元；原批次 60 
 
 2026-09-09 Live 收口后加固与三轮复跑：在决策规则整改基础上做工程加固——可重试 provider 故障有界重试（不占用模型轮）、决策规则/schema 校验反馈翻译为可执行修复指令、新增 prompt v4（明确 support/refutation 索引不相交、保留全部 supported 候选、因果追问须覆盖 funnel+activity 证据）、structured 输出 JSON 打捞（去代码围栏/尾逗号/前后散文）、finalization 关闭并行工具调用以稳定保留提交、放宽 `evidence_indices` 为可选并补语义描述。本地 `make lint`/`make test` 878 项通过。随后用 `deepseek-pro-structured` 对冻结 holdout 复跑三轮 Live：自动通过率分别为 71.7%（43/60）、76.7%（46/60）、75.0%（45/60），`required_tool_coverage` 稳定 100%。结论：通过率卡在约 75% 的模型能力天花板——剩余失败集中在决策契约四元交叉对账（candidates/hypotheses/evidence.supports/outcome）、synthetic_tool 结构化输出偶发失败与幻觉工具名/伪造引用，均属 deepseek-v4-pro 能力上限而非工程缺陷；不把 75% 表述为质量通过或接近 100%，自动门禁仍为 `completed_pending_human_review`，须人工盲评。证据见 [本轮报告](reports/verification/v0.4/20260908-live-optimization/summary.md)。
 
+2026-09-09 GPT-5.6 Sol 第 4 轮 Live 完成：新增 ChatGPT 订阅鉴权的 Codex App Server provider，固定 `gpt-5.6-sol` / `high` 并沿用冻结 V2 holdout 20×3；Runner 支持断点续跑和订阅额度触顶安全停批，分两阶段跑完全部 60/60 case-run。自动通过率 91.67%（55/60），outcome/abstain 96.67%、禁用工具安全 100%、grounded evidence 97.62%，三轮重复 85%/95%/95%；对比 deepseek-pro-structured 的 75% 提升约 16.7 个百分点。`make lint` 与 886 项非 Live 测试通过。自动门禁仍为 `completed_pending_human_review`，须人工盲评 10 条后方可接受 Live card。见 [本轮报告](reports/verification/v0.4/20260909-gpt56-sol-round4/README.md)。
+
 ## V0.5：多智能体、上下文与记忆
 
 | ID | 依赖 | 任务与产物 | 完成验证 |
