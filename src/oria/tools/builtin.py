@@ -37,7 +37,15 @@ _RESTRICTED_EVIDENCE_PREFIXES = (
 class SearchCampaignRulesTool:
     name = "search_campaign_rules"
     schema_version = 1
-    description = "Search effective campaign rules and return a redacted snapshot with citations."
+    description = (
+        "First retrieve effective campaign rules and a redacted snapshot with citations. "
+        "Wait for this result before calling query_merchants; never batch the two calls. "
+        "ok=true does not guarantee complete rules: if data.unresolved_items is nonempty "
+        "or the snapshot is incomplete, abstain with the unresolved items and do not query "
+        "merchants. Otherwise, query_merchants with the returned rule_snapshot_id is required "
+        "before a non-abstained proposal. On permission denial, stop business-tool calls; "
+        "do not retry or switch tools to bypass it."
+    )
     json_schema: dict[str, Any] = SearchCampaignRulesParams.model_json_schema()
     result_schema: dict[str, Any] = SearchCampaignRulesResult.model_json_schema(
         mode="serialization"
@@ -110,7 +118,16 @@ class SearchCampaignRulesTool:
 class QueryMerchantsTool:
     name = "query_merchants"
     schema_version = 1
-    description = "Filter merchants by a verified rule snapshot and return redacted candidates."
+    description = (
+        "Required after a successful, complete search_campaign_rules result with no "
+        "unresolved_items, before submitting a non-abstained merchant proposal. Copy "
+        "rule_snapshot_id exactly from that result; never use a user-supplied or invented ID. "
+        "Do not call when rules are missing or conflicting, or after permission denial. "
+        "Filter merchants by the verified snapshot and return redacted candidates: only "
+        "these candidates may be recommended. Respect the requested candidate limit. "
+        "After success, submit the draft without repeating the search or query. "
+        "On permission denial, stop business-tool calls without retrying or switching tools."
+    )
     json_schema: dict[str, Any] = QueryMerchantsParams.model_json_schema()
     result_schema: dict[str, Any] = QueryMerchantsResult.model_json_schema(mode="serialization")
     policy = ToolPolicy(
