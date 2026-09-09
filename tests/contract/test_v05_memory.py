@@ -82,9 +82,7 @@ async def test_compress_retains_serializable_ledger_and_obeys_budget() -> None:
         Message(
             role="tool",
             tool_call_id="fact-call",
-            content=json.dumps(
-                {"merchant_id": "m-100", "amount": 9900, "details": "x" * 800}
-            ),
+            content=json.dumps({"merchant_id": "m-100", "amount": 9900, "details": "x" * 800}),
         ),
         ctx,
     )
@@ -101,4 +99,3 @@ async def test_compress_retains_serializable_ledger_and_obeys_budget() -> None:
         "merchant_id": "m-100",
     }
     assert estimate_tokens(loaded) <= budget.message_token_limit
-

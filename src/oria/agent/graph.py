@@ -71,17 +71,12 @@ def _dump_message(message: Message) -> dict[str, JsonValue]:
 
 def _load_fact_ledger(state: ResearchState) -> FactLedger:
     return FactLedger(
-        entries=tuple(
-            FactLedgerEntry.model_validate(item) for item in state.get("fact_ledger", [])
-        )
+        entries=tuple(FactLedgerEntry.model_validate(item) for item in state.get("fact_ledger", []))
     )
 
 
 def _dump_fact_ledger(ledger: FactLedger) -> list[dict[str, JsonValue]]:
-    return [
-        cast(dict[str, JsonValue], entry.model_dump(mode="json"))
-        for entry in ledger.entries
-    ]
+    return [cast(dict[str, JsonValue], entry.model_dump(mode="json")) for entry in ledger.entries]
 
 
 async def _govern_context(

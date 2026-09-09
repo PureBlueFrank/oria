@@ -117,9 +117,7 @@ def _summary_message(entries: Sequence[FactLedgerEntry]) -> Message:
     payload = {
         _SUMMARY_KIND: {
             "version": 1,
-            "facts": [
-                {"key": entry.key, "value": entry.value} for entry in entries
-            ],
+            "facts": [{"key": entry.key, "value": entry.value} for entry in entries],
         }
     }
     return Message(
@@ -152,9 +150,11 @@ def compress_history(
     updated_ledger = extract_facts(non_system, ledger)
 
     included_facts = list(updated_ledger.entries)
-    while included_facts and _estimate(
-        [*system_messages, _summary_message(included_facts)], budget
-    ) > budget.message_token_limit:
+    while (
+        included_facts
+        and _estimate([*system_messages, _summary_message(included_facts)], budget)
+        > budget.message_token_limit
+    ):
         included_facts.pop(0)
     summary = _summary_message(included_facts)
 

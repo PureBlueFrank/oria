@@ -32,9 +32,7 @@ class _CapturingFailureProvider:
 async def test_research_model_compresses_checkpoint_history_before_provider_call(
     tmp_path: Path,
 ) -> None:
-    runtime = await build_runtime(
-        resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
-    )
+    runtime = await build_runtime(resolve_runtime_config(environ={}, data_dir=tmp_path / "data"))
     try:
         budget = ContextBudget(max_context_tokens=2_000, reserve_tokens=200)
         memory = InMemoryMemory(budget)
@@ -88,9 +86,7 @@ async def test_research_model_compresses_checkpoint_history_before_provider_call
 
 @pytest.mark.asyncio
 async def test_community_runtime_mounts_session_memory(tmp_path: Path) -> None:
-    runtime = await build_runtime(
-        resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
-    )
+    runtime = await build_runtime(resolve_runtime_config(environ={}, data_dir=tmp_path / "data"))
     try:
         assert isinstance(runtime.memory, InMemoryMemory)
     finally:

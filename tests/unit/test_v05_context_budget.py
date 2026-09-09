@@ -86,4 +86,3 @@ def test_overflow_compresses_and_preserves_each_fixed_fact() -> None:
     assert "128500" in summary
     assert "经营异常由客单价下降导致" in summary
     assert estimate_tokens(compressed) <= budget.message_token_limit
-

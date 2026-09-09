@@ -10,7 +10,8 @@
 | V0.2 | Core、RAG Community 对照与必需 DeepSeek Live 通过 | 授权 RAG、三管线对照、六家 Provider 的 Fixture 契约及 DeepSeek Live | DeepSeek 以外 Provider 的 Live 能力 |
 | V0.3 | Core、Community 十步 Workflow 与必需 DeepSeek Live 通过 | SQLite 单 worker、Mock Adapter 下的审批、恢复、幂等、故障注入和对账 | PostgreSQL 多 worker或真实券、招商、商品库、选品、C 端、IM 接入 |
 | V0.4 | T01–T05 完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 合成分析数据、只读 Tool、动态 Agent、冻结 Golden、原 DeepSeek 失败事实及 GPT-5.6 Sol Live 通过卡 | 真实企业数据、OpenAI API 通道或其他 Provider 效果 |
-| P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | V0.5 已开始或后续平台能力已交付 |
+| V0.5 | T01 已完成；Core 未达成 | 会话级短期历史、滑窗压缩、事实账本和统一 context budget | T02 长期记忆、Memory 生命周期、多智能体、Live/Enterprise/Performance |
+| P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | 后续平台能力已交付 |
 
 ## 关键证据
 
@@ -44,6 +45,10 @@
 - [Live 收口后加固与三轮复跑](v0.4/20260908-live-optimization/summary.md)：provider 重试、可执行修复反馈、prompt v4、JSON 打捞、finalization 单次提交；三轮 Live 自动通过率 71.7%/76.7%/75.0%，结论为约 75% 模型能力天花板，未宣称质量通过。
 - [GPT-5.6 Sol 第 4 轮（人工盲评通过、晋升推荐 target）](v0.4/20260909-gpt56-sol-round4/README.md)：通过 ChatGPT Plus/Codex App Server 跑完冻结 V2 holdout 60/60，自动通过率 91.67%（55/60）；10 条严格独立盲评全部达线、平均 0.98。本轮 Live 质量卡接受并晋升为场景 B 推荐 target；runner 仍强制显式选择，V2 保持冻结且不启动 V3。
 
+### V0.5 · 多智能体、上下文与记忆
+
+- [T01 会话上下文治理](v0.5/20260910-t01/summary.md)：短期历史、滑窗压缩、确定性事实账本与 context budget；938 项非 Live 回归和 108 项 security 通过。
+
 ## Demo 与架构证据
 
 - [静态交互 Demo](../../docs/demo/index.html)：无后端、`file://` 可用；展示场景 A 十步冻结 Trace，以及场景 B 的归因、冲突、弃答和契约拦停。
@@ -53,7 +58,7 @@
 
 ## 演示与证据验收收口
 
-[2026-09-07 收口验证记录](CLOSEOUT-20260907.md)保留当时 P0–P2 的产物、文档一致性检查和未验证边界。2026-09-10 后续复核已新增 GPT-5.6 Sol 推荐 Live 卡：V2 继续冻结，runner 仍要求显式选择，未启动 V0.5，也不改写原 DeepSeek failed 结论。
+[2026-09-07 收口验证记录](CLOSEOUT-20260907.md)保留当时 P0–P2 的产物、文档一致性检查和未验证边界。2026-09-10 后续复核已新增 GPT-5.6 Sol 推荐 Live 卡：V2 继续冻结，runner 仍要求显式选择，也不改写原 DeepSeek failed 结论。V0.5 已从 T01 开始，但仍未达 Core Gate。
 
 ## 证据解释规则
 
