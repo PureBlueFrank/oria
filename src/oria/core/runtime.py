@@ -101,6 +101,7 @@ from oria.tools.assortment import (
     SubmitAssortmentTool,
 )
 from oria.tools.builtin import QueryMerchantsTool, SearchCampaignRulesTool
+from oria.tools.memory_tool import SaveMemoryTool, SearchMemoryTool
 from oria.tools.registry import ToolRegistry
 
 RuntimeResourceFactory = Callable[[], AbstractAsyncContextManager[object]]
@@ -382,12 +383,20 @@ async def build_runtime(
             selection_events=selection_events,
             scenario_a=scenario_a,
         )
+        memory = PersistentMemory(
+            ContextBudget(),
+            SQLiteMemoryRepository(database_resources.platform_sessions),
+            projection_id=embedding_projection,
+            clock=clock,
+        )
 
         tools = ToolRegistry(
             allowlist=frozenset(
                 {
                     "search_campaign_rules",
                     "query_merchants",
+                    "save_memory",
+                    "search_memory",
                     "submit_assortment",
                     "publish_consumer_placement",
                     "send_merchant_notification",
@@ -399,6 +408,8 @@ async def build_runtime(
         tools.register(SubmitAssortmentTool(assortment))
         tools.register(PublishConsumerPlacementTool(assortment))
         tools.register(SendMerchantNotificationTool(assortment))
+        tools.register(SaveMemoryTool(memory))
+        tools.register(SearchMemoryTool(memory))
         guardrails: ServiceRegistry[Guardrail] = ServiceRegistry()
         nodes: ServiceRegistry[Node] = ServiceRegistry()
         agents: ServiceRegistry[object] = ServiceRegistry()
@@ -426,12 +437,7 @@ async def build_runtime(
             llm=llm,
             embedder=embedder,
             retriever=retriever,
-            memory=PersistentMemory(
-                ContextBudget(),
-                SQLiteMemoryRepository(database_resources.platform_sessions),
-                projection_id=embedding_projection,
-                clock=clock,
-            ),
+            memory=memory,
             objects=objects,
             knowledge=knowledge,
             rule_snapshots=rule_snapshots,

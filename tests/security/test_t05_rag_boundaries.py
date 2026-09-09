@@ -212,6 +212,8 @@ async def test_retrieved_instructions_remain_untrusted_data_and_cannot_add_tools
                 "submit_assortment",
                 "publish_consumer_placement",
                 "send_merchant_notification",
+                "save_memory",
+                "search_memory",
             }
         )
         with pytest.raises(LookupError, match="allowlisted"):

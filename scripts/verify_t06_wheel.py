@@ -35,6 +35,8 @@ async def _verify(data_dir: Path) -> None:
             "submit_assortment",
             "publish_consumer_placement",
             "send_merchant_notification",
+            "save_memory",
+            "search_memory",
         ):
             raise AssertionError("installed T06 tool allowlist is invalid")
         search = SearchCampaignRulesResult.model_validate(

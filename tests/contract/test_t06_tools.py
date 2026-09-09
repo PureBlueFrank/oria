@@ -44,6 +44,8 @@ async def test_registered_tools_return_versioned_cited_and_bounded_results(tmp_p
             "submit_assortment",
             "publish_consumer_placement",
             "send_merchant_notification",
+            "save_memory",
+            "search_memory",
         )
         assert ctx.tools.allowlist == frozenset(
             {
@@ -52,6 +54,8 @@ async def test_registered_tools_return_versioned_cited_and_bounded_results(tmp_p
                 "submit_assortment",
                 "publish_consumer_placement",
                 "send_merchant_notification",
+                "save_memory",
+                "search_memory",
             }
         )
         assert {spec.schema_version for spec in ctx.tools.specs()} == {1}
