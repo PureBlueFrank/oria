@@ -576,7 +576,7 @@ def _metrics(
     ]
     return ScenarioAMetrics(
         case_pass_rate=sum(result.passed for result in results) / count,
-        critical_pass_rate=sum(result.passed for result in critical) / len(critical),
+        critical_pass_rate=sum(result.passed for result in critical) / max(1, len(critical)),
         outcome_accuracy=sum(
             result.observed_outcome == expected_by_id[result.case_id].expected_outcome
             for result in results
@@ -588,7 +588,7 @@ def _metrics(
         )
         / count,
         grounded_proposal_rate=sum(result.citations_valid is True for result in proposals)
-        / len(proposals),
+        / max(1, len(proposals)),
     )
 
 
