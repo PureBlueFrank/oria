@@ -27,6 +27,8 @@ uv run oria demo
 uv run oria attribution ask
 ```
 
+如果提示 lockfile 需要更新, 先运行 `uv lock`, 再重试上述同步命令。
+
 一次典型终端输出如下（ID 和路径每次不同）：
 
 ```text
