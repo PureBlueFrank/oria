@@ -8,6 +8,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from oria.agent import initial_supervisor_state
+from oria.core.types import Message
 from oria.eval.compare import (
     ArchitectureBudgets,
     ComparisonBudget,
@@ -69,6 +71,20 @@ def test_judge_packet_cannot_contain_architecture_label() -> None:
 
     assert "architecture" not in schema["properties"]
     assert "architecture_label" not in schema["properties"]
+
+
+def test_supervisor_history_is_defaulted_and_checkpoint_compatible() -> None:
+    defaulted = initial_supervisor_state(user_request="归因分析", effective_at="2026-09-10")
+    with_history = initial_supervisor_state(
+        user_request="归因分析",
+        effective_at="2026-09-10",
+        conversation_history=(Message(role="user", content="prior question"),),
+    )
+
+    assert defaulted["conversation_history"] == []
+    assert with_history["conversation_history"][0]["content"] == "prior question"
+    del defaulted["conversation_history"]
+    assert defaulted.get("conversation_history", []) == []
 
 
 def test_preregistered_rubric_rejects_post_registration_change(tmp_path: Path) -> None:

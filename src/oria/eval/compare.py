@@ -413,6 +413,7 @@ async def run_architecture_slot(
                 initial_supervisor_state(
                     user_request=case.question,
                     effective_at="2026-08-18/2026-09-01",
+                    conversation_history=case.conversation_history,
                 ),
                 config={"configurable": {"thread_id": f"multi-{slot.position}"}},
                 context=SupervisorRunContext(ctx=ctx, attribution_limits=limits),

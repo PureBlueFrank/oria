@@ -24,7 +24,7 @@ from oria.agent.models import AgentTermination
 from oria.agent.spec import ResearchSpec
 from oria.agent.state import ResearchLimits, ResearchRunContext, initial_research_state
 from oria.core.context import Context
-from oria.core.types import JsonValue, ValueModel
+from oria.core.types import JsonValue, Message, ValueModel
 from oria.orchestrator.checkpoint import checkpoint_config
 from oria.permission.tools import authorized_tool_names
 
@@ -130,6 +130,7 @@ class SupervisorState(TypedDict):
     route_reason: str | None
     final_result: dict[str, JsonValue] | None
     termination: dict[str, JsonValue] | None
+    conversation_history: NotRequired[list[dict[str, JsonValue]]]
     events: NotRequired[list[dict[str, JsonValue]]]
 
 
@@ -171,6 +172,7 @@ def initial_supervisor_state(
     effective_at: str,
     max_candidates: int = 10,
     max_handoffs: int = DEFAULT_MAX_HANDOFFS,
+    conversation_history: tuple[Message, ...] = (),
 ) -> SupervisorState:
     """Build a fully defaulted JSON-serializable supervisor state."""
 
@@ -196,6 +198,10 @@ def initial_supervisor_state(
             "route_reason": None,
             "final_result": None,
             "termination": None,
+            "conversation_history": [
+                cast(dict[str, JsonValue], message.model_dump(mode="json"))
+                for message in conversation_history
+            ],
             "events": [],
         },
     )
@@ -319,6 +325,9 @@ async def _invoke_research_subagent(
         child_state = initial_attribution_state(
             question=handoff.task,
             analysis_period=state["effective_at"],
+            conversation_history=tuple(
+                Message.model_validate(message) for message in state.get("conversation_history", [])
+            ),
             tenant_id=context.ctx.tenant_id,
         )
     try:
