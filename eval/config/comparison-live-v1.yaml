@@ -1,0 +1,24 @@
+schema_version: 1
+recommended_target: codex-subscription-gpt56-sol-high
+targets:
+  - target_id: codex-subscription-gpt56-sol-high
+    provider: codex
+    model: gpt-5.6-sol
+    credential_env: ORIA_CODEX_CHATGPT_AUTH_READY
+    pricing_snapshot_id: openai-20260909
+    rate_tier: peak
+    repetitions: 2
+    order_seed: comparison-live-v1
+    budget:
+      max_cases: 40
+      max_model_requests: 320
+      max_input_tokens: 8000000
+      max_output_tokens: 1280000
+      max_cost_usd: 58.0
+      max_wall_seconds: 57600
+      per_case_max_model_turns: 8
+      per_case_max_tool_calls: 10
+      per_case_max_input_tokens: 200000
+      per_case_max_output_tokens: 32000
+      per_case_max_cost_usd: 1.45
+      per_case_timeout_seconds: 600
