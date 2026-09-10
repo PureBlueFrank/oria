@@ -26,6 +26,7 @@ from oria.agent.state import ResearchLimits, ResearchRunContext, initial_researc
 from oria.core.context import Context
 from oria.core.types import JsonValue, ValueModel
 from oria.orchestrator.checkpoint import checkpoint_config
+from oria.permission.tools import authorized_tool_names
 
 DEFAULT_MAX_HANDOFFS = 2
 SubagentName = Literal["campaign_research", "attribution_research"]
@@ -259,6 +260,18 @@ def _research_termination(reason: str, limits: ResearchLimits) -> AgentTerminati
     )
 
 
+async def authorized_subagent_tools(spec: ResearchSpec, ctx: Context) -> tuple[str, ...]:
+    """Intersect a spec allowlist with the caller's policy-authorized tools."""
+
+    if not set(spec.tool_names).issubset(set(ctx.tools)):
+        raise LookupError("subagent allowlist contains unavailable tools")
+    caller_visible = frozenset(await authorized_tool_names(ctx.tools, ctx))
+    visible = tuple(name for name in spec.tool_names if name in caller_visible)
+    if not set(visible).issubset(spec.tool_names) or not set(visible).issubset(caller_visible):
+        raise AssertionError("subagent tool visibility expanded beyond its security intersection")
+    return visible
+
+
 def _usage_from_state(state: Mapping[str, object]) -> SubagentUsage:
     return SubagentUsage(
         model_turns=cast(int, state.get("model_turns", 0)),
@@ -283,8 +296,9 @@ async def _invoke_research_subagent(
         if handoff.subagent_name == "campaign_research"
         else context.attribution_limits
     )
-    registered_tools = set(context.ctx.tools)
-    if not set(spec.tool_names).issubset(registered_tools):
+    try:
+        visible_tools = await authorized_subagent_tools(spec, context.ctx)
+    except LookupError:
         termination = _research_termination("subagent_tools_unavailable", limits)
         return SubagentResult(
             subagent_name=handoff.subagent_name,
@@ -320,7 +334,7 @@ async def _invoke_research_subagent(
             status="failed",
             termination=termination,
             allowlisted_tools=spec.tool_names,
-            visible_tools=spec.tool_names,
+            visible_tools=visible_tools,
         )
 
     usage = _usage_from_state(output)
@@ -333,7 +347,7 @@ async def _invoke_research_subagent(
             termination=termination,
             usage=usage,
             allowlisted_tools=spec.tool_names,
-            visible_tools=spec.tool_names,
+            visible_tools=visible_tools,
         )
     raw_result = output.get(spec.output_field) or output.get("final_result")
     if not isinstance(raw_result, dict):
@@ -344,7 +358,7 @@ async def _invoke_research_subagent(
             termination=termination,
             usage=usage,
             allowlisted_tools=spec.tool_names,
-            visible_tools=spec.tool_names,
+            visible_tools=visible_tools,
         )
     return SubagentResult(
         subagent_name=handoff.subagent_name,
@@ -352,7 +366,7 @@ async def _invoke_research_subagent(
         result=cast(dict[str, JsonValue], raw_result),
         usage=usage,
         allowlisted_tools=spec.tool_names,
-        visible_tools=spec.tool_names,
+        visible_tools=visible_tools,
     )
 
 
