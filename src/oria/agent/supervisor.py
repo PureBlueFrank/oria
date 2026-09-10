@@ -476,9 +476,7 @@ def build_supervisor_graph(
     checkpointer: BaseCheckpointSaver[Any] | None = None,
     router: SupervisorRouter | None = None,
     invoke_subagent: SubagentInvoker | None = None,
-) -> CompiledStateGraph[
-    SupervisorState, SupervisorRunContext, SupervisorState, SupervisorState
-]:
+) -> CompiledStateGraph[SupervisorState, SupervisorRunContext, SupervisorState, SupervisorState]:
     """Compile the deterministic supervisor around two shared research graphs."""
 
     specs = _subagent_specs()

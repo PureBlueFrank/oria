@@ -75,9 +75,7 @@ def test_handoff_and_result_are_strict_json_roundtrip_values() -> None:
         ("Investigate the root cause of this funnel anomaly", "attribution_research"),
     ],
 )
-def test_router_is_deterministic_and_attribution_wins_overlap(
-    query: str, expected: str
-) -> None:
+def test_router_is_deterministic_and_attribution_wins_overlap(query: str, expected: str) -> None:
     router = SupervisorRouter()
 
     first = router.route(query)
