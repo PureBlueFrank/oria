@@ -22,7 +22,7 @@
 | V0.2 | Provider 与 RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡通过 | 统一六家 Provider 的 Fixture 契约，完成授权 RAG、三管线对照、冻结数据集和 DeepSeek Live 验证；其他 Provider 未 Live 验证。 |
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
 | V0.4 | 场景 B 动态归因 Agent | T01–T05 已完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 50 条 Golden 已审阅并冻结 30/20 split；GPT-5.6 Sol 完成 20×3，自动通过 55/60，严格盲评 10/10 达线、平均 0.98。 |
-| V0.5 | 多智能体、上下文与记忆 | T01–T03 已完成；Core 未达成 | 已交付上下文治理、opt-in Memory、ABAC、动态工具与四类 Guardrail；多智能体编排及公平对照尚待后续任务。 |
+| V0.5 | 多智能体、上下文与记忆 | T01–T05 已完成；Core 未达成 | 已交付上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent 与公平对照 harness；T06 安全验证和 T07 Live 对照尚待完成。 |
 
 ## V0.1：场景 A 只读提案 MVP
 
@@ -90,7 +90,7 @@ V0.4-T05 修复已收口（2026-09-07）：累计授权 4 美元；原批次 60 
 | V0.5-T02 | V0.2-T03,V0.5-T01 | 实现显式 opt-in Memory、tenant/subject 隔离、TTL、来源/置信/敏感级别及查看删除导出。 | **已完成**；生命周期、隔离和删除传播契约/安全验证。 |
 | V0.5-T03 | V0.3-T02,V0.5-T02 | 完成 RBAC/ABAC、职责分离、动态工具暴露和输入/RAG/Tool/输出 Guardrail。 | **已完成**；默认拒绝、执行前重新鉴权、动态最小工具和投毒攻击安全验证通过。 |
 | V0.5-T04 | V0.5-T01,V0.5-T03,V0.4-T03 | 建立 tool-based supervisor 与至少两个专职 Subagent，约束 handoff、allowlist 和循环上限。 | 路由、权限不放大、失败回收的契约与 E2E-F 验证。 |
-| V0.5-T05 | V0.5-T04,V0.4-T04 | 建立 single/multi 等额预算、随机顺序、隐藏架构标签的公平对照 harness。 | 预注册 rubric，分别报告质量、成本、延迟与方差。 |
+| V0.5-T05 | V0.5-T04,V0.4-T04 | **已完成**：建立 single/multi 等额预算、随机顺序、隐藏架构标签的公平对照 harness 与 `eval compare`。 | Fixture 仅作描述性证据；Live 价值判断留 T07。 |
 | V0.5-T06 | V0.5-T02,V0.5-T03,V0.5-T04 | 执行 Community/Security 场景并更新威胁模型与 Memory 保留/删除说明。 | Core 报告覆盖删除、投毒、权限和跨会话生命周期。 |
 | V0.5-T07 | V0.5-T05,V0.5-T06 | 执行 single/multi 必需 Live 对照，历史场景 B Live 仅作证据引用。 | Live 报告须如实记录通过、失败或阻塞及质量/成本/延迟/方差。 |
 

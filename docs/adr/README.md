@@ -49,5 +49,6 @@
 | ADR-033 | 归因决策规则与有界收尾 | 已接受 | [ADR-033](ADR-033-attribution-decision-rules.md)；GPT-5.6 Sol 冻结 Live 与人工盲评验证 |
 | ADR-034 | GPT-5.6 Sol 推荐 Live target | 已接受 | [ADR-034](ADR-034-gpt56-sol-recommended-live-target.md)；显式选择，不触发隐式外部调用 |
 | ADR-035 | 统一上下文预算与确定性事实账本 | 已接受 | [ADR-035](ADR-035-context-budget-and-fact-ledger.md)；T01 仅会话级治理 |
+| ADR-036 | single/multi 公平对照 harness | 已接受 | [ADR-036](ADR-036-single-multi-comparison-harness.md)；等额预算、随机顺序、盲评和预注册 rubric |
 
 新建 ADR 使用 [ADR 模板](000-template.md)。已接受 ADR 如需改变关键边界，应新建 ADR 并把原记录标为“已替代”，不直接覆盖历史理由。
