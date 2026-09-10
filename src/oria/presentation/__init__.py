@@ -2,6 +2,7 @@
 
 from oria.presentation.attribution import render_attribution
 from oria.presentation.data_init import render_data_initialization
+from oria.presentation.labels import display_identifier, display_identifiers
 from oria.presentation.workflow import (
     ApprovalSummary,
     ConfirmationProgress,
@@ -24,6 +25,8 @@ __all__ = [
     "RuleSummaryItem",
     "SelectionSummary",
     "WorkflowViewModel",
+    "display_identifier",
+    "display_identifiers",
     "proposal_rule_summary",
     "render_attribution",
     "render_data_initialization",

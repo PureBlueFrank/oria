@@ -16,6 +16,7 @@ from pydantic import Field
 
 from oria.agent.models import CampaignProposal
 from oria.core.types import ValueModel
+from oria.presentation.labels import display_identifier, display_identifiers
 
 TerminalOutcome = Literal["completed", "rejected", "failed", "reconciliation_required"]
 StepStatus = Literal["completed", "current", "pending", "rejected", "failed", "reconciliation"]
@@ -172,8 +173,9 @@ def proposal_rule_summary(
         RuleSummaryItem(
             category="基础信息",
             key_value=(
-                f"模板 {rules.basic.template_ref}; 类型 {rules.basic.campaign_type}; "
-                f"商品范围 {', '.join(rules.basic.product_scope)}"
+                f"模板 {display_identifier(rules.basic.template_ref)}; "
+                f"类型 {display_identifier(rules.basic.campaign_type)}; "
+                f"商品范围 {display_identifiers(rules.basic.product_scope)}"
             ),
             effective_time=rules.basic.campaign_window,
             source_version=version("basic"),
@@ -183,7 +185,8 @@ def proposal_rule_summary(
             key_value=(
                 f"类目 {', '.join(rules.recruitment_scope.categories)}; "
                 f"城市 {', '.join(rules.recruitment_scope.cities)}; "
-                f"报名系统 {', '.join(rules.recruitment_scope.enrollment_systems)}"
+                f"报名系统 "
+                f"{display_identifiers(rules.recruitment_scope.enrollment_systems)}"
             ),
             effective_time=effective_at,
             source_version=version("recruitment_scope"),
@@ -191,8 +194,9 @@ def proposal_rule_summary(
         RuleSummaryItem(
             category="报名规则",
             key_value=(
-                f"模式 {rules.enrollment_policy.mode}; "
-                f"圈品策略 {rules.enrollment_policy.product_circle_policy_ref}"
+                f"模式 {display_identifier(rules.enrollment_policy.mode)}; "
+                f"圈品策略 "
+                f"{display_identifier(rules.enrollment_policy.product_circle_policy_ref)}"
             ),
             effective_time=rules.basic.enrollment_window,
             source_version=version("enrollment_policy"),
@@ -200,14 +204,18 @@ def proposal_rule_summary(
         RuleSummaryItem(
             category="优惠档位",
             key_value=(
-                f"{', '.join(benefit.tiers)}; 预算上限 {benefit.budget_cap} {benefit.currency}"
+                f"{display_identifiers(benefit.tiers)}; "
+                f"预算上限 {benefit.budget_cap} {benefit.currency}"
             ),
             effective_time=rules.basic.campaign_window,
             source_version=version("benefit_policy"),
         ),
         RuleSummaryItem(
             category="确认规则",
-            key_value=(f"{confirmation_roles}; 超时 {rules.confirmation_policy.timeout_action}"),
+            key_value=(
+                f"{confirmation_roles}; 超时 "
+                f"{display_identifier(rules.confirmation_policy.timeout_action)}"
+            ),
             effective_time=effective_at,
             source_version=version("confirmation_policy"),
         ),

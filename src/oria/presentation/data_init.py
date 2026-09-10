@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from oria.data import DataInitializationResult
 from oria.domain.models import CampaignRuleSet, MerchantSeedSet
+from oria.presentation.labels import display_identifier, display_identifiers
 from oria.presentation.workflow import _table
 
 
@@ -21,7 +22,7 @@ def render_data_initialization(
             "、".join(merchant.cities),
             "、".join(merchant.categories),
             "是" if merchant.active else "否",
-            merchant.internal_sales_org_code(),
+            display_identifier(merchant.internal_sales_org_code()),
         )
         for merchant in merchants.merchants
     ]
@@ -32,34 +33,51 @@ def render_data_initialization(
         long_text_columns=(0,),
     )
 
-    confirmation = " → ".join(rules.confirmation_policy.ordered_steps)
+    confirmation = display_identifiers(
+        rules.confirmation_policy.ordered_steps,
+        separator=" → ",
+    )
     benefit = rules.benefit_policy
     rule_rows = (
         (
             "基础信息",
-            f"模板 {rules.basic.template_ref}; 类型 {rules.basic.campaign_type}; "
-            f"商品范围 {'、'.join(rules.basic.product_scope)}",
+            f"模板 {display_identifier(rules.basic.template_ref)}; "
+            f"类型 {display_identifier(rules.basic.campaign_type)}; "
+            f"商品范围 {display_identifiers(rules.basic.product_scope)}",
         ),
         (
             "招商范围",
             f"类目 {'、'.join(rules.recruitment_scope.categories)}; "
             f"城市 {'、'.join(rules.recruitment_scope.cities)}; "
-            f"报名系统 {'、'.join(rules.recruitment_scope.enrollment_systems)}; "
-            f"销售组织 {'、'.join(rules.recruitment_scope.internal_sales_org_scope())}",
+            f"报名系统 "
+            f"{display_identifiers(rules.recruitment_scope.enrollment_systems)}; "
+            f"销售组织 "
+            f"{display_identifiers(sorted(rules.recruitment_scope.internal_sales_org_scope()))}",
         ),
         (
             "报名规则",
-            f"模式 {rules.enrollment_policy.mode}; "
-            f"圈品策略 {rules.enrollment_policy.product_circle_policy_ref}; "
-            f"选品策略 {rules.enrollment_policy.assortment_policy_ref}",
+            f"模式 {display_identifier(rules.enrollment_policy.mode)}; "
+            f"合格条件 "
+            f"{display_identifier(rules.enrollment_policy.customer_selection_rule)}; "
+            f"关联规则 "
+            f"{display_identifiers(rules.enrollment_policy.linked_campaign_rules)}; "
+            f"圈品策略 "
+            f"{display_identifier(rules.enrollment_policy.product_circle_policy_ref)}; "
+            f"选品策略 "
+            f"{display_identifier(rules.enrollment_policy.assortment_policy_ref)}",
         ),
         (
             "优惠档位",
-            f"档位 {'、'.join(benefit.tiers)}; 计价 "
-            f"{'、'.join(rule.funding_type for rule in benefit.tier_rules)}; "
-            f"预算上限 {benefit.budget_cap} {benefit.currency}; 取整 {benefit.rounding}",
+            f"档位 {display_identifiers(benefit.tiers)}; 计价 "
+            f"{display_identifiers(rule.funding_type for rule in benefit.tier_rules)}; "
+            f"预算上限 {benefit.budget_cap} {benefit.currency}; "
+            f"取整 {display_identifier(benefit.rounding)}",
         ),
-        ("确认链", f"{confirmation}; 超时处理 {rules.confirmation_policy.timeout_action}"),
+        (
+            "确认链",
+            f"{confirmation}; 超时处理 "
+            f"{display_identifier(rules.confirmation_policy.timeout_action)}",
+        ),
         (
             "商家素材",
             f"标题 {rules.merchant_material.title}; 标签 {'、'.join(rules.merchant_material.tags)}",
