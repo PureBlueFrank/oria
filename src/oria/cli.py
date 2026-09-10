@@ -870,7 +870,8 @@ def _run_workflow_operation(
         elif duplicate_campaign:
             typer.echo(
                 f"活动 `{campaign_id}` 已存在: 请换一个新的 `--campaign-id`, "
-                "或用 `oria workflow resume` 恢复该活动。",
+                "或用 `oria workflow resume` 恢复该活动。"
+                "若要完全从头开始, 请换一个新的 `--data-dir`, 或清空旧数据目录。",
                 err=True,
             )
         else:

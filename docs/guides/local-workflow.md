@@ -18,6 +18,8 @@ THREAD_ID="scenario-a-local-001"
 CAMPAIGN_ID="campaign-local-001"
 ```
 
+> **每次从头跑一遍完整流程，请换一个新的 `DATA_DIR`（例如带时间戳的目录），或用新的 `CAMPAIGN_ID`。** `CAMPAIGN_ID` 在同一个 `DATA_DIR` 内必须唯一：若执行 `workflow start` 报「活动已存在」，说明该 `DATA_DIR` 里已经有这个活动了，此时要么换一个新的 `CAMPAIGN_ID`，要么换一个新的 `DATA_DIR` 从头开始，要么用 `workflow resume` 恢复已有流程。
+
 | 标识 | 来源 | 用途 |
 | --- | --- | --- |
 | `DATA_DIR` | 运行者选择 | 持久化 Platform DB、Business DB、Checkpoint 和本地投影 |
@@ -202,6 +204,7 @@ uv run oria approval reject \
 ## 9. 重放与排错
 
 - 不要更换 `DATA_DIR` 或 `THREAD_ID`，否则命令无法找到原 checkpoint 和业务状态。
+- **重跑完整流程**：换一个新的 `DATA_DIR`（或清空旧目录），并建议同时换新的 `CAMPAIGN_ID`；否则 `workflow start` 会报「活动已存在」。
 - 每个 Mock 事件使用稳定且唯一的 `source_event_id`；同 ID 重放由 inbox 去重，同 ID 不同内容会被拒绝。
 - 始终从最新 human 输出的“下一步命令”取得 `--approval-id` 或 `--confirmation-task-id` 的当前值。已解析、过期、跨 tenant 或与参数/checkpoint/策略版本不匹配的审批会 fail closed。
 - `config doctor` 只校验配置，不读取 Workflow 状态，也不证明外部系统连通。
