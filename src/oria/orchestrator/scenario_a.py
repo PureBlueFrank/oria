@@ -607,6 +607,7 @@ class DefaultScenarioAWorkflowService:
                         "product_version": item.product_version,
                         "sources": sorted(item.sources),
                         "status": item.status,
+                        "created_at": item.created_at.isoformat(),
                     }
                     for item in write.enrollment_items
                 ],

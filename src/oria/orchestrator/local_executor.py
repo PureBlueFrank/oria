@@ -490,9 +490,7 @@ def _selection_summary(
     )
 
 
-def _enrollment_items(results: Mapping[str, NodeResult]) -> tuple[EnrollmentItemDetail, ...]:
-    joined = results.get("enrollment_join")
-    raw = joined.updates.get("enrollment_items") if joined is not None else None
+def _enrollment_item_details(raw: object) -> tuple[EnrollmentItemDetail, ...]:
     if not isinstance(raw, (list, tuple)):
         return ()
     projected: list[EnrollmentItemDetail] = []
@@ -513,12 +511,19 @@ def _enrollment_items(results: Mapping[str, NodeResult]) -> tuple[EnrollmentItem
                             else ()
                         ),
                         "status": item.get("status"),
+                        "enrolled_at": item.get("created_at"),
                     }
                 )
             )
         except ValueError:
             continue
     return tuple(projected)
+
+
+def _enrollment_items(results: Mapping[str, NodeResult]) -> tuple[EnrollmentItemDetail, ...]:
+    joined = results.get("enrollment_join")
+    raw = joined.updates.get("enrollment_items") if joined is not None else None
+    return _enrollment_item_details(raw)
 
 
 def _coupon_batch(results: Mapping[str, NodeResult]) -> CouponBatchSummary | None:
@@ -999,10 +1004,22 @@ async def inject_merchant_event(
             },
             ctx,
         )
-        return _result(
+        local_result = _result(
             thread_id,
             snapshot,
             event_status=result.updates.get("status"),
+        )
+        write_result = result.updates.get("write_result")
+        raw_items = (
+            write_result.get("enrollment_items") if isinstance(write_result, Mapping) else None
+        )
+        enrollment_items = _enrollment_item_details(raw_items)
+        if not enrollment_items:
+            return local_result
+        return local_result.model_copy(
+            update={
+                "view": local_result.view.model_copy(update={"enrollment_items": enrollment_items})
+            }
         )
     finally:
         await runtime.aclose()

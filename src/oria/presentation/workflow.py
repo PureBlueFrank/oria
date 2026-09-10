@@ -80,6 +80,7 @@ class EnrollmentItemDetail(ValueModel):
     product_version: str | None = None
     sources: tuple[str, ...] = ()
     status: str = Field(min_length=1)
+    enrolled_at: str | None = None
 
 
 class CouponBatchSummary(ValueModel):
@@ -257,20 +258,32 @@ def render_workflow(view: WorkflowViewModel) -> str:
     if view.next_command is not None:
         lines.append(f"下一步命令: {view.next_command}")
 
-    lines.extend(["", "规则摘要", _rule_table(view), "", "商家候选"])
-    lines.append(
-        f"命中 {view.merchant_matches.matched_count} / "
-        f"评估 {view.merchant_matches.evaluated_count} 家"
-    )
-    lines.append(_merchant_table(view))
-    if view.merchant_exclusion_summary:
-        summary = "; ".join(
-            f"{item.reason} {item.count}" for item in view.merchant_exclusion_summary
+    lines.extend(["", "规则摘要", _rule_table(view)])
+    if view.stage_index != 4:
+        lines.extend(["", "商家候选"])
+        lines.append(
+            f"命中 {view.merchant_matches.matched_count} / "
+            f"评估 {view.merchant_matches.evaluated_count} 家"
         )
-        lines.extend(["", "未命中原因汇总", summary])
+        lines.append(_merchant_table(view))
+        if view.merchant_exclusion_summary:
+            summary = "; ".join(
+                f"{item.reason} {item.count}" for item in view.merchant_exclusion_summary
+            )
+            lines.extend(["", "未命中原因汇总", summary])
 
     if view.enrollment_items:
-        lines.extend(["", "报名商品", _enrollment_table(view)])
+        merchant_count = len({item.merchant_id for item in view.enrollment_items})
+        lines.extend(
+            [
+                "",
+                "报名汇总",
+                f"当前已报名 {merchant_count} 家商家, 已圈选 {len(view.enrollment_items)} 个商品",
+                "",
+                "报名明细",
+                _enrollment_table(view),
+            ]
+        )
 
     if view.coupon_batch is not None:
         lines.extend(["", "券批次", _coupon_batch_table(view.coupon_batch)])
@@ -352,24 +365,30 @@ def _merchant_table(view: WorkflowViewModel) -> str:
 
 
 def _enrollment_table(view: WorkflowViewModel) -> str:
+    merchant_names = {item.merchant_id: item.display_name for item in view.merchant_matches.items}
     rows = [
         (
-            item.merchant_id,
+            (
+                f"{merchant_names[item.merchant_id]} ({item.merchant_id})"
+                if item.merchant_id in merchant_names
+                else item.merchant_id
+            ),
             (
                 f"{item.product_ref} ({item.product_version})"
                 if item.product_version is not None
                 else item.product_ref
             ),
             " + ".join(_source_label(source) for source in item.sources) or "未标注",
+            item.enrolled_at or "不可得",
             _business_status_label(item.status),
         )
         for item in view.enrollment_items
     ]
     return _table(
-        ("商家", "商品", "报名来源", "状态"),
+        ("商家", "商品", "报名来源", "报名时间", "状态"),
         rows,
-        minimums=(14, 20, 10, 8),
-        long_text_columns=(1,),
+        minimums=(14, 18, 10, 20, 8),
+        long_text_columns=(0, 1),
     )
 
 
