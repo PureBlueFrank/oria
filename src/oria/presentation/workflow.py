@@ -387,8 +387,8 @@ def _enrollment_table(view: WorkflowViewModel) -> str:
     return _table(
         ("商家", "商品", "报名来源", "报名时间", "状态"),
         rows,
-        minimums=(14, 18, 10, 20, 8),
-        long_text_columns=(0, 1),
+        minimums=(14, 18, 16, 20, 8),
+        long_text_columns=(1,),
     )
 
 

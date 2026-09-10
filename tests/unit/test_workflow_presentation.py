@@ -11,6 +11,7 @@ from oria.orchestrator.local_executor import (
     workflow_view_from_state,
 )
 from oria.orchestrator.scenario_a import initial_scenario_a_state
+from oria.presentation.labels import display_identifier
 from oria.presentation.workflow import (
     CouponBatchSummary,
     EnrollmentItemDetail,
@@ -94,7 +95,10 @@ def test_interrupt_kinds_have_natural_language_and_next_command(
     assert expected in rendered
     assert command in rendered
     assert "规则摘要" in rendered
-    assert "商家候选" in rendered
+    if kind == "enrollment_window":
+        assert "商家候选" not in rendered
+    else:
+        assert "商家候选" in rendered
     assert "流程进度" in rendered
 
 
@@ -290,8 +294,10 @@ def test_renderer_contains_rule_merchant_and_workflow_table_rows() -> None:
     assert "提交并等待招后选品" in rendered
     assert "城市不符 1; 名单策略未通过 1" in rendered
     assert "已提交 2, 已收 1, 待收 1" in rendered
-    assert "报名商品" in rendered
-    assert "系统自动圈品 + 商家自主报名" in rendered
+    assert "报名汇总" in rendered
+    assert "报名明细" in rendered
+    assert "系统自动圈品" in rendered
+    assert "商家自主报名" in rendered
     assert "券批次" in rendered
     assert "base: 10 CNY" in rendered
     assert "选品商品明细" in rendered
@@ -314,7 +320,8 @@ def test_renderer_omits_optional_business_detail_sections_when_empty() -> None:
 
     rendered = render_workflow(view)
 
-    assert "\n报名商品\n" not in rendered
+    assert "\n报名汇总\n" not in rendered
+    assert "\n报名明细\n" not in rendered
     assert "\n券批次\n" not in rendered
     assert "\n选品商品明细\n" not in rendered
     assert "\nC 端投放\n" not in rendered
@@ -499,6 +506,12 @@ def test_non_tty_fallback_reserves_wide_long_text_column(
     )
 
     assert widths[1] >= 60
+
+
+def test_identifier_labels_localize_known_values_and_preserve_unknown_values() -> None:
+    assert display_identifier("synthetic-summer-dining") == "夏季餐饮活动模板"
+    assert display_identifier("synthetic-east-a") == "华东一组\uff08合成\uff09"
+    assert display_identifier("future-identifier") == "future-identifier"
 
 
 def test_local_result_view_does_not_change_json_contract() -> None:

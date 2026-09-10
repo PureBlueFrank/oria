@@ -127,6 +127,27 @@ def test_data_init_cli_reports_json_and_is_idempotent(tmp_path: Path) -> None:
     assert '"saver_setup": true' in second.stdout
 
 
+def test_data_init_cli_human_output_lists_merchants_and_localized_rules(
+    tmp_path: Path,
+) -> None:
+    result = CliRunner().invoke(
+        app,
+        ["data", "init", "--data-dir", str(tmp_path / "human-data")],
+    )
+
+    assert result.exit_code == 0
+    assert "商家数据 (共 12 家)" in result.stdout
+    assert "商家名称" in result.stdout
+    assert "虚构食坊一号" in result.stdout
+    assert "上海" in result.stdout
+    assert "活动规则 (共 6 类)" in result.stdout
+    assert "夏季餐饮活动模板" in result.stdout
+    assert "演示报名系统" in result.stdout
+    assert "预算上限 100000.00 CNY" in result.stdout
+    assert "synthetic-summer-dining" not in result.stdout
+    assert "…" not in result.stdout
+
+
 @pytest.mark.asyncio
 async def test_runtime_connections_enforce_platform_foreign_keys(tmp_path: Path) -> None:
     config = _config(tmp_path)
