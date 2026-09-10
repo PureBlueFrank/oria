@@ -28,6 +28,7 @@ from oria.agent import (
 )
 from oria.config import resolve_runtime_config
 from oria.core.context import RuntimeServices
+from oria.core.protocols import LLMProvider
 from oria.core.runtime import build_runtime
 from oria.core.types import JsonValue, Principal, ValueModel
 from oria.data import initialize_data
@@ -38,7 +39,14 @@ from oria.eval.attribution import (
 )
 from oria.eval.attribution_data import generate_attribution_fixture
 from oria.eval.datasets import AttributionGoldenCase, load_golden_dataset
-from oria.eval.nightly import NightlyBudget, PricingSnapshot, TieredModelPrices, TokenPrices
+from oria.eval.nightly import (
+    NightlyBudget,
+    NightlyBudgetExceeded,
+    NightlyBudgetLedger,
+    PricingSnapshot,
+    TieredModelPrices,
+    TokenPrices,
+)
 
 Architecture = Literal["single", "multi"]
 
@@ -77,11 +85,66 @@ class ComparisonBudget(NightlyBudget):
         return self
 
 
+class ComparisonLiveBudget(NightlyBudget):
+    """One architecture's aggregate and per-case Live limits."""
+
+    max_model_requests: int = Field(gt=0)
+    per_case_max_model_turns: int = Field(gt=0)
+    per_case_max_tool_calls: int = Field(gt=0)
+    per_case_max_input_tokens: int = Field(gt=0)
+    per_case_max_output_tokens: int = Field(gt=0)
+    per_case_max_cost_usd: float = Field(gt=0)
+    per_case_timeout_seconds: int = Field(gt=0)
+
+    @model_validator(mode="after")
+    def validate_aggregate_bounds(self) -> Self:
+        if self.max_model_requests < self.max_cases * self.per_case_max_model_turns:
+            raise ValueError("Live model-request budget cannot cover declared case runs")
+        if self.max_input_tokens < self.max_cases * self.per_case_max_input_tokens:
+            raise ValueError("Live input-token budget cannot cover worst-case reservations")
+        if self.max_output_tokens < self.max_cases * self.per_case_max_output_tokens:
+            raise ValueError("Live output-token budget cannot cover worst-case reservations")
+        if self.max_cost_usd < self.max_cases * self.per_case_max_cost_usd:
+            raise ValueError("Live cost budget cannot cover worst-case reservations")
+        return self
+
+
+class ComparisonLiveTarget(ValueModel):
+    """Explicit provider target for a frozen single/multi Live comparison."""
+
+    target_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
+    provider: Literal["deepseek", "codex"]
+    model: str = Field(min_length=1)
+    credential_env: str = Field(pattern=r"^[A-Z][A-Z0-9_]*$")
+    pricing_snapshot_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{1,127}$")
+    rate_tier: Literal["peak", "off_peak"]
+    repetitions: int = Field(gt=0)
+    order_seed: str = Field(min_length=1)
+    budget: ComparisonLiveBudget
+
+
+class ComparisonLiveConfig(ValueModel):
+    """Configured Live targets available to the comparison runner."""
+
+    schema_version: Literal[1] = 1
+    recommended_target: str | None = None
+    targets: tuple[ComparisonLiveTarget, ...]
+
+    @model_validator(mode="after")
+    def validate_targets(self) -> Self:
+        target_ids = {target.target_id for target in self.targets}
+        if not self.targets or len(target_ids) != len(self.targets):
+            raise ValueError("comparison Live targets must be non-empty and unique")
+        if self.recommended_target is not None and self.recommended_target not in target_ids:
+            raise ValueError("recommended comparison Live target must be configured")
+        return self
+
+
 class ArchitectureBudgets(ValueModel):
     """Explicit pair that rejects unequal allocation before a run starts."""
 
-    single: ComparisonBudget
-    multi: ComparisonBudget
+    single: ComparisonBudget | ComparisonLiveBudget
+    multi: ComparisonBudget | ComparisonLiveBudget
 
     @model_validator(mode="after")
     def require_equal_budgets(self) -> Self:
@@ -221,7 +284,9 @@ class ComparisonReport(ValueModel):
 
     schema_version: Literal[1] = 1
     suite: Literal["attribution"] = "attribution"
-    verification_level: Literal["fixture"] = "fixture"
+    verification_level: Literal["fixture", "live"] = "fixture"
+    run_status: Literal["completed", "in_progress"] = "completed"
+    target_id: str | None = None
     status: Literal["descriptive_only"] = "descriptive_only"
     dataset_version: str
     dataset_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -230,21 +295,29 @@ class ComparisonReport(ValueModel):
     rubric: ComparisonRubric
     execution_order: tuple[ComparisonExecutionSlot, ...]
     runs: tuple[ArchitectureRunResult, ...]
-    single: ArchitectureMetrics
-    multi: ArchitectureMetrics
-    delta_multi_minus_single: ComparisonDelta
-    conclusion: Literal["multi_improved", "multi_regressed", "mixed_or_equal"]
+    single: ArchitectureMetrics | None
+    multi: ArchitectureMetrics | None
+    delta_multi_minus_single: ComparisonDelta | None
+    conclusion: Literal["multi_improved", "multi_regressed", "mixed_or_equal"] | None
     applicability_boundary: str = Field(min_length=1)
     significance: Literal["descriptive_only"] = "descriptive_only"
 
     @model_validator(mode="after")
     def validate_complete_comparison(self) -> Self:
+        if self.verification_level == "live" and self.target_id is None:
+            raise ValueError("Live comparison report requires an explicit target")
+        if self.run_status == "in_progress":
+            return self
         architectures = {run.architecture for run in self.runs}
         if architectures != {"single", "multi"}:
             raise ValueError("comparison report requires runs from both architectures")
+        if self.single is None or self.multi is None:
+            raise ValueError("completed comparison requires aggregate metrics")
         if self.single.architecture != "single" or self.multi.architecture != "multi":
             raise ValueError("aggregate metrics must match their architecture fields")
-        expected = self.config.repetitions * self.config.budgets.single.max_cases
+        if self.delta_multi_minus_single is None or self.conclusion is None:
+            raise ValueError("completed comparison requires a descriptive conclusion")
+        expected = self.config.budgets.single.max_cases
         if self.single.run_count != expected or self.multi.run_count != expected:
             raise ValueError("comparison report cannot omit or select repeated runs")
         if len(self.runs) != expected * 2:
@@ -293,7 +366,7 @@ def _principal(tenant_id: str, *, kind: Literal["human", "service"]) -> Principa
     )
 
 
-def _research_limits(budget: ComparisonBudget) -> ResearchLimits:
+def _research_limits(budget: ComparisonBudget | ComparisonLiveBudget) -> ResearchLimits:
     return ResearchLimits(
         max_model_turns=budget.per_case_max_model_turns,
         max_tool_calls=budget.per_case_max_tool_calls,
@@ -373,20 +446,28 @@ async def run_architecture_slot(
     case: AttributionGoldenCase,
     base_runtime: RuntimeServices,
     query_database: Path,
-    budget: ComparisonBudget,
+    budget: ComparisonBudget | ComparisonLiveBudget,
     rubric: ComparisonRubric,
+    llm: LLMProvider | None = None,
     judge: Judge = fixture_judge,
     clock: Callable[[], float] = time.monotonic,
 ) -> ArchitectureRunResult:
     """Run either graph through the same scoped fixture runtime and blind judge seam."""
 
-    runtime = build_attribution_eval_runtime(base_runtime, (case,), query_database)
     actor = _principal(case.tenant_id, kind="human")
     executor = _principal(case.tenant_id, kind="service")
+    runtime = build_attribution_eval_runtime(
+        base_runtime,
+        (case,),
+        query_database,
+        llm=llm,
+        trusted_actors=(actor,),
+        trusted_executors=(executor,),
+    )
     ctx = runtime.new_context(
         actor=actor,
         executor=executor,
-        session_id="comparison-fixture",
+        session_id="comparison-live" if llm is not None else "comparison-fixture",
         thread_id=f"{case.case_id}-{slot.position}",
         run_id=case.case_id,
     )
@@ -612,6 +693,26 @@ def load_comparison_fixture_plan(path: Path) -> ComparisonFixturePlan:
         raise ComparisonError("comparison budget is unavailable or invalid") from exc
 
 
+def load_comparison_live_config(path: Path) -> ComparisonLiveConfig:
+    """Load the strict list of explicitly selectable comparison Live targets."""
+
+    try:
+        return ComparisonLiveConfig.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        raise ComparisonError("comparison Live configuration is unavailable or invalid") from exc
+
+
+def select_comparison_live_target(
+    config: ComparisonLiveConfig, target_id: str
+) -> ComparisonLiveTarget:
+    """Resolve one configured Live target without falling back to a default."""
+
+    target = next((item for item in config.targets if item.target_id == target_id), None)
+    if target is None:
+        raise ComparisonError("comparison Live target is not configured")
+    return target
+
+
 def fixture_pricing_snapshot(plan: ComparisonFixturePlan) -> PricingSnapshot:
     """Wrap synthetic Fixture prices in the shared immutable pricing contract."""
 
@@ -629,6 +730,39 @@ def fixture_pricing_snapshot(plan: ComparisonFixturePlan) -> PricingSnapshot:
             )
         },
     )
+
+
+def _descriptive_summary(
+    single: ArchitectureMetrics,
+    multi: ArchitectureMetrics,
+    *,
+    verification_level: Literal["fixture", "live"],
+) -> tuple[
+    ComparisonDelta,
+    Literal["multi_improved", "multi_regressed", "mixed_or_equal"],
+    str,
+]:
+    delta = ComparisonDelta(
+        quality=multi.mean_quality - single.mean_quality,
+        model_turns=multi.mean_model_turns - single.mean_model_turns,
+        tool_calls=multi.mean_tool_calls - single.mean_tool_calls,
+        total_tokens=multi.mean_total_tokens - single.mean_total_tokens,
+        cost_usd=multi.mean_cost_usd - single.mean_cost_usd,
+        latency_ms=multi.mean_latency_ms - single.mean_latency_ms,
+    )
+    label = "Live" if verification_level == "live" else "Fixture"
+    if delta.quality > 0:
+        conclusion: Literal["multi_improved", "multi_regressed", "mixed_or_equal"] = (
+            "multi_improved"
+        )
+        boundary = f"{label} descriptive quality gain; no statistical significance is claimed."
+    elif delta.quality < 0:
+        conclusion = "multi_regressed"
+        boundary = f"Multi regressed in the frozen {label} comparison."
+    else:
+        conclusion = "mixed_or_equal"
+        boundary = f"No {label} quality gain; supervisor routing value is operational only."
+    return delta, conclusion, boundary
 
 
 async def run_comparison(
@@ -690,30 +824,203 @@ async def run_comparison(
         await base.aclose()
     assert_preregistered_rubric(rubric_path, rubric)
     all_runs = tuple(results)
-    _assert_architecture_budget("single", all_runs, config.budgets.single)
-    _assert_architecture_budget("multi", all_runs, config.budgets.multi)
+    _assert_architecture_budget("single", all_runs, cast(ComparisonBudget, config.budgets.single))
+    _assert_architecture_budget("multi", all_runs, cast(ComparisonBudget, config.budgets.multi))
     single = _architecture_metrics("single", all_runs)
     multi = _architecture_metrics("multi", all_runs)
-    delta = ComparisonDelta(
-        quality=multi.mean_quality - single.mean_quality,
-        model_turns=multi.mean_model_turns - single.mean_model_turns,
-        tool_calls=multi.mean_tool_calls - single.mean_tool_calls,
-        total_tokens=multi.mean_total_tokens - single.mean_total_tokens,
-        cost_usd=multi.mean_cost_usd - single.mean_cost_usd,
-        latency_ms=multi.mean_latency_ms - single.mean_latency_ms,
-    )
-    if delta.quality > 0:
-        conclusion: Literal["multi_improved", "multi_regressed", "mixed_or_equal"] = (
-            "multi_improved"
-        )
-        boundary = "Fixture-only descriptive gain; Live architecture value remains unverified."
-    elif delta.quality < 0:
-        conclusion = "multi_regressed"
-        boundary = "Multi regressed on the frozen Fixture; use single unless Live evidence differs."
-    else:
-        conclusion = "mixed_or_equal"
-        boundary = "No Fixture quality gain; supervisor routing value is operational only."
+    delta, conclusion, boundary = _descriptive_summary(single, multi, verification_level="fixture")
     return ComparisonReport(
+        dataset_version=dataset.manifest.dataset_version,
+        dataset_sha256=dataset.manifest.dataset_sha256,
+        pricing_snapshot_id=pricing_snapshot.snapshot_id,
+        config=config,
+        rubric=rubric,
+        execution_order=order,
+        runs=all_runs,
+        single=single,
+        multi=multi,
+        delta_multi_minus_single=delta,
+        conclusion=conclusion,
+        applicability_boundary=boundary,
+    )
+
+
+def _validated_resume_runs(
+    *,
+    resume_runs: tuple[ArchitectureRunResult, ...],
+    order: tuple[ComparisonExecutionSlot, ...],
+) -> tuple[ArchitectureRunResult, ...]:
+    allowed = {(slot.architecture, slot.case_id, slot.repetition) for slot in order}
+    observed: set[tuple[Architecture, str, int]] = set()
+    for run in resume_runs:
+        key = (run.architecture, run.case_id, run.repetition)
+        if key not in allowed or key in observed:
+            raise ComparisonError("comparison Live resume records do not match the frozen plan")
+        observed.add(key)
+    return resume_runs
+
+
+async def run_comparison_live(
+    manifest_path: Path,
+    *,
+    rubric_path: Path,
+    base_runtime: RuntimeServices,
+    target: ComparisonLiveTarget,
+    data_dir: Path,
+    pricing_snapshot: PricingSnapshot,
+    resume_runs: tuple[ArchitectureRunResult, ...] = (),
+    max_new_case_runs: int | None = None,
+    judge: Judge = fixture_judge,
+) -> ComparisonReport:
+    """Run or resume the frozen holdout with one real LLM and equal per-architecture ledgers."""
+
+    if base_runtime.llm is None:
+        raise ComparisonError("selected comparison Live provider is unavailable")
+    if (
+        base_runtime.config.llm.provider != target.provider
+        or base_runtime.config.llm.model != target.model
+    ):
+        raise ComparisonError("runtime provider/model does not match comparison Live target")
+    if pricing_snapshot.snapshot_id != target.pricing_snapshot_id:
+        raise ComparisonError("comparison pricing snapshot identity does not match target")
+    if max_new_case_runs is not None and max_new_case_runs < 1:
+        raise ComparisonError("staged comparison case-run limit must be positive")
+
+    dataset = load_golden_dataset(manifest_path)
+    cases = tuple(
+        case
+        for case in dataset.cases
+        if isinstance(case, AttributionGoldenCase) and case.split == "holdout"
+    )
+    expected_per_architecture = len(cases) * target.repetitions
+    if not cases or expected_per_architecture != target.budget.max_cases:
+        raise ComparisonError("comparison Live budget must exactly cover holdout repetitions")
+    if dataset.manifest.holdout_case_count != len(cases):
+        raise ComparisonError("comparison Live holdout count does not match its manifest")
+    if dataset.manifest.rubric_sha256 is None:
+        raise ComparisonError("comparison dataset has no frozen rubric")
+    rubric = preregister_comparison_rubric(rubric_path)
+    if rubric.rubric_sha256 != dataset.manifest.rubric_sha256:
+        raise ComparisonError("comparison rubric does not match the frozen dataset")
+    prices = _pricing_for(pricing_snapshot, model_id=target.model, rate_tier=target.rate_tier)
+    budgets = ArchitectureBudgets(single=target.budget, multi=target.budget)
+    config = ComparisonConfig(
+        seed=target.order_seed,
+        repetitions=target.repetitions,
+        model_id=target.model,
+        budgets=budgets,
+    )
+    order = randomized_execution_order(
+        cases, repetitions=target.repetitions, seed=target.order_seed
+    )
+    validated_resume = _validated_resume_runs(resume_runs=resume_runs, order=order)
+    ledgers = {
+        architecture: NightlyBudgetLedger(target.budget, prices)
+        for architecture in cast(tuple[Architecture, ...], ("single", "multi"))
+    }
+    model_requests: dict[Architecture, int] = {"single": 0, "multi": 0}
+    for run in validated_resume:
+        try:
+            reservation = ledgers[run.architecture].reserve(
+                input_tokens=target.budget.per_case_max_input_tokens,
+                max_output_tokens=target.budget.per_case_max_output_tokens,
+            )
+            ledgers[run.architecture].settle(
+                reservation,
+                cache_hit_tokens=0,
+                cache_miss_tokens=run.input_tokens,
+                output_tokens=run.output_tokens,
+                reasoning_tokens=0,
+            )
+        except NightlyBudgetExceeded as exc:
+            raise ComparisonError(
+                "comparison Live resume records exceed an architecture budget"
+            ) from exc
+        model_requests[run.architecture] += run.model_turns
+        if model_requests[run.architecture] > target.budget.max_model_requests:
+            raise ComparisonError("comparison Live resume records exceed the model-request budget")
+
+    query_databases: dict[str, Path] = {}
+    for variant in sorted({case.fixture_variant for case in cases}):
+        query_database = data_dir / "fixtures" / variant / "analytics.db"
+        generate_attribution_fixture(
+            query_database,
+            data_dir / "evaluation-only" / variant / "labels.db",
+            fixture_variant=variant,
+        )
+        query_databases[variant] = query_database
+
+    case_by_id = {case.case_id: case for case in cases}
+    completed_keys = {(run.architecture, run.case_id, run.repetition) for run in validated_resume}
+    results = list(validated_resume)
+    new_case_runs = 0
+    for slot in order:
+        key = (slot.architecture, slot.case_id, slot.repetition)
+        if key in completed_keys:
+            continue
+        if max_new_case_runs is not None and new_case_runs >= max_new_case_runs:
+            break
+        if (
+            model_requests[slot.architecture] + target.budget.per_case_max_model_turns
+            > target.budget.max_model_requests
+        ):
+            raise ComparisonError("comparison Live model-request budget is exhausted")
+        ledger = ledgers[slot.architecture]
+        try:
+            reservation = ledger.reserve(
+                input_tokens=target.budget.per_case_max_input_tokens,
+                max_output_tokens=target.budget.per_case_max_output_tokens,
+            )
+        except NightlyBudgetExceeded as exc:
+            raise ComparisonError(str(exc)) from exc
+        try:
+            result = await run_architecture_slot(
+                slot,
+                case=case_by_id[slot.case_id],
+                base_runtime=base_runtime,
+                query_database=query_databases[case_by_id[slot.case_id].fixture_variant],
+                budget=target.budget,
+                rubric=rubric,
+                llm=base_runtime.llm,
+                judge=judge,
+            )
+            priced = _price_run(result, prices)
+            ledger.settle(
+                reservation,
+                cache_hit_tokens=0,
+                cache_miss_tokens=priced.input_tokens,
+                output_tokens=priced.output_tokens,
+                reasoning_tokens=0,
+            )
+        except NightlyBudgetExceeded as exc:
+            raise ComparisonError(str(exc)) from exc
+        except Exception:
+            ledger.cancel(reservation)
+            raise
+        results.append(priced)
+        completed_keys.add(key)
+        model_requests[slot.architecture] += priced.model_turns
+        if model_requests[slot.architecture] > target.budget.max_model_requests:
+            raise ComparisonError("comparison Live model-request budget is exhausted")
+        new_case_runs += 1
+
+    assert_preregistered_rubric(rubric_path, rubric)
+    all_runs = tuple(results)
+    complete = len(all_runs) == len(order)
+    architectures = {run.architecture for run in all_runs}
+    single = _architecture_metrics("single", all_runs) if "single" in architectures else None
+    multi = _architecture_metrics("multi", all_runs) if "multi" in architectures else None
+    delta: ComparisonDelta | None = None
+    conclusion: Literal["multi_improved", "multi_regressed", "mixed_or_equal"] | None = None
+    boundary = "Staged Live comparison is incomplete; no architecture conclusion is available."
+    if complete:
+        if single is None or multi is None:
+            raise ComparisonError("completed Live comparison is missing an architecture")
+        delta, conclusion, boundary = _descriptive_summary(single, multi, verification_level="live")
+    return ComparisonReport(
+        verification_level="live",
+        run_status="completed" if complete else "in_progress",
+        target_id=target.target_id,
         dataset_version=dataset.manifest.dataset_version,
         dataset_sha256=dataset.manifest.dataset_sha256,
         pricing_snapshot_id=pricing_snapshot.snapshot_id,
