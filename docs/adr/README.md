@@ -52,3 +52,8 @@
 | ADR-036 | single/multi 公平对照 harness | 已接受 | [ADR-036](ADR-036-single-multi-comparison-harness.md)；等额预算、随机顺序、盲评和预注册 rubric |
 
 新建 ADR 使用 [ADR 模板](000-template.md)。已接受 ADR 如需改变关键边界，应新建 ADR 并把原记录标为“已替代”，不直接覆盖历史理由。
+
+## 相关安全与生命周期文档
+
+- [V0.5 威胁模型](../security/V0.5威胁模型.md)
+- [V0.5 Memory 保留与删除说明](../security/V0.5-Memory保留与删除.md)
