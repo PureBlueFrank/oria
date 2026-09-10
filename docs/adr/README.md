@@ -23,7 +23,7 @@
 | ADR-007 | RAG 与 fine-tune | 计划中 | V0.2-T02 前实体化 |
 | ADR-008 | Reranker 效果验证 | 计划中 | V0.2-T04 前实体化 |
 | ADR-009 | 多智能体边界 | 计划中 | V0.5-T04 前实体化 |
-| ADR-010 | Guardrails 与 HITL | 计划中 | V0.3-T02 前实体化 |
+| ADR-010 | Guardrails、ABAC 与动态工具暴露 | 已接受 | [ADR-010](ADR-010-guardrails-and-hits.md) |
 | ADR-011 | RAG 权限 pre-filter | 计划中 | V0.2-T03 前实体化 |
 | ADR-012 | Memory 生命周期与 opt-in memory-as-tool | 已接受 | [ADR-012](ADR-012-memory-as-tool-and-long-term-memory.md) |
 | ADR-013 | 端到端流式事件 | 计划中 | V0.6-T05 前实体化 |
