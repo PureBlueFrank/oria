@@ -19,6 +19,7 @@ from oria.adapters.assortment import (
 from oria.adapters.launch import InMemoryCouponBatchAdapter, InMemoryRecruitmentAdapter
 from oria.adapters.products import InMemoryProductCatalogAdapter
 from oria.agent.graph import build_research_graph
+from oria.agent.supervisor import build_supervisor_graph
 from oria.config.models import ResolvedRuntimeConfig
 from oria.config.resolve import resolve_runtime_config
 from oria.core.approvals import ApprovalBindingInvalidationConsumer, ApprovalService
@@ -428,6 +429,7 @@ async def build_runtime(
         ingress.register("cli", LocalCLIIngressAdapter())
         agents.register("research_agent", build_research_graph(checkpointer=checkpointer))
         agents.register("scenario_a", build_scenario_a_graph(checkpointer=checkpointer))
+        agents.register("supervisor", build_supervisor_graph(checkpointer=checkpointer))
 
         tools.seal()
         for registry in (guardrails, nodes, agents, ingress, notifier):
