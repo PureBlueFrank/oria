@@ -104,8 +104,6 @@ class ComparisonLiveBudget(NightlyBudget):
             raise ValueError("Live input-token budget cannot cover worst-case reservations")
         if self.max_output_tokens < self.max_cases * self.per_case_max_output_tokens:
             raise ValueError("Live output-token budget cannot cover worst-case reservations")
-        if self.max_cost_usd < self.max_cases * self.per_case_max_cost_usd:
-            raise ValueError("Live cost budget cannot cover worst-case reservations")
         return self
 
 
