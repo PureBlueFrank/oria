@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import os
 import sys
 import uuid
 from collections.abc import Coroutine
@@ -36,9 +37,14 @@ from oria.eval.compare import (
     ArchitectureBudgets,
     ComparisonConfig,
     ComparisonError,
+    ComparisonReport,
     fixture_pricing_snapshot,
     load_comparison_fixture_plan,
+    load_comparison_live_config,
+    load_comparison_pricing_snapshot,
     run_comparison,
+    run_comparison_live,
+    select_comparison_live_target,
 )
 from oria.memory import PersistentMemory
 from oria.orchestrator.local_executor import (
@@ -96,6 +102,7 @@ class OutputFormat(StrEnum):
 class EvalVerification(StrEnum):
     FIXTURE = "fixture"
     COMMUNITY = "community"
+    LIVE = "live"
 
 
 def _demo_view(result: DemoResult) -> WorkflowViewModel:
@@ -147,6 +154,8 @@ _DEFAULT_ATTRIBUTION_RUBRIC = _default_eval_asset("config/attribution-rubric-v1.
 _DEFAULT_COMPARISON_MANIFEST = _default_eval_asset("datasets/scenario_b/v2.manifest.json")
 _DEFAULT_COMPARISON_RUBRIC = _default_eval_asset("config/attribution-rubric-v2.yaml")
 _DEFAULT_COMPARISON_BUDGET = _default_eval_asset("config/comparison-fixture-v1.yaml")
+_DEFAULT_COMPARISON_LIVE_CONFIG = _default_eval_asset("config/comparison-live-v1.yaml")
+_DEFAULT_COMPARISON_PRICING_DIR = _default_eval_asset("config/pricing")
 
 
 @attribution_app.command("ask")
@@ -582,6 +591,40 @@ def eval_run(
     )
 
 
+async def _run_cli_comparison_live(
+    *,
+    manifest: Path,
+    rubric: Path,
+    live_config: Path,
+    pricing_dir: Path,
+    target_id: str,
+    data_dir: Path,
+) -> ComparisonReport:
+    config = load_comparison_live_config(live_config)
+    target = select_comparison_live_target(config, target_id)
+    if not os.environ.get(target.credential_env, "").strip():
+        raise ComparisonError("comparison Live credential is missing")
+    snapshot = load_comparison_pricing_snapshot(pricing_dir / f"{target.pricing_snapshot_id}.yaml")
+    resolved = resolve_runtime_config(
+        runtime_profile="standard",
+        llm_profile=target.target_id,
+        embedding_profile="fixture",
+        data_dir=data_dir / "runtime",
+        environ=dict(os.environ),
+    )
+    await initialize_data(resolved)
+    runtime = await build_runtime(resolved)
+    async with runtime:
+        return await run_comparison_live(
+            manifest,
+            rubric_path=rubric,
+            base_runtime=runtime,
+            target=target,
+            data_dir=data_dir,
+            pricing_snapshot=snapshot,
+        )
+
+
 @eval_app.command("compare")
 def eval_compare(
     suite: Annotated[
@@ -590,7 +633,7 @@ def eval_compare(
     ] = "attribution",
     verification: Annotated[
         EvalVerification,
-        typer.Option("--verification", help="Fixture only; Live comparison belongs to T07."),
+        typer.Option("--verification", help="Verification level: fixture or explicit Live."),
     ] = EvalVerification.FIXTURE,
     manifest: Annotated[
         Path | None,
@@ -612,6 +655,14 @@ def eval_compare(
         Path | None,
         typer.Option("--budget", help="Equal Fixture budget and synthetic pricing file."),
     ] = None,
+    live_config: Annotated[
+        Path | None,
+        typer.Option("--config", help="Configured comparison Live targets."),
+    ] = None,
+    pricing_dir: Annotated[
+        Path | None,
+        typer.Option("--pricing-dir", help="Frozen Live pricing snapshot directory."),
+    ] = None,
     data_dir: Annotated[
         Path | None,
         typer.Option("--data-dir", help="Fresh local Fixture runtime data root."),
@@ -622,32 +673,52 @@ def eval_compare(
     ] = None,
     target: Annotated[
         str | None,
-        typer.Option("--target", help="Reserved for explicit T07 Live targets."),
+        typer.Option("--target", help="Explicit comparison Live target id."),
     ] = None,
 ) -> None:
-    """Compare single and multi architectures under one frozen offline contract."""
+    """Compare single and multi architectures under one frozen fair contract."""
 
     try:
         if suite != "attribution":
             raise ComparisonError("eval compare currently supports the attribution suite only")
-        if verification is not EvalVerification.FIXTURE or target is not None:
-            raise ComparisonError("Live/Community comparison is disabled until T07")
-        plan = load_comparison_fixture_plan(budget or _DEFAULT_COMPARISON_BUDGET)
-        config = ComparisonConfig(
-            seed=seed,
-            repetitions=repetitions,
-            budgets=ArchitectureBudgets(single=plan.budget, multi=plan.budget),
-        )
-        output_path = report_path or Path(".artifacts/eval/comparison_fixture_v1.json")
-        report = asyncio.run(
-            run_comparison(
-                manifest or _DEFAULT_COMPARISON_MANIFEST,
-                rubric_path=rubric or _DEFAULT_COMPARISON_RUBRIC,
-                data_dir=data_dir or Path(".artifacts/eval/comparison-data"),
-                config=config,
-                pricing_snapshot=fixture_pricing_snapshot(plan),
+        selected_manifest = manifest or _DEFAULT_COMPARISON_MANIFEST
+        selected_rubric = rubric or _DEFAULT_COMPARISON_RUBRIC
+        selected_data_dir = data_dir or Path(".artifacts/eval/comparison-data")
+        if verification is EvalVerification.COMMUNITY:
+            raise ComparisonError("Community comparison is disabled")
+        if verification is EvalVerification.LIVE:
+            if target is None:
+                raise ComparisonError("comparison Live requires --target")
+            output_path = report_path or Path(".artifacts/eval/comparison_live_v1.json")
+            report = asyncio.run(
+                _run_cli_comparison_live(
+                    manifest=selected_manifest,
+                    rubric=selected_rubric,
+                    live_config=live_config or _DEFAULT_COMPARISON_LIVE_CONFIG,
+                    pricing_dir=pricing_dir or _DEFAULT_COMPARISON_PRICING_DIR,
+                    target_id=target,
+                    data_dir=selected_data_dir,
+                )
             )
-        )
+        else:
+            if target is not None:
+                raise ComparisonError("Fixture comparison does not accept --target")
+            plan = load_comparison_fixture_plan(budget or _DEFAULT_COMPARISON_BUDGET)
+            config = ComparisonConfig(
+                seed=seed,
+                repetitions=repetitions,
+                budgets=ArchitectureBudgets(single=plan.budget, multi=plan.budget),
+            )
+            output_path = report_path or Path(".artifacts/eval/comparison_fixture_v1.json")
+            report = asyncio.run(
+                run_comparison(
+                    selected_manifest,
+                    rubric_path=selected_rubric,
+                    data_dir=selected_data_dir,
+                    config=config,
+                    pricing_snapshot=fixture_pricing_snapshot(plan),
+                )
+            )
         write_value_model(output_path, report)
     except (ComparisonError, RuntimeError, ValueError) as exc:
         typer.echo(

@@ -702,6 +702,15 @@ def load_comparison_live_config(path: Path) -> ComparisonLiveConfig:
         raise ComparisonError("comparison Live configuration is unavailable or invalid") from exc
 
 
+def load_comparison_pricing_snapshot(path: Path) -> PricingSnapshot:
+    """Load a pricing snapshot used to reserve Live comparison requests."""
+
+    try:
+        return PricingSnapshot.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        raise ComparisonError("comparison pricing snapshot is unavailable or invalid") from exc
+
+
 def select_comparison_live_target(
     config: ComparisonLiveConfig, target_id: str
 ) -> ComparisonLiveTarget:
@@ -883,6 +892,8 @@ async def run_comparison_live(
         raise ComparisonError("runtime provider/model does not match comparison Live target")
     if pricing_snapshot.snapshot_id != target.pricing_snapshot_id:
         raise ComparisonError("comparison pricing snapshot identity does not match target")
+    if datetime.now().astimezone() > pricing_snapshot.valid_until:
+        raise ComparisonError("comparison pricing snapshot is expired")
     if max_new_case_runs is not None and max_new_case_runs < 1:
         raise ComparisonError("staged comparison case-run limit must be positive")
 
@@ -895,6 +906,12 @@ async def run_comparison_live(
     expected_per_architecture = len(cases) * target.repetitions
     if not cases or expected_per_architecture != target.budget.max_cases:
         raise ComparisonError("comparison Live budget must exactly cover holdout repetitions")
+    if (
+        dataset.manifest.review_status != "approved"
+        or not dataset.manifest.human_review_complete
+        or not dataset.manifest.holdout_frozen
+    ):
+        raise ComparisonError("comparison Live dataset is not reviewed and frozen")
     if dataset.manifest.holdout_case_count != len(cases):
         raise ComparisonError("comparison Live holdout count does not match its manifest")
     if dataset.manifest.rubric_sha256 is None:
