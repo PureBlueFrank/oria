@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal, Self, cast
 
+import yaml
 from langgraph.checkpoint.memory import InMemorySaver
 from pydantic import Field, model_validator
 
@@ -37,7 +38,7 @@ from oria.eval.attribution import (
 )
 from oria.eval.attribution_data import generate_attribution_fixture
 from oria.eval.datasets import AttributionGoldenCase, load_golden_dataset
-from oria.eval.nightly import NightlyBudget, PricingSnapshot, TokenPrices
+from oria.eval.nightly import NightlyBudget, PricingSnapshot, TieredModelPrices, TokenPrices
 
 Architecture = Literal["single", "multi"]
 
@@ -101,6 +102,15 @@ class ComparisonConfig(ValueModel):
     termination_rule: str = Field(default="research_limits_v1", min_length=1)
     hide_architecture_labels: Literal[True] = True
     budgets: ArchitectureBudgets
+
+
+class ComparisonFixturePlan(ValueModel):
+    """Offline budget and synthetic token prices loaded by the CLI."""
+
+    schema_version: Literal[1] = 1
+    pricing_snapshot_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{1,127}$")
+    budget: ComparisonBudget
+    token_prices: TokenPrices
 
 
 class RubricMetric(ValueModel):
@@ -570,6 +580,36 @@ def _pricing_for(
     except KeyError as exc:
         raise ComparisonError("comparison model is absent from pricing snapshot") from exc
     return tiers.peak if rate_tier == "peak" else tiers.off_peak
+
+
+def load_comparison_fixture_plan(path: Path) -> ComparisonFixturePlan:
+    """Load a strict offline comparison budget without contacting a provider."""
+
+    try:
+        return ComparisonFixturePlan.model_validate(
+            yaml.safe_load(path.read_text(encoding="utf-8"))
+        )
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        raise ComparisonError("comparison budget is unavailable or invalid") from exc
+
+
+def fixture_pricing_snapshot(plan: ComparisonFixturePlan) -> PricingSnapshot:
+    """Wrap synthetic Fixture prices in the shared immutable pricing contract."""
+
+    return PricingSnapshot(
+        snapshot_id=plan.pricing_snapshot_id,
+        currency="USD",
+        unit="per_million_tokens",
+        source_url="https://oria.invalid/eval/fixture-pricing",
+        verified_at=datetime(2026, 9, 10, tzinfo=UTC),
+        valid_until=datetime(2036, 9, 10, tzinfo=UTC),
+        models={
+            "attribution_replay_v1": TieredModelPrices(
+                peak=plan.token_prices,
+                off_peak=plan.token_prices,
+            )
+        },
+    )
 
 
 async def run_comparison(

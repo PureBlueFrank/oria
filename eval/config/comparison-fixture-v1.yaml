@@ -1,0 +1,22 @@
+schema_version: 1
+pricing_snapshot_id: fixture-comparison-v1
+budget:
+  max_cases: 150
+  max_input_tokens: 150000
+  max_output_tokens: 75000
+  max_cost_usd: 15.0
+  max_wall_seconds: 900
+  max_model_turns: 1200
+  max_tool_calls: 1200
+  max_total_tokens: 225000
+  per_case_max_model_turns: 8
+  per_case_max_tool_calls: 8
+  per_case_max_input_tokens: 1000
+  per_case_max_output_tokens: 500
+  per_case_max_cost_usd: 0.1
+  per_case_timeout_seconds: 30
+token_prices:
+  input_cache_hit_per_million_usd: 0.10
+  input_cache_miss_per_million_usd: 0.20
+  output_per_million_usd: 0.40
+  reasoning_per_million_usd: 0.40

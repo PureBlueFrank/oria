@@ -32,6 +32,14 @@ from oria.eval import (
     run_rag_eval,
     write_value_model,
 )
+from oria.eval.compare import (
+    ArchitectureBudgets,
+    ComparisonConfig,
+    ComparisonError,
+    fixture_pricing_snapshot,
+    load_comparison_fixture_plan,
+    run_comparison,
+)
 from oria.memory import PersistentMemory
 from oria.orchestrator.local_executor import (
     LocalWorkflowResult,
@@ -134,6 +142,9 @@ _DEFAULT_RAG_MANIFEST = _default_eval_asset("datasets/rag/v1.manifest.json")
 _DEFAULT_RAG_CONFIG = _default_eval_asset("config/rag.yaml")
 _DEFAULT_ATTRIBUTION_MANIFEST = _default_eval_asset("datasets/scenario_b/manifest.json")
 _DEFAULT_ATTRIBUTION_RUBRIC = _default_eval_asset("config/attribution-rubric-v1.yaml")
+_DEFAULT_COMPARISON_MANIFEST = _default_eval_asset("datasets/scenario_b/v2.manifest.json")
+_DEFAULT_COMPARISON_RUBRIC = _default_eval_asset("config/attribution-rubric-v2.yaml")
+_DEFAULT_COMPARISON_BUDGET = _default_eval_asset("config/comparison-fixture-v1.yaml")
 
 
 @attribution_app.command("ask")
@@ -559,6 +570,98 @@ def eval_run(
                 "dataset_version": report.dataset_version,
                 "verification_level": report.verification_level,
                 "eval_fingerprint": report.eval_fingerprint,
+                "report": str(output_path),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+
+
+@eval_app.command("compare")
+def eval_compare(
+    suite: Annotated[
+        str,
+        typer.Option("--suite", help="Comparison suite; attribution is supported."),
+    ] = "attribution",
+    verification: Annotated[
+        EvalVerification,
+        typer.Option("--verification", help="Fixture only; Live comparison belongs to T07."),
+    ] = EvalVerification.FIXTURE,
+    manifest: Annotated[
+        Path | None,
+        typer.Option("--manifest", "--dataset-manifest", help="Frozen dataset manifest."),
+    ] = None,
+    rubric: Annotated[
+        Path | None,
+        typer.Option("--rubric", help="Preregistered blind scoring rubric."),
+    ] = None,
+    seed: Annotated[
+        str,
+        typer.Option("--seed", help="Replayable architecture-order seed."),
+    ] = "oria-v05-t05",
+    repetitions: Annotated[
+        int,
+        typer.Option("--repetitions", min=1, help="Runs retained per case and architecture."),
+    ] = 3,
+    budget: Annotated[
+        Path | None,
+        typer.Option("--budget", help="Equal Fixture budget and synthetic pricing file."),
+    ] = None,
+    data_dir: Annotated[
+        Path | None,
+        typer.Option("--data-dir", help="Fresh local Fixture runtime data root."),
+    ] = None,
+    report_path: Annotated[
+        Path | None,
+        typer.Option("--report", help="Machine-readable comparison report."),
+    ] = None,
+    target: Annotated[
+        str | None,
+        typer.Option("--target", help="Reserved for explicit T07 Live targets."),
+    ] = None,
+) -> None:
+    """Compare single and multi architectures under one frozen offline contract."""
+
+    try:
+        if suite != "attribution":
+            raise ComparisonError("eval compare currently supports the attribution suite only")
+        if verification is not EvalVerification.FIXTURE or target is not None:
+            raise ComparisonError("Live/Community comparison is disabled until T07")
+        plan = load_comparison_fixture_plan(budget or _DEFAULT_COMPARISON_BUDGET)
+        config = ComparisonConfig(
+            seed=seed,
+            repetitions=repetitions,
+            budgets=ArchitectureBudgets(single=plan.budget, multi=plan.budget),
+        )
+        output_path = report_path or Path(".artifacts/eval/comparison_fixture_v1.json")
+        report = asyncio.run(
+            run_comparison(
+                manifest or _DEFAULT_COMPARISON_MANIFEST,
+                rubric_path=rubric or _DEFAULT_COMPARISON_RUBRIC,
+                data_dir=data_dir or Path(".artifacts/eval/comparison-data"),
+                config=config,
+                pricing_snapshot=fixture_pricing_snapshot(plan),
+            )
+        )
+        write_value_model(output_path, report)
+    except (ComparisonError, RuntimeError, ValueError) as exc:
+        typer.echo(
+            json.dumps(
+                {"ok": False, "error": {"code": "eval_compare_blocked", "message": str(exc)}},
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+            err=True,
+        )
+        raise typer.Exit(code=2) from None
+    typer.echo(
+        json.dumps(
+            {
+                "ok": True,
+                "suite": report.suite,
+                "verification_level": report.verification_level,
+                "conclusion": report.conclusion,
                 "report": str(output_path),
             },
             ensure_ascii=False,
