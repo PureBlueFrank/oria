@@ -53,6 +53,7 @@ from oria.orchestrator.local_executor import (
 )
 from oria.permission.local import local_cli_executor, local_operator
 from oria.presentation.attribution import render_attribution
+from oria.presentation.data_init import render_data_initialization
 from oria.presentation.workflow import (
     MerchantMatch,
     MerchantMatches,
@@ -61,6 +62,7 @@ from oria.presentation.workflow import (
     render_workflow,
 )
 from oria.rag.rerank import CrossEncoderReranker, FixtureReranker
+from oria.resources.loader import load_demo_data
 
 app = typer.Typer(
     name="oria",
@@ -413,12 +415,14 @@ def data_init(
     if output is OutputFormat.JSON:
         typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
     else:
-        typer.echo("Data initialized")
-        typer.echo(f"Dataset: {result.dataset_version}")
+        bundle = load_demo_data()
         typer.echo(
-            f"Revisions: platform={result.platform_revision}, business={result.business_revision}"
+            render_data_initialization(
+                result,
+                merchants=bundle.merchants,
+                rules=bundle.rules,
+            )
         )
-        typer.echo(f"Merchants inserted: {result.merchants_inserted}")
 
 
 @eval_app.command("run")

@@ -1,6 +1,7 @@
 """Human-readable presentation models and renderers."""
 
 from oria.presentation.attribution import render_attribution
+from oria.presentation.data_init import render_data_initialization
 from oria.presentation.workflow import (
     ApprovalSummary,
     ConfirmationProgress,
@@ -25,5 +26,6 @@ __all__ = [
     "WorkflowViewModel",
     "proposal_rule_summary",
     "render_attribution",
+    "render_data_initialization",
     "render_workflow",
 ]
