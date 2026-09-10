@@ -177,7 +177,9 @@ async def test_dynamic_tool_exposure_matches_read_admin_and_approver_roles() -> 
         allowed_by_policy = {
             name
             for name in registry
-            if (await policy.authorize(tool_authorization_request(registry.get(name), ctx), ctx)).allow
+            if (
+                await policy.authorize(tool_authorization_request(registry.get(name), ctx), ctx)
+            ).allow
         }
         assert visible == allowed_by_policy == expected
         for name in registry:

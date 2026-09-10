@@ -8,11 +8,11 @@
 
 1. **P0：Scenario B 收口**——**已收口（2026-09-10）**：V0.4-T05 原 DeepSeek 冻结 Live 卡以 failed 结论收口（不可更改）；GPT-5.6 Sol 随后在冻结 V2 holdout 上完成 60/60 并通过严格人工盲评，`FrankLee` 已确认将 `codex-subscription-gpt56-sol-high` 晋升为场景 B 推荐 Live target。Runner 仍强制显式选择，不改变 Mock 默认或自动发起 Live；V2 保持冻结，不启动 V3。
 2. **P1：交互 Demo**——**已收口（2026-09-07）**：`docs/demo/` 静态页面（无后端、file:// 可直接打开）展示场景 A 十步冻结 Trace，以及场景 B 的归因、冲突、弃答与契约拦停案例；`oria attribution ask` 补充场景 B 单案例分步 CLI 演示，默认为开发集 Mock 回放，显式 `--llm-profile` 时才进入 Live 动态选路。数据由真实本地 Workflow/Graph、Mock Adapter 与合成数据产生，所有入口均声明 Mock/Live 边界。公开在线访问需在仓库设置启用 GitHub Pages（/docs 目录）。
-3. **P2：证据索引与文档一致性**——**已复核（2026-09-10）**：统一验证证据索引已覆盖故障注入、RAG 对照、Scenario B Eval、Live 卡、Demo 与 ADR；当前文档已同步 V2 冻结状态、GPT-5.6 Sol 推荐结论、验证数字和能力边界。V0.5-T01–T03 现已完成。
+3. **P2：证据索引与文档一致性**——**已复核（2026-09-10）**：统一验证证据索引已覆盖故障注入、RAG 对照、Scenario B Eval、Live 卡、Demo 与 ADR；当前文档已同步 V2 冻结状态、GPT-5.6 Sol 推荐结论、验证数字和能力边界。V0.5-T01–T06 现已完成。
 
 演示和评测只使用贴近企业业务的版本化合成数据与 Mock Adapter，不接触企业内部敏感数据，也不把 Mock 结果表述为真实企业接入。真实业务 Adapter 作为有条件时的独立加分项，不阻塞本轮收口。
 
-**门禁状态**：P0–P2 已完成，本轮演示与证据验收门禁关闭。V0.5-T01–T03 已完成，下一任务为 T04；V0.5 Core 仍未达成，V0.6 等待 V0.5 完成，V0.7、V0.8 继续依次推进。
+**门禁状态**：P0–P2 已完成，本轮演示与证据验收门禁关闭。V0.5-T01–T06 已完成并达到 Core Gate，V0.6 可按依赖实施；V0.5-T07 Live single/multi 对照仍是独立必需卡，完成前不声明多智能体质量提升。
 
 ## 版本状态总览
 
@@ -22,7 +22,7 @@
 | V0.2 | Provider 与 RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡通过 | 统一六家 Provider 的 Fixture 契约，完成授权 RAG、三管线对照、冻结数据集和 DeepSeek Live 验证；其他 Provider 未 Live 验证。 |
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
 | V0.4 | 场景 B 动态归因 Agent | T01–T05 已完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 50 条 Golden 已审阅并冻结 30/20 split；GPT-5.6 Sol 完成 20×3，自动通过 55/60，严格盲评 10/10 达线、平均 0.98。 |
-| V0.5 | 多智能体、上下文与记忆 | T01–T05 已完成；Core 未达成 | 已交付上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent 与公平对照 harness；T06 安全验证和 T07 Live 对照尚待完成。 |
+| V0.5 | 多智能体、上下文与记忆 | T01–T06 与 Core 已完成；T07 Live 待执行 | 已交付上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、公平对照 harness 与 S2–S4 C/SEC 证据；不声明 Live 质量提升。 |
 
 ## V0.1：场景 A 只读提案 MVP
 
@@ -89,14 +89,16 @@ V0.4-T05 修复已收口（2026-09-07）：累计授权 4 美元；原批次 60 
 | V0.5-T01 | V0.4-Core | 实现短期历史、滑窗摘要、事实账本和统一 context budget。 | **已完成**；固定事实逐项保持、预算/溢出、Memory 契约与 agent 接入回归通过。 |
 | V0.5-T02 | V0.2-T03,V0.5-T01 | 实现显式 opt-in Memory、tenant/subject 隔离、TTL、来源/置信/敏感级别及查看删除导出。 | **已完成**；生命周期、隔离和删除传播契约/安全验证。 |
 | V0.5-T03 | V0.3-T02,V0.5-T02 | 完成 RBAC/ABAC、职责分离、动态工具暴露和输入/RAG/Tool/输出 Guardrail。 | **已完成**；默认拒绝、执行前重新鉴权、动态最小工具和投毒攻击安全验证通过。 |
-| V0.5-T04 | V0.5-T01,V0.5-T03,V0.4-T03 | 建立 tool-based supervisor 与至少两个专职 Subagent，约束 handoff、allowlist 和循环上限。 | 路由、权限不放大、失败回收的契约与 E2E-F 验证。 |
+| V0.5-T04 | V0.5-T01,V0.5-T03,V0.4-T03 | 建立 tool-based supervisor 与至少两个专职 Subagent，约束 handoff、allowlist 和循环上限。 | **已完成**；路由、权限不放大、失败回收的契约与 E2E-F 验证通过。 |
 | V0.5-T05 | V0.5-T04,V0.4-T04 | **已完成**：建立 single/multi 等额预算、随机顺序、隐藏架构标签的公平对照 harness 与 `eval compare`。 | Fixture 仅作描述性证据；Live 价值判断留 T07。 |
-| V0.5-T06 | V0.5-T02,V0.5-T03,V0.5-T04 | 执行 Community/Security 场景并更新威胁模型与 Memory 保留/删除说明。 | Core 报告覆盖删除、投毒、权限和跨会话生命周期。 |
+| V0.5-T06 | V0.5-T02,V0.5-T03,V0.5-T04 | 执行 Community/Security 场景并更新威胁模型与 Memory 保留/删除说明。 | **已完成**；Core 报告覆盖删除、投毒、权限和跨会话生命周期。 |
 | V0.5-T07 | V0.5-T05,V0.5-T06 | 执行 single/multi 必需 Live 对照，历史场景 B Live 仅作证据引用。 | Live 报告须如实记录通过、失败或阻塞及质量/成本/延迟/方差。 |
 
 V0.5-T01 交付（已完成，Fixture/Community）：社区 runtime 默认挂载按 tenant + session 隔离的进程内短期 Memory，通过 UTF-8 确定性 Token 估算、system + 最近消息滑窗、规范 JSON 摘要与 checkpoint 事实账本治理单次模型输入。固定商家 ID/名称/金额/结论压缩前后逐项断言通过；完整非 Live 套件 938 passed、security 108 passed。本任务无真实网络、无 migration，`search()` 仍为 T02 stub；证据见 [V0.5-T01 验证卡](reports/verification/v0.5/20260910-t01/summary.md) 与 [ADR-035](docs/adr/ADR-035-context-budget-and-fact-ledger.md)。
 
 V0.5-T03 交付（已完成，Fixture/Community/Security）：在原 RBAC/职责分离之后叠加 ABAC deny，动态工具暴露仅交付当前 PolicyDecision 允许的静态 allowlist 子集，执行前由 tool Guardrail 重新鉴权。input prompt/input RAG 只告警不参与授权，output safety 对 PII/凭证/确定性毒性模式脱敏。`make lint` 通过，完整非 Live/Enterprise/Performance 套件 953 passed，security 116 passed。本任务无 migration、无新依赖、无真实网络；证据见 [V0.5-T03 验证卡](reports/verification/v0.5/20260910-t03/summary.md) 与 [ADR-010](docs/adr/ADR-010-guardrails-and-hits.md)。
+
+V0.5-T06 交付（已完成，Fixture/Community/Security）：S2–S4 跨会话 Memory、删除传播/脱敏审计、记忆投毒、三角色动态工具与越权审计断言通过；完整非 Live/Enterprise/Performance 套件 969 passed，security 117 passed。已新增 [V0.5 威胁模型](docs/security/V0.5威胁模型.md)、[Memory 保留/删除说明](docs/security/V0.5-Memory保留与删除.md) 和 [Core 验证卡](reports/verification/v0.5/20260910-t06/summary.md)。本证据不包含 Live/Enterprise/Performance；T07 Live 仍待执行。
 
 ## 验证分层说明
 
@@ -105,4 +107,4 @@ V0.5-T03 交付（已完成，Fixture/Community/Security）：在原 RBAC/职责
 - **Live（L）**：调用明确记录的真实公开模型 API，只证明该日期、模型和配置下的调用与质量结果；不能外推到其他模型或未来版本。
 - **Enterprise（E-like/E）**：E-like 使用本地 PostgreSQL、Milvus、Redis、OTel 等企业栈组件，E 使用真实企业环境与 Adapter；两者均按目标独立验证，不能互相或由 Mock 替代。
 
-当前已验证到：V0.1/V0.2/V0.3 Core 与各自必需 DeepSeek Live 卡均已通过；V0.3 Community 使用 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据完成验证。V0.4 T01–T05、合成数据、标签隔离、五个只读归因 Tool、动态 Agent、人工审阅 Golden 与冻结 Fixture baseline 已完成；原 DeepSeek Live 卡 failed，GPT-5.6 Sol 推荐 Live 卡已通过严格人工盲评。V0.5-T01–T03 的上下文、opt-in Memory、ABAC、动态工具与 Guardrail 已通过 Fixture/Community/Security 回归；V0.5 Core 仍未达成。真实企业 Adapter、OpenAI API 通道、Codex 与 DeepSeek 以外 Provider、E-like 多 worker 和 V0.5 单/多 Agent 对照仍未验证。
+当前已验证到：V0.1/V0.2/V0.3 Core 与各自必需 DeepSeek Live 卡均已通过；V0.3 Community 使用 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据完成验证。V0.4 T01–T05、合成数据、标签隔离、五个只读归因 Tool、动态 Agent、人工审阅 Golden 与冻结 Fixture baseline 已完成；原 DeepSeek Live 卡 failed，GPT-5.6 Sol 推荐 Live 卡已通过严格人工盲评。V0.5-T01–T06 的上下文、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、对照 harness 与 S2–S4 Fixture/Community/Security 回归已通过，V0.5 Core Gate 已达成。真实企业 Adapter、OpenAI API 通道、Codex 与 DeepSeek 以外 Provider、E-like 多 worker 和 V0.5-T07 单/多 Agent Live 对照仍未验证。

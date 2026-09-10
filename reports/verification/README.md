@@ -10,7 +10,7 @@
 | V0.2 | Core、RAG Community 对照与必需 DeepSeek Live 通过 | 授权 RAG、三管线对照、六家 Provider 的 Fixture 契约及 DeepSeek Live | DeepSeek 以外 Provider 的 Live 能力 |
 | V0.3 | Core、Community 十步 Workflow 与必需 DeepSeek Live 通过 | SQLite 单 worker、Mock Adapter 下的审批、恢复、幂等、故障注入和对账 | PostgreSQL 多 worker或真实券、招商、商品库、选品、C 端、IM 接入 |
 | V0.4 | T01–T05 完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 合成分析数据、只读 Tool、动态 Agent、冻结 Golden、原 DeepSeek 失败事实及 GPT-5.6 Sol Live 通过卡 | 真实企业数据、OpenAI API 通道或其他 Provider 效果 |
-| V0.5 | T01–T03 已完成；Core 未达成 | 上下文治理、opt-in Memory、ABAC、动态工具和四类 Guardrail | T04–T07 多智能体、公平对照、Live/Enterprise/Performance |
+| V0.5 | T01–T06 与 Core 已完成；T07 Live 待执行 | 上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、对照 harness 与 S2–S4 C/SEC | single/multi Live 质量提升、Enterprise/Performance |
 | P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | 后续平台能力已交付 |
 
 ## 关键证据
@@ -49,6 +49,9 @@
 
 - [T01 会话上下文治理](v0.5/20260910-t01/summary.md)：短期历史、滑窗压缩、确定性事实账本与 context budget；938 项非 Live 回归和 108 项 security 通过。
 - [T03 ABAC 与 Guardrails](v0.5/20260910-t03/summary.md)：动态工具暴露、执行前重新鉴权、input/RAG/tool/output Guardrail；953 项非 Live 回归和 116 项 security 通过。
+- [T04 Supervisor/Subagent 边界](v0.5/20260910-t04/summary.md)：确定性路由、权限交集、handoff 上限和失败回收；仅声明控制流实现。
+- [T05 single/multi 公平对照 harness](v0.5/20260910-t05/summary.md)：等额预算、随机顺序、隐藏架构标签和预注册 rubric；仅 Fixture 描述性证据。
+- [T06 S2–S4 Core](v0.5/20260910-t06/summary.md)：跨会话 Memory 删除传播、投毒边界、动态最小权限与脱敏审计；969 项非 Live 回归和 117 项 security 通过。
 
 ## Demo 与架构证据
 
@@ -59,7 +62,7 @@
 
 ## 演示与证据验收收口
 
-[2026-09-07 收口验证记录](CLOSEOUT-20260907.md)保留当时 P0–P2 的产物、文档一致性检查和未验证边界。2026-09-10 后续复核已新增 GPT-5.6 Sol 推荐 Live 卡：V2 继续冻结，runner 仍要求显式选择，也不改写原 DeepSeek failed 结论。V0.5 已完成 T01–T03，但仍未达 Core Gate。
+[2026-09-07 收口验证记录](CLOSEOUT-20260907.md)保留当时 P0–P2 的产物、文档一致性检查和未验证边界。2026-09-10 后续复核已新增 GPT-5.6 Sol 推荐 Live 卡：V2 继续冻结，runner 仍要求显式选择，也不改写原 DeepSeek failed 结论。V0.5 已完成 T01–T06 并达 Core Gate；T07 Live single/multi 对照仍待执行。
 
 ## 证据解释规则
 

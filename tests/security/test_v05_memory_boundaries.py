@@ -75,7 +75,7 @@ async def test_delete_clears_body_vector_cache_and_writes_only_redacted_audit(
             (ctx.tenant_id, ctx.actor.subject_id, item.id),
         ).fetchone()
         audit_rows = connection.execute(
-            "SELECT resource_id, payload_json FROM audit_events "
+            "SELECT resource_id, payload_json, actor FROM audit_events "
             "WHERE action = 'memory:deleted' AND resource_id = ?",
             (item.id,),
         ).fetchall()
@@ -84,6 +84,7 @@ async def test_delete_clears_body_vector_cache_and_writes_only_redacted_audit(
     assert len(audit_rows) == 1
     assert audit_rows[0][0] == item.id
     assert json.loads(str(audit_rows[0][1])).keys() == {"object_hash"}
+    assert audit_rows[0][2] == ctx.actor.subject_id
     assert deleted_text not in str(audit_rows)
 
 
