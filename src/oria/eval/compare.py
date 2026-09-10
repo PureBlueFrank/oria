@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import random
+import statistics
 import time
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
@@ -23,14 +25,19 @@ from oria.agent import (
     initial_attribution_state,
     initial_supervisor_state,
 )
+from oria.config import resolve_runtime_config
 from oria.core.context import RuntimeServices
+from oria.core.runtime import build_runtime
 from oria.core.types import JsonValue, Principal, ValueModel
+from oria.data import initialize_data
 from oria.eval.attribution import (
     AttributionBlindItem,
     build_attribution_eval_runtime,
+    load_attribution_rubric,
 )
-from oria.eval.datasets import AttributionGoldenCase
-from oria.eval.nightly import NightlyBudget
+from oria.eval.attribution_data import generate_attribution_fixture
+from oria.eval.datasets import AttributionGoldenCase, load_golden_dataset
+from oria.eval.nightly import NightlyBudget, PricingSnapshot, TokenPrices
 
 Architecture = Literal["single", "multi"]
 
@@ -45,12 +52,27 @@ class ComparisonBudget(NightlyBudget):
     max_model_turns: int = Field(gt=0)
     max_tool_calls: int = Field(gt=0)
     max_total_tokens: int = Field(gt=0)
+    per_case_max_model_turns: int = Field(gt=0)
+    per_case_max_tool_calls: int = Field(gt=0)
+    per_case_max_input_tokens: int = Field(gt=0)
+    per_case_max_output_tokens: int = Field(gt=0)
+    per_case_max_cost_usd: float = Field(gt=0)
     per_case_timeout_seconds: int = Field(gt=0)
 
     @model_validator(mode="after")
     def validate_token_total(self) -> Self:
         if self.max_total_tokens != self.max_input_tokens + self.max_output_tokens:
             raise ValueError("total-token budget must equal input plus output budgets")
+        if self.max_model_turns < self.max_cases * self.per_case_max_model_turns:
+            raise ValueError("model-turn budget cannot cover declared case runs")
+        if self.max_tool_calls < self.max_cases * self.per_case_max_tool_calls:
+            raise ValueError("tool-call budget cannot cover declared case runs")
+        if self.max_input_tokens < self.max_cases * self.per_case_max_input_tokens:
+            raise ValueError("input-token budget cannot cover declared case runs")
+        if self.max_output_tokens < self.max_cases * self.per_case_max_output_tokens:
+            raise ValueError("output-token budget cannot cover declared case runs")
+        if self.max_cost_usd < self.max_cases * self.per_case_max_cost_usd:
+            raise ValueError("cost budget cannot cover declared case runs")
         return self
 
 
@@ -118,6 +140,7 @@ class ArchitectureRunResult(ValueModel):
     repetition: int = Field(gt=0)
     blind_item_id: str = Field(min_length=1)
     quality_score: float = Field(ge=0, le=1)
+    model_turns: int = Field(ge=0)
     tool_calls: int = Field(ge=0)
     input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)
@@ -157,6 +180,7 @@ class ArchitectureMetrics(ValueModel):
     architecture: Architecture
     run_count: int = Field(gt=0)
     mean_quality: float = Field(ge=0, le=1)
+    mean_model_turns: float = Field(ge=0)
     mean_tool_calls: float = Field(ge=0)
     mean_input_tokens: float = Field(ge=0)
     mean_output_tokens: float = Field(ge=0)
@@ -164,6 +188,7 @@ class ArchitectureMetrics(ValueModel):
     mean_cost_usd: float = Field(ge=0)
     mean_latency_ms: float = Field(ge=0)
     quality_variance: float = Field(ge=0)
+    model_turns_variance: float = Field(ge=0)
     tool_calls_variance: float = Field(ge=0)
     total_tokens_variance: float = Field(ge=0)
     cost_variance: float = Field(ge=0)
@@ -174,6 +199,7 @@ class ComparisonDelta(ValueModel):
     """Multi minus single descriptive differences."""
 
     quality: float
+    model_turns: float
     tool_calls: float
     total_tokens: float
     cost_usd: float
@@ -189,6 +215,7 @@ class ComparisonReport(ValueModel):
     status: Literal["descriptive_only"] = "descriptive_only"
     dataset_version: str
     dataset_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    pricing_snapshot_id: str = Field(min_length=1)
     config: ComparisonConfig
     rubric: ComparisonRubric
     execution_order: tuple[ComparisonExecutionSlot, ...]
@@ -258,12 +285,12 @@ def _principal(tenant_id: str, *, kind: Literal["human", "service"]) -> Principa
 
 def _research_limits(budget: ComparisonBudget) -> ResearchLimits:
     return ResearchLimits(
-        max_model_turns=budget.max_model_turns,
-        max_tool_calls=budget.max_tool_calls,
-        max_input_tokens=budget.max_input_tokens,
-        max_output_tokens=budget.max_output_tokens,
-        max_total_tokens=budget.max_total_tokens,
-        max_cost=budget.max_cost_usd,
+        max_model_turns=budget.per_case_max_model_turns,
+        max_tool_calls=budget.per_case_max_tool_calls,
+        max_input_tokens=budget.per_case_max_input_tokens,
+        max_output_tokens=budget.per_case_max_output_tokens,
+        max_total_tokens=budget.per_case_max_input_tokens + budget.per_case_max_output_tokens,
+        max_cost=budget.per_case_max_cost_usd,
     )
 
 
@@ -390,6 +417,7 @@ async def run_architecture_slot(
             repetition=slot.repetition,
             blind_item_id=blind_item_id,
             quality_score=quality,
+            model_turns=cast(int, usage.get("model_turns", state.get("model_turns", 0))),
             tool_calls=cast(int, usage.get("tool_calls_total", 0)),
             input_tokens=input_tokens,
             output_tokens=output_tokens,
@@ -402,3 +430,241 @@ async def run_architecture_slot(
         )
     finally:
         await runtime.aclose()
+
+
+def preregister_comparison_rubric(rubric_path: Path) -> ComparisonRubric:
+    """Bind the reviewed rubric and comparison metric plan before execution."""
+
+    rubric = load_attribution_rubric(rubric_path)
+    try:
+        payload = rubric_path.read_bytes()
+    except OSError as exc:
+        raise ComparisonError("comparison rubric is unavailable") from exc
+    rubric_sha256 = hashlib.sha256(payload).hexdigest()
+    metrics = (
+        RubricMetric(metric_id="quality", category="quality", higher_is_better=True),
+        RubricMetric(metric_id="cost_usd", category="cost", higher_is_better=False),
+        RubricMetric(metric_id="latency_ms", category="latency", higher_is_better=False),
+        RubricMetric(metric_id="repetition_variance", category="variance", higher_is_better=False),
+    )
+    criteria = tuple(
+        cast(dict[str, JsonValue], criterion.model_dump(mode="json"))
+        for criterion in rubric.criteria
+    )
+    frozen = {
+        "rubric_version": rubric.rubric_version,
+        "rubric_sha256": rubric_sha256,
+        "judge_criteria": criteria,
+        "metrics": [metric.model_dump(mode="json") for metric in metrics],
+    }
+    digest = hashlib.sha256(
+        json.dumps(frozen, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return ComparisonRubric(
+        rubric_version=rubric.rubric_version,
+        rubric_sha256=rubric_sha256,
+        judge_criteria=criteria,
+        metrics=metrics,
+        preregistration_sha256=digest,
+    )
+
+
+def assert_preregistered_rubric(rubric_path: Path, registered: ComparisonRubric) -> None:
+    """Reject rubric replacement or metric-plan mutation after preregistration."""
+
+    current = preregister_comparison_rubric(rubric_path)
+    if current != registered:
+        raise ComparisonError("comparison rubric changed after preregistration")
+
+
+def _variance(values: list[float]) -> float:
+    return statistics.variance(values) if len(values) > 1 else 0.0
+
+
+def _architecture_metrics(
+    architecture: Architecture, runs: tuple[ArchitectureRunResult, ...]
+) -> ArchitectureMetrics:
+    selected = [run for run in runs if run.architecture == architecture]
+    if not selected:
+        raise ComparisonError(f"comparison has no {architecture} runs")
+
+    def values(name: str) -> list[float]:
+        return [float(getattr(run, name)) for run in selected]
+
+    def repetition_means(name: str) -> list[float]:
+        repetitions = sorted({run.repetition for run in selected})
+        return [
+            statistics.fmean(
+                float(getattr(run, name)) for run in selected if run.repetition == repetition
+            )
+            for repetition in repetitions
+        ]
+
+    count = len(selected)
+    return ArchitectureMetrics(
+        architecture=architecture,
+        run_count=count,
+        mean_quality=statistics.fmean(values("quality_score")),
+        mean_model_turns=statistics.fmean(values("model_turns")),
+        mean_tool_calls=statistics.fmean(values("tool_calls")),
+        mean_input_tokens=statistics.fmean(values("input_tokens")),
+        mean_output_tokens=statistics.fmean(values("output_tokens")),
+        mean_total_tokens=statistics.fmean(values("total_tokens")),
+        mean_cost_usd=statistics.fmean(values("cost_usd")),
+        mean_latency_ms=statistics.fmean(values("latency_ms")),
+        quality_variance=_variance(repetition_means("quality_score")),
+        model_turns_variance=_variance(repetition_means("model_turns")),
+        tool_calls_variance=_variance(repetition_means("tool_calls")),
+        total_tokens_variance=_variance(repetition_means("total_tokens")),
+        cost_variance=_variance(repetition_means("cost_usd")),
+        latency_variance=_variance(repetition_means("latency_ms")),
+    )
+
+
+def _price_run(run: ArchitectureRunResult, prices: TokenPrices) -> ArchitectureRunResult:
+    cost = (
+        run.input_tokens * prices.input_cache_miss_per_million_usd
+        + run.output_tokens * max(prices.output_per_million_usd, prices.reasoning_per_million_usd)
+    ) / 1_000_000
+    return run.model_copy(update={"cost_usd": cost})
+
+
+def _assert_architecture_budget(
+    architecture: Architecture,
+    runs: tuple[ArchitectureRunResult, ...],
+    budget: ComparisonBudget,
+) -> None:
+    selected = [run for run in runs if run.architecture == architecture]
+    totals = {
+        "cases": len(selected),
+        "model turns": sum(run.model_turns for run in selected),
+        "tool calls": sum(run.tool_calls for run in selected),
+        "input tokens": sum(run.input_tokens for run in selected),
+        "output tokens": sum(run.output_tokens for run in selected),
+        "total tokens": sum(run.total_tokens for run in selected),
+        "cost": sum(run.cost_usd for run in selected),
+        "wall seconds": sum(run.latency_ms for run in selected) / 1000,
+    }
+    maxima = {
+        "cases": budget.max_cases,
+        "model turns": budget.max_model_turns,
+        "tool calls": budget.max_tool_calls,
+        "input tokens": budget.max_input_tokens,
+        "output tokens": budget.max_output_tokens,
+        "total tokens": budget.max_total_tokens,
+        "cost": budget.max_cost_usd,
+        "wall seconds": budget.max_wall_seconds,
+    }
+    exceeded = [name for name, total in totals.items() if total > maxima[name]]
+    if exceeded:
+        raise ComparisonError(
+            f"{architecture} architecture exceeded comparison budget: {', '.join(exceeded)}"
+        )
+
+
+def _pricing_for(
+    snapshot: PricingSnapshot, *, model_id: str, rate_tier: Literal["peak", "off_peak"]
+) -> TokenPrices:
+    try:
+        tiers = snapshot.models[model_id]
+    except KeyError as exc:
+        raise ComparisonError("comparison model is absent from pricing snapshot") from exc
+    return tiers.peak if rate_tier == "peak" else tiers.off_peak
+
+
+async def run_comparison(
+    manifest_path: Path,
+    *,
+    rubric_path: Path,
+    data_dir: Path,
+    config: ComparisonConfig,
+    pricing_snapshot: PricingSnapshot,
+    rate_tier: Literal["peak", "off_peak"] = "peak",
+    judge: Judge = fixture_judge,
+) -> ComparisonReport:
+    """Run every frozen case/repetition for both architectures and report all results."""
+
+    dataset = load_golden_dataset(manifest_path)
+    cases = tuple(case for case in dataset.cases if isinstance(case, AttributionGoldenCase))
+    expected_runs = len(cases) * config.repetitions
+    if config.budgets.single != config.budgets.multi:
+        raise ComparisonError("single and multi architectures require identical total budgets")
+    if config.budgets.single.max_cases != expected_runs:
+        raise ComparisonError("comparison case budget must exactly cover the frozen dataset")
+    if dataset.manifest.rubric_sha256 is None:
+        raise ComparisonError("comparison dataset has no frozen rubric")
+    rubric = preregister_comparison_rubric(rubric_path)
+    if rubric.rubric_sha256 != dataset.manifest.rubric_sha256:
+        raise ComparisonError("comparison rubric does not match the frozen dataset")
+    prices = _pricing_for(pricing_snapshot, model_id=config.model_id, rate_tier=rate_tier)
+    order = randomized_execution_order(cases, repetitions=config.repetitions, seed=config.seed)
+    query_databases: dict[str, Path] = {}
+    for variant in sorted({case.fixture_variant for case in cases}):
+        query_database = data_dir / "fixtures" / variant / "analytics.db"
+        generate_attribution_fixture(
+            query_database,
+            data_dir / "evaluation-only" / variant / "labels.db",
+            fixture_variant=variant,
+        )
+        query_databases[variant] = query_database
+    runtime_config = resolve_runtime_config(
+        environ={"ORIA_ENVIRONMENT": "test"}, data_dir=data_dir / "runtime"
+    )
+    await initialize_data(runtime_config)
+    base = await build_runtime(runtime_config)
+    case_by_id = {case.case_id: case for case in cases}
+    results: list[ArchitectureRunResult] = []
+    try:
+        for slot in order:
+            case = case_by_id[slot.case_id]
+            result = await run_architecture_slot(
+                slot,
+                case=case,
+                base_runtime=base,
+                query_database=query_databases[case.fixture_variant],
+                budget=config.budgets.single,
+                rubric=rubric,
+                judge=judge,
+            )
+            results.append(_price_run(result, prices))
+    finally:
+        await base.aclose()
+    assert_preregistered_rubric(rubric_path, rubric)
+    all_runs = tuple(results)
+    _assert_architecture_budget("single", all_runs, config.budgets.single)
+    _assert_architecture_budget("multi", all_runs, config.budgets.multi)
+    single = _architecture_metrics("single", all_runs)
+    multi = _architecture_metrics("multi", all_runs)
+    delta = ComparisonDelta(
+        quality=multi.mean_quality - single.mean_quality,
+        model_turns=multi.mean_model_turns - single.mean_model_turns,
+        tool_calls=multi.mean_tool_calls - single.mean_tool_calls,
+        total_tokens=multi.mean_total_tokens - single.mean_total_tokens,
+        cost_usd=multi.mean_cost_usd - single.mean_cost_usd,
+        latency_ms=multi.mean_latency_ms - single.mean_latency_ms,
+    )
+    if delta.quality > 0:
+        conclusion: Literal["multi_improved", "multi_regressed", "mixed_or_equal"] = (
+            "multi_improved"
+        )
+        boundary = "Fixture-only descriptive gain; Live architecture value remains unverified."
+    elif delta.quality < 0:
+        conclusion = "multi_regressed"
+        boundary = "Multi regressed on the frozen Fixture; use single unless Live evidence differs."
+    else:
+        conclusion = "mixed_or_equal"
+        boundary = "No Fixture quality gain; supervisor routing value is operational only."
+    return ComparisonReport(
+        dataset_version=dataset.manifest.dataset_version,
+        dataset_sha256=dataset.manifest.dataset_sha256,
+        pricing_snapshot_id=pricing_snapshot.snapshot_id,
+        config=config,
+        rubric=rubric,
+        execution_order=order,
+        runs=all_runs,
+        single=single,
+        multi=multi,
+        delta_multi_minus_single=delta,
+        conclusion=conclusion,
+        applicability_boundary=boundary,
+    )
