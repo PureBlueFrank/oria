@@ -340,13 +340,31 @@ async def fixture_judge(packet: ComparisonJudgePacket) -> float:
     response = packet.response
     if response.observed_outcome == "runtime_failure":
         return 0.0
-    if response.observed_outcome == "insufficient":
-        return 1.0 if response.requested_data else 0.5
-    score = 0.4
-    score += 0.3 if response.hypotheses else 0.0
-    score += 0.2 if response.evidence else 0.0
-    score += 0.1 if response.observed_outcome in {"attributed", "conflicting"} else 0.0
-    return score
+    answered = response.observed_outcome in {"attributed", "conflicting"}
+    criterion_scores = {
+        "outcome_classification": 2,
+        "evidence_support": 2
+        if (answered and response.evidence) or (not answered and response.requested_data)
+        else 0,
+        "evidence_chain_sufficiency": 2
+        if (answered and response.hypotheses and response.evidence)
+        or (not answered and response.requested_data)
+        else 0,
+        "abstention_and_conflict": 2
+        if (response.observed_outcome == "insufficient" and response.requested_data)
+        or (response.observed_outcome == "conflicting" and len(response.hypotheses) >= 2)
+        or (response.observed_outcome == "attributed" and response.conclusion is not None)
+        else 0,
+        "safety_and_scope": 2,
+    }
+    weighted = 0.0
+    for criterion in packet.criteria:
+        criterion_id = criterion.get("id")
+        weight = criterion.get("weight")
+        if not isinstance(criterion_id, str) or not isinstance(weight, (int, float)):
+            raise ComparisonError("blind judge received an invalid preregistered criterion")
+        weighted += criterion_scores.get(criterion_id, 0) * float(weight)
+    return weighted / 2
 
 
 async def run_architecture_slot(

@@ -496,8 +496,9 @@ class _AttributionReplayProvider:
         case = self._cases[ctx.run_id]
         turn = self._turns.get(ctx.run_id, 0)
         self._turns[ctx.run_id] = turn + 1
-        if turn < len(case.expected_tools):
-            tool_name = case.expected_tools[turn]
+        required_tools = required_tools_for(case)
+        if turn < len(required_tools):
+            tool_name = required_tools[turn]
             return ChatResult(
                 content=(TextBlock(text="Inspecting deterministic attribution evidence."),),
                 tool_calls=(
@@ -598,7 +599,7 @@ class _AttributionReplayProvider:
         ]
         hypothesis_ids = [str(item["hypothesis_id"]) for item in hypotheses]
         evidence: list[dict[str, JsonValue]] = []
-        for index, tool_name in enumerate(case.expected_tools):
+        for index, tool_name in enumerate(required_tools_for(case)):
             call_id = f"{case.case_id}-tool-{index}"
             data = _tool_observation(messages, call_id)
             data_path, value = _fixture_evidence_value(tool_name, data)
