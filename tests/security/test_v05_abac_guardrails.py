@@ -12,6 +12,7 @@ from oria.core.registry import ServiceRegistry
 from oria.core.types import (
     AuthorizationContext,
     AuthorizationRequest,
+    EventEnvelope,
     PolicyDecision,
     Principal,
     PrincipalAttributes,
@@ -22,10 +23,20 @@ from oria.core.types import (
 )
 from oria.guardrails import OutputSafetyGuardrail, RAGInjectionGuardrail, ToolAuthorizationGuardrail
 from oria.permission.local import LOCAL_TENANT_ID, LocalPolicyEngine, local_cli_executor
-from oria.permission.tools import authorized_tool_names
+from oria.permission.tools import authorized_tool_names, tool_authorization_request
 from oria.tools.registry import ToolRegistry
 
 pytestmark = pytest.mark.security
+
+
+class _RecordingAudit:
+    def __init__(self) -> None:
+        self.events: list[EventEnvelope] = []
+
+    async def append(self, event: EventEnvelope, *, classification: str) -> bool:
+        assert classification in {"public", "internal", "restricted"}
+        self.events.append(event)
+        return True
 
 
 class _Tool:
@@ -155,13 +166,26 @@ async def test_dynamic_tool_exposure_matches_read_admin_and_approver_roles() -> 
     policy = LocalPolicyEngine(trusted_actors=(reader, admin, approver))
     registry = _registry()
 
-    reader_tools = await authorized_tool_names(registry, _context(reader, policy))
-    admin_tools = await authorized_tool_names(registry, _context(admin, policy))
-    approver_tools = await authorized_tool_names(registry, _context(approver, policy))
-
-    assert set(reader_tools) == {"read_rules"}
-    assert set(admin_tools) == {"read_rules", "write_campaign"}
-    assert set(approver_tools) == {"read_rules", "decide_launch"}
+    expected_by_actor = {
+        reader: {"read_rules"},
+        admin: {"read_rules", "write_campaign"},
+        approver: {"read_rules", "decide_launch"},
+    }
+    for actor, expected in expected_by_actor.items():
+        ctx = _context(actor, policy)
+        visible = set(await authorized_tool_names(registry, ctx))
+        allowed_by_policy = {
+            name
+            for name in registry
+            if (await policy.authorize(tool_authorization_request(registry.get(name), ctx), ctx)).allow
+        }
+        assert visible == allowed_by_policy == expected
+        for name in registry:
+            if name in expected:
+                assert (await registry.execute(name, {}, ctx)).ok is True
+            else:
+                with pytest.raises(PermissionError, match="not authorized"):
+                    await registry.execute(name, {}, ctx)
 
 
 class _ChangingPolicy:
@@ -203,7 +227,8 @@ async def test_tool_execution_reauthorizes_after_policy_change() -> None:
 async def test_cross_tenant_forged_role_and_rag_instruction_cannot_expand_tools() -> None:
     reader = _actor("reader", "read_only_operator")
     forged = reader.model_copy(update={"roles": ("campaign_admin",)})
-    policy = LocalPolicyEngine(trusted_actors=(reader,))
+    audit = _RecordingAudit()
+    policy = LocalPolicyEngine(audit=audit, trusted_actors=(reader,))
     ctx = _context(reader, policy)
     registry = _registry()
     before = await authorized_tool_names(registry, ctx)
@@ -221,16 +246,42 @@ async def test_cross_tenant_forged_role_and_rag_instruction_cannot_expand_tools(
             resource=ResourceRef(
                 resource_type="campaign",
                 resource_id="campaign-a",
+                tenant_id=LOCAL_TENANT_ID,
+            ),
+            context=AuthorizationContext(correlation_id="security-correlation"),
+        ),
+        ctx,
+    )
+    cross_tenant_decision = await policy.authorize(
+        AuthorizationRequest(
+            actor=reader,
+            executor=local_cli_executor(),
+            action="rule:read",
+            resource=ResourceRef(
+                resource_type="campaign",
+                resource_id="campaign-other-tenant",
                 tenant_id="other-tenant",
             ),
             context=AuthorizationContext(correlation_id="security-correlation"),
         ),
         ctx,
     )
+    with pytest.raises(PermissionError, match="not authorized"):
+        await registry.execute("write_campaign", {}, ctx)
 
     assert warning.action == "warn"
     assert before == after == ("read_rules",)
     assert forged_decision.allow is False
+    assert forged_decision.reason == "authorization principals do not match the trusted context"
+    assert cross_tenant_decision.allow is False
+    assert cross_tenant_decision.reason == "cross-tenant access is denied"
+    denied_events = [event for event in audit.events if event.decision == "deny"]
+    assert {event.payload["reason_code"] for event in denied_events} >= {
+        "context_mismatch",
+        "cross_tenant",
+        "role_denied",
+    }
+    assert all(event.result == "denied" for event in denied_events)
 
 
 @pytest.mark.asyncio
