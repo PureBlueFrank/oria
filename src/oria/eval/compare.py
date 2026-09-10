@@ -7,7 +7,7 @@ import json
 import random
 import statistics
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal, Self, cast
@@ -138,6 +138,24 @@ class ComparisonLiveConfig(ValueModel):
         if self.recommended_target is not None and self.recommended_target not in target_ids:
             raise ValueError("recommended comparison Live target must be configured")
         return self
+
+
+class ComparisonLivePreflight(ValueModel):
+    """Request-free validation result for one comparison Live target."""
+
+    schema_version: Literal[1] = 1
+    suite: Literal["attribution_comparison"] = "attribution_comparison"
+    target_id: str
+    status: Literal["ready", "blocked"]
+    request_count: Literal[0] = 0
+    checked_at: datetime
+    reason: str | None = None
+    dataset_version: str | None = None
+    dataset_sha256: str | None = None
+    holdout_case_count: int | None = Field(default=None, ge=1)
+    repetitions: int | None = Field(default=None, ge=1)
+    expected_architecture_runs: int | None = Field(default=None, ge=2)
+    pricing_snapshot_id: str | None = None
 
 
 class ArchitectureBudgets(ValueModel):
@@ -720,6 +738,85 @@ def select_comparison_live_target(
     if target is None:
         raise ComparisonError("comparison Live target is not configured")
     return target
+
+
+def preflight_comparison_live(
+    *,
+    config_path: Path,
+    manifest_path: Path,
+    rubric_path: Path,
+    pricing_dir: Path,
+    target_id: str,
+    environ: Mapping[str, str],
+    now: datetime,
+    known_targets: frozenset[str],
+) -> ComparisonLivePreflight:
+    """Validate frozen assets, prices, target, and credential without creating a provider."""
+
+    try:
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ComparisonError("comparison Live preflight time must include a timezone")
+        if target_id not in known_targets:
+            raise ComparisonError("comparison Live target is unknown")
+        target = select_comparison_live_target(load_comparison_live_config(config_path), target_id)
+        dataset = load_golden_dataset(manifest_path)
+        cases = tuple(
+            case
+            for case in dataset.cases
+            if isinstance(case, AttributionGoldenCase) and case.split == "holdout"
+        )
+        if (
+            dataset.manifest.review_status != "approved"
+            or not dataset.manifest.human_review_complete
+            or not dataset.manifest.holdout_frozen
+            or dataset.manifest.holdout_case_count != len(cases)
+        ):
+            raise ComparisonError("comparison Live dataset is not reviewed and frozen")
+        if len(cases) * target.repetitions != target.budget.max_cases:
+            raise ComparisonError("comparison Live budget does not cover holdout repetitions")
+        rubric = preregister_comparison_rubric(rubric_path)
+        if rubric.rubric_sha256 != dataset.manifest.rubric_sha256:
+            raise ComparisonError("comparison rubric does not match the frozen dataset")
+        snapshot = load_comparison_pricing_snapshot(
+            pricing_dir / f"{target.pricing_snapshot_id}.yaml"
+        )
+        if snapshot.snapshot_id != target.pricing_snapshot_id:
+            raise ComparisonError("comparison pricing snapshot identity does not match target")
+        if now > snapshot.valid_until:
+            raise ComparisonError("comparison pricing snapshot is expired")
+        if target.model not in snapshot.models:
+            raise ComparisonError("comparison pricing snapshot does not cover target model")
+        if not environ.get(target.credential_env, "").strip():
+            return ComparisonLivePreflight(
+                target_id=target_id,
+                status="blocked",
+                checked_at=now,
+                reason="comparison Live credential is missing",
+                dataset_version=dataset.manifest.dataset_version,
+                dataset_sha256=dataset.manifest.dataset_sha256,
+                holdout_case_count=len(cases),
+                repetitions=target.repetitions,
+                expected_architecture_runs=target.budget.max_cases * 2,
+                pricing_snapshot_id=snapshot.snapshot_id,
+            )
+    except (ComparisonError, ValueError) as exc:
+        return ComparisonLivePreflight(
+            target_id=target_id,
+            status="blocked",
+            checked_at=now,
+            reason=str(exc),
+        )
+    return ComparisonLivePreflight(
+        target_id=target_id,
+        status="ready",
+        checked_at=now,
+        dataset_version=dataset.manifest.dataset_version,
+        dataset_sha256=dataset.manifest.dataset_sha256,
+        holdout_case_count=len(cases),
+        repetitions=target.repetitions,
+        expected_architecture_runs=target.budget.max_cases * 2,
+        pricing_snapshot_id=snapshot.snapshot_id,
+    )
 
 
 def fixture_pricing_snapshot(plan: ComparisonFixturePlan) -> PricingSnapshot:
