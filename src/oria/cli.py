@@ -854,16 +854,25 @@ def _run_workflow_operation(
     operation: Coroutine[Any, Any, LocalWorkflowResult],
     *,
     output: OutputFormat,
+    campaign_id: str | None = None,
 ) -> None:
     try:
         result = asyncio.run(operation)
     except (LookupError, PermissionError, RuntimeError, ValueError) as exc:
+        duplicate_campaign = str(exc) == "campaign already exists" and campaign_id is not None
+        safe_message = "campaign draft persistence failed" if duplicate_campaign else str(exc)
         payload = {
             "ok": False,
-            "error": {"code": "workflow_operation_failed", "message": str(exc)},
+            "error": {"code": "workflow_operation_failed", "message": safe_message},
         }
         if output is OutputFormat.JSON:
             typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        elif duplicate_campaign:
+            typer.echo(
+                f"活动 `{campaign_id}` 已存在: 请换一个新的 `--campaign-id`, "
+                "或用 `oria workflow resume` 恢复该活动。",
+                err=True,
+            )
         else:
             typer.echo(f"Workflow operation failed: {exc}", err=True)
         raise typer.Exit(code=1) from None
@@ -978,6 +987,7 @@ def workflow_start(
             user_request=request,
         ),
         output=output,
+        campaign_id=campaign_id,
     )
 
 

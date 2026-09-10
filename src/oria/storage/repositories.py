@@ -1307,6 +1307,13 @@ class SQLiteCampaignDraftRepository:
         campaign.validate_tenant_links(rule_snapshot_ref, coupon_batch, recruitment_publication)
         try:
             async with self._sessions.begin() as session:
+                existing = await self._campaigns._find_by_id(
+                    session,
+                    campaign.campaign_id,
+                    tenant_id,
+                )
+                if existing is not None:
+                    raise BusinessRepositoryError("campaign already exists")
                 await self._rule_refs._insert(session, rule_snapshot_ref)
                 await self._campaigns._insert(session, campaign)
                 await self._coupons._insert(session, coupon_batch)
