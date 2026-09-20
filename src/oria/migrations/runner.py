@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import warnings
 from importlib import resources
 from pathlib import Path
 
@@ -650,7 +651,14 @@ def _upgrade_target(target: str, database_path: Path) -> None:
     config.set_main_option("script_location", str(script))
     config.set_main_option("sqlalchemy.url", _sqlite_url(database_path))
     try:
-        command.upgrade(config, "head")
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"Unnamed CHECK constraint on reflected table .* is being omitted.*",
+                category=UserWarning,
+                module=r"alembic\.operations\.batch",
+            )
+            command.upgrade(config, "head")
     except (CommandError, OSError, SQLAlchemyError, sqlite3.Error) as exc:
         raise MigrationError(f"{target} database migration failed") from exc
 
