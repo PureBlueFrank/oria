@@ -13,6 +13,8 @@ Oria 的本地 Community 运行时数据集中在 `data_dir`：
 
 Platform DB 保存知识目录、审批、外部等待、集成事件与平台审计；Business DB 保存商家和招商领域事实。LangGraph 官方 Saver 在 Platform SQLite 中管理自己的 checkpoint 表，这些表不由 Oria Alembic migration 管理。Chroma 和对象目录是可从 catalog 重建的投影/内容存储，不代替领域事实。
 
+V0.6-T01 可将 Platform/Business 分别放入两个独立 PostgreSQL 数据库，但仍使用同两条 Alembic 链与同一套 Repository。PostgreSQL Oria tenant 表强制 RLS，事务内 tenant context 缺失时默认不可见/不可写。官方 `AsyncPostgresSaver` 的 checkpoint 表同样由 saver 自管，不纳入 Alembic。
+
 ## 13 组核心表
 
 以下字段摘要与 `src/oria/migrations/runner.py` 的 `_EXPECTED_COLUMNS` 一致；完整约束以 Platform/Business migration 和领域模型为准。

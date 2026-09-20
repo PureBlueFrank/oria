@@ -1,4 +1,4 @@
-"""Tenant-isolated wrapper around LangGraph's official AsyncSqliteSaver."""
+"""Tenant-isolated wrappers around LangGraph's official async SQL savers."""
 
 from __future__ import annotations
 
@@ -17,12 +17,20 @@ from langgraph.checkpoint.base import (
     CheckpointMetadata,
     CheckpointTuple,
 )
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from pydantic import SecretStr
 
+from oria.config.models import ResolvedRuntimeConfig
 from oria.core.context import Context
+from oria.storage.urls import psycopg_postgres_url
 
 _TENANT_KEY = "oria_tenant_id"
+_METADATA_TENANT_KEY = "oria_tenant_id"
+_METADATA_THREAD_KEY = "oria_external_thread_id"
+
+OfficialAsyncSaver = AsyncSqliteSaver | AsyncPostgresSaver
 
 
 def checkpoint_config(ctx: Context) -> RunnableConfig:
@@ -88,10 +96,10 @@ def _externalize(
     return external
 
 
-class TenantSqliteSaver(BaseCheckpointSaver[str]):
+class TenantCheckpointSaver(BaseCheckpointSaver[Any]):
     """Delegate official async checkpoint semantics behind a tenant-safe key."""
 
-    def __init__(self, delegate: AsyncSqliteSaver) -> None:
+    def __init__(self, delegate: OfficialAsyncSaver) -> None:
         super().__init__(serde=delegate.serde)
         self._delegate = delegate
 
@@ -106,7 +114,17 @@ class TenantSqliteSaver(BaseCheckpointSaver[str]):
         new_versions: ChannelVersions,
     ) -> RunnableConfig:
         tenant_id, thread_id = _identity(config)
-        stored = await self._delegate.aput(_qualify(config), checkpoint, metadata, new_versions)
+        stored_metadata = cast(
+            CheckpointMetadata,
+            dict(metadata)
+            | {
+                _METADATA_TENANT_KEY: tenant_id,
+                _METADATA_THREAD_KEY: thread_id,
+            },
+        )
+        stored = await self._delegate.aput(
+            _qualify(config), checkpoint, stored_metadata, new_versions
+        )
         external = _externalize(stored, tenant_id=tenant_id, thread_id=thread_id)
         if external is None:
             raise AssertionError("checkpoint put returned no config")
@@ -164,6 +182,12 @@ class TenantSqliteSaver(BaseCheckpointSaver[str]):
         tenant_id: str,
         thread_id: str,
     ) -> CheckpointTuple:
+        metadata_tenant = value.metadata.get(_METADATA_TENANT_KEY)
+        metadata_thread = value.metadata.get(_METADATA_THREAD_KEY)
+        if metadata_tenant is not None and metadata_tenant != tenant_id:
+            raise PermissionError("checkpoint metadata belongs to another tenant")
+        if metadata_thread is not None and metadata_thread != thread_id:
+            raise PermissionError("checkpoint metadata belongs to another thread")
         config = _externalize(value.config, tenant_id=tenant_id, thread_id=thread_id)
         if config is None:
             raise AssertionError("checkpoint tuple has no config")
@@ -178,6 +202,20 @@ class TenantSqliteSaver(BaseCheckpointSaver[str]):
         )
 
 
+# Backward-compatible public name for callers that explicitly select SQLite.
+TenantSqliteSaver = TenantCheckpointSaver
+
+
+def _json_serializer() -> JsonPlusSerializer:
+    return JsonPlusSerializer(
+        pickle_fallback=False,
+        allowed_msgpack_modules=(
+            ("oria.core.types", "NodeResult"),
+            ("oria.core.types", "ResourceRef"),
+        ),
+    )
+
+
 @asynccontextmanager
 async def open_tenant_sqlite_saver(path: Path) -> AsyncIterator[TenantSqliteSaver]:
     """Open an official async SQLite saver with JSON-only serialization."""
@@ -185,18 +223,40 @@ async def open_tenant_sqlite_saver(path: Path) -> AsyncIterator[TenantSqliteSave
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = await aiosqlite.connect(path)
     try:
-        delegate = AsyncSqliteSaver(
-            connection,
-            serde=JsonPlusSerializer(
-                pickle_fallback=False,
-                allowed_msgpack_modules=(
-                    ("oria.core.types", "NodeResult"),
-                    ("oria.core.types", "ResourceRef"),
-                ),
-            ),
-        )
-        saver = TenantSqliteSaver(delegate)
+        delegate = AsyncSqliteSaver(connection, serde=_json_serializer())
+        saver = TenantCheckpointSaver(delegate)
         await saver.setup()
         yield saver
     finally:
         await connection.close()
+
+
+@asynccontextmanager
+async def open_tenant_postgres_saver(
+    url: SecretStr,
+) -> AsyncIterator[TenantCheckpointSaver]:
+    """Open the official PostgreSQL saver; its tables remain saver-owned."""
+
+    async with AsyncPostgresSaver.from_conn_string(
+        psycopg_postgres_url(url),
+        serde=_json_serializer(),
+    ) as delegate:
+        saver = TenantCheckpointSaver(delegate)
+        await saver.setup()
+        yield saver
+
+
+@asynccontextmanager
+async def open_tenant_saver(
+    config: ResolvedRuntimeConfig,
+) -> AsyncIterator[TenantCheckpointSaver]:
+    """Select the official saver matching the configured platform backend."""
+
+    if config.storage.platform_db == "postgres":
+        if config.storage.platform_url is None:
+            raise ValueError("platform PostgreSQL URL is unavailable")
+        async with open_tenant_postgres_saver(config.storage.platform_url) as saver:
+            yield saver
+        return
+    async with open_tenant_sqlite_saver(config.data_paths.platform_db) as saver:
+        yield saver

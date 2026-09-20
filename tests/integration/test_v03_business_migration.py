@@ -115,7 +115,7 @@ def test_empty_business_database_upgrades_to_v03_and_rolls_back_to_base(
 
     command.upgrade(config, "head")
 
-    assert _revision(database) == "business_0010"
+    assert _revision(database) == "business_0011"
     assert V03_TABLES | {"merchants"} <= _tables(database)
 
     command.downgrade(config, "base")

@@ -47,6 +47,7 @@ from oria.eval.compare import (
     select_comparison_live_target,
 )
 from oria.memory import PersistentMemory
+from oria.migrations.runner import MigrationError, upgrade_databases
 from oria.orchestrator.local_executor import (
     LocalWorkflowResult,
     close_enrollment_window,
@@ -78,6 +79,7 @@ app = typer.Typer(
 )
 config_app = typer.Typer(help="Inspect and validate runtime configuration.")
 data_app = typer.Typer(help="Initialize versioned local data stores.")
+db_app = typer.Typer(help="Upgrade versioned platform and business databases.")
 eval_app = typer.Typer(help="Run versioned evaluation suites.")
 workflow_app = typer.Typer(help="Start and resume the local Scenario A workflow.")
 approval_app = typer.Typer(help="Approve or reject an active workflow HITL request.")
@@ -86,6 +88,7 @@ attribution_app = typer.Typer(help="Run the bounded Scenario B attribution demon
 memory_app = typer.Typer(help="View, delete, and export opted-in long-term memories.")
 app.add_typer(config_app, name="config")
 app.add_typer(data_app, name="data")
+app.add_typer(db_app, name="db")
 app.add_typer(eval_app, name="eval")
 app.add_typer(workflow_app, name="workflow")
 app.add_typer(approval_app, name="approval")
@@ -103,6 +106,12 @@ class EvalVerification(StrEnum):
     FIXTURE = "fixture"
     COMMUNITY = "community"
     LIVE = "live"
+
+
+class DatabaseTarget(StrEnum):
+    PLATFORM = "platform"
+    BUSINESS = "business"
+    ALL = "all"
 
 
 def _demo_view(result: DemoResult) -> WorkflowViewModel:
@@ -371,6 +380,54 @@ def config_doctor(
         typer.echo(f"Fingerprint: {resolved.config_fingerprint}")
 
 
+@db_app.command("upgrade")
+def db_upgrade(
+    target: Annotated[
+        DatabaseTarget,
+        typer.Option("--target", help="Migration chain: platform, business, or all."),
+    ] = DatabaseTarget.ALL,
+    output: Annotated[
+        OutputFormat,
+        typer.Option("--output", help="Output format: human or json."),
+    ] = OutputFormat.HUMAN,
+    config_path: Annotated[
+        Path | None,
+        typer.Option("--config", help="Read an explicit YAML configuration file."),
+    ] = None,
+    data_dir: Annotated[
+        Path | None,
+        typer.Option("--data-dir", help="Override the runtime data root."),
+    ] = None,
+) -> None:
+    """Upgrade one or both installed-package Alembic revision chains."""
+    try:
+        resolved = resolve_runtime_config(config_path=config_path, data_dir=data_dir)
+        result = upgrade_databases(resolved, target=target.value)
+    except ConfigResolutionError as exc:
+        payload = {"ok": False, "error": {"code": "invalid_config", "message": str(exc)}}
+        if output is OutputFormat.JSON:
+            typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        else:
+            typer.echo(f"Configuration invalid: {exc}", err=True)
+        raise typer.Exit(code=2) from None
+    except MigrationError as exc:
+        payload = {"ok": False, "error": {"code": "db_upgrade_failed", "message": str(exc)}}
+        if output is OutputFormat.JSON:
+            typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        else:
+            typer.echo(f"Database upgrade failed: {exc}", err=True)
+        raise typer.Exit(code=1) from None
+
+    payload = {"ok": True, "database": result.model_dump(mode="json")}
+    if output is OutputFormat.JSON:
+        typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    else:
+        if result.platform_revision is not None:
+            typer.echo(f"Platform database: {result.platform_revision}")
+        if result.business_revision is not None:
+            typer.echo(f"Business database: {result.business_revision}")
+
+
 @data_app.command("init")
 def data_init(
     output: Annotated[
@@ -394,7 +451,7 @@ def data_init(
         typer.Option("--data-dir", help="Override the runtime data root."),
     ] = None,
 ) -> None:
-    """Idempotently migrate both SQLite databases and seed synthetic demo data."""
+    """Migrate both databases, seed synthetic demo data, and set up the official saver."""
     try:
         resolved = resolve_runtime_config(
             config_path=config_path,

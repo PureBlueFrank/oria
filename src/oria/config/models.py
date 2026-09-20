@@ -90,8 +90,10 @@ class IMConfig(InputConfigModel):
 
 class StorageConfig(InputConfigModel):
     vector: str
-    platform_db: str
-    biz_db: str
+    platform_db: Literal["sqlite", "postgres"]
+    biz_db: Literal["sqlite", "postgres"]
+    platform_url: SecretStr | None = Field(default=None, repr=False)
+    business_url: SecretStr | None = Field(default=None, repr=False)
     cache: str
     object: str
 
@@ -158,8 +160,10 @@ class ResolvedIMConfig(ResolvedConfigModel):
 
 class ResolvedStorageConfig(ResolvedConfigModel):
     vector: str
-    platform_db: str
-    biz_db: str
+    platform_db: Literal["sqlite", "postgres"]
+    biz_db: Literal["sqlite", "postgres"]
+    platform_url: SecretStr | None = Field(default=None, repr=False)
+    business_url: SecretStr | None = Field(default=None, repr=False)
     cache: str
     object: str
 
@@ -232,7 +236,15 @@ class ResolvedRuntimeConfig(ResolvedConfigModel):
             "im": {"default": self.im.default},
             "log_level": self.log_level,
             "data_dir": str(self.data_dir),
-            "storage": self.storage.model_dump(mode="json"),
+            "storage": {
+                "vector": self.storage.vector,
+                "platform_db": self.storage.platform_db,
+                "biz_db": self.storage.biz_db,
+                "cache": self.storage.cache,
+                "object": self.storage.object,
+                "platform_url_configured": self.storage.platform_url is not None,
+                "business_url_configured": self.storage.business_url is not None,
+            },
             "telemetry": self.telemetry.model_dump(mode="json"),
             "config_fingerprint": self.config_fingerprint,
         }

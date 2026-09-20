@@ -27,6 +27,7 @@ from oria.core.integration_events import (
 )
 from oria.core.types import EventEnvelope
 from oria.permission.audit import redact_audit_payload
+from oria.storage.database import set_session_tenant_context
 
 
 class PlatformRepositoryError(RuntimeError):
@@ -60,6 +61,7 @@ class SQLiteApprovalRepository:
     ) -> None:
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, approval.tenant_id)
                 await session.execute(
                     text(
                         "INSERT INTO approvals (tenant_id, approval_id, approval_action, "
@@ -86,6 +88,7 @@ class SQLiteApprovalRepository:
     async def get(self, tenant_id: str, approval_id: str) -> Approval | None:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 result = await session.execute(
                     text(
                         "SELECT tenant_id, approval_id, approval_action, tool_name, "
@@ -124,6 +127,7 @@ class SQLiteApprovalRepository:
     ) -> None:
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, approval.tenant_id)
                 result = await session.execute(
                     text(
                         "UPDATE approvals SET status = :status, decider = :decider, "
@@ -153,6 +157,7 @@ class SQLiteApprovalRepository:
     ) -> int:
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, tenant_id)
                 result = cast(
                     CursorResult[Any],
                     await session.execute(
@@ -162,7 +167,7 @@ class SQLiteApprovalRepository:
                             ":campaign_id AND status IN ('pending', 'approved') AND NOT "
                             "(enrollment_version = :enrollment_version AND link_version = "
                             ":link_version AND selection_version = :selection_version AND "
-                            "selection_hash IS :selection_hash AND "
+                            "selection_hash IS NOT DISTINCT FROM :selection_hash AND "
                             "rule_snapshot_hash = :rule_snapshot_hash)"
                         ),
                         {
@@ -239,6 +244,7 @@ class SQLiteApprovalInvalidationRepository:
         values = self._fact_values(fact)
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, fact.tenant_id)
                 await session.execute(
                     text(
                         "INSERT INTO approval_binding_invalidations (tenant_id, event_id, "
@@ -264,6 +270,7 @@ class SQLiteApprovalInvalidationRepository:
     async def apply(self, fact: ApprovalBindingInvalidationFact) -> int:
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, fact.tenant_id)
                 count = await self._invalidate(session, fact)
                 result = cast(
                     CursorResult[Any],
@@ -299,6 +306,7 @@ class SQLiteApprovalInvalidationRepository:
     ) -> None:
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, fact.tenant_id)
                 await session.execute(
                     text(
                         "UPDATE approval_binding_invalidations SET status = 'reconciliation', "
@@ -330,7 +338,8 @@ class SQLiteApprovalInvalidationRepository:
                     "WHERE tenant_id = :tenant_id AND campaign_id = :campaign_id AND status IN "
                     "('pending', 'approved') AND NOT (enrollment_version = :enrollment_version "
                     "AND link_version = :link_version AND selection_version = "
-                    ":selection_version AND selection_hash IS :selection_hash AND "
+                    ":selection_version AND selection_hash IS NOT DISTINCT FROM "
+                    ":selection_hash AND "
                     "rule_snapshot_hash = :rule_snapshot_hash)"
                 ),
                 {
@@ -347,6 +356,7 @@ class SQLiteApprovalInvalidationRepository:
     ) -> ApprovalInvalidationStatus | None:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, fact.tenant_id)
                 return await self._get_in_session(session, fact)
         except SQLAlchemyError as exc:
             raise PlatformRepositoryError("approval invalidation read failed") from exc
@@ -395,6 +405,7 @@ class SQLiteIntegrationEventInboxRepository:
     async def add_wait(self, wait: ExternalWait) -> None:
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, wait.tenant_id)
                 await session.execute(
                     text(
                         "INSERT INTO external_waits (tenant_id, wait_id, event_type, "
@@ -414,6 +425,7 @@ class SQLiteIntegrationEventInboxRepository:
     async def get_wait(self, tenant_id: str, wait_id: str) -> ExternalWait | None:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 result = await session.execute(
                     text(
                         "SELECT tenant_id, wait_id, event_type, resource_type, resource_id, "
@@ -438,6 +450,7 @@ class SQLiteIntegrationEventInboxRepository:
         )
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, record.tenant_id)
                 await session.execute(
                     text(
                         "INSERT INTO integration_event_inbox (tenant_id, adapter_id, "
@@ -466,6 +479,7 @@ class SQLiteIntegrationEventInboxRepository:
     ) -> IntegrationInboxRecord | None:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 result = await session.execute(
                     text(
                         "SELECT tenant_id, adapter_id, source_event_id, schema_version, "
@@ -500,6 +514,7 @@ class SQLiteIntegrationEventInboxRepository:
             raise ValueError("inbox consumption time must include a timezone")
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, identity.tenant_id)
                 result = await session.execute(
                     text(
                         "SELECT i.tenant_id, i.adapter_id, i.source_event_id, i.schema_version, "
@@ -615,6 +630,7 @@ class SQLiteIntegrationEventInboxRepository:
     async def _exists(self, record: IntegrationInboxRecord) -> bool:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, record.tenant_id)
                 result = await session.execute(
                     text(
                         "SELECT 1 FROM integration_event_inbox WHERE tenant_id = :tenant_id "

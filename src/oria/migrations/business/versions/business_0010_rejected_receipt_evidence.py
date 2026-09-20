@@ -61,7 +61,54 @@ def _tool_executions(*, include_summary: bool, receipt_check: str) -> sa.Table:
     return table
 
 
+def _postgres_receipt_check() -> str:
+    for constraint in sa.inspect(op.get_bind()).get_check_constraints("tool_executions"):
+        sqltext = str(constraint.get("sqltext", ""))
+        name = constraint.get("name")
+        if "receipt_id" in sqltext and "status" in sqltext and name:
+            return str(name)
+    raise RuntimeError("tool execution receipt constraint is unavailable")
+
+
+def _upgrade_postgres() -> None:
+    op.drop_constraint(_postgres_receipt_check(), "tool_executions", type_="check")
+    op.add_column(
+        "tool_executions",
+        sa.Column("receipt_summary_hash", sa.String(), nullable=True),
+    )
+    op.create_check_constraint(
+        "ck_tool_executions_receipt_evidence",
+        "tool_executions",
+        "(status = 'succeeded' AND receipt_id IS NOT NULL) OR "
+        "(status IN ('reserved', 'executing') AND receipt_id IS NULL AND "
+        "receipt_summary_hash IS NULL) OR status IN ('failed', 'unknown')",
+    )
+    op.create_check_constraint(
+        "ck_tool_executions_receipt_summary_binding",
+        "tool_executions",
+        "receipt_summary_hash IS NULL OR receipt_id IS NOT NULL",
+    )
+
+
+def _downgrade_postgres() -> None:
+    op.drop_constraint(
+        "ck_tool_executions_receipt_summary_binding", "tool_executions", type_="check"
+    )
+    op.drop_constraint("ck_tool_executions_receipt_evidence", "tool_executions", type_="check")
+    op.drop_column("tool_executions", "receipt_summary_hash")
+    op.create_check_constraint(
+        "ck_tool_executions_receipt_evidence",
+        "tool_executions",
+        "(status = 'succeeded' AND receipt_id IS NOT NULL) OR "
+        "(status IN ('reserved', 'executing', 'failed') AND receipt_id IS NULL) OR "
+        "status = 'unknown'",
+    )
+
+
 def upgrade() -> None:
+    if op.get_bind().dialect.name == "postgresql":
+        _upgrade_postgres()
+        return
     legacy = _tool_executions(
         include_summary=False,
         receipt_check=(
@@ -94,6 +141,9 @@ def downgrade() -> None:
         "UPDATE tool_executions SET receipt_id = NULL, receipt_summary_hash = NULL "
         "WHERE status = 'failed'"
     )
+    if op.get_bind().dialect.name == "postgresql":
+        _downgrade_postgres()
+        return
     current = _tool_executions(
         include_summary=True,
         receipt_check=(

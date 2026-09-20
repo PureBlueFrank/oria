@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "chains": {
     "platform": {
-      "head": "platform_0008",
+      "head": "platform_0009",
       "files": {
         "platform/env.py": "f8d7eec2019cd15696294fbe56ee24c23c0b9bc57aa22c78b5133b9bb43e83af",
         "platform/versions/platform_0001_catalog.py": "231ecf5361e84a3ba0a4d2861405bd6cd02a30dc62fd2d9212d77cff8a6e1771",
@@ -12,23 +12,25 @@
         "platform/versions/platform_0005_approval_event_inbox.py": "6bfd7daebe04032423986ef1e5da296e56908d758283cbdb6ea0f8675b00925f",
         "platform/versions/platform_0006_approval_binding_invalidations.py": "7f05aafbaac81c66730063018dcc2677d1df703310fbab6db7f888d1e4cfcbbc",
         "platform/versions/platform_0007_conditional_tool_approvals.py": "e25b5d0fce126f64d6dafb2b651b7b0072a3d8ecc455043c036458949213663f",
-        "platform/versions/platform_0008_memory.py": "8d0e4c3a7879385a734c24ac09e88b0172b5bb88db84b4c1fde1d82617fee477"
+        "platform/versions/platform_0008_memory.py": "8d0e4c3a7879385a734c24ac09e88b0172b5bb88db84b4c1fde1d82617fee477",
+        "platform/versions/platform_0009_postgres_rls.py": "1bd03b0db557b8dd5fba10c928fc6eae866db041e729f06c6ef59c70beeceec1"
       }
     },
     "business": {
-      "head": "business_0010",
+      "head": "business_0011",
       "files": {
         "business/env.py": "7628d5dc806bcc58b2cfaf14f9100876ea6c706afedc24991ae80f02fe68c491",
         "business/versions/business_0001_merchants.py": "7cbcd8134a2345f9f9ac1de8a676a1158ab8f118038ed75d2cbdd8ec34e0ec07",
         "business/versions/business_0002_recruitment_workflow.py": "1926ae8a09ac7f7ce8aff1c261f57554ec502ff7e40b1fd862dc2b72e07e5bf6",
         "business/versions/business_0003_execution_ledger.py": "6ff715591899b3365685b76857ed0419dc359ee6b83eccfc068df3afcab5c0ec",
         "business/versions/business_0004_launch_saga_states.py": "d3f838e83806890f151e1c4a107095bfab38ba4395a475021e2799ae3f19e532",
-        "business/versions/business_0005_product_snapshot_merchant_identity.py": "a9beadadea8eb6b2616557b798b5535074a64ce0a9653ddf626d0a1c23b54a71",
+        "business/versions/business_0005_product_snapshot_merchant_identity.py": "ff3b91ba47d8d6646a3d622143cc87caa10724a2241a03bfd0380535edb2020e",
         "business/versions/business_0006_execution_request_keys.py": "2d9ab04f57008c9b952ccf55bf92931fc773509b79123c684b581c38a22387ab",
         "business/versions/business_0007_confirmation_chain_states.py": "0c0e37c5b29f1880249e653b04cef545b5ad2cc34d73b2e6e326280fc2cd4877",
         "business/versions/business_0008_campaign_approval_bindings.py": "a3aeaf952d9b8d7200cb7d1a5ff3b360d16966683bc265fb69ef85d09e032565",
         "business/versions/business_0009_assortment_submission_items.py": "1cb12f4573948a342a5a4f849c72ff188c2bbe830294e0410208422359937906",
-        "business/versions/business_0010_rejected_receipt_evidence.py": "8cff9f22feefa5725cb2a2a8004caf9f42bbd21dd75458743852a68176d451b4"
+        "business/versions/business_0010_rejected_receipt_evidence.py": "6d593a239591380d5fd053fccb1b3740c096eef7d66838cec713a6ed7b13978d",
+        "business/versions/business_0011_postgres_rls.py": "32d12eb98cd631a4c279933bacfd03642ac5b72701aab244ee58fa58944c7377"
       }
     }
   }

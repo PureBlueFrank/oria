@@ -6,16 +6,20 @@ import sqlite3
 import warnings
 from importlib import resources
 from pathlib import Path
+from typing import Literal
 
 from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from alembic.util.exc import CommandError
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, create_engine, inspect, text
+from sqlalchemy.engine import Connection
 from sqlalchemy.exc import SQLAlchemyError
 
 from oria.config.models import ResolvedRuntimeConfig
 from oria.core.types import ValueModel
 from oria.resources.loader import PackageAssetError, verify_migration_assets
+from oria.storage.urls import sqlalchemy_postgres_url
 
 ColumnSignature = tuple[str, str, int, int]
 ForeignKeySignature = tuple[str, tuple[tuple[str, str], ...]]
@@ -622,12 +626,15 @@ class MigrationError(RuntimeError):
 
 
 class MigrationResult(ValueModel):
-    platform_revision: str
-    business_revision: str
+    platform_revision: str | None = None
+    business_revision: str | None = None
 
 
 def _sqlite_url(path: Path) -> str:
     return f"sqlite:///{path}"
+
+
+MigrationTarget = Literal["platform", "business", "all"]
 
 
 def _assert_paths(config: ResolvedRuntimeConfig) -> tuple[Path, Path]:
@@ -643,13 +650,28 @@ def _assert_paths(config: ResolvedRuntimeConfig) -> tuple[Path, Path]:
     return database_paths
 
 
-def _upgrade_target(target: str, database_path: Path) -> None:
+def _target_url(config: ResolvedRuntimeConfig, target: Literal["platform", "business"]) -> str:
+    paths = config.data_paths
+    if target == "platform":
+        if config.storage.platform_db == "postgres":
+            if config.storage.platform_url is None:
+                raise MigrationError("platform PostgreSQL configuration is incomplete")
+            return sqlalchemy_postgres_url(config.storage.platform_url)
+        return _sqlite_url(paths.platform_db)
+    if config.storage.biz_db == "postgres":
+        if config.storage.business_url is None:
+            raise MigrationError("business PostgreSQL configuration is incomplete")
+        return sqlalchemy_postgres_url(config.storage.business_url)
+    return _sqlite_url(paths.business_db)
+
+
+def _upgrade_target(target: str, database_url: str) -> None:
     script = resources.files(f"oria.migrations.{target}")
     if not script.is_dir():
         raise MigrationError("installed migration chain is unavailable")
     config = Config()
     config.set_main_option("script_location", str(script))
-    config.set_main_option("sqlalchemy.url", _sqlite_url(database_path))
+    config.set_main_option("sqlalchemy.url", database_url)
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -733,27 +755,174 @@ def _validate_target(target: str, database_path: Path, expected_head: str) -> No
         raise MigrationError(f"{target} database contains tables from the other revision chain")
 
 
-def upgrade_databases(config: ResolvedRuntimeConfig) -> MigrationResult:
-    """Upgrade platform then business using verified package resources only."""
+def _portable_column_type(type_: object, expected: str) -> bool:
+    if expected == "BOOLEAN":
+        return isinstance(type_, Boolean)
+    if expected == "INTEGER":
+        return isinstance(type_, Integer)
+    if expected == "FLOAT":
+        return isinstance(type_, Float)
+    if expected == "DATETIME":
+        return isinstance(type_, DateTime)
+    if expected == "TEXT":
+        return isinstance(type_, Text)
+    if expected == "VARCHAR":
+        return isinstance(type_, String) and not isinstance(type_, Text)
+    return False
+
+
+def _postgres_foreign_keys(connection: Connection, table: str) -> frozenset[ForeignKeySignature]:
+    inspector = inspect(connection)
+    return frozenset(
+        (
+            str(foreign_key["referred_table"]),
+            tuple(
+                zip(
+                    (str(value) for value in foreign_key["constrained_columns"]),
+                    (str(value) for value in foreign_key["referred_columns"]),
+                    strict=True,
+                )
+            ),
+        )
+        for foreign_key in inspector.get_foreign_keys(table)
+    )
+
+
+def _validate_postgres_schema(connection: Connection, target: str) -> None:
+    inspector = inspect(connection)
+    for table, expected_columns in _EXPECTED_COLUMNS[target].items():
+        columns = inspector.get_columns(table)
+        primary_key = inspector.get_pk_constraint(table).get("constrained_columns") or ()
+        expected_primary_key = tuple(
+            name
+            for name, _, _, position in sorted(expected_columns, key=lambda item: item[3])
+            if position
+        )
+        if tuple(str(name) for name in primary_key) != expected_primary_key:
+            raise MigrationError(f"{target} database schema verification failed")
+        if [str(column["name"]) for column in columns] != [
+            name for name, _, _, _ in expected_columns
+        ]:
+            raise MigrationError(f"{target} database schema verification failed")
+        for column, (_, expected_type, not_null, _) in zip(columns, expected_columns, strict=True):
+            if bool(column["nullable"]) == bool(not_null) or not _portable_column_type(
+                column["type"], expected_type
+            ):
+                raise MigrationError(f"{target} database schema verification failed")
+        if _postgres_foreign_keys(connection, table) != _EXPECTED_FOREIGN_KEYS[target][table]:
+            raise MigrationError(f"{target} database schema verification failed")
+
+
+def _validate_postgres_rls(connection: Connection, target: str) -> None:
+    rows = connection.execute(
+        text(
+            "SELECT tablename, rowsecurity, forcerowsecurity FROM pg_tables "
+            "WHERE schemaname = current_schema()"
+        )
+    ).mappings()
+    protected = {
+        str(row["tablename"])
+        for row in rows
+        if bool(row["rowsecurity"]) and bool(row["forcerowsecurity"])
+    }
+    policies = {
+        str(row[0])
+        for row in connection.execute(
+            text(
+                "SELECT tablename FROM pg_policies WHERE schemaname = current_schema() "
+                "AND policyname = 'oria_tenant_isolation'"
+            )
+        )
+    }
+    if not _EXPECTED_TABLES[target].issubset(protected.intersection(policies)):
+        raise MigrationError(f"{target} database tenant isolation verification failed")
+
+
+def _validate_postgres_target(target: str, database_url: str, expected_head: str) -> None:
+    engine = create_engine(database_url, pool_pre_ping=True)
+    try:
+        with engine.connect() as connection:
+            inspector = inspect(connection)
+            tables = set(inspector.get_table_names())
+            version_table = _VERSION_TABLES[target]
+            if version_table not in tables or not _EXPECTED_TABLES[target].issubset(tables):
+                raise MigrationError(f"{target} database schema verification failed")
+            _validate_postgres_schema(connection, target)
+            revisions = [
+                tuple(row)
+                for row in connection.execute(text(f'SELECT version_num FROM "{version_table}"'))
+            ]
+            _validate_postgres_rls(connection, target)
+    except SQLAlchemyError as exc:
+        raise MigrationError(f"{target} database schema verification failed") from exc
+    finally:
+        engine.dispose()
+    if revisions != [(expected_head,)]:
+        raise MigrationError(f"{target} database revision verification failed")
+    other_target = "business" if target == "platform" else "platform"
+    foreign_tables = _EXPECTED_TABLES[other_target].difference(_EXPECTED_TABLES[target])
+    if tables.intersection(foreign_tables):
+        raise MigrationError(f"{target} database contains tables from the other revision chain")
+
+
+def _prepare_sqlite_target(
+    config: ResolvedRuntimeConfig, target: Literal["platform", "business"]
+) -> Path | None:
+    platform_path, business_path = _assert_paths(config)
+    if target == "platform" and config.storage.platform_db == "sqlite":
+        platform_path.parent.mkdir(parents=True, exist_ok=True)
+        return platform_path
+    if target == "business" and config.storage.biz_db == "sqlite":
+        business_path.parent.mkdir(parents=True, exist_ok=True)
+        return business_path
+    return None
+
+
+def _upgrade_and_validate(
+    config: ResolvedRuntimeConfig,
+    target: Literal["platform", "business"],
+    expected_head: str,
+) -> None:
+    database_url = _target_url(config, target)
+    sqlite_path = _prepare_sqlite_target(config, target)
+    _upgrade_target(target, database_url)
+    if sqlite_path is not None:
+        _validate_target(target, sqlite_path, expected_head)
+    else:
+        _validate_postgres_target(target, database_url, expected_head)
+
+
+def upgrade_databases(
+    config: ResolvedRuntimeConfig,
+    *,
+    target: MigrationTarget = "all",
+) -> MigrationResult:
+    """Upgrade one or both chains using verified installed-package resources."""
+    if target not in {"platform", "business", "all"}:
+        raise MigrationError("migration target must be platform, business, or all")
     try:
         heads = verify_migration_assets()
     except PackageAssetError as exc:
         raise MigrationError("installed migration assets failed verification") from exc
     if _installed_migration_heads() != heads:
         raise MigrationError("installed migration heads do not match the verified manifest")
-    platform_db, business_db = _assert_paths(config)
-    platform_db.parent.mkdir(parents=True, exist_ok=True)
-    _upgrade_target("platform", platform_db)
-    _validate_target("platform", platform_db, heads["platform"])
-    try:
-        _upgrade_target("business", business_db)
-        _validate_target("business", business_db, heads["business"])
-    except MigrationError as exc:
-        raise MigrationError(
-            "business migration failed after platform upgrade; correct the failure and rerun "
-            "initialization to converge both databases"
-        ) from exc
+    platform_revision: str | None = None
+    business_revision: str | None = None
+    if target in {"platform", "all"}:
+        _upgrade_and_validate(config, "platform", heads["platform"])
+        platform_revision = heads["platform"]
+    if target in {"business", "all"}:
+        try:
+            _upgrade_and_validate(config, "business", heads["business"])
+            business_revision = heads["business"]
+        except MigrationError as exc:
+            if target == "all":
+                raise MigrationError(
+                    "business migration failed after platform upgrade; correct the failure and "
+                    "rerun initialization to converge both databases"
+                ) from exc
+            raise
     return MigrationResult(
-        platform_revision=heads["platform"],
-        business_revision=heads["business"],
+        platform_revision=platform_revision,
+        business_revision=business_revision,
     )

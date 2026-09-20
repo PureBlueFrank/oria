@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import aiosqlite
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from psycopg import Error as PsycopgError
 
 from oria.config.models import ResolvedRuntimeConfig
 from oria.core.types import ValueModel
 from oria.migrations.runner import MigrationError, MigrationResult, upgrade_databases
+from oria.orchestrator.checkpoint import open_tenant_saver
 from oria.resources.loader import (
     PackageAssetError,
     load_demo_data,
@@ -36,15 +37,18 @@ async def initialize_data(config: ResolvedRuntimeConfig) -> DataInitializationRe
         verify_package_assets()
         bundle = load_demo_data()
         revisions: MigrationResult = upgrade_databases(config)
+        if revisions.platform_revision is None or revisions.business_revision is None:
+            raise MigrationError("data initialization requires both migration chains")
         async with DatabaseResources(config) as databases:
             repository = SQLiteMerchantRepository(databases.business_sessions)
             inserted = await repository.seed(bundle.merchants)
-        async with AsyncSqliteSaver.from_conn_string(str(config.data_paths.platform_db)) as saver:
-            await saver.setup()
+        async with open_tenant_saver(config):
+            pass
     except (
         PackageAssetError,
         MigrationError,
         MerchantRepositoryError,
+        PsycopgError,
         aiosqlite.Error,
         OSError,
     ) as exc:

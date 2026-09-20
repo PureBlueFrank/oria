@@ -12,7 +12,7 @@ from typing import Any
 from oria.domain.models import CampaignRuleSet, MerchantSeedSet
 
 _DEMO_MANIFEST_SHA256 = "6bd1a51f62fb7244f1cf1584d3e139c21425c826be9268cefdcb2e64190539fc"
-_MIGRATION_MANIFEST_SHA256 = "23e58fdeb071aafe9b957ad2cbc6f837460b02fbaf74c91fa5f405cc76b807c1"
+_MIGRATION_MANIFEST_SHA256 = "63a79bdf0bd8bd8472d2ec40671ddf104323440771df42d2f896d7721571b1a4"
 RULE_CATEGORIES = (
     "basic",
     "recruitment_scope",

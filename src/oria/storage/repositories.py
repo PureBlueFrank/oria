@@ -44,6 +44,7 @@ from oria.domain.product_eligibility import (
     ProductSellabilityAttestation,
 )
 from oria.domain.product_eligibility import ProductSnapshot as CatalogProductSnapshot
+from oria.storage.database import set_session_tenant_context
 
 if TYPE_CHECKING:
     from oria.core.context import Context
@@ -71,6 +72,7 @@ class SQLiteMerchantRepository:
             raise MerchantRepositoryError("trusted tenant context is required")
         try:
             async with self.__sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 result = await session.execute(
                     text(
                         "SELECT tenant_id, merchant_id, version, display_name, categories_json, "
@@ -102,6 +104,7 @@ class SQLiteMerchantRepository:
         inserted = 0
         try:
             async with self.__sessions.begin() as session:
+                await set_session_tenant_context(session, seed_set.tenant_id)
                 existing_result = await session.execute(
                     text(
                         "SELECT merchant_id, version, display_name, categories_json, cities_json, "
@@ -340,6 +343,7 @@ class SQLiteBusinessRepository(Generic[BusinessEntityT]):
             raise BusinessRepositoryError("cross-tenant business write is forbidden")
         try:
             async with self.__sessions.begin() as session:
+                await set_session_tenant_context(session, tenant_id)
                 await self._insert(session, entity)
         except SQLAlchemyError as exc:
             raise BusinessRepositoryError("business entity create failed") from exc
@@ -351,6 +355,7 @@ class SQLiteBusinessRepository(Generic[BusinessEntityT]):
             raise BusinessRepositoryError("business identity is required")
         try:
             async with self.__sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 return await self._find_by_id(session, entity_id, tenant_id)
         except (SQLAlchemyError, ValueError, TypeError, json.JSONDecodeError) as exc:
             raise BusinessRepositoryError("business entity read failed") from exc
@@ -363,6 +368,7 @@ class SQLiteBusinessRepository(Generic[BusinessEntityT]):
         tenant_id = self._tenant_id(ctx)
         try:
             async with self.__sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 return await self._find_by_unique_key(session, unique_key, tenant_id)
         except BusinessRepositoryError:
             raise
@@ -379,6 +385,7 @@ class SQLiteBusinessRepository(Generic[BusinessEntityT]):
             raise BusinessRepositoryError("cross-tenant business write is forbidden")
         try:
             async with self.__sessions.begin() as session:
+                await set_session_tenant_context(session, tenant_id)
                 existing = await self._find_by_unique_key(session, entity.unique_key(), tenant_id)
                 if existing is None:
                     await self._insert(session, entity)
@@ -402,6 +409,7 @@ class SQLiteBusinessRepository(Generic[BusinessEntityT]):
         tenant_id = self._tenant_id(ctx)
         try:
             async with self.__sessions.begin() as session:
+                await set_session_tenant_context(session, tenant_id)
                 existing = await self._find_by_id(session, entity_id, tenant_id)
                 if existing is None:
                     raise BusinessRepositoryError("business entity is unavailable")
@@ -714,6 +722,7 @@ class SQLiteEnrollmentWorkflowRepository:
     ) -> ApprovalBusinessBinding | None:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 return await self._find_approval_binding(session, tenant_id, campaign_id)
         except (SQLAlchemyError, ValueError, TypeError) as exc:
             raise BusinessRepositoryError("approval business binding read failed") from exc
@@ -919,6 +928,7 @@ class SQLiteEnrollmentWorkflowRepository:
         tasks: list[ConfirmationTask] = []
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 for item_id in enrollment_item_ids:
                     item = await self._items._find_by_id(session, item_id, tenant_id)
                     if item is None:
@@ -1156,6 +1166,7 @@ class SQLiteEnrollmentWorkflowRepository:
         links: list[EnrollmentCouponLink] = []
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 for link_id in link_ids:
                     link = await self._links._find_by_id(session, link_id, tenant_id)
                     if link is None:
@@ -1175,6 +1186,7 @@ class SQLiteEnrollmentWorkflowRepository:
     ) -> tuple[EnrollmentItem, tuple[ConfirmationTask, ...]]:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 return await self._load_confirmation_chain(
                     session,
                     tenant_id=tenant_id,
@@ -1307,6 +1319,7 @@ class SQLiteCampaignDraftRepository:
         campaign.validate_tenant_links(rule_snapshot_ref, coupon_batch, recruitment_publication)
         try:
             async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, tenant_id)
                 existing = await self._campaigns._find_by_id(
                     session,
                     campaign.campaign_id,

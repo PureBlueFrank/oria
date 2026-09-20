@@ -53,7 +53,7 @@ CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development �
 
 ## 模块职责
 
-下表是跨 V0.1–V0.8 的目标模块图。当前已实现到 V0.4 的目录包括 `core/providers/prompts/agent/orchestrator/domain/tools/rag/storage/permission/eval/adapters/ingress` 等；`guardrails/memory/obs/api/jobs/web` 属 V0.5 及以后规划，不能据此表宣称已经交付。
+下表是跨 V0.1–V0.8 的目标模块图。当前已交付 V0.5 Core 与 V0.6-T01 持久化基础；`api/jobs/web`、飞书、lease/fencing、SSE 与 Webhook 仍属 V0.6-T02+，不能据此表宣称已经交付。
 
 | 模块 | 主要职责 |
 | --- | --- |
@@ -144,7 +144,7 @@ CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development �
 
 Community 默认使用 SQLite、官方 `AsyncSqliteSaver`、Chroma、本地 Embedder、内存缓存、本地对象目录、Console JSON 和 Mock 企业 Adapter。`demo` profile 零账号、零 Key、零外部服务可运行；`standard` profile 可使用用户自带 LLM Key 与本地真实组件。
 
-Production 只允许 standard profile，并逐步切换到 PostgreSQL、Milvus、Redis、对象存储、OTel 和企业 Adapter。SQLite 到 PostgreSQL、Chroma 到 Milvus 都遵循“权威数据迁移或重建、影子验证、受控切换、可说明的回滚边界”，不能把空库建表称为存量迁移完成。
+V0.6-T01 已接入两个独立 PostgreSQL async engine/session factory、连接池、强制 RLS 与官方 `AsyncPostgresSaver`，两后端共用 Repository 逻辑。tenant context 使用 PostgreSQL `SET LOCAL` 在事务内设置，无 context 默认拒绝，事务结束与 pool check-in 清理。Production 只允许 standard profile，PostgreSQL URL 必须 TLS；Milvus、Redis、对象存储、OTel 和企业 Adapter 仍按后续任务实施。SQLite 到 PostgreSQL 非空存量迁移仍属 V0.8-T01，不能把本次空库建表称为存量迁移完成。
 
 ## 版本规划
 

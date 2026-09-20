@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
 import yaml
 from pydantic import SecretStr, ValidationError
@@ -44,6 +45,8 @@ class RuntimeEnvironmentSettings(BaseSettings):
     embedding_profile: str | None = None
     data_dir: Path | None = None
     log_level: str | None = None
+    platform_database_url: SecretStr | None = None
+    business_database_url: SecretStr | None = None
 
 
 def _defaults() -> dict[str, Any]:
@@ -165,6 +168,8 @@ def _defaults() -> dict[str, Any]:
             "vector": "chroma",
             "platform_db": "sqlite",
             "biz_db": "sqlite",
+            "platform_url": None,
+            "business_url": None,
             "cache": "memory",
             "object": "local",
         },
@@ -220,6 +225,27 @@ def _environment_overrides(environ: Mapping[str, str] | None) -> dict[str, Any]:
             values["llm_profile"] = environ["ORIA_LLM_PROFILE"]
         if "ORIA_EMBEDDING_PROFILE" in environ:
             values["embedding_profile"] = environ["ORIA_EMBEDDING_PROFILE"]
+
+    platform_database_url = values.pop("platform_database_url", None)
+    business_database_url = values.pop("business_database_url", None)
+    if environ is not None:
+        platform_database_url = environ.get("ORIA_PLATFORM_DATABASE_URL", platform_database_url)
+        business_database_url = environ.get("ORIA_BUSINESS_DATABASE_URL", business_database_url)
+    storage: dict[str, Any] = {}
+    if platform_database_url is not None:
+        storage["platform_url"] = (
+            platform_database_url.get_secret_value()
+            if isinstance(platform_database_url, SecretStr)
+            else platform_database_url
+        )
+    if business_database_url is not None:
+        storage["business_url"] = (
+            business_database_url.get_secret_value()
+            if isinstance(business_database_url, SecretStr)
+            else business_database_url
+        )
+    if storage:
+        values["storage"] = storage
 
     llm_profile = values.pop("llm_profile", None)
     embedding_profile = values.pop("embedding_profile", None)
@@ -279,6 +305,69 @@ def _resolve_embedding(
     )
 
 
+def _postgres_url(value: str, *, field: str, production: bool) -> str:
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise ConfigResolutionError(f"{field} is not a valid PostgreSQL URL") from exc
+    if parsed.scheme not in {"postgres", "postgresql", "postgresql+psycopg"}:
+        raise ConfigResolutionError(f"{field} must use PostgreSQL with the psycopg driver")
+    if not parsed.hostname or not parsed.path.strip("/") or (port is not None and port <= 0):
+        raise ConfigResolutionError(f"{field} is not a valid PostgreSQL URL")
+    if production:
+        sslmode = parse_qs(parsed.query).get("sslmode", [""])[0]
+        if sslmode not in {"require", "verify-ca", "verify-full"}:
+            raise ConfigResolutionError(f"production {field} requires TLS via sslmode")
+    return value
+
+
+def _resolve_storage(config: RuntimeConfig, environ: Mapping[str, str]) -> ResolvedStorageConfig:
+    values: dict[str, str | SecretStr | None] = {
+        "platform_url": config.storage.platform_url,
+        "business_url": config.storage.business_url,
+    }
+    resolved_urls: dict[str, SecretStr | None] = {}
+    for target, backend, field in (
+        ("platform", config.storage.platform_db, "platform_url"),
+        ("business", config.storage.biz_db, "business_url"),
+    ):
+        configured = values[field]
+        raw = configured.get_secret_value() if isinstance(configured, SecretStr) else configured
+        expanded = _expand(raw, environ)
+        if backend == "postgres":
+            if expanded is None:
+                raise ConfigResolutionError(f"{target} PostgreSQL backend requires {field}")
+            expanded = _postgres_url(
+                expanded,
+                field=field,
+                production=config.edition == "production",
+            )
+        elif expanded is not None:
+            raise ConfigResolutionError(f"{field} is only valid for the PostgreSQL backend")
+        resolved_urls[field] = SecretStr(expanded) if expanded is not None else None
+    platform_url = resolved_urls["platform_url"]
+    business_url = resolved_urls["business_url"]
+    if platform_url is not None and business_url is not None:
+        platform = urlsplit(platform_url.get_secret_value())
+        business = urlsplit(business_url.get_secret_value())
+        platform_identity = (platform.hostname, platform.port or 5432, platform.path)
+        business_identity = (business.hostname, business.port or 5432, business.path)
+        if platform_identity == business_identity:
+            raise ConfigResolutionError(
+                "platform and business PostgreSQL chains require distinct databases"
+            )
+    return ResolvedStorageConfig(
+        vector=config.storage.vector,
+        platform_db=config.storage.platform_db,
+        biz_db=config.storage.biz_db,
+        platform_url=resolved_urls["platform_url"],
+        business_url=resolved_urls["business_url"],
+        cache=config.storage.cache,
+        object=config.storage.object,
+    )
+
+
 _DEEPSEEK_PROFILE_MATRIX: dict[str, tuple[str, str, str]] = {
     "deepseek": ("deepseek-v4-flash", "native_json_schema", "none"),
     "deepseek-structured": ("deepseek-v4-flash", "synthetic_tool", "none"),
@@ -291,6 +380,7 @@ def _validate_matrix(
     config: RuntimeConfig,
     llm: ResolvedLLMProfile,
     embedding: ResolvedEmbeddingProfile,
+    storage: ResolvedStorageConfig,
     original_data_dir: Path,
 ) -> None:
     is_test = config.environment == "test"
@@ -351,11 +441,11 @@ def _validate_matrix(
     expected = {
         "vector": {"milvus"},
         "platform_db": {"postgres"},
-        "biz_db": {"dms", "mysql"},
+        "biz_db": {"postgres"},
         "cache": {"redis"},
         "object": {"s3", "minio"},
     }
-    actual = config.storage.model_dump()
+    actual = storage.model_dump()
     invalid = [name for name, allowed in expected.items() if actual[name] not in allowed]
     if invalid:
         raise ConfigResolutionError(
@@ -367,6 +457,7 @@ def _fingerprint_payload(
     config: RuntimeConfig,
     llm: ResolvedLLMProfile,
     embedding: ResolvedEmbeddingProfile,
+    storage: ResolvedStorageConfig,
     data_dir: Path,
 ) -> dict[str, Any]:
     return {
@@ -397,7 +488,15 @@ def _fingerprint_payload(
         },
         "log_level": config.log_level,
         "data_dir": str(data_dir),
-        "storage": config.storage.model_dump(mode="json"),
+        "storage": {
+            "vector": storage.vector,
+            "platform_db": storage.platform_db,
+            "biz_db": storage.biz_db,
+            "cache": storage.cache,
+            "object": storage.object,
+            "platform_url_configured": storage.platform_url is not None,
+            "business_url_configured": storage.business_url is not None,
+        },
         "telemetry": config.telemetry.model_dump(mode="json"),
     }
 
@@ -448,8 +547,9 @@ def resolve_runtime_config(
 
     llm = _resolve_llm(parsed.llm.active_profile, active_llm, env)
     embedding = _resolve_embedding(parsed.embedding.active_profile, active_embedding, env)
+    storage = _resolve_storage(parsed, env)
     original_data_dir = parsed.data_dir
-    _validate_matrix(parsed, llm, embedding, original_data_dir)
+    _validate_matrix(parsed, llm, embedding, storage, original_data_dir)
 
     base_dir = Path.cwd() if cwd is None else cwd
     absolute_data_dir = (
@@ -457,7 +557,7 @@ def resolve_runtime_config(
         if original_data_dir.is_absolute()
         else (base_dir / original_data_dir).resolve(strict=False)
     )
-    payload = _fingerprint_payload(parsed, llm, embedding, absolute_data_dir)
+    payload = _fingerprint_payload(parsed, llm, embedding, storage, absolute_data_dir)
     canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     fingerprint = f"sha256:{hashlib.sha256(canonical.encode('utf-8')).hexdigest()}"
 
@@ -476,7 +576,7 @@ def resolve_runtime_config(
         ),
         log_level=parsed.log_level,
         data_dir=absolute_data_dir,
-        storage=ResolvedStorageConfig(**parsed.storage.model_dump()),
+        storage=storage,
         telemetry=ResolvedTelemetryConfig(**parsed.telemetry.model_dump()),
         config_fingerprint=fingerprint,
     )

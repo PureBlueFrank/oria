@@ -61,7 +61,7 @@ from oria.guardrails import (
 )
 from oria.ingress.local import LocalCLIIngressAdapter
 from oria.memory import ContextBudget, PersistentMemory
-from oria.orchestrator.checkpoint import open_tenant_sqlite_saver
+from oria.orchestrator.checkpoint import open_tenant_saver
 from oria.orchestrator.scenario_a import (
     DefaultScenarioAWorkflowService,
     build_scenario_a_graph,
@@ -178,9 +178,7 @@ async def build_runtime(
                 database_resources = resource
         if database_resources is None:
             database_resources = await exit_stack.enter_async_context(DatabaseResources(resolved))
-        checkpointer = await exit_stack.enter_async_context(
-            open_tenant_sqlite_saver(resolved.data_paths.platform_db)
-        )
+        checkpointer = await exit_stack.enter_async_context(open_tenant_saver(resolved))
 
         if resolved.storage.object != "local" or resolved.storage.vector != "chroma":
             raise ValueError("selected knowledge storage implementation is unavailable")

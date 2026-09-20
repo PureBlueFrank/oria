@@ -28,6 +28,7 @@ from oria.domain.business import (
     SelectionDecision,
 )
 from oria.domain.product_eligibility import ProductEligibilityCriteria
+from oria.storage.database import set_session_tenant_context
 from oria.storage.repositories import (
     BusinessRepositoryError,
     SQLiteAssortmentSubmissionRepository,
@@ -75,6 +76,7 @@ class SQLiteAssortmentWorkflowRepository:
     ) -> ApprovalBusinessBinding | None:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 return await self._find_binding(session, tenant_id, campaign_id)
         except (SQLAlchemyError, ValueError, TypeError) as exc:
             raise BusinessRepositoryError("approval business binding read failed") from exc
@@ -92,6 +94,7 @@ class SQLiteAssortmentWorkflowRepository:
     ) -> AssortmentCandidateSet:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 return await self._candidate_set(
                     session,
                     tenant_id=tenant_id,
@@ -267,6 +270,7 @@ class SQLiteAssortmentWorkflowRepository:
     ) -> tuple[AssortmentSubmission, tuple[str, ...]]:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 submission = await self._submissions._find_by_unique_key(
                     session,
                     (tenant_id, campaign_id, submission_version),
@@ -388,6 +392,7 @@ class SQLiteAssortmentWorkflowRepository:
     ) -> str:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 return await self._validated_selection_hash(
                     session,
                     tenant_id=tenant_id,
@@ -405,6 +410,7 @@ class SQLiteAssortmentWorkflowRepository:
     ) -> AssortmentSelection:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 return await self._load_selection(
                     session,
                     tenant_id=tenant_id,
@@ -488,6 +494,7 @@ class SQLiteAssortmentWorkflowRepository:
     async def load_placement(self, *, tenant_id: str, placement_id: str) -> ConsumerPlacement:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 placement = await self._placements._find_by_id(session, placement_id, tenant_id)
                 if placement is None:
                     raise BusinessRepositoryError("consumer placement is unavailable")
@@ -509,6 +516,7 @@ class SQLiteAssortmentWorkflowRepository:
     ) -> MerchantNotificationMessage:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 merchant = await session.execute(
                     text(
                         "SELECT 1 FROM merchants WHERE tenant_id = :tenant_id AND merchant_id = "
@@ -645,6 +653,7 @@ class SQLiteAssortmentWorkflowRepository:
     ) -> MerchantNotification:
         try:
             async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
                 notification = await self._notifications._find_by_id(
                     session, notification_id, tenant_id
                 )
@@ -827,7 +836,8 @@ class SQLiteAssortmentWorkflowRepository:
                     "tenant_id = :tenant_id AND campaign_id = :campaign_id AND "
                     "enrollment_version = :expected_enrollment_version AND link_version = "
                     ":expected_link_version AND selection_version = :expected_selection_version "
-                    "AND selection_hash IS :expected_selection_hash AND rule_snapshot_hash = "
+                    "AND selection_hash IS NOT DISTINCT FROM :expected_selection_hash "
+                    "AND rule_snapshot_hash = "
                     ":expected_rule_snapshot_hash"
                 ),
                 {

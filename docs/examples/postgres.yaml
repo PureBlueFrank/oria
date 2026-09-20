@@ -1,0 +1,6 @@
+# V0.6-T01 PostgreSQL persistence example. Secrets stay in the environment.
+storage:
+  platform_db: postgres
+  biz_db: postgres
+  platform_url: ${ORIA_PLATFORM_DATABASE_URL}
+  business_url: ${ORIA_BUSINESS_DATABASE_URL}

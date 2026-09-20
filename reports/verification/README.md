@@ -11,6 +11,7 @@
 | V0.3 | Core、Community 十步 Workflow 与必需 DeepSeek Live 通过 | SQLite 单 worker、Mock Adapter 下的审批、恢复、幂等、故障注入和对账 | PostgreSQL 多 worker或真实券、招商、商品库、选品、C 端、IM 接入 |
 | V0.4 | T01–T05 完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 合成分析数据、只读 Tool、动态 Agent、冻结 Golden、原 DeepSeek 失败事实及 GPT-5.6 Sol Live 通过卡 | 真实企业数据、OpenAI API 通道或其他 Provider 效果 |
 | V0.5 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、对照 harness 与 S2–S4 C/SEC | single/multi Live 质量提升、Enterprise/Performance |
+| V0.6 | T01 Community/Contract 完成；PostgreSQL E-like blocked | SQLite/PostgreSQL 后端选择、双 migration chain、统一 Repository 与官方 saver adapter 契约 | 真实 PostgreSQL migration/Repository/RLS/context reset/saver；T02+ API/Job/飞书 |
 | P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | 后续平台能力已交付 |
 
 ## 关键证据
@@ -54,6 +55,10 @@
 - [T06 S2–S4 Core](v0.5/20260910-t06/summary.md)：跨会话 Memory 删除传播、投毒边界、动态最小权限与脱敏审计；969 项非 Live 回归和 117 项 security 通过。
 
 - [V0.5-T07 Live 执行准备](v0.5/20260912-t07/summary.md)：截至 2026-09-13 23:50 已保存 29/80 条，19 条实际模型运行、10 条零调用路由终止；等价成本 6.010856 美元。订阅额度已用 81%，主动暂停，独立盲评与其余 51 条待完成，T07 未完成。
+
+### V0.6 · PostgreSQL 与 Durable Job 基础
+
+- [T01 双后端持久化契约](v0.6/20260920-t01/summary.md)：SQLite Community 回归、静态检查、Security 与 wheel 验证通过；因未提供两个 PostgreSQL 测试 DSN，真实 migration/Repository/RLS/context reset/AsyncPostgresSaver E-like 卡保持 blocked。
 
 ## Demo 与架构证据
 

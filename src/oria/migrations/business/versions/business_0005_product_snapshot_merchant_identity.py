@@ -14,6 +14,99 @@ _NAMING = {
 }
 
 
+def _constraint_name(table: str, kind: str, columns: tuple[str, ...]) -> str:
+    inspector = sa.inspect(op.get_bind())
+    if kind == "unique":
+        for constraint in inspector.get_unique_constraints(table):
+            if tuple(constraint["column_names"]) == columns and constraint.get("name"):
+                return str(constraint["name"])
+    else:
+        for foreign_key in inspector.get_foreign_keys(table):
+            if tuple(foreign_key["constrained_columns"]) == columns and foreign_key.get("name"):
+                return str(foreign_key["name"])
+    raise RuntimeError(f"required {kind} constraint is unavailable on {table}")
+
+
+def _upgrade_postgres() -> None:
+    legacy_unique = _constraint_name(
+        "product_snapshots",
+        "unique",
+        ("tenant_id", "product_ref", "product_version"),
+    )
+    legacy_product_fk = _constraint_name(
+        "enrollment_items",
+        "foreignkey",
+        ("tenant_id", "product_snapshot_id"),
+    )
+    op.alter_column("product_snapshots", "merchant_id", existing_type=sa.String(), nullable=False)
+    op.drop_constraint(legacy_unique, "product_snapshots", type_="unique")
+    op.create_unique_constraint(
+        "uq_product_snapshots_merchant_product_version",
+        "product_snapshots",
+        ["tenant_id", "merchant_id", "product_ref", "product_version"],
+    )
+    op.create_unique_constraint(
+        "uq_product_snapshots_enrollment_binding",
+        "product_snapshots",
+        [
+            "tenant_id",
+            "merchant_id",
+            "product_ref",
+            "product_version",
+            "product_snapshot_id",
+        ],
+    )
+    op.drop_constraint(legacy_product_fk, "enrollment_items", type_="foreignkey")
+    op.create_foreign_key(
+        "fk_enrollment_items_product_binding_product_snapshots",
+        "enrollment_items",
+        "product_snapshots",
+        [
+            "tenant_id",
+            "merchant_id",
+            "product_ref",
+            "product_version",
+            "product_snapshot_id",
+        ],
+        [
+            "tenant_id",
+            "merchant_id",
+            "product_ref",
+            "product_version",
+            "product_snapshot_id",
+        ],
+    )
+
+
+def _downgrade_postgres() -> None:
+    op.drop_constraint(
+        "fk_enrollment_items_product_binding_product_snapshots",
+        "enrollment_items",
+        type_="foreignkey",
+    )
+    op.create_foreign_key(
+        "fk_enrollment_items_tenant_id_product_snapshots",
+        "enrollment_items",
+        "product_snapshots",
+        ["tenant_id", "product_snapshot_id"],
+        ["tenant_id", "product_snapshot_id"],
+    )
+    op.drop_constraint(
+        "uq_product_snapshots_enrollment_binding", "product_snapshots", type_="unique"
+    )
+    op.drop_constraint(
+        "uq_product_snapshots_merchant_product_version",
+        "product_snapshots",
+        type_="unique",
+    )
+    op.create_unique_constraint(
+        "uq_product_snapshots_tenant_id",
+        "product_snapshots",
+        ["tenant_id", "product_ref", "product_version"],
+    )
+    op.drop_column("product_snapshots", "merchant_id")
+
+
 def upgrade() -> None:
     op.add_column("product_snapshots", sa.Column("merchant_id", sa.String(), nullable=True))
     op.execute(
@@ -23,6 +116,9 @@ def upgrade() -> None:
         "AND enrollment_items.product_snapshot_id = product_snapshots.product_snapshot_id "
         "LIMIT 1), 'legacy:' || product_snapshot_id)"
     )
+    if op.get_bind().dialect.name == "postgresql":
+        _upgrade_postgres()
+        return
     with op.batch_alter_table(
         "product_snapshots", recreate="always", naming_convention=_NAMING
     ) as batch:
@@ -92,6 +188,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    if op.get_bind().dialect.name == "postgresql":
+        _downgrade_postgres()
+        return
     with op.batch_alter_table(
         "enrollment_items", recreate="always", naming_convention=_NAMING
     ) as batch:

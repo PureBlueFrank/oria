@@ -39,12 +39,25 @@ uv run oria demo
 
 Demo 会自动准备合成数据并生成带引用的招商提案，不会执行真实业务投放。想体验场景 B，运行 `uv run oria attribution ask`；参数与 Live 模式见 [场景 B 归因演示](docs/guides/attribution-demo.md)。
 
+## PostgreSQL 持久化（V0.6-T01）
+
+Platform 和 Business 使用两个独立 PostgreSQL 数据库，与 SQLite 共用同一套 Repository 契约。复制 [PostgreSQL 配置示例](docs/examples/postgres.yaml)，通过环境变量提供脱离配置文件的 URL，然后执行：
+
+```bash
+export ORIA_PLATFORM_DATABASE_URL='postgresql://<user>:<password>@<host>:5432/<platform-db>'
+export ORIA_BUSINESS_DATABASE_URL='postgresql://<user>:<password>@<host>:5432/<business-db>'
+uv run oria db upgrade --config docs/examples/postgres.yaml --target all
+```
+
+Production URL 必须显式配置 `sslmode=require|verify-ca|verify-full`，运行角色不得拥有 `BYPASSRLS`。选择 PostgreSQL 后如 URL 缺失或无效会失败关闭，不会回退 SQLite。官方 `AsyncPostgresSaver` 的表由 saver `setup()` 自行管理，不属于 Oria Alembic migration。
+
 ## 选择你的路径
 
 | 路径 | 适合谁 | 依赖 | 入口 | 能证明什么 |
 | --- | --- | --- | --- | --- |
 | 零配置 Demo | 首次了解 Oria | 核心依赖，无 Key | `uv run oria demo` | Mock/Fixture 下的只读提案、引用和硬资格边界 |
 | 完整本地 Workflow | 评估 10 步流程、HITL 和恢复 | 本地 SQLite、合成数据、Mock Adapter | [本地 Workflow 手册](docs/guides/local-workflow.md) | Community 业务语义、双审批/双等待与幂等对账 |
+| PostgreSQL 持久化 | 验证双库 migration/Repository/Saver/RLS | 两个独立测试数据库与显式 Enterprise 开关 | `oria db upgrade --target all` | 仅真实 PostgreSQL IT 通过时证明该后端；缺 DSN 为 blocked |
 | 场景 B 归因演示 | 观察有界 ReAct 调查 | 默认无 Key；Live 需已配置模型 | `uv run oria attribution ask` | Mock 回放下的可执行证据链；Live 下才验证动态选路能力 |
 | 真实 DeepSeek | 体验真实模型草案/软排序 | `standard` extra、DeepSeek Key、首次 BGE 下载 | [真实 LLM 快速开始](docs/guides/real-llm.md) | 指定 DeepSeek 模型与本地 BGE 的调用；不证明企业 Adapter |
 | 开发验证 | 贡献者和架构评审者 | 开发依赖 | `make lint && make test` | 无 Live/Enterprise/Performance 的本地回归与静态门禁 |
