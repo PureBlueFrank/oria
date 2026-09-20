@@ -2,6 +2,10 @@
 
 本手册用本地 SQLite、官方 AsyncSqliteSaver、合成数据和 Mock 企业 Adapter 跑完招商场景 A。它会创建本地业务记录并执行 Mock 副作用，不会访问真实券、招商、商品库、选品、C 端或 IM 系统。
 
+[![场景 A：招商活动 10 步工作流](../diagrams/scenario-a-workflow.visual-check.1440x900.light.png)](../diagrams/scenario-a-workflow.html)
+
+[打开 Archify 交互工作流图](../diagrams/scenario-a-workflow.html) · [查看可维护 JSON 图源](../diagrams/scenario-a-workflow.workflow.json)
+
 ## 1. 准备共享标识
 
 先同步锁定依赖：

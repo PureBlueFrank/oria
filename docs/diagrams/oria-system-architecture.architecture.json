@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Oria 系统架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1390, 650]
+  },
+  "components": [
+    { "id": "users", "type": "external", "label": "用户与运营", "sublabel": "CLI / API / Channel", "pos": [20, 270], "size": [140, 72] },
+    { "id": "ingress", "type": "frontend", "label": "受信接入层", "sublabel": "验签 · 去重 · 主体规范化", "pos": [220, 270], "size": [160, 72] },
+    { "id": "runtime", "type": "backend", "label": "Agent Runtime", "sublabel": "Workflow · Agent Loop · HITL", "pos": [455, 270], "size": [175, 72] },
+    { "id": "domain", "type": "backend", "label": "领域服务", "sublabel": "状态机 · 硬资格 · 不变量", "pos": [705, 270], "size": [165, 72] },
+    { "id": "adapters", "type": "cloud", "label": "Tool Runtime 与适配器", "sublabel": "券 · 招商 · 选品 · 投放 · IM", "pos": [945, 270], "size": [180, 72] },
+    { "id": "external", "type": "external", "label": "企业系统", "sublabel": "受信事件与幂等回执", "pos": [1200, 270], "size": [160, 72] },
+    { "id": "providers", "type": "cloud", "label": "LLM Provider", "sublabel": "统一能力与错误契约", "pos": [457.5, 70], "size": [170, 72] },
+    { "id": "rag", "type": "database", "label": "RAG 与知识", "sublabel": "ACL · Hybrid · Citation", "pos": [457.5, 480], "size": [170, 72] },
+    { "id": "data", "type": "database", "label": "数据与恢复平面", "sublabel": "Checkpoint · DB · Vector · Object", "pos": [692.5, 480], "size": [190, 72] }
+  ],
+  "connections": [
+    { "id": "request", "from": "users", "to": "ingress", "label": "受信请求", "variant": "emphasis" },
+    { "id": "normalized-context", "from": "ingress", "to": "runtime", "label": "规范化请求", "variant": "emphasis" },
+    { "id": "domain-call", "from": "runtime", "to": "domain", "label": "确定性服务", "variant": "emphasis" },
+    { "id": "adapter-call", "from": "domain", "to": "adapters", "label": "幂等副作用", "variant": "emphasis" },
+    { "id": "enterprise-receipt", "from": "adapters", "to": "external", "label": "事件 / 回执", "variant": "emphasis" },
+    { "id": "runtime-llm", "from": "runtime", "to": "providers", "label": "结构化推理" },
+    { "id": "authorized-rag", "from": "runtime", "to": "rag", "label": "授权检索", "variant": "dashed", "labelDy": 24 },
+    { "id": "domain-data", "from": "domain", "to": "data", "label": "事务 + Outbox", "labelDy": 24 }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "两类执行", "items": ["Workflow 承载步骤已知、跨天可恢复的业务流程", "Agent Loop 承载路径未知、受预算约束的证据调查"] },
+    { "dot": "emerald", "title": "确定性边界", "items": ["LLM 只做理解、探索、软排序与解释", "Policy、状态机、审批和领域服务掌控权限与业务写入"] },
+    { "dot": "violet", "title": "治理与恢复", "items": ["Policy、Guardrails、Audit、Eval 与 Cost 横切所有能力", "Checkpoint、Ledger、Outbox、回执与对账共同收敛执行"] }
+  ]
+}

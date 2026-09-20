@@ -2,21 +2,9 @@
 
 Oria 是面向招商活动编排的企业级 AI Agent 平台。它把模型擅长的理解、检索、排序和解释，与确定性的业务规则、权限审批、幂等执行和审计证据分层实现。
 
-```mermaid
-flowchart LR
-    U[用户请求] --> I[CLI / API / Ingress]
-    I --> O[Agent 工作流]
-    O --> K[规则与知识检索]
-    O --> D[业务领域服务]
-    D --> A[企业系统适配器]
-    D --> S[(业务数据)]
-    O --> C[(Checkpoint)]
-    P[权限・审批・审计] -.-> I
-    P -.-> O
-    P -.-> D
-    E[Eval・可观测・成本] -.-> O
-    E -.-> D
-```
+[![Oria 系统架构](docs/diagrams/oria-system-architecture.visual-check.1440x900.light.png)](docs/diagrams/oria-system-architecture.html)
+
+[打开 Archify 交互架构图](docs/diagrams/oria-system-architecture.html) · [查看可维护 JSON 图源](docs/diagrams/oria-system-architecture.architecture.json)
 
 ## 项目定位
 
@@ -39,6 +27,10 @@ Oria 同时展示两类 Agent 工程问题：步骤已知、需要跨天恢复�
 9. 另一道审批通过后，仅将入选且券关联有效的商品投放到 C 端。
 10. 通知商家并保存回执；通知失败进入重试或死信，不回滚投放。
 
+[![场景 A：招商活动 10 步工作流](docs/diagrams/scenario-a-workflow.visual-check.1440x900.light.png)](docs/diagrams/scenario-a-workflow.html)
+
+[打开 Archify 交互工作流图](docs/diagrams/scenario-a-workflow.html) · [查看可维护 JSON 图源](docs/diagrams/scenario-a-workflow.workflow.json)
+
 V0.1 先交付其中的只读提案切片；V0.3 在同一 Graph 上补齐完整 10 步。商家侧招商投放、招后选品和 C 端投放是不同实体与事件，不能合并成一个模糊的“投放”动作。
 
 ### Hero 场景 B：动态归因
@@ -53,19 +45,7 @@ CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development �
 
 ## 分层架构
 
-```text
-接入层：CLI / Web / 飞书与钉钉 Webhook / API
-    ↓
-任务控制面：Durable Job / lease / retry / cancel / HITL / external wait
-    ↓
-Agent Runtime：Workflow / ReAct / Multi-Agent / Context / Memory
-    ↓
-能力层：LLM Provider / Tool / RAG / Domain Service / MCP
-    ↓
-数据平面：Checkpoint DB / Platform DB / Business DB / Vector / Object Store
-
-横切：Policy / Guardrails / Secrets / Audit / OTel / Eval / Cost Budget
-```
+上方 Archify 架构图以主请求路径串联受信接入、Agent Runtime、领域服务、Tool Runtime/企业适配器和企业系统；LLM、RAG 与数据恢复平面作为明确支路。Policy、Guardrails、Secrets、Audit、OTel、Eval 和 Cost Budget 是横切约束，不因它们在图中收纳到治理说明卡而缩小适用范围。
 
 流程已知、跨天、需要持久化编排时使用 Workflow；探索性、实时、依赖中间发现时使用 Agent loop。两者共享 Checkpoint、HITL、工具协议和治理能力，不维护第二套执行循环。
 

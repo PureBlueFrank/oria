@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "场景 A：招商活动 10 步工作流",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "ops", "label": "运营与审批" },
+    { "id": "runtime", "label": "Oria Workflow" },
+    { "id": "domain", "label": "确定性领域服务" },
+    { "id": "enterprise", "label": "企业系统与外部事件" }
+  ],
+  "phases": [
+    { "id": "plan", "label": "需求与方案", "fromCol": 0, "toCol": 1 },
+    { "id": "recruit", "label": "招商与报名", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "fulfill", "label": "选品、投放与通知", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": [
+    "intake",
+    "rule_snapshot",
+    "merchant_filter",
+    "draft_plan",
+    "merchant_launch",
+    "enrollment",
+    "coupon_link",
+    "assortment",
+    "consumer_launch",
+    "notify"
+  ],
+  "nodes": [
+    { "id": "intake", "lane": "ops", "col": 0, "type": "external", "label": "1. 接收招商需求", "sublabel": "规范化请求与主体", "width": 160 },
+    { "id": "rule_snapshot", "lane": "runtime", "col": 0, "type": "database", "label": "2. 冻结规则快照", "sublabel": "逐字段引用", "width": 160 },
+    { "id": "merchant_filter", "lane": "domain", "col": 1, "type": "security", "label": "3. 硬资格预筛", "sublabel": "EligibilityPolicy", "width": 160 },
+    { "id": "draft_plan", "lane": "runtime", "col": 1, "type": "backend", "label": "4. 生成方案草案", "sublabel": "候选集内 LLM 软排序", "width": 168 },
+    { "id": "merchant_launch", "lane": "ops", "col": 2, "type": "backend", "label": "5. 审批并招商投放", "sublabel": "HITL · 券批次 · 商家侧发布", "width": 172 },
+    { "id": "enrollment", "lane": "enterprise", "col": 3, "type": "external", "label": "6. 汇聚报名与圈品", "sublabel": "自主 / 自动 / 动态确认链", "width": 178 },
+    { "id": "coupon_link", "lane": "domain", "col": 3, "type": "database", "label": "7. 关联商品与券", "sublabel": "校验且幂等", "width": 160 },
+    { "id": "assortment", "lane": "enterprise", "col": 4, "type": "messagebus", "label": "8. 招后选品", "sublabel": "等待受信选品事件", "width": 176 },
+    { "id": "consumer_launch", "lane": "ops", "col": 5, "type": "backend", "label": "9. 审批并投放 C 端", "sublabel": "HITL · 入选且券关联有效", "width": 174 },
+    { "id": "notify", "lane": "enterprise", "col": 5, "type": "external", "label": "10. 通知商家", "sublabel": "回执；失败重试 / 死信", "width": 168 }
+  ],
+  "edges": [
+    { "id": "intake-rules", "from": "intake", "to": "rule_snapshot", "label": "授权检索", "variant": "emphasis", "role": "main" },
+    { "id": "rules-filter", "from": "rule_snapshot", "to": "merchant_filter", "label": "不可变规则", "variant": "emphasis", "role": "main" },
+    { "id": "filter-draft", "from": "merchant_filter", "to": "draft_plan", "label": "合格候选集", "variant": "emphasis", "role": "main" },
+    { "id": "draft-launch", "from": "draft_plan", "to": "merchant_launch", "label": "LaunchPlan + interrupt/resume", "variant": "security", "role": "main" },
+    { "id": "launch-enrollment", "from": "merchant_launch", "to": "enrollment", "label": "开放招商", "variant": "emphasis", "role": "main" },
+    { "id": "enrollment-coupon", "from": "enrollment", "to": "coupon_link", "label": "动态确认完成", "variant": "emphasis", "role": "main" },
+    { "id": "coupon-assortment", "from": "coupon_link", "to": "assortment", "label": "提交招后选品", "variant": "emphasis", "role": "main" },
+    { "id": "assortment-consumer", "from": "assortment", "to": "consumer_launch", "label": "受信选品结果", "variant": "emphasis", "role": "main" },
+    { "id": "consumer-notify", "from": "consumer_launch", "to": "notify", "label": "投放回执", "variant": "emphasis", "role": "main" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "模型边界", "items": ["LLM 只能在已授权且硬资格通过的候选集中软排序", "规则缺失、冲突或证据不足进入未决或 abstain"] },
+    { "dot": "violet", "title": "恢复边界", "items": ["审批和外部事件按 tenant、resource、version、Checkpoint 绑定", "恢复前重新鉴权；旧绑定变化即失效"] },
+    { "dot": "amber", "title": "副作用边界", "items": ["唯一键、Ledger、Outbox 与回执保证幂等", "通知失败不回滚已完成的 C 端投放"] }
+  ]
+}
