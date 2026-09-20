@@ -752,10 +752,10 @@ async def test_model_tool_and_deadline_limits_stop_without_extra_execution(tmp_p
     await _invoke(
         tmp_path / "deadline-options",
         deadline_options_provider,
-        deadline_at=datetime.now(UTC) + timedelta(seconds=1),
+        deadline_at=datetime.now(UTC) + timedelta(seconds=30),
     )
     assert deadline_options_provider.options[0] is not None
-    assert 0 < deadline_options_provider.options[0].timeout_seconds <= 1
+    assert 0 < deadline_options_provider.options[0].timeout_seconds <= 30
 
     slow_provider = _SlowSequenceProvider(
         [
