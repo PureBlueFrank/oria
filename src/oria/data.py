@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import aiosqlite
 from psycopg import Error as PsycopgError
+from sqlalchemy.exc import SQLAlchemyError
 
 from oria.config.models import ResolvedRuntimeConfig
 from oria.core.types import ValueModel
@@ -49,6 +50,7 @@ async def initialize_data(config: ResolvedRuntimeConfig) -> DataInitializationRe
         MigrationError,
         MerchantRepositoryError,
         PsycopgError,
+        SQLAlchemyError,
         aiosqlite.Error,
         OSError,
     ) as exc:

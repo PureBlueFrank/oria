@@ -9,11 +9,12 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.exc import InvalidRequestError, SQLAlchemyError
 from typer.testing import CliRunner
 
 from oria.cli import app
 from oria.config import ConfigResolutionError, resolve_runtime_config
+from oria.data import DataInitializationError, initialize_data
 from oria.migrations.runner import upgrade_databases
 from oria.storage.database import (
     DatabaseResources,
@@ -42,7 +43,7 @@ def _write_config(tmp_path: Path, storage: str) -> Path:
 
 
 def test_postgres_backends_require_valid_explicit_urls_and_keep_secrets_out_of_repr(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     config_path = _write_config(
         tmp_path,
@@ -54,8 +55,10 @@ storage:
   business_url: ${ORIA_BUSINESS_DATABASE_URL}
 """,
     )
-    platform_url = "postgresql://oria:platform-secret@db.example.test/platform"
-    business_url = "postgresql+psycopg://oria:business-secret@db.example.test/business"
+    platform_secret = "platform-secret-sentinel"
+    business_secret = "business-secret-sentinel"
+    platform_url = f"postgresql://oria:{platform_secret}@db.example.test/platform"
+    business_url = f"postgresql+psycopg://oria:{business_secret}@db.example.test/business"
 
     resolved = resolve_runtime_config(
         config_path=config_path,
@@ -72,8 +75,8 @@ storage:
     assert resolved.storage.business_url is not None
     rendered = repr(resolved)
     summary = json.dumps(resolved.public_summary(), sort_keys=True)
-    assert "platform-secret" not in rendered + summary
-    assert "business-secret" not in rendered + summary
+    assert platform_secret not in rendered + summary
+    assert business_secret not in rendered + summary
     assert resolved.public_summary()["storage"] == {
         "vector": "chroma",
         "platform_db": "postgres",
@@ -91,6 +94,120 @@ storage:
     finally:
         # Engine creation is lazy; disposal must still be safe without a reachable server.
         asyncio.run(resources.aclose())
+
+    monkeypatch.setenv("ORIA_PLATFORM_DATABASE_URL", platform_url)
+    monkeypatch.setenv("ORIA_BUSINESS_DATABASE_URL", business_url)
+    cli_result = CliRunner().invoke(
+        app,
+        ["config", "doctor", "--config", str(config_path), "--output", "json"],
+    )
+    assert cli_result.exit_code == 0, cli_result.output
+    assert platform_secret not in cli_result.output
+    assert business_secret not in cli_result.output
+
+    with pytest.raises(ConfigResolutionError) as excinfo:
+        resolve_runtime_config(
+            config_path=config_path,
+            environ={
+                "ORIA_PLATFORM_DATABASE_URL": platform_url,
+                "ORIA_BUSINESS_DATABASE_URL": (
+                    f"postgresql://other:{business_secret}@db.example.test/platform"
+                ),
+            },
+            cwd=tmp_path,
+        )
+    assert platform_secret not in str(excinfo.value)
+    assert business_secret not in str(excinfo.value)
+
+
+def test_config_fingerprint_tracks_database_target_but_not_credentials(tmp_path: Path) -> None:
+    config_path = _write_config(
+        tmp_path,
+        """\
+storage:
+  platform_db: postgres
+  biz_db: postgres
+  platform_url: ${ORIA_PLATFORM_DATABASE_URL}
+  business_url: ${ORIA_BUSINESS_DATABASE_URL}
+""",
+    )
+
+    def resolve(platform_url: str, business_url: str):
+        return resolve_runtime_config(
+            config_path=config_path,
+            environ={
+                "ORIA_PLATFORM_DATABASE_URL": platform_url,
+                "ORIA_BUSINESS_DATABASE_URL": business_url,
+            },
+            cwd=tmp_path,
+        )
+
+    original = resolve(
+        "postgresql://oria:first-secret@DB.EXAMPLE.TEST/platform",
+        "postgresql+psycopg://oria:first-business@db.example.test/business",
+    )
+    rotated_credentials = resolve(
+        "postgres://rotated:second-secret@db.example.test:5432/platform",
+        "postgresql://rotated:second-business@db.example.test:5432/business",
+    )
+    changed_target = resolve(
+        "postgresql://oria:first-secret@db.example.test/platform-production",
+        "postgresql://oria:first-business@db.example.test/business",
+    )
+
+    assert original.config_fingerprint == rotated_credentials.config_fingerprint
+    assert original.config_fingerprint != changed_target.config_fingerprint
+    for secret in ("first-secret", "first-business", "second-secret", "second-business"):
+        assert secret not in original.config_fingerprint
+        assert secret not in rotated_credentials.config_fingerprint
+
+
+def test_data_init_wraps_sqlalchemy_errors_without_leaking_database_secrets(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_path = _write_config(
+        tmp_path,
+        """\
+storage:
+  platform_db: postgres
+  biz_db: postgres
+  platform_url: ${ORIA_PLATFORM_DATABASE_URL}
+  business_url: ${ORIA_BUSINESS_DATABASE_URL}
+""",
+    )
+    platform_secret = "platform-error-secret-sentinel"
+    business_secret = "business-error-secret-sentinel"
+    platform_url = f"postgresql://oria:{platform_secret}@db.example.test/platform"
+    business_url = f"postgresql://oria:{business_secret}@db.example.test/business"
+    environment = {
+        "ORIA_PLATFORM_DATABASE_URL": platform_url,
+        "ORIA_BUSINESS_DATABASE_URL": business_url,
+    }
+    resolved = resolve_runtime_config(
+        config_path=config_path,
+        environ=environment,
+        cwd=tmp_path,
+    )
+
+    def fail_upgrade(*args: Any, **kwargs: Any) -> None:
+        del args, kwargs
+        raise SQLAlchemyError(f"could not connect to {platform_url}")
+
+    monkeypatch.setattr("oria.data.upgrade_databases", fail_upgrade)
+    with pytest.raises(DataInitializationError) as excinfo:
+        asyncio.run(initialize_data(resolved))
+
+    assert isinstance(excinfo.value.__cause__, SQLAlchemyError)
+    assert platform_secret not in str(excinfo.value)
+    assert business_secret not in str(excinfo.value)
+
+    for name, value in environment.items():
+        monkeypatch.setenv(name, value)
+    cli_result = CliRunner().invoke(app, ["data", "init", "--config", str(config_path)])
+    assert cli_result.exit_code == 1
+    assert "local data initialization failed closed" in cli_result.output
+    assert platform_secret not in cli_result.output
+    assert business_secret not in cli_result.output
 
 
 @pytest.mark.parametrize(

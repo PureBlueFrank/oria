@@ -24,6 +24,9 @@ pytestmark = [pytest.mark.contract, pytest.mark.security]
 class _RecordingSaver(BaseCheckpointSaver[str]):
     def __init__(self) -> None:
         super().__init__()
+        self.deleted_thread_ids: list[str] = []
+        self.list_config: RunnableConfig | None = None
+        self.list_filter: dict[str, Any] | None = None
         self.put_config: RunnableConfig | None = None
         self.write_config: RunnableConfig | None = None
         self.writes: Sequence[tuple[str, Any]] = ()
@@ -74,12 +77,17 @@ class _RecordingSaver(BaseCheckpointSaver[str]):
         before: RunnableConfig | None = None,
         limit: int | None = None,
     ) -> AsyncIterator[CheckpointTuple]:
-        del config, filter, before, limit
-        if self.value is not None:
+        del before, limit
+        self.list_config = config
+        self.list_filter = filter
+        if self.value is not None and (
+            filter is None
+            or all(self.value.metadata.get(key) == expected for key, expected in filter.items())
+        ):
             yield self.value
 
     async def adelete_thread(self, thread_id: str) -> None:
-        del thread_id
+        self.deleted_thread_ids.append(thread_id)
 
 
 def _config() -> RunnableConfig:
@@ -129,3 +137,44 @@ async def test_adapter_delegates_full_async_contract_without_losing_saver_metada
     assert delegate.task_path == "push:agent"
     assert delegate.writes == (("messages", {"safe": "value"}),)
     assert "oria_v1_" not in repr((saved, loaded, listed))
+
+
+@pytest.mark.asyncio
+async def test_adapter_supports_standard_and_tenant_qualified_thread_deletion() -> None:
+    delegate = _RecordingSaver()
+    saver = TenantCheckpointSaver(delegate)
+    checkpoint = empty_checkpoint()
+    await saver.aput(
+        _config(),
+        checkpoint,
+        {"source": "input", "step": 0, "parents": {}},
+        {},
+    )
+
+    await saver.adelete_thread("external-thread")
+    standard_storage_id = delegate.deleted_thread_ids[-1]
+    await saver.adelete_thread_for(tenant_id="tenant-a", thread_id="external-thread")
+
+    assert delegate.list_config is None
+    assert delegate.list_filter == {"oria_external_thread_id": "external-thread"}
+    assert delegate.deleted_thread_ids == [standard_storage_id, standard_storage_id]
+    assert standard_storage_id.startswith("oria_v1_")
+
+
+@pytest.mark.asyncio
+async def test_standard_thread_deletion_rejects_checkpoint_without_tenant_metadata() -> None:
+    delegate = _RecordingSaver()
+    saver = TenantCheckpointSaver(delegate)
+    await saver.aput(
+        _config(),
+        empty_checkpoint(),
+        {"source": "input", "step": 0, "parents": {}},
+        {},
+    )
+    assert delegate.value is not None
+    del delegate.value.metadata["oria_tenant_id"]
+
+    with pytest.raises(ValueError, match="tenant metadata"):
+        await saver.adelete_thread("external-thread")
+
+    assert delegate.deleted_thread_ids == []

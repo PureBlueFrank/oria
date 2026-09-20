@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 import yaml
 from pydantic import SecretStr, ValidationError
@@ -322,6 +322,22 @@ def _postgres_url(value: str, *, field: str, production: bool) -> str:
     return value
 
 
+def _postgres_target_identity(value: SecretStr | None) -> dict[str, str | int] | None:
+    """Return the normalized, credential-free identity of a PostgreSQL target."""
+
+    if value is None:
+        return None
+    parsed = urlsplit(value.get_secret_value())
+    if parsed.hostname is None:
+        raise AssertionError("resolved PostgreSQL URL has no hostname")
+    return {
+        "scheme": "postgresql",
+        "host": parsed.hostname.lower().rstrip("."),
+        "port": parsed.port or 5432,
+        "database": unquote(parsed.path.lstrip("/")),
+    }
+
+
 def _resolve_storage(config: RuntimeConfig, environ: Mapping[str, str]) -> ResolvedStorageConfig:
     values: dict[str, str | SecretStr | None] = {
         "platform_url": config.storage.platform_url,
@@ -349,10 +365,8 @@ def _resolve_storage(config: RuntimeConfig, environ: Mapping[str, str]) -> Resol
     platform_url = resolved_urls["platform_url"]
     business_url = resolved_urls["business_url"]
     if platform_url is not None and business_url is not None:
-        platform = urlsplit(platform_url.get_secret_value())
-        business = urlsplit(business_url.get_secret_value())
-        platform_identity = (platform.hostname, platform.port or 5432, platform.path)
-        business_identity = (business.hostname, business.port or 5432, business.path)
+        platform_identity = _postgres_target_identity(platform_url)
+        business_identity = _postgres_target_identity(business_url)
         if platform_identity == business_identity:
             raise ConfigResolutionError(
                 "platform and business PostgreSQL chains require distinct databases"
@@ -496,6 +510,8 @@ def _fingerprint_payload(
             "object": storage.object,
             "platform_url_configured": storage.platform_url is not None,
             "business_url_configured": storage.business_url is not None,
+            "platform_target": _postgres_target_identity(storage.platform_url),
+            "business_target": _postgres_target_identity(storage.business_url),
         },
         "telemetry": config.telemetry.model_dump(mode="json"),
     }

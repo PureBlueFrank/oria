@@ -62,18 +62,25 @@ async def test_same_external_thread_is_isolated_and_storage_key_never_leaks(
         assert [item.checkpoint["id"] for item in listed_a] == [tuple_a.checkpoint["id"]]
         assert [item.checkpoint["id"] for item in listed_b] == [tuple_b.checkpoint["id"]]
 
+        with pytest.raises(ValueError, match="multiple tenants"):
+            await saver.adelete_thread("shared-thread")
+
         await saver.adelete_thread_for(tenant_id="tenant-a", thread_id="shared-thread")
         assert await saver.aget_tuple(tenant_a) is None
         assert await saver.aget_tuple(tenant_b) is not None
 
+        await saver.adelete_thread("shared-thread")
+        assert await saver.aget_tuple(tenant_b) is None
+
 
 @pytest.mark.asyncio
-async def test_checkpoint_listing_requires_tenant_scope(tmp_path: Path) -> None:
+async def test_checkpoint_listing_requires_tenant_scope_and_missing_delete_is_noop(
+    tmp_path: Path,
+) -> None:
     async with open_tenant_sqlite_saver(tmp_path / "checkpoints.sqlite3") as saver:
         with pytest.raises(ValueError, match="tenant-scoped"):
             _ = [item async for item in saver.alist(None)]
-        with pytest.raises(ValueError, match="tenant ID"):
-            await saver.adelete_thread("ambiguous-thread")
+        await saver.adelete_thread("missing-thread")
 
 
 @pytest.mark.asyncio

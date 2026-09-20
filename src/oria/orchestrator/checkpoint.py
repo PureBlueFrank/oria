@@ -169,8 +169,23 @@ class TenantCheckpointSaver(BaseCheckpointSaver[Any]):
         await self._delegate.adelete_thread(_storage_thread_id(tenant_id, thread_id))
 
     async def adelete_thread(self, thread_id: str) -> None:
-        del thread_id
-        raise ValueError("tenant ID is required; use adelete_thread_for")
+        if not thread_id:
+            raise ValueError("external thread ID must be non-empty")
+        tenant_ids: set[str] = set()
+        async for value in self._delegate.alist(
+            None,
+            filter={_METADATA_THREAD_KEY: thread_id},
+        ):
+            tenant_id = value.metadata.get(_METADATA_TENANT_KEY)
+            if not isinstance(tenant_id, str) or not tenant_id:
+                raise ValueError("checkpoint tenant metadata is required for standard deletion")
+            tenant_ids.add(tenant_id)
+        if len(tenant_ids) > 1:
+            raise ValueError(
+                "external thread ID belongs to multiple tenants; use adelete_thread_for"
+            )
+        if tenant_ids:
+            await self.adelete_thread_for(tenant_id=tenant_ids.pop(), thread_id=thread_id)
 
     def get_next_version(self, current: str | None, channel: None) -> str:
         return self._delegate.get_next_version(current, channel)
