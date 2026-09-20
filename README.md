@@ -55,7 +55,7 @@ Oria 将执行编排、业务不变量和外部实现分层，并通过稳定契
 
 [![Oria 系统架构](docs/diagrams/oria-system-architecture.visual-check.1440x900.light.png)](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html)
 
-[打开在线交互架构图](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html) · [查看可维护 JSON 图源](docs/diagrams/oria-system-architecture.architecture.json)
+[打开在线交互架构图](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html) 
 
 - **分层**：接入层只负责规范化请求；运行时管理 Workflow、Agent 循环、恢复与人工审批；领域层掌握状态机、硬资格和所有业务写入不变量。
 - **插件化**：模型、Tool、存储和企业集成通过 `typing.Protocol` 与 Registry/Factory 组装，Runtime 启动后封存注册表，替换实现无需改写领域逻辑。
