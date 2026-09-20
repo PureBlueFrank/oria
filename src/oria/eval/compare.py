@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import math
 import random
+import secrets
 import statistics
 import time
 from collections.abc import Awaitable, Callable, Mapping
@@ -49,6 +52,7 @@ from oria.eval.nightly import (
 )
 
 Architecture = Literal["single", "multi"]
+JudgeBasis = Literal["structural_proxy", "external_judge"]
 
 
 class ComparisonError(RuntimeError):
@@ -113,6 +117,11 @@ class ComparisonLiveTarget(ValueModel):
     target_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
     provider: Literal["deepseek", "codex"]
     model: str = Field(min_length=1)
+    runtime_profile: Literal["standard"]
+    api_dialect: Literal["responses", "chat_completions", "anthropic_messages"]
+    structured_output_mode: Literal["native_json_schema", "synthetic_tool", "unsupported"]
+    reasoning_effort: Literal["none", "low", "medium", "high"] | None
+    embedding_profile: Literal["fixture"]
     credential_env: str = Field(pattern=r"^[A-Z][A-Z0-9_]*$")
     pricing_snapshot_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{1,127}$")
     rate_tier: Literal["peak", "off_peak"]
@@ -221,6 +230,15 @@ class ComparisonRubric(ValueModel):
         return self
 
 
+class ComparisonJudgePacket(ValueModel):
+    """Architecture-neutral scoring input handed to a judge."""
+
+    blind_item_id: str
+    rubric_version: str
+    criteria: tuple[dict[str, JsonValue], ...]
+    response: AttributionBlindItem
+
+
 class ArchitectureRunResult(ValueModel):
     """All observations for one architecture, case, and repetition."""
 
@@ -237,21 +255,13 @@ class ArchitectureRunResult(ValueModel):
     cost_usd: float = Field(ge=0)
     latency_ms: float = Field(ge=0)
     termination_reason: str | None = None
+    judge_packet: ComparisonJudgePacket | None = None
 
     @model_validator(mode="after")
     def validate_total_tokens(self) -> Self:
         if self.total_tokens != self.input_tokens + self.output_tokens:
             raise ValueError("run total tokens must equal input plus output tokens")
         return self
-
-
-class ComparisonJudgePacket(ValueModel):
-    """Architecture-neutral scoring input handed to a judge."""
-
-    blind_item_id: str
-    rubric_version: str
-    criteria: tuple[dict[str, JsonValue], ...]
-    response: AttributionBlindItem
 
 
 class ComparisonExecutionSlot(ValueModel):
@@ -261,6 +271,22 @@ class ComparisonExecutionSlot(ValueModel):
     architecture: Architecture
     case_id: str
     repetition: int = Field(gt=0)
+
+
+class ComparisonFrozenBinding(ValueModel):
+    """Complete execution and pricing semantics bound to a resumable Live run."""
+
+    schema_version: Literal[1] = 1
+    execution_semantics_version: Literal["comparison_live_v2"] = "comparison_live_v2"
+    target: ComparisonLiveTarget
+    target_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    pricing_snapshot: PricingSnapshot
+    pricing_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    rate_tier: Literal["peak", "off_peak"]
+    tool_profile: str = Field(min_length=1)
+    termination_rule: str = Field(min_length=1)
+    execution_order_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    judge_basis: JudgeBasis
 
 
 class ArchitectureMetrics(ValueModel):
@@ -314,14 +340,36 @@ class ComparisonReport(ValueModel):
     single: ArchitectureMetrics | None
     multi: ArchitectureMetrics | None
     delta_multi_minus_single: ComparisonDelta | None
-    conclusion: Literal["multi_improved", "multi_regressed", "mixed_or_equal"] | None
+    conclusion: (
+        Literal["multi_improved", "multi_regressed", "mixed_or_equal", "pending_human_review"]
+        | None
+    )
     applicability_boundary: str = Field(min_length=1)
     significance: Literal["descriptive_only"] = "descriptive_only"
+    quality_basis: JudgeBasis = "structural_proxy"
+    frozen_binding: ComparisonFrozenBinding | None = None
+    blind_review_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
     @model_validator(mode="after")
     def validate_complete_comparison(self) -> Self:
         if self.verification_level == "live" and self.target_id is None:
             raise ValueError("Live comparison report requires an explicit target")
+        if self.verification_level == "live":
+            for run in self.runs:
+                packet = run.judge_packet
+                if packet is None:
+                    raise ValueError("Live comparison run requires a judge packet")
+                if (
+                    packet.blind_item_id != run.blind_item_id
+                    or packet.response.blind_case_id != run.blind_item_id
+                ):
+                    raise ValueError("Live comparison judge packet id does not match its run")
+        if (
+            self.verification_level == "live"
+            and self.quality_basis == "structural_proxy"
+            and self.conclusion not in {None, "pending_human_review"}
+        ):
+            raise ValueError("structural proxy cannot support a Live quality conclusion")
         if self.run_status == "in_progress":
             return self
         architectures = {run.architecture for run in self.runs}
@@ -370,6 +418,93 @@ def randomized_execution_order(
         )
         for position, (architecture, case_id, repetition) in enumerate(pairs)
     )
+
+
+def _canonical_sha256(value: object) -> str:
+    if isinstance(value, ValueModel):
+        value = value.model_dump(mode="json")
+    elif isinstance(value, (list, tuple)):
+        value = [
+            item.model_dump(mode="json") if isinstance(item, ValueModel) else item for item in value
+        ]
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def derive_comparison_blind_item_id(blind_secret: bytes, slot: ComparisonExecutionSlot) -> str:
+    """Derive an opaque per-run id that cannot be recomputed from public assets."""
+
+    if len(blind_secret) < 32:
+        raise ComparisonError("comparison blind secret must contain at least 256 bits")
+    slot_payload = json.dumps(
+        slot.model_dump(mode="json"),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    digest = hmac.new(blind_secret, b"comparison-item-v2\0" + slot_payload, hashlib.sha256)
+    return f"blind_{digest.hexdigest()[:16]}"
+
+
+def shuffled_blind_review_packets(
+    report: ComparisonReport, *, blind_secret: bytes
+) -> tuple[ComparisonJudgePacket, ...]:
+    """Return complete review packets in a secret-derived order unrelated to execution."""
+
+    if len(blind_secret) < 32:
+        raise ComparisonError("comparison blind secret must contain at least 256 bits")
+    packets: list[ComparisonJudgePacket] = []
+    for run in report.runs:
+        packet = run.judge_packet
+        if packet is None:
+            raise ComparisonError("comparison Live run is missing its judge packet")
+        if (
+            packet.blind_item_id != run.blind_item_id
+            or packet.response.blind_case_id != run.blind_item_id
+        ):
+            raise ComparisonError("comparison Live judge packet id does not match its run")
+        packets.append(packet)
+    execution_ids = [packet.blind_item_id for packet in packets]
+    packets.sort(
+        key=lambda packet: hmac.new(
+            blind_secret,
+            b"comparison-review-order-v2\0" + packet.blind_item_id.encode(),
+            hashlib.sha256,
+        ).digest()
+    )
+    if len(packets) > 1 and [packet.blind_item_id for packet in packets] == execution_ids:
+        packets = packets[1:] + packets[:1]
+    return tuple(packets)
+
+
+def reblind_comparison_runs(
+    runs: tuple[ArchitectureRunResult, ...],
+    *,
+    order: tuple[ComparisonExecutionSlot, ...],
+    blind_secret: bytes,
+) -> tuple[ArchitectureRunResult, ...]:
+    """Migrate stored packets to opaque ids without changing any execution observation."""
+
+    validated = _validated_resume_runs(resume_runs=runs, order=order)
+    migrated: list[ArchitectureRunResult] = []
+    for slot, run in zip(order, validated, strict=False):
+        packet = run.judge_packet
+        if packet is None:
+            raise ComparisonError("comparison Live run is missing its judge packet")
+        blind_item_id = derive_comparison_blind_item_id(blind_secret, slot)
+        response = packet.response.model_copy(update={"blind_case_id": blind_item_id})
+        migrated_packet = packet.model_copy(
+            update={"blind_item_id": blind_item_id, "response": response}
+        )
+        migrated.append(
+            run.model_copy(update={"blind_item_id": blind_item_id, "judge_packet": migrated_packet})
+        )
+    return tuple(migrated)
 
 
 def _principal(tenant_id: str, *, kind: Literal["human", "service"]) -> Principal:
@@ -464,6 +599,7 @@ async def run_architecture_slot(
     query_database: Path,
     budget: ComparisonBudget | ComparisonLiveBudget,
     rubric: ComparisonRubric,
+    blind_secret: bytes,
     llm: LLMProvider | None = None,
     judge: Judge = fixture_judge,
     clock: Callable[[], float] = time.monotonic,
@@ -522,10 +658,7 @@ async def run_architecture_slot(
                 else {}
             )
         elapsed_ms = (clock() - started) * 1000
-        blind_hash = hashlib.sha256(
-            f"{rubric.preregistration_sha256}:{slot.position}:{case.case_id}".encode()
-        ).hexdigest()[:16]
-        blind_item_id = f"blind_{blind_hash}"
+        blind_item_id = derive_comparison_blind_item_id(blind_secret, slot)
         response = _blind_item(cast(dict[str, Any], state), case, blind_item_id=blind_item_id)
         packet = ComparisonJudgePacket(
             blind_item_id=blind_item_id,
@@ -543,6 +676,7 @@ async def run_architecture_slot(
             repetition=slot.repetition,
             blind_item_id=blind_item_id,
             quality_score=quality,
+            judge_packet=packet,
             model_turns=cast(int, usage.get("model_turns", state.get("model_turns", 0))),
             tool_calls=cast(int, usage.get("tool_calls_total", 0)),
             input_tokens=input_tokens,
@@ -911,6 +1045,7 @@ async def run_comparison(
     base = await build_runtime(runtime_config)
     case_by_id = {case.case_id: case for case in cases}
     results: list[ArchitectureRunResult] = []
+    blind_secret = secrets.token_bytes(32)
     try:
         for slot in order:
             case = case_by_id[slot.case_id]
@@ -921,6 +1056,7 @@ async def run_comparison(
                 query_database=query_databases[case.fixture_variant],
                 budget=config.budgets.single,
                 rubric=rubric,
+                blind_secret=blind_secret,
                 judge=judge,
             )
             results.append(_price_run(result, prices))
@@ -954,14 +1090,220 @@ def _validated_resume_runs(
     resume_runs: tuple[ArchitectureRunResult, ...],
     order: tuple[ComparisonExecutionSlot, ...],
 ) -> tuple[ArchitectureRunResult, ...]:
-    allowed = {(slot.architecture, slot.case_id, slot.repetition) for slot in order}
-    observed: set[tuple[Architecture, str, int]] = set()
-    for run in resume_runs:
-        key = (run.architecture, run.case_id, run.repetition)
-        if key not in allowed or key in observed:
-            raise ComparisonError("comparison Live resume records do not match the frozen plan")
-        observed.add(key)
+    if len(resume_runs) > len(order):
+        raise ComparisonError("comparison Live resume must be a complete prefix of the frozen plan")
+    for slot, run in zip(order, resume_runs, strict=False):
+        expected = (slot.architecture, slot.case_id, slot.repetition)
+        observed = (run.architecture, run.case_id, run.repetition)
+        if observed != expected:
+            raise ComparisonError(
+                "comparison Live resume must be a complete prefix of the frozen plan"
+            )
+        packet = run.judge_packet
+        if packet is None:
+            raise ComparisonError("comparison Live resume run is missing its judge packet")
+        if (
+            packet.blind_item_id != run.blind_item_id
+            or packet.response.blind_case_id != run.blind_item_id
+        ):
+            raise ComparisonError("comparison Live resume judge packet id does not match its run")
     return resume_runs
+
+
+def build_comparison_frozen_binding(
+    *,
+    target: ComparisonLiveTarget,
+    pricing_snapshot: PricingSnapshot,
+    order: tuple[ComparisonExecutionSlot, ...],
+    judge_basis: JudgeBasis,
+    tool_profile: str = "attribution_v2",
+    termination_rule: str = "research_limits_v1",
+) -> ComparisonFrozenBinding:
+    """Bind all selected target, pricing, and execution semantics by value and hash."""
+
+    return ComparisonFrozenBinding(
+        target=target,
+        target_sha256=_canonical_sha256(target),
+        pricing_snapshot=pricing_snapshot,
+        pricing_sha256=_canonical_sha256(pricing_snapshot),
+        rate_tier=target.rate_tier,
+        tool_profile=tool_profile,
+        termination_rule=termination_rule,
+        execution_order_sha256=_canonical_sha256(order),
+        judge_basis=judge_basis,
+    )
+
+
+def _build_live_report(
+    *,
+    dataset_version: str,
+    dataset_sha256: str,
+    target: ComparisonLiveTarget,
+    pricing_snapshot: PricingSnapshot,
+    config: ComparisonConfig,
+    rubric: ComparisonRubric,
+    order: tuple[ComparisonExecutionSlot, ...],
+    runs: tuple[ArchitectureRunResult, ...],
+    frozen_binding: ComparisonFrozenBinding,
+    judge_basis: JudgeBasis,
+) -> ComparisonReport:
+    complete = len(runs) == len(order)
+    architectures = {run.architecture for run in runs}
+    single = _architecture_metrics("single", runs) if "single" in architectures else None
+    multi = _architecture_metrics("multi", runs) if "multi" in architectures else None
+    delta: ComparisonDelta | None = None
+    conclusion: (
+        Literal["multi_improved", "multi_regressed", "mixed_or_equal", "pending_human_review"]
+        | None
+    ) = None
+    boundary = "Staged Live comparison is incomplete; no architecture conclusion is available."
+    if complete:
+        if single is None or multi is None:
+            raise ComparisonError("completed Live comparison is missing an architecture")
+        delta, descriptive_conclusion, boundary = _descriptive_summary(
+            single, multi, verification_level="live"
+        )
+        conclusion = descriptive_conclusion
+        if judge_basis == "structural_proxy":
+            conclusion = "pending_human_review"
+            boundary = (
+                "Scores and quality deltas are structural proxies, not a Live quality "
+                "assessment. Independent blind review is required before any quality claim."
+            )
+    return ComparisonReport(
+        verification_level="live",
+        quality_basis=judge_basis,
+        run_status="completed" if complete else "in_progress",
+        target_id=target.target_id,
+        dataset_version=dataset_version,
+        dataset_sha256=dataset_sha256,
+        pricing_snapshot_id=pricing_snapshot.snapshot_id,
+        config=config,
+        rubric=rubric,
+        execution_order=order,
+        runs=runs,
+        single=single,
+        multi=multi,
+        delta_multi_minus_single=delta,
+        conclusion=conclusion,
+        applicability_boundary=boundary,
+        frozen_binding=frozen_binding,
+    )
+
+
+def rebuild_comparison_live_report(
+    *,
+    manifest_path: Path,
+    rubric_path: Path,
+    target: ComparisonLiveTarget,
+    pricing_snapshot: PricingSnapshot,
+    runs: tuple[ArchitectureRunResult, ...],
+    judge_basis: JudgeBasis,
+) -> ComparisonReport:
+    """Rebuild a Live report from authoritative run records without invoking a model."""
+
+    dataset = load_golden_dataset(manifest_path)
+    cases = tuple(
+        case
+        for case in dataset.cases
+        if isinstance(case, AttributionGoldenCase) and case.split == "holdout"
+    )
+    expected_per_architecture = len(cases) * target.repetitions
+    if not cases or expected_per_architecture != target.budget.max_cases:
+        raise ComparisonError("comparison Live budget must exactly cover holdout repetitions")
+    if (
+        dataset.manifest.review_status != "approved"
+        or not dataset.manifest.human_review_complete
+        or not dataset.manifest.holdout_frozen
+        or dataset.manifest.holdout_case_count != len(cases)
+    ):
+        raise ComparisonError("comparison Live dataset is not reviewed and frozen")
+    if dataset.manifest.rubric_sha256 is None:
+        raise ComparisonError("comparison dataset has no frozen rubric")
+    rubric = preregister_comparison_rubric(rubric_path)
+    if rubric.rubric_sha256 != dataset.manifest.rubric_sha256:
+        raise ComparisonError("comparison rubric does not match the frozen dataset")
+    if pricing_snapshot.snapshot_id != target.pricing_snapshot_id:
+        raise ComparisonError("comparison pricing snapshot identity does not match target")
+    prices = _pricing_for(pricing_snapshot, model_id=target.model, rate_tier=target.rate_tier)
+    budgets = ArchitectureBudgets(single=target.budget, multi=target.budget)
+    config = ComparisonConfig(
+        seed=target.order_seed,
+        repetitions=target.repetitions,
+        model_id=target.model,
+        budgets=budgets,
+    )
+    order = randomized_execution_order(
+        cases, repetitions=target.repetitions, seed=target.order_seed
+    )
+    validated = _validated_resume_runs(resume_runs=runs, order=order)
+    for run in validated:
+        expected_cost = _price_run(run, prices).cost_usd
+        if not math.isclose(run.cost_usd, expected_cost, rel_tol=1e-9, abs_tol=1e-12):
+            raise ComparisonError("comparison Live resume pricing does not match the frozen target")
+    binding = build_comparison_frozen_binding(
+        target=target,
+        pricing_snapshot=pricing_snapshot,
+        order=order,
+        judge_basis=judge_basis,
+        tool_profile=config.tool_profile,
+        termination_rule=config.termination_rule,
+    )
+    return _build_live_report(
+        dataset_version=dataset.manifest.dataset_version,
+        dataset_sha256=dataset.manifest.dataset_sha256,
+        target=target,
+        pricing_snapshot=pricing_snapshot,
+        config=config,
+        rubric=rubric,
+        order=order,
+        runs=validated,
+        frozen_binding=binding,
+        judge_basis=judge_basis,
+    )
+
+
+def validate_comparison_live_resume_report(
+    report: ComparisonReport,
+    *,
+    manifest_path: Path,
+    rubric_path: Path,
+    target: ComparisonLiveTarget,
+    pricing_snapshot: PricingSnapshot,
+    judge_basis: JudgeBasis,
+) -> ComparisonReport:
+    """Validate every frozen field and return a canonical, binding-complete report."""
+
+    canonical = rebuild_comparison_live_report(
+        manifest_path=manifest_path,
+        rubric_path=rubric_path,
+        target=target,
+        pricing_snapshot=pricing_snapshot,
+        runs=report.runs,
+        judge_basis=judge_basis,
+    )
+    frozen_fields_match = (
+        report.verification_level == "live"
+        and report.target_id == canonical.target_id
+        and report.dataset_version == canonical.dataset_version
+        and report.dataset_sha256 == canonical.dataset_sha256
+        and report.pricing_snapshot_id == canonical.pricing_snapshot_id
+        and report.config == canonical.config
+        and report.rubric == canonical.rubric
+        and report.execution_order == canonical.execution_order
+        and report.quality_basis == canonical.quality_basis
+        and report.run_status == canonical.run_status
+        and report.single == canonical.single
+        and report.multi == canonical.multi
+        and report.delta_multi_minus_single == canonical.delta_multi_minus_single
+        and report.conclusion == canonical.conclusion
+        and report.applicability_boundary == canonical.applicability_boundary
+    )
+    if not frozen_fields_match:
+        raise ComparisonError("existing comparison report does not match the frozen target")
+    if report.frozen_binding is not None and report.frozen_binding != canonical.frozen_binding:
+        raise ComparisonError("existing comparison report does not match the frozen target binding")
+    return canonical
 
 
 async def run_comparison_live(
@@ -975,6 +1317,12 @@ async def run_comparison_live(
     resume_runs: tuple[ArchitectureRunResult, ...] = (),
     max_new_case_runs: int | None = None,
     judge: Judge = fixture_judge,
+    judge_basis: JudgeBasis = "structural_proxy",
+    blind_secret: bytes | None = None,
+    on_slot_reserved: Callable[[ComparisonExecutionSlot], None] | None = None,
+    on_slot_completed: (
+        Callable[[ComparisonExecutionSlot, ArchitectureRunResult], None] | None
+    ) = None,
 ) -> ComparisonReport:
     """Run or resume the frozen holdout with one real LLM and equal per-architecture ledgers."""
 
@@ -983,14 +1331,23 @@ async def run_comparison_live(
     if (
         base_runtime.config.llm.provider != target.provider
         or base_runtime.config.llm.model != target.model
+        or base_runtime.config.runtime_profile != target.runtime_profile
+        or base_runtime.config.llm.api_dialect != target.api_dialect
+        or base_runtime.config.llm.structured_output_mode != target.structured_output_mode
+        or base_runtime.config.llm.reasoning_effort != target.reasoning_effort
+        or base_runtime.config.embedding.profile_id != target.embedding_profile
     ):
-        raise ComparisonError("runtime provider/model does not match comparison Live target")
+        raise ComparisonError("runtime execution profile does not match comparison Live target")
     if pricing_snapshot.snapshot_id != target.pricing_snapshot_id:
         raise ComparisonError("comparison pricing snapshot identity does not match target")
     if datetime.now().astimezone() > pricing_snapshot.valid_until:
         raise ComparisonError("comparison pricing snapshot is expired")
     if max_new_case_runs is not None and max_new_case_runs < 1:
         raise ComparisonError("staged comparison case-run limit must be positive")
+    if blind_secret is None:
+        blind_secret = secrets.token_bytes(32)
+    if len(blind_secret) < 32:
+        raise ComparisonError("comparison blind secret must contain at least 256 bits")
 
     dataset = load_golden_dataset(manifest_path)
     cases = tuple(
@@ -1024,6 +1381,14 @@ async def run_comparison_live(
     )
     order = randomized_execution_order(
         cases, repetitions=target.repetitions, seed=target.order_seed
+    )
+    frozen_binding = build_comparison_frozen_binding(
+        target=target,
+        pricing_snapshot=pricing_snapshot,
+        order=order,
+        judge_basis=judge_basis,
+        tool_profile=config.tool_profile,
+        termination_rule=config.termination_rule,
     )
     validated_resume = _validated_resume_runs(resume_runs=resume_runs, order=order)
     ledgers = {
@@ -1085,6 +1450,8 @@ async def run_comparison_live(
             )
         except NightlyBudgetExceeded as exc:
             raise ComparisonError(str(exc)) from exc
+        if on_slot_reserved is not None:
+            on_slot_reserved(slot)
         try:
             result = await run_architecture_slot(
                 slot,
@@ -1093,6 +1460,7 @@ async def run_comparison_live(
                 query_database=query_databases[case_by_id[slot.case_id].fixture_variant],
                 budget=target.budget,
                 rubric=rubric,
+                blind_secret=blind_secret,
                 llm=base_runtime.llm,
                 judge=judge,
             )
@@ -1109,6 +1477,8 @@ async def run_comparison_live(
         except Exception:
             ledger.cancel(reservation)
             raise
+        if on_slot_completed is not None:
+            on_slot_completed(slot, priced)
         results.append(priced)
         completed_keys.add(key)
         model_requests[slot.architecture] += priced.model_turns
@@ -1117,32 +1487,15 @@ async def run_comparison_live(
         new_case_runs += 1
 
     assert_preregistered_rubric(rubric_path, rubric)
-    all_runs = tuple(results)
-    complete = len(all_runs) == len(order)
-    architectures = {run.architecture for run in all_runs}
-    single = _architecture_metrics("single", all_runs) if "single" in architectures else None
-    multi = _architecture_metrics("multi", all_runs) if "multi" in architectures else None
-    delta: ComparisonDelta | None = None
-    conclusion: Literal["multi_improved", "multi_regressed", "mixed_or_equal"] | None = None
-    boundary = "Staged Live comparison is incomplete; no architecture conclusion is available."
-    if complete:
-        if single is None or multi is None:
-            raise ComparisonError("completed Live comparison is missing an architecture")
-        delta, conclusion, boundary = _descriptive_summary(single, multi, verification_level="live")
-    return ComparisonReport(
-        verification_level="live",
-        run_status="completed" if complete else "in_progress",
-        target_id=target.target_id,
+    return _build_live_report(
         dataset_version=dataset.manifest.dataset_version,
         dataset_sha256=dataset.manifest.dataset_sha256,
-        pricing_snapshot_id=pricing_snapshot.snapshot_id,
+        target=target,
+        pricing_snapshot=pricing_snapshot,
         config=config,
         rubric=rubric,
-        execution_order=order,
-        runs=all_runs,
-        single=single,
-        multi=multi,
-        delta_multi_minus_single=delta,
-        conclusion=conclusion,
-        applicability_boundary=boundary,
+        order=order,
+        runs=tuple(results),
+        frozen_binding=frozen_binding,
+        judge_basis=judge_basis,
     )

@@ -1,0 +1,31 @@
+{
+  "recorded_at": "2026-09-13T23:50:27.397941+08:00",
+  "status": "paused_subscription_headroom",
+  "completed_architecture_runs": 29,
+  "planned_architecture_runs": 80,
+  "new_runs_this_continuation": 1,
+  "architectures": {
+    "multi": 15,
+    "single": 14
+  },
+  "model_calling_runs": 19,
+  "totals": {
+    "model_turns": 53,
+    "tool_calls": 60,
+    "input_tokens": 1288159,
+    "output_tokens": 42911,
+    "cost_usd": 6.0108559999999995
+  },
+  "primary_used_percent_start": 71,
+  "primary_used_percent_end": 81,
+  "weekly_used_percent": 71,
+  "primary_resets_at": "2026-09-14T02:50:56+08:00",
+  "quality_status": "incomplete_pending_independent_blind_review",
+  "next_execution_slot": {
+    "position": 29,
+    "architecture": "multi",
+    "case_id": "sb-v2-034",
+    "repetition": 2
+  },
+  "provider_request_ids": "not exported; model turns are not deduplicated request IDs"
+}

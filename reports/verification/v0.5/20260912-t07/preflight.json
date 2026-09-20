@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "suite": "attribution_comparison",
+  "target_id": "codex-subscription-gpt56-sol-high",
+  "status": "ready",
+  "request_count": 0,
+  "checked_at": "2026-09-12T17:24:52.983414+08:00",
+  "reason": null,
+  "dataset_version": "2",
+  "dataset_sha256": "31883e82023ae236754f4a885fb78456b8e593de09fdd43eda8d5f751719b0d7",
+  "holdout_case_count": 20,
+  "repetitions": 2,
+  "expected_architecture_runs": 80,
+  "pricing_snapshot_id": "openai-20260909"
+}

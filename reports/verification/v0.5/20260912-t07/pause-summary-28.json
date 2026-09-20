@@ -1,0 +1,38 @@
+{
+  "recorded_at": "2026-09-13T00:57:41.608775+08:00",
+  "status": "paused_subscription_headroom",
+  "completed_architecture_runs": 28,
+  "planned_architecture_runs": 80,
+  "new_runs_this_continuation": 24,
+  "architectures": {
+    "multi": 15,
+    "single": 13
+  },
+  "termination_reasons": {
+    "unsupported_request": 6,
+    "subagent_failed:subagent_tools_unavailable": 4,
+    "no_error_termination": 18
+  },
+  "model_calling_runs": 18,
+  "totals": {
+    "model_turns": 51,
+    "tool_calls": 59,
+    "input_tokens": 1248887,
+    "output_tokens": 41975,
+    "cost_usd": 5.835048
+  },
+  "primary_used_percent": 81,
+  "weekly_used_percent": 26,
+  "primary_resets_at": "2026-09-13T03:52:04+08:00",
+  "quality_status": "incomplete_pending_independent_blind_review",
+  "next_execution_slot": {
+    "position": 28,
+    "architecture": "single",
+    "case_id": "sb-v2-039",
+    "repetition": 1
+  },
+  "provider_request_ids": "not exported; graph model-turn count is not request-ID deduplication evidence",
+  "incidents": [
+    "After saved run 14, usage endpoint returned non-JSON text; orchestration stopped before the next model run. A read-only retry succeeded at 31%, then resumed from run 15. No case rerun."
+  ]
+}

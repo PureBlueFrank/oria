@@ -22,7 +22,7 @@
 | V0.2 | Provider 与 RAG 完整化 | T01–T06 已完成；Core、Nightly 与 DeepSeek 必需 Live 卡通过 | 统一六家 Provider 的 Fixture 契约，完成授权 RAG、三管线对照、冻结数据集和 DeepSeek Live 验证；其他 Provider 未 Live 验证。 |
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
 | V0.4 | 场景 B 动态归因 Agent | T01–T05 已完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 50 条 Golden 已审阅并冻结 30/20 split；GPT-5.6 Sol 完成 20×3，自动通过 55/60，严格盲评 10/10 达线、平均 0.98。 |
-| V0.5 | 多智能体、上下文与记忆 | T01–T06 与 Core 已完成；T07 Live 待执行 | 已交付上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、公平对照 harness 与 S2–S4 C/SEC 证据；不声明 Live 质量提升。 |
+| V0.5 | 多智能体、上下文与记忆 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 已交付上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、公平对照 harness 与 S2–S4 C/SEC 证据；不声明 Live 质量提升。 |
 
 ## V0.1：场景 A 只读提案 MVP
 
@@ -99,6 +99,8 @@ V0.5-T01 交付（已完成，Fixture/Community）：社区 runtime 默认挂载
 V0.5-T03 交付（已完成，Fixture/Community/Security）：在原 RBAC/职责分离之后叠加 ABAC deny，动态工具暴露仅交付当前 PolicyDecision 允许的静态 allowlist 子集，执行前由 tool Guardrail 重新鉴权。input prompt/input RAG 只告警不参与授权，output safety 对 PII/凭证/确定性毒性模式脱敏。`make lint` 通过，完整非 Live/Enterprise/Performance 套件 953 passed，security 116 passed。本任务无 migration、无新依赖、无真实网络；证据见 [V0.5-T03 验证卡](reports/verification/v0.5/20260910-t03/summary.md) 与 [ADR-010](docs/adr/ADR-010-guardrails-and-hits.md)。
 
 V0.5-T06 交付（已完成，Fixture/Community/Security）：S2–S4 跨会话 Memory、删除传播/脱敏审计、记忆投毒、三角色动态工具与越权审计断言通过；完整非 Live/Enterprise/Performance 套件 969 passed，security 117 passed。已新增 [V0.5 威胁模型](docs/security/V0.5威胁模型.md)、[Memory 保留/删除说明](docs/security/V0.5-Memory保留与删除.md) 和 [Core 验证卡](reports/verification/v0.5/20260910-t06/summary.md)。本证据不包含 Live/Enterprise/Performance；T07 Live 仍待执行。
+
+V0.5-T07 准备（2026-09-12）：Live runner、预算配置和预检已就绪；本地补齐结构评分边界、盲评材料保存、显式开关及报告防覆盖。用户已批准订阅通道，按 80 次 single/multi / 116 美元合计 API 等价预算方案截至 2026-09-13 23:50 保存 29/80 条（19 条实际模型运行、10 条零模型调用路由终止），累计等价成本 6.010856 美元；因五小时额度已用 81% 主动暂停，预计 2026-09-14 02:50:56 恢复。结构代理分不能用于宣布质量提升。见 [准备与验证卡](reports/verification/v0.5/20260912-t07/summary.md)。
 
 ## 验证分层说明
 

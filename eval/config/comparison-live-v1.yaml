@@ -4,6 +4,11 @@ targets:
   - target_id: codex-subscription-gpt56-sol-high
     provider: codex
     model: gpt-5.6-sol
+    runtime_profile: standard
+    api_dialect: responses
+    structured_output_mode: native_json_schema
+    reasoning_effort: high
+    embedding_profile: fixture
     credential_env: ORIA_CODEX_CHATGPT_AUTH_READY
     pricing_snapshot_id: openai-20260909
     rate_tier: peak

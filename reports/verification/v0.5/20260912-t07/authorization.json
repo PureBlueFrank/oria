@@ -1,0 +1,11 @@
+{
+  "recorded_at": "2026-09-12T17:44:44.645282+08:00",
+  "authorization": "用户批准使用 GPT-5.6 Sol／high 订阅通道；承接上一轮 80 次运行、116 美元 API 等价预算方案。",
+  "target": "codex-subscription-gpt56-sol-high",
+  "planned_architecture_runs": 80,
+  "combined_api_equivalent_budget_usd": 116,
+  "subscription_primary_used_percent_at_start": 56,
+  "subscription_weekly_used_percent_at_start": 9,
+  "stop_before_primary_used_percent": 90,
+  "execution": "one architecture run per invocation; fixed schedule; stop on failure and inspect before resuming"
+}

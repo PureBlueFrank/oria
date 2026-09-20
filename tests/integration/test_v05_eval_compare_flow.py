@@ -79,6 +79,12 @@ def test_fixture_comparison_retains_all_runs_metrics_and_variance(tmp_path: Path
     assert report.single.run_count == report.multi.run_count == 50
     assert {run.architecture for run in report.runs} == {"single", "multi"}
     assert all(run.quality_score >= 0 for run in report.runs)
+    assert all(run.judge_packet is not None for run in report.runs)
+    for run in report.runs:
+        packet = run.judge_packet.model_dump(mode="json")
+        assert packet["blind_item_id"] == run.blind_item_id
+        assert "architecture" not in packet
+        assert "case_id" not in packet
     assert all(run.cost_usd >= 0 and run.latency_ms >= 0 for run in report.runs)
     assert report.single.quality_variance == 0
     assert report.multi.latency_variance == 0

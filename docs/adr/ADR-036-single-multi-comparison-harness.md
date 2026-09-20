@@ -42,6 +42,21 @@ V0.5-T05 只建立 Fixture/Community 可执行的公平方法和离线 harness�
 - Integration：通过 `eval compare` 跑完整 attribution golden v2 Fixture，对两种架构保留全部 case run，报告质量、成本、延迟、工具/Token 和方差。
 - 全量验证仅运行非 Live/Enterprise/Performance 与 security marker；T05 不发起真实网络请求。
 
+## T07 执行准备补充（2026-09-12）
+
+Live runner 已实现显式 target 与等额预算调用；脚本追加 `--run-live` 开关、已有输出保护与失败旁路保存。冻结数据和 rubric 保持不变。默认 Fixture judge 仅是结构代理分，Live 报告须标注 `structural_proxy` 且完成后保持 `pending_human_review`，不能把结构完整性解释为真实质量。每次运行保存隐藏架构标签的 judge packet，脚本独立导出盲评文件；真实质量结论等待独立审阅。以单条新增运行分批保存，失败时停止并核实未记录的调用消耗，不自动重试。详见 [T07 准备卡](../../reports/verification/v0.5/20260912-t07/summary.md)。
+
+## T07 付费恢复安全加固（2026-09-20）
+
+- 每个 Live 输出路径使用 POSIX advisory lock 实现单写者，macOS/Linux 上第二进程在读取或调用前拒绝。resume 记录必须按位置与冻结 `execution_order` 完全相等，只接受无洞、无重复、顺序一致的完整前缀；已完成报告也先做全套校验，再返回。
+- 付费槽位调用前，runner 先原子写入受限运行状态中的 `in_flight` reservation；槽位完成后，在同一次原子状态替换中清除 reservation 并保存 `pending_results`，然后才发布报告。异常、终止或消耗不可确认时保留 `in_flight`，`request_count` 明确记为 `unknown`；任何后续 resume 都 fail closed，不伪造 request ID，不自动重跑该槽位。
+- 受限运行状态文件以 `0600` 权限保存每次 run 随机生成的 256-bit blind secret。opaque ID 使用该 secret 与冻结槽位做 HMAC 派生；导出包再使用独立 HMAC 顺序确定性洗牌。secret 不进入主报告或盲评包，受限状态文件禁止进入验证快照。主报告包含架构映射，也只作受限运行记录；对独立审阅者只发放盲评 sidecar。
+- 主报告是权威结果，其中保留每条完整 judge packet 并绑定 `blind_review_sha256`。发布时先把主报告与 sidecar 全部写入临时文件并验证，再先 sidecar、后权威报告替换；sidecar 失败不会发布新主报告，两次替换间崩溃可通过主报告 hash 检出并在 resume 确定性重建。缺失 packet 直接拒绝，不再静默过滤。
+- 冻结绑定新增完整 selected target 及其 hash、完整 pricing snapshot 及其 hash、`rate_tier`、`tool_profile`、`termination_rule`、执行顺序 hash、等额预算和 `judge_basis`。同 ID 内容改动必须拒绝 resume。对加固前的 29 条只做一次本地迁移：先用当前冻结配置、数据/rubric、完整顺序与逐条成本重算校验，再补齐 binding 并重生成真盲化 packet；不重跑、删除或更改任何模型观测。
+- `judge_basis` 作为显式枚举从调用传入报告，不再依赖 callable 对象身份。`structural_proxy` 即使经包装也只能得到 `pending_human_review`，不能产生真实质量结论。
+
+该加固不修改冻结数据、rubric、预算或架构实现，也不消耗 Live 额度。安全恢复后的下一槽位仍为 `position=29 / multi / sb-v2-034 / repetition=2`。
+
 ## 关联资料
 
 - [Oria 架构设计](../../Oria架构设计.md)：Eval 分层与指标分离。

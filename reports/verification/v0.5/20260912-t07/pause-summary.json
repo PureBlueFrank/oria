@@ -1,0 +1,27 @@
+{
+  "recorded_at": "2026-09-12T18:00:19.069341+08:00",
+  "status": "paused_subscription_headroom",
+  "completed_architecture_runs": 4,
+  "planned_architecture_runs": 80,
+  "model_calling_runs": 2,
+  "zero_model_call_runs": 2,
+  "totals": {
+    "model_turns": 4,
+    "tool_calls": 4,
+    "input_tokens": 87738,
+    "output_tokens": 3685,
+    "cost_usd": 0.42465200000000003
+  },
+  "subscription_primary_used_percent": 81,
+  "subscription_weekly_used_percent": 13,
+  "primary_resets_at": "2026-09-12T22:10:14+08:00",
+  "reason": "Remaining headroom to the 90% stop threshold is insufficient to safely start another case with up to eight model turns.",
+  "quality_status": "incomplete_pending_independent_blind_review",
+  "provider_request_ids": "not exported by current comparison runner; report model_turns are not independently deduplicated request IDs",
+  "next_execution_slot": {
+    "position": 4,
+    "architecture": "multi",
+    "case_id": "sb-v2-047",
+    "repetition": 1
+  }
+}

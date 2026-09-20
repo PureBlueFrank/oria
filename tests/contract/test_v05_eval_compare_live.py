@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,6 +14,7 @@ from typer.testing import CliRunner
 
 from oria.cli import app
 from oria.eval import compare
+from oria.eval.attribution import AttributionBlindItem
 from oria.eval.compare import (
     ArchitectureBudgets,
     ArchitectureRunResult,
@@ -21,7 +23,10 @@ from oria.eval.compare import (
     ComparisonLiveBudget,
     ComparisonLiveConfig,
     ComparisonLiveTarget,
+    derive_comparison_blind_item_id,
     run_comparison_live,
+    shuffled_blind_review_packets,
+    validate_comparison_live_resume_report,
 )
 from oria.eval.nightly import PricingSnapshot, TieredModelPrices, TokenPrices
 
@@ -56,6 +61,11 @@ def _target(**updates: Any) -> ComparisonLiveTarget:
         "target_id": "codex-contract",
         "provider": "codex",
         "model": "contract-model",
+        "runtime_profile": "standard",
+        "api_dialect": "responses",
+        "structured_output_mode": "native_json_schema",
+        "reasoning_effort": "high",
+        "embedding_profile": "fixture",
         "credential_env": "ORIA_CONTRACT_AUTH",
         "pricing_snapshot_id": "contract-pricing-v1",
         "rate_tier": "peak",
@@ -88,7 +98,54 @@ def _pricing() -> PricingSnapshot:
 def _runtime(llm: object) -> Any:
     return SimpleNamespace(
         llm=llm,
-        config=SimpleNamespace(llm=SimpleNamespace(provider="codex", model="contract-model")),
+        config=SimpleNamespace(
+            runtime_profile="standard",
+            llm=SimpleNamespace(
+                provider="codex",
+                model="contract-model",
+                api_dialect="responses",
+                structured_output_mode="native_json_schema",
+                reasoning_effort="high",
+            ),
+            embedding=SimpleNamespace(profile_id="fixture"),
+        ),
+    )
+
+
+def _packet(blind_item_id: str) -> ComparisonJudgePacket:
+    return ComparisonJudgePacket(
+        blind_item_id=blind_item_id,
+        rubric_version="attribution-v2",
+        criteria=(),
+        response=AttributionBlindItem(
+            blind_case_id=blind_item_id,
+            conversation_history=(),
+            question="fixture question",
+            observed_outcome="runtime_failure",
+            conclusion=None,
+            hypotheses=(),
+            evidence=(),
+            requested_data=(),
+        ),
+    )
+
+
+def _result_for_slot(slot: Any, *, packet: bool = True) -> ArchitectureRunResult:
+    blind_item_id = f"blind_{slot.position:016x}"
+    return ArchitectureRunResult(
+        architecture=slot.architecture,
+        case_id=slot.case_id,
+        repetition=slot.repetition,
+        blind_item_id=blind_item_id,
+        quality_score=0.5,
+        model_turns=1,
+        tool_calls=1,
+        input_tokens=10,
+        output_tokens=5,
+        total_tokens=15,
+        cost_usd=0.000005,
+        latency_ms=1,
+        judge_packet=_packet(blind_item_id) if packet else None,
     )
 
 
@@ -120,20 +177,7 @@ async def test_live_path_wires_same_llm_to_both_architectures(
     async def fake_slot(*args: Any, **kwargs: Any) -> ArchitectureRunResult:
         slot = args[0]
         calls.append((slot.architecture, kwargs["llm"]))
-        return ArchitectureRunResult(
-            architecture=slot.architecture,
-            case_id=kwargs["case"].case_id,
-            repetition=slot.repetition,
-            blind_item_id=f"blind-{slot.position}",
-            quality_score=0.5,
-            model_turns=1,
-            tool_calls=1,
-            input_tokens=10,
-            output_tokens=5,
-            total_tokens=15,
-            cost_usd=0,
-            latency_ms=1,
-        )
+        return _result_for_slot(slot)
 
     monkeypatch.setattr(compare, "run_architecture_slot", fake_slot)
     report = await run_comparison_live(
@@ -151,6 +195,9 @@ async def test_live_path_wires_same_llm_to_both_architectures(
     assert len(calls) == 40
     assert report.single is not None and report.single.run_count == 20
     assert report.multi is not None and report.multi.run_count == 20
+    assert report.quality_basis == "structural_proxy"
+    assert report.conclusion == "pending_human_review"
+    assert "not a Live quality" in report.applicability_boundary
 
 
 @pytest.mark.asyncio
@@ -159,19 +206,8 @@ async def test_live_budget_ledger_rejects_usage_above_reservation(
 ) -> None:
     async def oversized_slot(*args: Any, **kwargs: Any) -> ArchitectureRunResult:
         slot = args[0]
-        return ArchitectureRunResult(
-            architecture=slot.architecture,
-            case_id=kwargs["case"].case_id,
-            repetition=slot.repetition,
-            blind_item_id=f"blind-{slot.position}",
-            quality_score=0,
-            model_turns=1,
-            tool_calls=0,
-            input_tokens=101,
-            output_tokens=1,
-            total_tokens=102,
-            cost_usd=0,
-            latency_ms=1,
+        return _result_for_slot(slot).model_copy(
+            update={"input_tokens": 101, "output_tokens": 1, "total_tokens": 102}
         )
 
     monkeypatch.setattr(compare, "run_architecture_slot", oversized_slot)
@@ -184,7 +220,238 @@ async def test_live_budget_ledger_rejects_usage_above_reservation(
             data_dir=tmp_path,
             pricing_snapshot=_pricing(),
             max_new_case_runs=1,
+            blind_secret=b"c" * 32,
         )
+
+
+@pytest.mark.asyncio
+async def test_live_resume_requires_exact_execution_prefix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fake_slot(*args: Any, **kwargs: Any) -> ArchitectureRunResult:
+        return _result_for_slot(args[0])
+
+    monkeypatch.setattr(compare, "run_architecture_slot", fake_slot)
+    first = await run_comparison_live(
+        MANIFEST,
+        rubric_path=RUBRIC,
+        base_runtime=_runtime(object()),
+        target=_target(),
+        data_dir=tmp_path / "first",
+        pricing_snapshot=_pricing(),
+        max_new_case_runs=2,
+        blind_secret=b"c" * 32,
+    )
+    assert len(first.runs) == 2
+
+    with pytest.raises(ComparisonError, match="complete prefix"):
+        await run_comparison_live(
+            MANIFEST,
+            rubric_path=RUBRIC,
+            base_runtime=_runtime(object()),
+            target=_target(),
+            data_dir=tmp_path / "hole",
+            pricing_snapshot=_pricing(),
+            resume_runs=(first.runs[1],),
+            max_new_case_runs=1,
+            blind_secret=b"c" * 32,
+        )
+    with pytest.raises(ComparisonError, match="complete prefix"):
+        await run_comparison_live(
+            MANIFEST,
+            rubric_path=RUBRIC,
+            base_runtime=_runtime(object()),
+            target=_target(),
+            data_dir=tmp_path / "reversed",
+            pricing_snapshot=_pricing(),
+            resume_runs=tuple(reversed(first.runs)),
+            max_new_case_runs=1,
+            blind_secret=b"c" * 32,
+        )
+
+
+@pytest.mark.asyncio
+async def test_live_resume_rejects_missing_judge_packet(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fake_slot(*args: Any, **kwargs: Any) -> ArchitectureRunResult:
+        return _result_for_slot(args[0])
+
+    monkeypatch.setattr(compare, "run_architecture_slot", fake_slot)
+    first = await run_comparison_live(
+        MANIFEST,
+        rubric_path=RUBRIC,
+        base_runtime=_runtime(object()),
+        target=_target(),
+        data_dir=tmp_path / "first",
+        pricing_snapshot=_pricing(),
+        max_new_case_runs=1,
+        blind_secret=b"c" * 32,
+    )
+    missing_packet = first.runs[0].model_copy(update={"judge_packet": None})
+
+    with pytest.raises(ComparisonError, match="judge packet"):
+        await run_comparison_live(
+            MANIFEST,
+            rubric_path=RUBRIC,
+            base_runtime=_runtime(object()),
+            target=_target(),
+            data_dir=tmp_path / "missing",
+            pricing_snapshot=_pricing(),
+            resume_runs=(missing_packet,),
+            max_new_case_runs=1,
+            blind_secret=b"c" * 32,
+        )
+
+
+@pytest.mark.asyncio
+async def test_frozen_binding_rejects_same_id_with_changed_semantics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fake_slot(*args: Any, **kwargs: Any) -> ArchitectureRunResult:
+        return _result_for_slot(args[0])
+
+    monkeypatch.setattr(compare, "run_architecture_slot", fake_slot)
+    report = await run_comparison_live(
+        MANIFEST,
+        rubric_path=RUBRIC,
+        base_runtime=_runtime(object()),
+        target=_target(),
+        data_dir=tmp_path,
+        pricing_snapshot=_pricing(),
+        max_new_case_runs=1,
+        blind_secret=b"c" * 32,
+    )
+
+    with pytest.raises(ComparisonError, match="frozen target"):
+        validate_comparison_live_resume_report(
+            report,
+            manifest_path=MANIFEST,
+            rubric_path=RUBRIC,
+            target=_target(rate_tier="off_peak"),
+            pricing_snapshot=_pricing(),
+            judge_basis="structural_proxy",
+        )
+    with pytest.raises(ComparisonError, match="frozen target"):
+        validate_comparison_live_resume_report(
+            report,
+            manifest_path=MANIFEST,
+            rubric_path=RUBRIC,
+            target=_target(reasoning_effort="medium"),
+            pricing_snapshot=_pricing(),
+            judge_basis="structural_proxy",
+        )
+
+    for field, changed in (
+        ("tool_profile", "changed-tools"),
+        ("termination_rule", "changed-termination"),
+    ):
+        changed_config = report.config.model_copy(update={field: changed})
+        changed_report = report.model_copy(update={"config": changed_config})
+        with pytest.raises(ComparisonError, match="frozen target"):
+            validate_comparison_live_resume_report(
+                changed_report,
+                manifest_path=MANIFEST,
+                rubric_path=RUBRIC,
+                target=_target(),
+                pricing_snapshot=_pricing(),
+                judge_basis="structural_proxy",
+            )
+
+    changed_prices = TokenPrices(
+        input_cache_hit_per_million_usd=0.1,
+        input_cache_miss_per_million_usd=0.3,
+        output_per_million_usd=0.4,
+        reasoning_per_million_usd=0.4,
+    )
+    changed_pricing = _pricing().model_copy(
+        update={
+            "models": {
+                "contract-model": TieredModelPrices(
+                    peak=changed_prices,
+                    off_peak=changed_prices,
+                )
+            }
+        }
+    )
+    with pytest.raises(ComparisonError, match="frozen target"):
+        validate_comparison_live_resume_report(
+            report,
+            manifest_path=MANIFEST,
+            rubric_path=RUBRIC,
+            target=_target(),
+            pricing_snapshot=changed_pricing,
+            judge_basis="structural_proxy",
+        )
+
+
+@pytest.mark.asyncio
+async def test_blind_ids_use_run_secret_and_review_order_is_independent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    secret = bytes(range(32))
+
+    async def fake_slot(*args: Any, **kwargs: Any) -> ArchitectureRunResult:
+        slot = args[0]
+        blind_item_id = derive_comparison_blind_item_id(secret, slot)
+        return _result_for_slot(slot).model_copy(
+            update={
+                "blind_item_id": blind_item_id,
+                "judge_packet": _packet(blind_item_id),
+            }
+        )
+
+    monkeypatch.setattr(compare, "run_architecture_slot", fake_slot)
+    report = await run_comparison_live(
+        MANIFEST,
+        rubric_path=RUBRIC,
+        base_runtime=_runtime(object()),
+        target=_target(),
+        data_dir=tmp_path,
+        pricing_snapshot=_pricing(),
+        max_new_case_runs=6,
+        blind_secret=secret,
+    )
+    first_slot = report.execution_order[0]
+    old_digest = hashlib.sha256(
+        (
+            f"{report.rubric.preregistration_sha256}:{first_slot.position}:{first_slot.case_id}"
+        ).encode()
+    ).hexdigest()[:16]
+    assert report.runs[0].blind_item_id != f"blind_{old_digest}"
+
+    packets = shuffled_blind_review_packets(report, blind_secret=secret)
+    packet_ids = [packet.blind_item_id for packet in packets]
+    assert packet_ids != [run.blind_item_id for run in report.runs]
+    assert set(packet_ids) == {run.blind_item_id for run in report.runs}
+
+
+@pytest.mark.asyncio
+async def test_wrapped_structural_proxy_cannot_become_external_quality(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fake_slot(*args: Any, **kwargs: Any) -> ArchitectureRunResult:
+        return _result_for_slot(args[0])
+
+    async def wrapped_fixture(packet: ComparisonJudgePacket) -> float:
+        return await compare.fixture_judge(packet)
+
+    monkeypatch.setattr(compare, "run_architecture_slot", fake_slot)
+    report = await run_comparison_live(
+        MANIFEST,
+        rubric_path=RUBRIC,
+        base_runtime=_runtime(object()),
+        target=_target(),
+        data_dir=tmp_path,
+        pricing_snapshot=_pricing(),
+        judge=wrapped_fixture,
+        judge_basis="structural_proxy",
+        blind_secret=b"c" * 32,
+    )
+
+    assert report.quality_basis == "structural_proxy"
+    assert report.conclusion == "pending_human_review"
+    assert "not a Live quality" in report.applicability_boundary
 
 
 def test_live_judge_packet_schema_hides_architecture() -> None:
