@@ -1,5 +1,7 @@
 # Oria
 
+**简体中文** | [English](README_EN.md)
+
 Oria 是一个面向招商活动全生命周期的开源 AI Agent 工程。
 
 一次完整的招商活动会跨越需求理解、规则检索、商家与商品筛选、活动和券方案、多人审批、报名圈品、招后选品、渠道投放与结果通知。这里既有适合大模型处理的非结构化信息和开放式分析，也有不能交给模型自由决定的资格规则、权限边界和业务副作用。Oria 的目标，是把两者放进同一套可执行、可恢复、可审计的系统：让 LLM 负责理解、探索和解释，让确定性 Policy、状态机、审批、幂等账本与证据校验掌控最终边界。
@@ -51,9 +53,9 @@ Demo 会自动准备合成数据并生成带引用的招商提案，不会执行
 
 Oria 将执行编排、业务不变量和外部实现分层，并通过稳定契约组装模型、工具、存储与企业系统能力。
 
-[![Oria 系统架构](docs/diagrams/oria-system-architecture.visual-check.1440x900.light.png)](docs/diagrams/oria-system-architecture.html)
+[![Oria 系统架构](docs/diagrams/oria-system-architecture.visual-check.1440x900.light.png)](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html)
 
-[打开 Archify 交互架构图](docs/diagrams/oria-system-architecture.html) · [查看可维护 JSON 图源](docs/diagrams/oria-system-architecture.architecture.json)
+[打开在线交互架构图](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html) · [查看可维护 JSON 图源](docs/diagrams/oria-system-architecture.architecture.json)
 
 - **分层**：接入层只负责规范化请求；运行时管理 Workflow、Agent 循环、恢复与人工审批；领域层掌握状态机、硬资格和所有业务写入不变量。
 - **插件化**：模型、Tool、存储和企业集成通过 `typing.Protocol` 与 Registry/Factory 组装，Runtime 启动后封存注册表，替换实现无需改写领域逻辑。

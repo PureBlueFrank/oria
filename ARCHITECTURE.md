@@ -2,9 +2,9 @@
 
 Oria 是面向招商活动编排的 AI Agent 工程。它把模型擅长的理解、检索、排序和解释，与确定性的业务规则、权限审批、幂等执行和审计证据分层实现。
 
-[![Oria 系统架构](docs/diagrams/oria-system-architecture.visual-check.1440x900.light.png)](docs/diagrams/oria-system-architecture.html)
+[![Oria 系统架构](docs/diagrams/oria-system-architecture.visual-check.1440x900.light.png)](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html)
 
-[打开 Archify 交互架构图](docs/diagrams/oria-system-architecture.html) · [查看可维护 JSON 图源](docs/diagrams/oria-system-architecture.architecture.json)
+[打开在线交互架构图](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html) · [查看可维护 JSON 图源](docs/diagrams/oria-system-architecture.architecture.json)
 
 ## 项目定位
 
@@ -27,9 +27,9 @@ Oria 同时展示两类 Agent 工程问题：步骤已知、需要跨天恢复�
 9. 另一道审批通过后，仅将入选且券关联有效的商品投放到 C 端。
 10. 通知商家并保存回执；通知失败进入重试或死信，不回滚投放。
 
-[![场景 A：招商活动 10 步工作流](docs/diagrams/scenario-a-workflow.visual-check.1440x900.light.png)](docs/diagrams/scenario-a-workflow.html)
+[![场景 A：招商活动 10 步工作流](docs/diagrams/scenario-a-workflow.visual-check.1440x900.light.png)](https://purebluefrank.github.io/oria/diagrams/scenario-a-workflow.html)
 
-[打开 Archify 交互工作流图](docs/diagrams/scenario-a-workflow.html) · [查看可维护 JSON 图源](docs/diagrams/scenario-a-workflow.workflow.json)
+[打开在线交互工作流图](https://purebluefrank.github.io/oria/diagrams/scenario-a-workflow.html) · [查看可维护 JSON 图源](docs/diagrams/scenario-a-workflow.workflow.json)
 
 V0.1 先交付其中的只读提案切片；V0.3 在同一 Graph 上补齐完整 10 步。商家侧招商投放、招后选品和 C 端投放是不同实体与事件，不能合并成一个模糊的“投放”动作。
 
