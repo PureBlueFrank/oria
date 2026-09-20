@@ -5,32 +5,67 @@
     "title": "Oria 系统架构",
     "locale": "zh-CN",
     "quality_profile": "showcase",
-    "viewBox": [1390, 650]
+    "viewBox": [1350, 780],
+    "views": [
+      {
+        "id": "layered-main-path",
+        "label": "分层主路径",
+        "focus": ["ingress", "runtime", "domain", "plugin_boundary", "enterprise_adapter", "enterprise_systems"],
+        "note": "从受信请求到企业回执，跨越五层且不让 LLM 越过领域边界。"
+      },
+      {
+        "id": "replaceable-plugins",
+        "label": "可替换插件",
+        "focus": ["plugin_boundary", "llm_provider", "retriever_rag", "storage", "enterprise_adapter", "mcp_extensions"],
+        "note": "核心依赖 Protocol；Registry / Factory 在装配时选择实现。"
+      },
+      {
+        "id": "governed-recovery",
+        "label": "治理与恢复",
+        "focus": ["governance", "runtime", "domain", "enterprise_adapter", "storage"],
+        "note": "横切治理约束执行与副作用，恢复数据面保存进度、事实与回执。"
+      }
+    ]
   },
   "components": [
-    { "id": "users", "type": "external", "label": "用户与运营", "sublabel": "CLI / API / Channel", "pos": [20, 270], "size": [140, 72] },
-    { "id": "ingress", "type": "frontend", "label": "受信接入层", "sublabel": "验签 · 去重 · 主体规范化", "pos": [220, 270], "size": [160, 72] },
-    { "id": "runtime", "type": "backend", "label": "Agent Runtime", "sublabel": "Workflow · Agent Loop · HITL", "pos": [455, 270], "size": [175, 72] },
-    { "id": "domain", "type": "backend", "label": "领域服务", "sublabel": "状态机 · 硬资格 · 不变量", "pos": [705, 270], "size": [165, 72] },
-    { "id": "adapters", "type": "cloud", "label": "Tool Runtime 与适配器", "sublabel": "券 · 招商 · 选品 · 投放 · IM", "pos": [945, 270], "size": [180, 72] },
-    { "id": "external", "type": "external", "label": "企业系统", "sublabel": "受信事件与幂等回执", "pos": [1200, 270], "size": [160, 72] },
-    { "id": "providers", "type": "cloud", "label": "LLM Provider", "sublabel": "统一能力与错误契约", "pos": [457.5, 70], "size": [170, 72] },
-    { "id": "rag", "type": "database", "label": "RAG 与知识", "sublabel": "ACL · Hybrid · Citation", "pos": [457.5, 480], "size": [170, 72] },
-    { "id": "data", "type": "database", "label": "数据与恢复平面", "sublabel": "Checkpoint · DB · Vector · Object", "pos": [692.5, 480], "size": [190, 72] }
+    { "id": "ingress", "type": "frontend", "label": "受信接入", "sublabel": "验签 · 去重 · 身份归一", "pos": [20, 300], "size": [150, 72] },
+    { "id": "runtime", "type": "backend", "label": "Agent Runtime / 编排", "sublabel": "Workflow · 有界 ReAct · HITL", "pos": [222, 300], "size": [180, 72] },
+    { "id": "domain", "type": "backend", "label": "领域服务", "sublabel": "Policy · 状态机 · 审批 · 幂等", "pos": [454, 300], "size": [175, 72] },
+    { "id": "plugin_boundary", "type": "cloud", "label": "Protocol 插件边界", "sublabel": "Registry / Factory 装配", "tag": "核心只依赖契约", "pos": [682, 300], "size": [180, 72] },
+    { "id": "enterprise_adapter", "type": "cloud", "label": "Tool / 企业 Adapter", "sublabel": "schema · allowlist · 幂等执行", "tag": "可替换实现", "pos": [894, 300], "size": [185, 72] },
+    { "id": "enterprise_systems", "type": "external", "label": "企业系统", "sublabel": "招商 · 券 · 投放 · IM", "pos": [1163, 300], "size": [150, 72] },
+    { "id": "llm_provider", "type": "cloud", "label": "LLM Provider", "sublabel": "Mock / Live capability", "tag": "可替换实现", "pos": [232, 80], "size": [160, 70] },
+    { "id": "retriever_rag", "type": "database", "label": "Retriever / RAG", "sublabel": "混合检索 · 重排 · ACL · 引用", "tag": "可替换实现", "pos": [410, 80], "size": [220, 70] },
+    { "id": "storage", "type": "database", "label": "Storage / 恢复数据面", "sublabel": "Checkpoint · DB · Outbox · Ledger", "tag": "可替换实现", "pos": [680, 80], "size": [200, 70] },
+    { "id": "mcp_extensions", "type": "security", "label": "不受信扩展", "sublabel": "MCP 进程 / 容器隔离", "pos": [899, 80], "size": [175, 70] },
+    { "id": "governance", "type": "security", "label": "统一治理平面", "sublabel": "Policy · Guardrails · Audit · Eval · Cost Budget", "pos": [222, 565], "size": [857, 82] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "接入层", "wraps": ["ingress"], "pad": 18 },
+    { "kind": "region", "label": "Agent Runtime / 编排层", "wraps": ["runtime"], "pad": 18 },
+    { "kind": "region", "label": "领域层", "wraps": ["domain"], "pad": 18 },
+    { "kind": "region", "label": "Tool / Adapter 层", "wraps": ["plugin_boundary", "enterprise_adapter"], "pad": 18 },
+    { "kind": "region", "label": "企业系统", "wraps": ["enterprise_systems"], "pad": 18 },
+    { "kind": "security-group", "label": "MCP 隔离边界", "wraps": ["mcp_extensions"], "pad": 14 }
   ],
   "connections": [
-    { "id": "request", "from": "users", "to": "ingress", "label": "受信请求", "variant": "emphasis" },
-    { "id": "normalized-context", "from": "ingress", "to": "runtime", "label": "规范化请求", "variant": "emphasis" },
-    { "id": "domain-call", "from": "runtime", "to": "domain", "label": "确定性服务", "variant": "emphasis" },
-    { "id": "adapter-call", "from": "domain", "to": "adapters", "label": "幂等副作用", "variant": "emphasis" },
-    { "id": "enterprise-receipt", "from": "adapters", "to": "external", "label": "事件 / 回执", "variant": "emphasis" },
-    { "id": "runtime-llm", "from": "runtime", "to": "providers", "label": "结构化推理" },
-    { "id": "authorized-rag", "from": "runtime", "to": "rag", "label": "授权检索", "variant": "dashed", "labelDy": 24 },
-    { "id": "domain-data", "from": "domain", "to": "data", "label": "事务 + Outbox", "labelDy": 24 }
+    { "id": "normalized_context", "from": "ingress", "to": "runtime", "label": "统一请求", "variant": "emphasis" },
+    { "id": "domain_call", "from": "runtime", "to": "domain", "label": "领域调用", "variant": "emphasis" },
+    { "id": "contract_call", "from": "domain", "to": "plugin_boundary", "label": "Protocol", "variant": "emphasis" },
+    { "id": "adapter_dispatch", "from": "plugin_boundary", "to": "enterprise_adapter", "label": "装配", "variant": "emphasis" },
+    { "id": "enterprise_receipt", "from": "enterprise_adapter", "to": "enterprise_systems", "label": "幂等调用 / 回执", "variant": "emphasis" },
+    { "id": "runtime_llm", "from": "runtime", "to": "llm_provider", "label": "LLMProvider", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "route": "straight", "labelAt": [275, 190] },
+    { "id": "runtime_rag", "from": "runtime", "to": "retriever_rag", "label": "Retriever", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "runtime_checkpoint", "from": "runtime", "to": "storage", "label": "Checkpoint / resume", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "labelAt": [650, 190] },
+    { "id": "domain_storage", "from": "domain", "to": "storage", "label": "DB + Outbox + Ledger", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "mcp_adapter", "from": "mcp_extensions", "to": "enterprise_adapter", "label": "MCP", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [988, 164] },
+    { "id": "govern_runtime", "from": "governance", "to": "runtime", "label": "约束编排", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "id": "govern_domain", "from": "governance", "to": "domain", "label": "约束写入", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "id": "govern_tools", "from": "governance", "to": "enterprise_adapter", "label": "约束工具", "variant": "security", "fromSide": "top", "toSide": "bottom" }
   ],
   "cards": [
-    { "dot": "cyan", "title": "两类执行", "items": ["Workflow 承载步骤已知、跨天可恢复的业务流程", "Agent Loop 承载路径未知、受预算约束的证据调查"] },
-    { "dot": "emerald", "title": "确定性边界", "items": ["LLM 只做理解、探索、软排序与解释", "Policy、状态机、审批和领域服务掌控权限与业务写入"] },
-    { "dot": "violet", "title": "治理与恢复", "items": ["Policy、Guardrails、Audit、Eval 与 Cost 横切所有能力", "Checkpoint、Ledger、Outbox、回执与对账共同收敛执行"] }
+    { "dot": "cyan", "title": "同一执行层，两种范式", "items": ["Workflow：长流程、HITL 与 Checkpoint 恢复", "有界 ReAct：动态选路、证据链、预算终止与弃答"] },
+    { "dot": "emerald", "title": "确定性副作用边界", "items": ["LLM 负责理解、探索、软排序与解释", "Policy、状态机、审批、幂等键与执行账本掌控写入"] },
+    { "dot": "violet", "title": "契约隔离实现", "items": ["Mock 与真实 Provider 只换装配，不改核心引擎", "受信插件进程内装配；不受信扩展经 MCP 隔离"] }
   ]
 }

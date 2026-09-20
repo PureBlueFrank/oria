@@ -1,6 +1,6 @@
 # Oria 架构概览
 
-Oria 是面向招商活动编排的企业级 AI Agent 平台。它把模型擅长的理解、检索、排序和解释，与确定性的业务规则、权限审批、幂等执行和审计证据分层实现。
+Oria 是面向招商活动编排的 AI Agent 工程。它把模型擅长的理解、检索、排序和解释，与确定性的业务规则、权限审批、幂等执行和审计证据分层实现。
 
 [![Oria 系统架构](docs/diagrams/oria-system-architecture.visual-check.1440x900.light.png)](docs/diagrams/oria-system-architecture.html)
 
@@ -45,7 +45,9 @@ CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development �
 
 ## 分层架构
 
-上方 Archify 架构图以主请求路径串联受信接入、Agent Runtime、领域服务、Tool Runtime/企业适配器和企业系统；LLM、RAG 与数据恢复平面作为明确支路。Policy、Guardrails、Secrets、Audit、OTel、Eval 和 Cost Budget 是横切约束，不因它们在图中收纳到治理说明卡而缩小适用范围。
+上方 Archify 架构图用分组边界和位置层次直接表达主路径：接入层 → Agent Runtime/编排层 → 领域层 → Tool/Adapter 层 → 企业系统。`Protocol 插件边界` 与 Registry/Factory 将核心引擎和具体实现隔开，LLM Provider、Retriever/RAG、Storage 与企业 Adapter 都以可替换实现呈现；不受信扩展则经 MCP 隔离边界接入，具体交付状态以 `ROADMAP.md` 为准。
+
+图中独立的“统一治理平面”通过 security 关系同时约束 Runtime、Domain 和 Tool/Adapter，明确覆盖 Policy、Guardrails、Audit、Eval 与 Cost Budget。Storage/恢复数据面保留 Checkpoint、DB、Outbox 与 Ledger，与治理平面分工：前者负责恢复与收敛，后者负责约束与留证。
 
 流程已知、跨天、需要持久化编排时使用 Workflow；探索性、实时、依赖中间发现时使用 Agent loop。两者共享 Checkpoint、HITL、工具协议和治理能力，不维护第二套执行循环。
 
