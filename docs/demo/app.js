@@ -603,10 +603,8 @@
 
     if (rawHash.indexOf("evidence-") === 0) {
       activateTab("evidence", false);
-      window.requestAnimationFrame(function () {
-        var anchor = document.getElementById(rawHash);
-        if (anchor) anchor.scrollIntoView();
-      });
+      var anchor = document.getElementById(rawHash);
+      if (anchor) anchor.scrollIntoView({ behavior: "instant", block: "start" });
       return;
     }
 
@@ -639,5 +637,6 @@
   else document.getElementById("case-detail").appendChild(el("p", "pending-action", "暂无冻结归因案例。"));
 
   syncFromHash();
+  window.addEventListener("load", syncFromHash);
   window.addEventListener("hashchange", syncFromHash);
 })();
