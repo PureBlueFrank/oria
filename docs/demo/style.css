@@ -1,15 +1,15 @@
 :root {
   color-scheme: dark;
-  --bg: #090b0e;
-  --surface: #0f1216;
-  --surface-raised: #14181d;
-  --surface-hover: #191e24;
-  --surface-inset: #0b0e12;
-  --ink: #edf0f3;
-  --muted: #9ba4af;
-  --faint: #828d99;
-  --line: #262c34;
-  --line-strong: #3a424d;
+  --bg: #111820;
+  --surface: #18212b;
+  --surface-raised: #202b36;
+  --surface-hover: #273442;
+  --surface-inset: #141c24;
+  --ink: #eef3f7;
+  --muted: #afbbc6;
+  --faint: #8f9dab;
+  --line: #344352;
+  --line-strong: #4c5d6d;
   --accent: #82c9bd;
   --accent-soft: #142925;
   --focus: #b8d2ff;
@@ -80,7 +80,7 @@ a {
 }
 
 .site-header {
-  background: #0c0f13;
+  background: #151d26;
   border-bottom: 1px solid var(--line);
 }
 
