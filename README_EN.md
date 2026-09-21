@@ -22,6 +22,20 @@ The project is organized around two complementary scenarios:
 
 Oria uses LangGraph for both workflows and bounded Agent loops. Its current engineering foundation combines SQLite/checkpoints, RAG, Policy, HITL, an execution ledger, outbox patterns, and layered evaluation. The architecture reserves extension points for multi-agent orchestration, context and memory governance, durable jobs, MCP, enterprise data backends, and observability, while keeping the Community environment independently runnable with synthetic data and Mock adapters.
 
+## Architecture Overview
+
+Oria separates execution orchestration, business invariants, and external implementations, then assembles models, tools, storage, and enterprise capabilities through stable contracts.
+
+[![Oria system architecture](docs/diagrams/oria-system-architecture.visual-check.1440x900.light.png)](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html)
+
+[Open the interactive architecture diagram](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html) · [View the maintainable JSON source](docs/diagrams/oria-system-architecture.architecture.json)
+
+- **Layered:** The ingress layer only normalizes requests. The runtime manages workflows, Agent loops, recovery, and human approval. The domain layer owns state machines, hard eligibility, and all business-write invariants.
+- **Pluggable:** Models, tools, storage, and enterprise integrations are assembled through `typing.Protocol` plus registries and factories. Registries are sealed after runtime startup, so implementations can be replaced without rewriting domain logic.
+- **Governed consistently:** Policy, Guardrails, Audit, and Eval apply across built-in and extended capabilities. Trusted extensions may run as in-process plugins; untrusted extensions must cross an isolated MCP boundary.
+
+See the [architecture overview](ARCHITECTURE.md) for detailed layers, plugin boundaries, and data invariants.
+
 ## Online Scenario Tour
 
 **[Open the Oria online scenario tour](https://purebluefrank.github.io/oria/demo/)**
@@ -45,23 +59,16 @@ The demo prepares synthetic data and produces a cited campaign proposal without 
 | --- | --- | --- | --- | --- |
 | Zero-config demo | First-time exploration | Core dependencies, no key | `uv run oria demo` | Read-only proposals, citations, and hard-eligibility boundaries under Mock/Fixture |
 | Complete local workflow | Evaluating the 10-step flow, HITL, and recovery | Local SQLite, synthetic data, Mock adapters | [Local workflow guide](docs/guides/local-workflow.md) | Community business semantics, two approvals/two waits, and idempotent reconciliation |
+| Enterprise persistence adapter | Evaluating PostgreSQL dual databases, repositories, saver, and RLS | Two independent test databases and an explicit Enterprise switch | [PostgreSQL integration guide](docs/guides/postgresql.md) | Proves the backend only when real PostgreSQL integration tests pass; missing DSNs remain blocked |
 | Scenario B attribution demo | Observing a bounded ReAct investigation | No key by default; configured model for Live | `uv run oria attribution ask` | Executable evidence chains under Mock replay; dynamic investigation-path selection only in Live mode |
 | Real DeepSeek | Trying real-model drafting and soft ranking | `standard` extra, DeepSeek key, initial BGE download | [Real LLM quickstart](docs/guides/real-llm.md) | Calls to the selected DeepSeek model and local BGE; does not prove enterprise adapters |
 | Development verification | Contributors and architecture reviewers | Development dependencies | `make lint && make test` | Local regressions and static gates excluding Live, Enterprise, and Performance |
 
-## Architecture Overview
+## Enterprise Integration
 
-Oria separates execution orchestration, business invariants, and external implementations, then assembles models, tools, storage, and enterprise capabilities through stable contracts.
+Enterprise deployments can connect Platform and Business to separate PostgreSQL databases while retaining the same Repository contracts used by SQLite. Production setup requires two explicit TLS-enabled DSNs and least-privilege roles without `BYPASSRLS`; invalid or missing PostgreSQL configuration fails closed rather than falling back to SQLite. Oria migrations own the business and platform tables, while the official `AsyncPostgresSaver` manages its checkpoint tables through `setup()`.
 
-[![Oria system architecture](docs/diagrams/oria-system-architecture.visual-check.1440x900.light.png)](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html)
-
-[Open the interactive architecture diagram](https://purebluefrank.github.io/oria/diagrams/oria-system-architecture.html) · [View the maintainable JSON source](docs/diagrams/oria-system-architecture.architecture.json)
-
-- **Layered:** The ingress layer only normalizes requests. The runtime manages workflows, Agent loops, recovery, and human approval. The domain layer owns state machines, hard eligibility, and all business-write invariants.
-- **Pluggable:** Models, tools, storage, and enterprise integrations are assembled through `typing.Protocol` plus registries and factories. Registries are sealed after runtime startup, so implementations can be replaced without rewriting domain logic.
-- **Governed consistently:** Policy, Guardrails, Audit, and Eval apply across built-in and extended capabilities. Trusted extensions may run as in-process plugins; untrusted extensions must cross an isolated MCP boundary.
-
-See the [architecture overview](ARCHITECTURE.md) for detailed layers, plugin boundaries, and data invariants.
+See the [PostgreSQL integration guide](docs/guides/postgresql.md) for configuration, migration, and verification commands. Real PostgreSQL Enterprise verification in this repository is currently blocked because two test DSNs were not available; contract tests are not reported as proof of a real PostgreSQL deployment.
 
 ## Development and Documentation
 
