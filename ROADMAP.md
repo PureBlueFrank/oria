@@ -23,7 +23,7 @@
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
 | V0.4 | 场景 B 动态归因 Agent | T01–T05 已完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 50 条 Golden 已审阅并冻结 30/20 split；GPT-5.6 Sol 完成 20×3，自动通过 55/60，严格盲评 10/10 达线、平均 0.98。 |
 | V0.5 | 多智能体、上下文与记忆 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 已交付上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、公平对照 harness 与 S2–S4 C/SEC 证据；不声明 Live 质量提升。 |
-| V0.6 | API 与 Durable Job | T01 实现完成；Community/CT 通过，PostgreSQL E-like 缺 DSN blocked；T02+ 未开始 | 已交付 PostgreSQL 双库选择、共用 Repository、RLS、官方 AsyncPostgresSaver 适配与统一 `db upgrade`；不声明真实 PostgreSQL 已验证。 |
+| V0.6 | API 与 Durable Job | T01 Community/CT 通过，PostgreSQL E-like 缺 DSN blocked；T02 进行中；T03+ 未开始 | 已交付双后端持久化契约、API/JWT、飞书协议和 IM 展示基础，以及 SQLite 事务化持久去重、审批 HTTP 接口与并发保护；实际任务受理尚未接通，不声明真实 PostgreSQL 或飞书已验证。 |
 
 ## V0.1：场景 A 只读提案 MVP
 
@@ -105,7 +105,15 @@ V0.5-T07 准备（2026-09-12）：Live runner、预算配置和预检已就绪�
 
 V0.6-T01 交付（2026-09-20，Community/Contract）：Platform/Business 两条 revision 升级为 `platform_0009` / `business_0011`，PostgreSQL 使用事务级 tenant context 和强制 RLS，checkpoint 复用官方 async saver 完整契约。SQLite 回归与安装 wheel 验证通过；本机无 PostgreSQL test DSN，真实 migration/Repository/RLS/Saver E-like 卡为 blocked，不以 Mock/SQLite 代替。见 [V0.6-T01 验证卡](reports/verification/v0.6/20260920-t01/summary.md)。
 
+V0.6-T02 基础实现（2026-10-03，进行中）：新增 `api serve`、统一错误、固定 RS256/JWKS 验证、服务端 actor/executor 映射与撤权检查、复用 Policy 的资源授权接缝；新增飞书加密/签名/时间窗/身份验证、消息与卡片 action 规范化、受限出站通道及七种 IM v1 展示 golden。没有 durable receiver 时业务回调返回 503，不误报受理。持久防重放/source/action 去重、资源 HTTP 路由、审批动作绑定、详情/翻页和真实飞书链路尚未完成；T02 门禁未关闭，T03 依赖未满足。见 [使用与限制](docs/guides/api-foundation.md) 和 [验证卡](reports/verification/v0.6/20261003-t02-foundation/summary.md)。
+
 ## 验证分层说明
+
+V0.6-T02 后续（2026-10-05）：新增 `platform_0010` 受理/重放账本和事务化接收器，规范化内容摘要防止同一键被不同内容复用；提交失败时账本和业务写入一起回滚，重复请求仍重新鉴权。SQLite 并发、重启、异常退出、卡片及租户隔离用例见 [验证卡](reports/verification/v0.6/20261005-t02-receipts/summary.md)。当前没有实际 Job/审批受理处理器，默认回调仍 503，T02 未收口。
+
+V0.6-T02 后续（2026-10-06）：新增审批详情/决定 HTTP 路由（通过受信运行时注入），复用现有 Policy、租户查询、职责分离和有效期检查；版本指纹和数据库条件更新阻止旧页面及并发覆盖决定，成功决定与审计/outbox 同事务。CLI 审批生命周期装配、飞书 action 持久绑定、Job 及真实通道仍未接通，T02 未收口。见 [审批增量验证卡](reports/verification/v0.6/20261006-t02-approvals/summary.md)。
+
+V0.6-T02 后续（2026-10-08）：已补齐显式配置驱动的审批服务启动装配：只读核验 SQLite schema/版本后启动现有 RuntimeServices，真实本地 HTTP→Policy→审批持久化与撤权已验证，失败/关闭回收资源。仅 Mock/Fixture + SQLite，飞书动作绑定、Job 恢复与真实通道仍待完成；T02 未收口。见 [启动装配验证卡](reports/verification/v0.6/20261008-t02-lifecycle/summary.md)。
 
 - **Fixture（F）**：使用 MockLLM、FixtureEmbedder、Mock Tool 和固定数据，证明控制流、类型契约、错误处理与确定性回归；不能证明真实模型或外部服务。
 - **Community（C）**：使用本地 BGE、Chroma、SQLite、真实进程或网络回环，证明社区版本地链路、恢复和数据一致性；不能证明企业规模或企业系统兼容性。

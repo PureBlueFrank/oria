@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 import warnings
+from contextlib import closing
 from importlib import resources
 from pathlib import Path
 from typing import Literal
@@ -41,6 +42,20 @@ def _business_columns(
 
 _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
     "platform": {
+        "ingress_receipts": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("dedupe_key", "VARCHAR", 1, 2),
+            ("content_hash", "VARCHAR", 1, 0),
+            ("receipt_ref", "VARCHAR", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+        ),
+        "ingress_replays": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("replay_key", "VARCHAR", 1, 2),
+            ("dedupe_key", "VARCHAR", 1, 0),
+            ("content_hash", "VARCHAR", 1, 0),
+            ("expires_at", "FLOAT", 1, 0),
+        ),
         "documents": (
             ("tenant_id", "VARCHAR", 1, 1),
             ("document_id", "VARCHAR", 1, 2),
@@ -423,6 +438,10 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
 }
 _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
     "platform": {
+        "ingress_receipts": frozenset(),
+        "ingress_replays": frozenset(
+            {("ingress_receipts", (("tenant_id", "tenant_id"), ("dedupe_key", "dedupe_key")))}
+        ),
         "documents": frozenset(),
         "document_versions": frozenset(
             {
@@ -735,7 +754,9 @@ def _validate_schema(connection: sqlite3.Connection, target: str) -> None:
 
 def _validate_target(target: str, database_path: Path, expected_head: str) -> None:
     try:
-        with sqlite3.connect(database_path) as connection:
+        with closing(
+            sqlite3.connect(database_path.resolve().as_uri() + "?mode=ro", uri=True)
+        ) as connection:
             rows = connection.execute(
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             ).fetchall()
@@ -753,6 +774,16 @@ def _validate_target(target: str, database_path: Path, expected_head: str) -> No
     foreign_tables = _EXPECTED_TABLES[other_target].difference(_EXPECTED_TABLES[target])
     if tables.intersection(foreign_tables):
         raise MigrationError(f"{target} database contains tables from the other revision chain")
+
+
+def validate_sqlite_databases(config: ResolvedRuntimeConfig) -> None:
+    """Read-only startup gate; never create files or run migrations."""
+    if config.storage.platform_db != "sqlite" or config.storage.biz_db != "sqlite":
+        raise MigrationError("SQLite validation requires two SQLite databases")
+    paths = _assert_paths(config)
+    heads = _installed_migration_heads()
+    for target, path in zip(("platform", "business"), paths, strict=True):
+        _validate_target(target, path, heads[target])
 
 
 def _portable_column_type(type_: object, expected: str) -> bool:

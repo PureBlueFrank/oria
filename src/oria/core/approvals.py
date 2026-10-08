@@ -259,6 +259,10 @@ class ApprovalInvalidationRepository(Protocol):
     ) -> None: ...
 
 
+class ApprovalConflict(ValueError):
+    """Approval changed since it was read; no decision or audit was committed."""
+
+
 class ApprovalRepository(Protocol):
     async def add(
         self,
@@ -272,6 +276,8 @@ class ApprovalRepository(Protocol):
         self,
         approval: Approval,
         audit_event: EventEnvelope | None = None,
+        *,
+        expected: Approval,
     ) -> None: ...
 
     async def invalidate_campaign_binding(
@@ -307,11 +313,15 @@ class InMemoryApprovalRepository:
         self,
         approval: Approval,
         audit_event: EventEnvelope | None = None,
+        *,
+        expected: Approval,
     ) -> None:
         del audit_event
         key = (approval.tenant_id, approval.approval_id)
         if key not in self._items:
             raise LookupError("approval is unavailable")
+        if self._items[key] != expected:
+            raise ApprovalConflict("approval changed")
         self._items[key] = approval
 
     async def invalidate_campaign_binding(
@@ -419,10 +429,13 @@ class ApprovalService:
         decision: Literal["approve", "reject"],
         reason: str | None,
         ctx: Context,
+        expected: Approval | None = None,
     ) -> Approval:
         if tenant_id != ctx.tenant_id:
             raise PermissionError("cross-tenant approval access is denied")
         approval = await self._required(tenant_id, approval_id)
+        if expected is not None and approval != expected:
+            raise ApprovalConflict("approval changed")
         if approval.status != "pending":
             raise ValueError("only pending approvals can be decided")
         if approval.requester == ctx.actor.subject_id:
@@ -439,6 +452,7 @@ class ApprovalService:
             await self._repository.replace(
                 invalidated,
                 self._audit_event(invalidated, action="approval.invalidated", ctx=ctx),
+                expected=approval,
             )
             raise PermissionError("approval policy version changed")
         now = self._now()
@@ -447,6 +461,7 @@ class ApprovalService:
             await self._repository.replace(
                 expired,
                 self._audit_event(expired, action="approval.expired", ctx=ctx),
+                expected=approval,
             )
             raise PermissionError("approval has expired")
         decided = Approval.model_validate(
@@ -463,6 +478,7 @@ class ApprovalService:
         await self._repository.replace(
             decided,
             self._audit_event(decided, action="approval.decided", ctx=ctx),
+            expected=approval,
         )
         return decided
 
@@ -528,6 +544,7 @@ class ApprovalService:
             await self._repository.replace(
                 invalidated,
                 self._audit_event(invalidated, action="approval.invalidated", ctx=ctx),
+                expected=approval,
             )
             raise PermissionError("approval binding no longer matches the execution")
         now = self._now()
@@ -536,6 +553,7 @@ class ApprovalService:
             await self._repository.replace(
                 expired,
                 self._audit_event(expired, action="approval.expired", ctx=ctx),
+                expected=approval,
             )
             raise PermissionError("approval has expired")
         if approval.status != "approved":
@@ -562,6 +580,7 @@ class ApprovalService:
         await self._repository.replace(
             invalidated,
             self._audit_event(invalidated, action="approval.invalidated", ctx=ctx),
+            expected=approval,
         )
 
     async def invalidate_binding(self, approval: Approval, *, ctx: Context) -> Approval:
@@ -577,6 +596,7 @@ class ApprovalService:
         await self._repository.replace(
             invalidated,
             self._audit_event(invalidated, action="approval.invalidated", ctx=ctx),
+            expected=current,
         )
         return invalidated
 

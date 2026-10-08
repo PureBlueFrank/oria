@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-08",
+  "base_commit": "857dc3e",
+  "scope": "local Fixture/Community/Security; no live enterprise or performance",
+  "full_test": {
+    "exit_code": 0,
+    "passed": 1046,
+    "deselected": 3,
+    "warnings": 5,
+    "seconds": 302.67
+  },
+  "targeted_test": {
+    "passed": 26,
+    "warnings": 1,
+    "seconds": 7.68
+  },
+  "lint": {
+    "status": "passed",
+    "formatted_files": 354,
+    "typed_source_files": 177
+  },
+  "build": {
+    "first": "sandbox DNS failure",
+    "network_retry": "passed"
+  },
+  "wheel_install_initialization_readonly_gate": "passed; existing isolated venv reinstalled with current wheel; locked dependencies reused",
+  "package_excludes_cache": "passed",
+  "documentation_links": "passed",
+  "git_diff_check": "passed",
+  "t02_status": "in_progress; Feishu action binding and Job handoff pending",
+  "github_actions": "not_run; no push"
+}

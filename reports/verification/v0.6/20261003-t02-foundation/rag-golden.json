@@ -1,0 +1,3665 @@
+{
+  "suite": "rag",
+  "runner_version": "rag_v1",
+  "dataset_version": "1",
+  "dataset_sha256": "295e440cc0a9b32368f492a22bb6ec95396f42f5b9b2c8577becec1beb94d537",
+  "split": "all",
+  "verification_level": "fixture",
+  "embedding_profile": "fixture",
+  "reranker_profile": "fixture",
+  "config_fingerprint": "sha256:cabf62214e660aea66dd511aa9e3442308c619d01b555ebb41752594d8dad2a9",
+  "gates_sha256": "bf81649871389a72f703bafe6a9b692222297733315bb445c2ea7855a894ec33",
+  "lock_sha256": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def",
+  "eval_fingerprint": "sha256:4ffe24a325c8e8c14d69d180b083f499bf6d5c150ca806cf16edd23917f8aa53",
+  "executed_at": "2026-10-03T23:32:57.978371+08:00",
+  "pipelines": [
+    {
+      "mode": "dense",
+      "metrics": {
+        "evaluated_cases": 60,
+        "recall_at_k": 0.9666666666666667,
+        "recall_ci95_low": 0.886362257256914,
+        "recall_ci95_high": 0.9908106807438021,
+        "mrr": 0.7694444444444445,
+        "citation_hit_rate": 1.0,
+        "critical_pass_rate": 1.0,
+        "latency_p50_ms": 27.712924500065128,
+        "latency_p95_ms": 31.204395999338885
+      },
+      "cases": [
+        {
+          "case_id": "rag-v1-001",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 33.46786299971427,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-002",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 29.828053000528598,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-003",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.710770999874512,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-004",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.429826000319736,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-005",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.522809999936726,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-006",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.901934000306937,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-007",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.472329000171158,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-008",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.121867000256316,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-009",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 25.581672999578586,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-010",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.149781999265542,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-011",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 29.563473999587586,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-012",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_772bb4c708614fd168c286a47dca7822"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "benefit_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 31.204395999338885,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-013",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 32.03359599956457,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-014",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 32.47452300001896,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-015",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 30.02933799962193,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-016",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.411815999788814,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-017",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.823419000014837,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-018",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.12190099939471,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-019",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_772bb4c708614fd168c286a47dca7822"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "benefit_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.71531700000196,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-020",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.387262000047485,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-021",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_772bb4c708614fd168c286a47dca7822"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "benefit_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.562842999235727,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-022",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.07477599960839,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-023",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.142925999920408,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-024",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 25.441677999879175,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-025",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 25.976109000112046,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-026",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 25.90872600012517,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-027",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.510064999660244,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-028",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.825135000057344,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-029",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 29.03207700001076,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-030",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.03301800031477,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-031",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.5255630001775,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-032",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.92032899994956,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-033",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.33118000014656,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-034",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_772bb4c708614fd168c286a47dca7822"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "recruitment_scope",
+            "benefit_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.894492000792525,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-035",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "benefit_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.770417999818164,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-036",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.894212999650335,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-037",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.731122999488434,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-038",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.699326000401925,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-039",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 29.460884999934933,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-040",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.754425999773957,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-041",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_772bb4c708614fd168c286a47dca7822"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "benefit_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.069428999515367,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-042",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.554678000138665,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-043",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 24.882046000129776,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-044",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "basic",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 24.425686000540736,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-045",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 25.125809000201116,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-046",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 25.445473000218044,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-047",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.298482000129297,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-048",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.37665600013861,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-049",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.0067740004597,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-050",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.12877399972058,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-051",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_772bb4c708614fd168c286a47dca7822"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "confirmation_policy",
+            "benefit_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.469317999930354,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-052",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.70221400007722,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-053",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 26.93838000050164,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-054",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_772bb4c708614fd168c286a47dca7822"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "benefit_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.926402000251983,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-055",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.201838999848405,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-056",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.281375999540614,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-057",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 27.715078000255744,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-058",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_772bb4c708614fd168c286a47dca7822"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "benefit_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.45498700025928,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-059",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.78687200063723,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-060",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_772bb4c708614fd168c286a47dca7822"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "benefit_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 28.604832999917562,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "metrics": {
+        "evaluated_cases": 60,
+        "recall_at_k": 0.9666666666666667,
+        "recall_ci95_low": 0.886362257256914,
+        "recall_ci95_high": 0.9908106807438021,
+        "mrr": 0.875,
+        "citation_hit_rate": 1.0,
+        "critical_pass_rate": 1.0,
+        "latency_p50_ms": 69.06206000030579,
+        "latency_p95_ms": 76.25279999956547
+      },
+      "cases": [
+        {
+          "case_id": "rag-v1-001",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.87035100044159,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-002",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 76.81466699978046,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-003",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 66.01819500065176,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-004",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.80019799953152,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-005",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 65.45247200028825,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-006",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 70.58222199975717,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-007",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 69.78269100000034,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-008",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "basic",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 72.88535000043339,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-009",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 69.87199200011673,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-010",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 69.68832500024291,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-011",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 61.33032300022023,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-012",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 71.42179899983603,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-013",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 74.61100199998327,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-014",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 70.64230200012389,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-015",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 75.1884749997771,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-016",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 78.80711799953133,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-017",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.80055099989113,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-018",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 70.41122899954644,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-019",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 70.22675799998979,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-020",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 76.25279999956547,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-021",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 72.21735999974044,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-022",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.59306500064122,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-023",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 69.32566999967094,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-024",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 62.13222800033691,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-025",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 70.64298599925678,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-026",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 62.28406399986852,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-027",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 78.49033499951474,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-028",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 74.94578800015006,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-029",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 75.21971400001348,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-030",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 75.23698299974058,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-031",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.40695200025948,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-032",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 65.11134799984575,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-033",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 74.34927500071353,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-034",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 65.21599600000627,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-035",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 63.72388999989198,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-036",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 71.239334000893,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-037",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 58.70763300026738,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-038",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.85132000004523,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-039",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.6478830000633,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-040",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 57.46515400005592,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-041",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 61.42980399999942,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-042",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 69.25376900017,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-043",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.13945100000274,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-044",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 59.454270000060205,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-045",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 70.29005399999733,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-046",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 61.44754999968427,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-047",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 63.446839999414806,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-048",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 62.59850199967332,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-049",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.29274499978055,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-050",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 66.5545319998273,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-051",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "confirmation_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 71.23777000015252,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-052",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 63.16801299999497,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-053",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 65.18457400034094,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-054",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 65.81800000003568,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-055",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 71.57037900014984,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-056",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 72.28245900023467,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-057",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 66.57983500008413,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-058",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 72.73674600037339,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-059",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 63.138526000329875,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-060",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 70.55680200028291,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "hybrid_rerank",
+      "metrics": {
+        "evaluated_cases": 60,
+        "recall_at_k": 0.95,
+        "recall_ci95_low": 0.8629948352365147,
+        "recall_ci95_high": 0.9828504978356043,
+        "mrr": 0.8583333333333333,
+        "citation_hit_rate": 1.0,
+        "critical_pass_rate": 1.0,
+        "latency_p50_ms": 67.50932249997277,
+        "latency_p95_ms": 75.60518199989019
+      },
+      "cases": [
+        {
+          "case_id": "rag-v1-001",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 66.48094400043192,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-002",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 76.33747599993512,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-003",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 66.08989300002577,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-004",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "merchant_material",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.20126599996001,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-005",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 65.78533599986258,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-006",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.04191300013917,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-007",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.64673299969581,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-008",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "basic",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 70.61554700067063,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-009",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": null,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 69.89757399969676,
+          "passed": false
+        },
+        {
+          "case_id": "rag-v1-010",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "basic",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 72.48981300017476,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-011",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 65.97730500016041,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-012",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 73.8130479994652,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-013",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 3,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 73.05665599960776,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-014",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 74.07875800072361,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-015",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 77.33798400022351,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-016",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 72.40415199976269,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-017",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 64.88546899981884,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-018",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.95476899990172,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-019",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.70780999977433,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-020",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "recruitment_scope",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 74.43370900000446,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-021",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 71.1527980001847,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-022",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 73.70123399959994,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-023",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 70.59516199933569,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-024",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.08007999986876,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-025",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 75.60518199989019,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-026",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 62.8508170002533,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-027",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 74.37690200003999,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-028",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 75.62461799989251,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-029",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 72.10047600074176,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-030",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 60.46534300003259,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-031",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 56.53747100041073,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-032",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 59.96959499952936,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-033",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 69.20655599969905,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-034",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 62.121769999976095,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-035",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 59.63107099978515,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-036",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 65.25475099988398,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-037",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "merchant_material",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 56.42083199927583,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-038",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 66.32290500056115,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-039",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "basic",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 71.91610199970455,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-040",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "benefit_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 64.82127900017076,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-041",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 61.745748999783245,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-042",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 64.38916899969627,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-043",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 61.63836299947434,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-044",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 54.3733330005125,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-045",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.46867500007647,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-046",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_88cb9767cc139e399a0eae2dfa921a42",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "recruitment_scope",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.61668800047482,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-047",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 69.99111200002517,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-048",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 64.68279099954088,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-049",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "confirmation_policy",
+            "enrollment_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 66.63050100087275,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-050",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 2,
+          "returned_chunk_ids": [
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c2063f561b491b71f5897c601b91db57"
+          ],
+          "returned_rule_categories": [
+            "enrollment_policy",
+            "confirmation_policy",
+            "merchant_material"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.3258260003422,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-051",
+          "split": "development",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 66.10828500015486,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-052",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 60.93914999928529,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-053",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "confirmation_policy",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 66.88527299957059,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-054",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.031536000286,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-055",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 71.35278199984896,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-056",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_77cb4e942e6183eec009ce6663a58c8d",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "basic",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 68.97063500036893,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-057",
+          "split": "development",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_88cb9767cc139e399a0eae2dfa921a42"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "recruitment_scope"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.69281899960333,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-058",
+          "split": "holdout",
+          "critical": true,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_3a2baae41651b1f2142e6fe04def5fb5"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "confirmation_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 67.31662099991809,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-059",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_772bb4c708614fd168c286a47dca7822",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "benefit_policy",
+            "enrollment_policy"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 58.20650599980581,
+          "passed": true
+        },
+        {
+          "case_id": "rag-v1-060",
+          "split": "holdout",
+          "critical": false,
+          "relevant_rank": 1,
+          "returned_chunk_ids": [
+            "chk_c2063f561b491b71f5897c601b91db57",
+            "chk_c6c687a6a735d6ecfd6b6c31316b0834",
+            "chk_77cb4e942e6183eec009ce6663a58c8d"
+          ],
+          "returned_rule_categories": [
+            "merchant_material",
+            "enrollment_policy",
+            "basic"
+          ],
+          "valid_citation_count": 3,
+          "citations_valid": true,
+          "latency_ms": 73.16769800036127,
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

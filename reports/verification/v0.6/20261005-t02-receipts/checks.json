@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-05",
+  "baseline_commit": "857dc3e",
+  "scope": "local working tree; no live, enterprise or performance execution",
+  "full_test": {
+    "exit_code": 0,
+    "passed": 1038,
+    "deselected": 3,
+    "warnings": 5,
+    "seconds": 279.07
+  },
+  "targeted_test": {
+    "passed": 45,
+    "warnings": 1,
+    "seconds": 17.38
+  },
+  "lint": {
+    "status": "passed",
+    "formatted_files": 350,
+    "typed_source_files": 176
+  },
+  "build": "passed",
+  "wheel_install_and_initialization": "passed",
+  "wheel_api_cli_help": "passed",
+  "package_excludes_cache": "passed",
+  "documentation_links": "passed",
+  "git_diff_check": "passed",
+  "migration_manifest_sha256": "4d31721a3ee997dd121b11d02e8e716258aa0109b38c3594da8680e3e15c1d0e",
+  "lock_sha256": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def",
+  "t02_status": "in_progress; real Job/approval acceptor and external channel not connected",
+  "github_actions": "not_run; no push"
+}

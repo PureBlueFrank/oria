@@ -15,6 +15,7 @@ from oria.core.approvals import (
     Approval,
     ApprovalBindingInvalidationFact,
     ApprovalBusinessBinding,
+    ApprovalConflict,
     ApprovalInvalidationStatus,
 )
 from oria.core.integration_events import (
@@ -124,7 +125,16 @@ class SQLiteApprovalRepository:
         self,
         approval: Approval,
         audit_event: EventEnvelope | None = None,
+        *,
+        expected: Approval,
     ) -> None:
+        if (approval.tenant_id, approval.approval_id) != (expected.tenant_id, expected.approval_id):
+            raise ApprovalConflict("approval identity changed")
+        expected_values = _approval_values(expected)
+        # Column names come solely from the fixed internal serializer, never client input.
+        predicate = " AND ".join(
+            f"{column} IS NOT DISTINCT FROM :expected_{column}" for column in expected_values
+        )
         try:
             async with self._sessions.begin() as session:
                 await set_session_tenant_context(session, approval.tenant_id)
@@ -133,12 +143,13 @@ class SQLiteApprovalRepository:
                         "UPDATE approvals SET status = :status, decider = :decider, "
                         "decision = :decision, reason = :reason, updated_at = :updated_at, "
                         "decided_at = :decided_at WHERE tenant_id = :tenant_id "
-                        "AND approval_id = :approval_id"
+                        "AND approval_id = :approval_id AND " + predicate
                     ),
-                    _approval_values(approval),
+                    _approval_values(approval)
+                    | {f"expected_{key}": value for key, value in expected_values.items()},
                 )
                 if not isinstance(result, CursorResult) or result.rowcount != 1:
-                    raise LookupError("approval is unavailable")
+                    raise ApprovalConflict("approval changed")
                 if audit_event is not None:
                     await self._append_approval_events(session, approval, audit_event)
         except LookupError:

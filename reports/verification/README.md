@@ -11,7 +11,7 @@
 | V0.3 | Core、Community 十步 Workflow 与必需 DeepSeek Live 通过 | SQLite 单 worker、Mock Adapter 下的审批、恢复、幂等、故障注入和对账 | PostgreSQL 多 worker或真实券、招商、商品库、选品、C 端、IM 接入 |
 | V0.4 | T01–T05 完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 合成分析数据、只读 Tool、动态 Agent、冻结 Golden、原 DeepSeek 失败事实及 GPT-5.6 Sol Live 通过卡 | 真实企业数据、OpenAI API 通道或其他 Provider 效果 |
 | V0.5 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、对照 harness 与 S2–S4 C/SEC | single/multi Live 质量提升、Enterprise/Performance |
-| V0.6 | T01 Community/Contract 完成；PostgreSQL E-like blocked | SQLite/PostgreSQL 后端选择、双 migration chain、统一 Repository 与官方 saver adapter 契约 | 真实 PostgreSQL migration/Repository/RLS/context reset/saver；T02+ API/Job/飞书 |
+| V0.6 | T01 Community/Contract 完成；PostgreSQL E-like blocked；T02 进行中 | 双后端持久化契约、API 身份、飞书协议/展示与 SQLite 持久去重 | 真实 PostgreSQL、实际 Job/审批 HTTP 链路与真实飞书接入 |
 | P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | 后续平台能力已交付 |
 
 ## 关键证据
@@ -59,6 +59,12 @@
 ### V0.6 · PostgreSQL 与 Durable Job 基础
 
 - [T01 双后端持久化契约](v0.6/20260920-t01/summary.md)：SQLite Community 回归、静态检查、Security 与 wheel 验证通过；因未提供两个 PostgreSQL 测试 DSN，真实 migration/Repository/RLS/context reset/AsyncPostgresSaver E-like 卡保持 blocked。
+- [T02 API/飞书基础](v0.6/20261003-t02-foundation/summary.md)：JWT/服务端身份、飞书签名/加密、受限出站与七种 IM 展示；未装配 durable receiver 时返回 503。持久去重、资源路由与真实通道尚未交付，T02 未收口。
+- [T02 持久去重增量（10 月 5 日）](v0.6/20261005-t02-receipts/summary.md)：新增 `platform_0010` 账本和事务化接收器，SQLite 并发、失败回滚、独立进程异常退出、重启、重复卡片与租户隔离验证；实际业务处理器尚未装配，T02 仍未收口。
+
+- [T02 审批 HTTP 与并发保护（10 月 6 日）](v0.6/20261006-t02-approvals/summary.md)：受控详情、版本化决定、SQLite 条件更新与单次审计；CLI 装配、飞书动作绑定与真实通道仍待完成。
+
+- [T02 审批服务启动装配（10 月 8 日）](v0.6/20261008-t02-lifecycle/summary.md)：显式配置、只读数据库门禁、真实本地运行时审批链路与资源回收；飞书动作和 Job 尚待接通。
 
 ## Demo 与架构证据
 

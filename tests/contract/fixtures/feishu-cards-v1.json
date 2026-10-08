@@ -1,0 +1,335 @@
+{
+  "received": {
+    "config": {
+      "wide_screen_mode": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商活动"
+      }
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "请查看当前进度"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "规则\n合成规则 v1"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "需要帮助时请提供详情编号并联系管理员。"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "第 1/1 页 · 详情编号 detail-123"
+          }
+        ]
+      }
+    ]
+  },
+  "confirmation": {
+    "config": {
+      "wide_screen_mode": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商活动"
+      }
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "请查看当前进度"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "规则\n合成规则 v1"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "需要帮助时请提供详情编号并联系管理员。"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "第 1/1 页 · 详情编号 detail-123"
+          }
+        ]
+      },
+      {
+        "tag": "action",
+        "actions": [
+          {
+            "tag": "button",
+            "text": {
+              "tag": "plain_text",
+              "content": "确认"
+            },
+            "value": {
+              "version": 1,
+              "action_ref": "action-123"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "progress": {
+    "config": {
+      "wide_screen_mode": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商活动"
+      }
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "请查看当前进度"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "规则\n合成规则 v1"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "需要帮助时请提供详情编号并联系管理员。"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "第 1/1 页 · 详情编号 detail-123"
+          }
+        ]
+      }
+    ]
+  },
+  "result": {
+    "config": {
+      "wide_screen_mode": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商活动"
+      }
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "请查看当前进度"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "规则\n合成规则 v1"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "需要帮助时请提供详情编号并联系管理员。"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "第 1/1 页 · 详情编号 detail-123"
+          }
+        ]
+      }
+    ]
+  },
+  "waiting_approval": {
+    "config": {
+      "wide_screen_mode": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商活动"
+      }
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "请查看当前进度"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "规则\n合成规则 v1"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "需要帮助时请提供详情编号并联系管理员。"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "第 1/1 页 · 详情编号 detail-123"
+          }
+        ]
+      },
+      {
+        "tag": "action",
+        "actions": [
+          {
+            "tag": "button",
+            "text": {
+              "tag": "plain_text",
+              "content": "确认"
+            },
+            "value": {
+              "version": 1,
+              "action_ref": "action-123"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "waiting_event": {
+    "config": {
+      "wide_screen_mode": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商活动"
+      }
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "请查看当前进度"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "规则\n合成规则 v1"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "需要帮助时请提供详情编号并联系管理员。"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "第 1/1 页 · 详情编号 detail-123"
+          }
+        ]
+      }
+    ]
+  },
+  "failed": {
+    "config": {
+      "wide_screen_mode": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商活动"
+      }
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "请查看当前进度"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "规则\n合成规则 v1"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "需要帮助时请提供详情编号并联系管理员。"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "第 1/1 页 · 详情编号 detail-123"
+          }
+        ]
+      }
+    ]
+  }
+}

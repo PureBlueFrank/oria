@@ -86,6 +86,7 @@ approval_app = typer.Typer(help="Approve or reject an active workflow HITL reque
 mock_app = typer.Typer(help="Inject authenticated synthetic Scenario A events.")
 attribution_app = typer.Typer(help="Run the bounded Scenario B attribution demonstration.")
 memory_app = typer.Typer(help="View, delete, and export opted-in long-term memories.")
+api_app = typer.Typer(help="Serve the authenticated HTTP API foundation.")
 app.add_typer(config_app, name="config")
 app.add_typer(data_app, name="data")
 app.add_typer(db_app, name="db")
@@ -95,6 +96,28 @@ app.add_typer(approval_app, name="approval")
 app.add_typer(mock_app, name="mock")
 app.add_typer(attribution_app, name="attribution")
 app.add_typer(memory_app, name="memory")
+app.add_typer(api_app, name="api")
+
+
+@api_app.command("serve")
+def api_serve(
+    config: Annotated[Path | None, typer.Option(help="Server-owned JSON configuration.")] = None,
+    local: Annotated[
+        bool, typer.Option(help="Explicit loopback-only development identity.")
+    ] = False,
+    host: Annotated[str, typer.Option()] = "127.0.0.1",
+    port: Annotated[int, typer.Option(min=1, max=65535)] = 8000,
+) -> None:
+    import uvicorn
+
+    from oria.api.server import build_api
+
+    try:
+        application = build_api(config=config, local=local, host=host)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from None
+    # Disable access logs (query strings/PII) and untrusted forwarding headers.
+    uvicorn.run(application, host=host, port=port, access_log=False, proxy_headers=False)
 
 
 class OutputFormat(StrEnum):

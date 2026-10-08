@@ -82,7 +82,7 @@ async def test_sqlite_approval_repository_round_trips_tenant_bound_state(tmp_pat
             }
         )
         with pytest.raises(ValueError, match="event already exists"):
-            await repository.replace(decided, audit_event)
+            await repository.replace(decided, audit_event, expected=approval)
         assert await repository.get("tenant-a", "approval-1") == approval
 
     with sqlite3.connect(config.data_paths.platform_db) as connection:

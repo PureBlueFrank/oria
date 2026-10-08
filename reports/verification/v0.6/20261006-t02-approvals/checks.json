@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-06",
+  "base_commit": "857dc3e",
+  "scope": "local Fixture/Community/Security; real SQLite and RSA, synthetic identities and runtime context",
+  "full_test": {
+    "exit_code": 0,
+    "passed": 1041,
+    "deselected": 3,
+    "warnings": 5,
+    "seconds": 253.21
+  },
+  "targeted_test": {
+    "passed": 33,
+    "warnings": 1,
+    "seconds": 4.86
+  },
+  "regression_before_fix": {
+    "status": "failed as expected",
+    "failure": "two concurrent decisions both committed",
+    "seconds": 2.46
+  },
+  "lint": {
+    "status": "passed",
+    "formatted_files": 353,
+    "typed_source_files": 177
+  },
+  "build": {
+    "initial": "blocked by sandbox DNS fetching hatchling",
+    "network_retry": "passed"
+  },
+  "wheel_install_and_initialization": "passed; new package in existing isolated verification venv; dependencies reused from locked project environment",
+  "wheel_api_cli_help": "passed",
+  "wheel_approval_import_and_openapi": "passed",
+  "package_excludes_cache": "passed",
+  "documentation_links": "passed",
+  "git_diff_check": "passed",
+  "migration_manifest_sha256": "4d31721a3ee997dd121b11d02e8e716258aa0109b38c3594da8680e3e15c1d0e",
+  "lock_sha256": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def",
+  "t02_status": "in_progress; CLI approval assembly, Feishu action binding, Job handoff and real channel pending",
+  "live_enterprise_performance": "not_run",
+  "github_actions": "not_run; no push"
+}

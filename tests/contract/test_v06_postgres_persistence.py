@@ -314,7 +314,7 @@ def test_db_upgrade_targets_are_programmatic_and_data_init_runner_compatible(
     config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
 
     platform = upgrade_databases(config, target="platform")
-    assert platform.platform_revision == "platform_0009"
+    assert platform.platform_revision == "platform_0010"
     assert platform.business_revision is None
 
     result = CliRunner().invoke(
@@ -325,5 +325,5 @@ def test_db_upgrade_targets_are_programmatic_and_data_init_runner_compatible(
     assert "business_0011" in result.output
 
     both = upgrade_databases(config)
-    assert both.platform_revision == "platform_0009"
+    assert both.platform_revision == "platform_0010"
     assert both.business_revision == "business_0011"
