@@ -20,10 +20,14 @@ HTTP 与飞书入口需要把已验证外部身份转换为现有 Principal/Poli
 
 2026-10-08：审批启动要求显式 YAML 配置，不继承个人配置或环境覆盖；只读 schema/head 检查先于运行时启动，不自动迁移。当前装配限定 Mock/Fixture 与 SQLite，身份撤销即时检查，新增身份/角色需要重启 Policy 快照。
 
+2026-10-11：新增持久审批卡片引用，摘要存储，tenant/审批版本/服务端决定意图/外部身份/chat/message/有效期绑定；仅受信内部服务签发。同日后续接通 SQLite 事务化批准受理：receipt/replay、完整快照 CAS、审批审计与 outbox 由 receiver 的唯一 session 提交；新 action 重查 Policy/SOD/过期/冻结策略版本，已提交重试重查当前身份、Policy、SOD 与 binding，但不再要求旧 pending revision。当前只签发显式 `approve` 意图；没有安全理由契约的 reject 失败关闭。
+
 ## 局限与后续
 
+2026-10-12 审查修复：受理提交前重查身份与回调有效期，覆盖异步处理期间撤权和重复回调；事务内 Policy 拒绝通过请求局部异常携带审计操作，receiver 回滚后才调用原有 AuditService，保持业务原子性并避免 SQLite 双连接写锁争用。解析会记录授权审计，业务决定/receipt/replay/outbox 仍由受理接口负责；真实审计装配纳入解析回归。审批失效化的独立事务与 session-bound 路径共用同一 SQL 实现。
+
 - 文件目录是可替换的首个服务端身份源，需用受限部署权限与原子替换维护；不是完整的企业身份治理或 OIDC 登录流程。
-- 持久去重接收器与审批 HTTP 详情/决定已有 SQLite 验证；实际飞书业务受理、审批动作持久绑定及飞书详情/分页 action 尚未接通。
+- 持久去重、审批 HTTP 与审批卡片原子批准已有本地 SQLite 验证；尚未装配到默认服务启动路径，也不包含生产卡片投递/更新、飞书详情/分页、带理由拒绝或 Job/wait 恢复。
 - 飞书签名和加密按官方 SDK 源码核对，测试使用合成载荷，未运行真实企业通道。
 - 新增 FastAPI、PyJWT、cryptography 与显式 uvicorn 依赖，经锁文件同步。10 月 5 日新增 `platform_0010` 账本迁移及完整性清单，保留 tenant 隔离与 PostgreSQL FORCE RLS；仅测试临时库，无生产迁移或新环境变量。回执不存储 raw body、正文、角色、凭证或卡片 token；到期清理不在本轮自动启用。
 

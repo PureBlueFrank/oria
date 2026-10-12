@@ -82,7 +82,7 @@ class CodexAppServerProvider:
     """Expose a logged-in Codex client as an Oria LLM provider.
 
     The adapter deliberately uses ephemeral app-server threads and a restricted empty workspace.
-    Each Oria graph thread maps to one Codex thread so follow-up tool observations reuse context.
+    Each tenant/actor/graph thread maps to one Codex thread so follow-up observations reuse context.
     """
 
     def __init__(self, profile: ResolvedLLMProfile, *, work_dir: Path) -> None:
@@ -91,8 +91,8 @@ class CodexAppServerProvider:
         self._process: asyncio.subprocess.Process | None = None
         self._lock = asyncio.Lock()
         self._next_request_id = 1
-        self._threads: dict[str, str] = {}
-        self._message_counts: dict[str, int] = {}
+        self._threads: dict[tuple[str, str, str], str] = {}
+        self._message_counts: dict[tuple[str, str, str], int] = {}
 
     async def __aenter__(self) -> CodexAppServerProvider:
         self._work_dir.mkdir(parents=True, exist_ok=True)
@@ -193,7 +193,7 @@ class CodexAppServerProvider:
         tools: list[ToolSpec],
         options: ChatOptions,
     ) -> ChatResult:
-        thread_key = ctx.thread_id
+        thread_key = (ctx.tenant_id, ctx.actor.subject_id, ctx.thread_id)
         thread_id = self._threads.get(thread_key)
         if thread_id is None:
             thread_id = await self._start_thread()

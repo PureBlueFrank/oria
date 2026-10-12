@@ -1,0 +1,4 @@
+{"path": "oria/providers/codex_app_server.py", "matches_workspace": true, "sha256": "6a75060a208d65a30253eaddd7f82f5f60f06014ac3795f4e5df22b511b70113"}
+{"path": "oria/providers/structured.py", "matches_workspace": true, "sha256": "f88aaf003aba3fe28c409c983b5bed23629af519bf478df11e80f79f2bcfdc0e"}
+{"path": "oria/memory/persistent.py", "matches_workspace": true, "sha256": "0b064e09a67095863eaa59fcad48a7bffa3b2da1becfe3cc413715846bef40ad"}
+wheel source content: passed

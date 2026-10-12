@@ -130,6 +130,25 @@ class LocalPolicyEngine:
         self._confirmation_assignments = dict(confirmation_assignments or {})
 
     async def authorize(self, request: AuthorizationRequest, ctx: Context) -> PolicyDecision:
+        decision = await self.evaluate(request, ctx)
+        await self.audit_decision(request, ctx, decision)
+        return decision
+
+    async def audit_decision(
+        self, request: AuthorizationRequest, ctx: Context, decision: PolicyDecision
+    ) -> None:
+        """Record an evaluated decision after a caller-owned transaction has ended."""
+
+        denial_code = None if decision.allow else self._denial_code(request, ctx)
+        if self._audit is not None:
+            await self._audit.append(
+                self._audit_event(request, ctx, decision, denial_code),
+                classification=self._audit_classification(request),
+            )
+
+    async def evaluate(self, request: AuthorizationRequest, ctx: Context) -> PolicyDecision:
+        """Evaluate Policy without I/O when its audit is part of a caller-owned transaction."""
+
         denial_code = self._denial_code(request, ctx)
         allowed = denial_code is None
         attribute_constraints = self._attribute_constraints(request)[0] if allowed else {}
@@ -141,7 +160,7 @@ class LocalPolicyEngine:
                 allowed_roles=request.actor.roles,
                 classifications=("public", "internal", "restricted"),
             )
-        decision = PolicyDecision(
+        return PolicyDecision(
             allow=allowed,
             constraints=(
                 {"tenant_id": request.actor.tenant_id, **attribute_constraints} if allowed else {}
@@ -154,12 +173,6 @@ class LocalPolicyEngine:
             ),
             acl_filter=acl_filter,
         )
-        if self._audit is not None:
-            await self._audit.append(
-                self._audit_event(request, ctx, decision, denial_code),
-                classification=self._audit_classification(request),
-            )
-        return decision
 
     def _denial_code(self, request: AuthorizationRequest, ctx: Context) -> str | None:
         actor = getattr(request, "actor", None)

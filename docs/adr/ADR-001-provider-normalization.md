@@ -28,6 +28,8 @@ Oria 需要让同一 Agent/Graph 消费 Mock、OpenAI-compatible 与 Anthropic �
 7. HTTP client 与真实模型资源只由唯一 `build_runtime()` 创建并纳入进程生命周期，不在 import、Context 或单次调用中建立全局资源。
 8. FixtureEmbedder 用于确定性 CI；BGE 使用锁定 model revision 且 `trust_remote_code=false`，真实模型结果单独记录，不能由 Fixture 通过替代。
 
+2026-10-12 审查修复：Codex app-server adapter 的远端模型线程和已发送消息计数均以 `(tenant_id, actor.subject_id, thread_id)` 为键；同一主体的同一线程保留后续消息复用，其他租户或主体的相同外部线程 ID 独立发送完整首轮输入。结构化文本尾逗号修复识别 JSON 字符串和反斜杠转义，仅移除字符串外的尾逗号；修复后仍执行原有 JSON 解码及 Schema 校验。两项均由本地回归验证，不代表真实 Provider Live 通过。
+
 ## 后果
 
 - 正向影响：Graph 不按厂商分叉；dialect/能力偏差在请求前暴露；Mock 与真实 adapter 可以运行同一套契约测试。

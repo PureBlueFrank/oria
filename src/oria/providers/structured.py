@@ -14,8 +14,6 @@ from oria.providers.errors import StructuredOutputError
 
 RESERVED_RESPONSE_TOOL = "__oria_submit_response__"
 
-_TRAILING_COMMA = re.compile(r",\s*([}\]])")
-
 
 def validate_structured_value(
     value: object, response_schema: ResponseSchema
@@ -63,6 +61,34 @@ def _strict_schema(schema: dict[str, JsonValue]) -> dict[str, JsonValue]:
     return strict
 
 
+def _remove_trailing_commas(text: str) -> str:
+    """Remove trailing commas outside JSON strings without changing string content."""
+
+    repaired: list[str] = []
+    in_string = False
+    escaped = False
+    for index, char in enumerate(text):
+        if in_string:
+            repaired.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == ",":
+            following = index + 1
+            while following < len(text) and text[following] in " \t\r\n":
+                following += 1
+            if following < len(text) and text[following] in "}]":
+                continue
+        repaired.append(char)
+    return "".join(repaired)
+
+
 def _salvage_json_text(text: str) -> str:
     """Recover common but harmless model formatting slips before parsing.
 
@@ -86,8 +112,7 @@ def _salvage_json_text(text: str) -> str:
         if end == -1:
             return text
         stripped = stripped[start : end + 1].strip()
-    stripped = _TRAILING_COMMA.sub(r"\1", stripped)
-    return stripped
+    return _remove_trailing_commas(stripped)
 
 
 def _last_closing_brace(text: str, start: int) -> int:

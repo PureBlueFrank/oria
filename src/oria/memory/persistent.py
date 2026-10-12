@@ -48,7 +48,7 @@ class PersistentMemory(InMemoryMemory):
         self._repository = repository
         self._projection_id = projection_id
         self._clock = clock
-        self._search_cache: dict[tuple[str, str, str, int], tuple[MemoryItem, ...]] = {}
+        self._query_embedding_cache: dict[tuple[str, str, str], tuple[float, ...]] = {}
 
     async def save(self, item: MemoryItem, ctx: Context, *, opt_in: bool) -> MemoryItem:
         """Persist a deliberately requested memory after namespace and content checks."""
@@ -114,16 +114,19 @@ class PersistentMemory(InMemoryMemory):
             raise ValueError("memory search query must be non-empty")
         if k <= 0:
             raise ValueError("memory search limit must be positive")
-        key = (ctx.tenant_id, ctx.actor.subject_id, query, k)
-        cached = self._search_cache.get(key)
-        if cached is not None:
-            return list(cached)
         embedder = ctx.embedder
         if embedder is None:
             raise RuntimeError("memory embedding service is unavailable")
-        vectors = await embedder.embed([query], ctx)
-        if len(vectors) != 1:
-            raise ValueError("memory query embedding is invalid")
+        key = (ctx.tenant_id, ctx.actor.subject_id, query)
+        query_embedding = self._query_embedding_cache.get(key)
+        if query_embedding is None:
+            vectors = await embedder.embed([query], ctx)
+            if len(vectors) != 1:
+                raise ValueError("memory query embedding is invalid")
+            query_embedding = tuple(vectors[0])
+            self._query_embedding_cache[key] = query_embedding
+        # Cache only query computation. Lifecycle and content come from the current
+        # database snapshot, including writes/deletions made by another runtime.
         candidates = await self._repository.list_active(
             ctx,
             now=self._clock(),
@@ -131,14 +134,14 @@ class PersistentMemory(InMemoryMemory):
             sensitivities=LOW_SENSITIVITY,
             projection_id=self._projection_id,
         )
+        query_vector = list(query_embedding)
         scored = [
             candidate.item.model_copy(
-                update={"score": _cosine_similarity(vectors[0], candidate.embedding)}
+                update={"score": _cosine_similarity(query_vector, candidate.embedding)}
             )
             for candidate in candidates
         ]
         result = tuple(sorted(scored, key=lambda value: (-value.score, value.id))[:k])
-        self._search_cache[key] = result
         return list(result)
 
     async def view(self, ctx: Context) -> list[MemoryItem]:
@@ -195,8 +198,8 @@ class PersistentMemory(InMemoryMemory):
 
     def _invalidate(self, ctx: Context) -> None:
         namespace = (ctx.tenant_id, ctx.actor.subject_id)
-        self._search_cache = {
-            key: value for key, value in self._search_cache.items() if key[:2] != namespace
+        self._query_embedding_cache = {
+            key: value for key, value in self._query_embedding_cache.items() if key[:2] != namespace
         }
 
 

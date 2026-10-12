@@ -42,6 +42,19 @@ def _business_columns(
 
 _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
     "platform": {
+        "approval_card_bindings": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("action_hash", "VARCHAR", 1, 2),
+            ("approval_id", "VARCHAR", 1, 0),
+            ("approval_revision", "VARCHAR", 1, 0),
+            ("decision_intent", "VARCHAR", 1, 0),
+            ("issuer", "VARCHAR", 1, 0),
+            ("subject", "VARCHAR", 1, 0),
+            ("actor_id", "VARCHAR", 1, 0),
+            ("chat_id", "VARCHAR", 1, 0),
+            ("message_id", "VARCHAR", 1, 0),
+            ("expires_at", "FLOAT", 1, 0),
+        ),
         "ingress_receipts": (
             ("tenant_id", "VARCHAR", 1, 1),
             ("dedupe_key", "VARCHAR", 1, 2),
@@ -438,6 +451,9 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
 }
 _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
     "platform": {
+        "approval_card_bindings": frozenset(
+            {("approvals", (("tenant_id", "tenant_id"), ("approval_id", "approval_id")))}
+        ),
         "ingress_receipts": frozenset(),
         "ingress_replays": frozenset(
             {("ingress_receipts", (("tenant_id", "tenant_id"), ("dedupe_key", "dedupe_key")))}

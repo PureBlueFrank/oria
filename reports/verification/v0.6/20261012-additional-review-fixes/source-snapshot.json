@@ -1,0 +1,32 @@
+{
+  "files": [
+    {
+      "path": "src/oria/providers/codex_app_server.py",
+      "sha256": "6a75060a208d65a30253eaddd7f82f5f60f06014ac3795f4e5df22b511b70113"
+    },
+    {
+      "path": "src/oria/providers/structured.py",
+      "sha256": "f88aaf003aba3fe28c409c983b5bed23629af519bf478df11e80f79f2bcfdc0e"
+    },
+    {
+      "path": "src/oria/memory/persistent.py",
+      "sha256": "0b064e09a67095863eaa59fcad48a7bffa3b2da1becfe3cc413715846bef40ad"
+    },
+    {
+      "path": "tests/unit/test_codex_app_server.py",
+      "sha256": "fb2a8f2e7469670a319effd824d7e6cba1606a6da3d071dd4a24dbd93bf35e4a"
+    },
+    {
+      "path": "tests/unit/test_structured_salvage.py",
+      "sha256": "c0e88a55ec4cee9560c4ce9f367ce406d4594c4ac2019d82c73755dd6c729b35"
+    },
+    {
+      "path": "tests/contract/test_v05_long_term_memory.py",
+      "sha256": "9e26cf9688a363ec0dd77cacf473be9e864be64ccdac70fe06e0b1396f5c462c"
+    },
+    {
+      "path": "tests/security/test_v05_memory_boundaries.py",
+      "sha256": "d55ee8066dcd154a0167fe1f89cb10903a832e23f1e468a275cf52113b89a622"
+    }
+  ]
+}

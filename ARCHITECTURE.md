@@ -53,7 +53,7 @@ CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development �
 
 ## 模块职责
 
-下表是跨 V0.1–V0.8 的目标模块图。当前已交付 V0.5 Core 与 V0.6-T01 持久化基础；V0.6-T02 新增 API 身份、飞书协议、IM 展示、SQLite 事务化去重及审批详情/决定 HTTP 接口（可显式配置启动 SQLite 运行时），并以条件更新阻止并发审批覆盖；实际飞书任务受理与真实通道尚未接通。`jobs/web`、lease/fencing、SSE 与可靠 Webhook 仍属后续任务，不能据此表宣称已经交付。边界见 [API 基础指南](docs/guides/api-foundation.md)。
+下表是跨 V0.1–V0.8 的目标模块图。当前已交付 V0.5 Core 与 V0.6-T01 持久化基础；V0.6-T02 新增 API 身份、飞书协议、IM 展示、SQLite 事务化去重、审批详情/决定 HTTP 接口及卡片批准的原子 receipt/CAS/审计/outbox 路径，并以完整快照条件更新阻止并发覆盖；Job/wait 任务受理、生产装配与真实飞书通道尚未接通。`jobs/web`、lease/fencing、SSE 与可靠 Webhook 仍属后续任务，不能据此表宣称已经交付。边界见 [API 基础指南](docs/guides/api-foundation.md)。
 
 | 模块 | 主要职责 |
 | --- | --- |
