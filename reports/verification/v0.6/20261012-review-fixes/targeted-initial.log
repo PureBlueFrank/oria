@@ -1,0 +1,265 @@
+F................F..............                                         [100%]
+=================================== FAILURES ===================================
+_______ test_signed_http_success_duplicate_and_restart_are_exactly_once ________
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-6/test_signed_http_success_dupli0')
+
+    @pytest.mark.asyncio
+    async def test_signed_http_success_duplicate_and_restart_are_exactly_once(tmp_path):
+        now = datetime.now(UTC)
+        clock = Clock(now)
+        identity = binding(issuer="feishu:app:ft", subject="ou")
+        directory = IdentityDirectory(bindings=(identity,))
+
+        def source():
+            return directory
+
+        runtime, databases, repository = await _runtime(tmp_path, identity, clock=clock)
+        try:
+            original = await _approval(repository, now)
+            cards = ApprovalCardBindings(runtime, repository, source, databases.platform_sessions)
+            action = await cards.issue(
+                original.approval_id,
+                identity,
+                chat_id="chat",
+                message_id="card-msg",
+            )
+            baseline = await _counts(databases)
+            verified, inbound = _event(action, source)
+            receiver = TransactionalFeishuReceiver(
+                databases.platform_sessions,
+                source,
+                TransactionalApprovalCardAcceptor(runtime, repository, source, clock=clock),
+            )
+            auth = _authenticator()
+            app = create_app(
+                authenticator=auth,
+                feishu=FeishuIngress(SETTINGS, source),
+                receiver=receiver,
+                close=auth.client.aclose,
+            )
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                response = await client.post(
+                    "/v1/ingress/feishu/events",
+                    content=inbound.raw_body,
+                    headers=dict(inbound.headers),
+                )
+                assert response.status_code == 200
+                duplicate = await client.post(
+                    "/v1/ingress/feishu/events",
+                    content=inbound.raw_body,
+                    headers=dict(inbound.headers),
+                )
+                assert duplicate.status_code == 200
+            await auth.client.aclose()
+            counts = await _counts(databases)
+            assert counts["ingress_receipts"] == counts["ingress_replays"] == 1
+            assert counts["audit_events"] == baseline["audit_events"] + 1
+            assert counts["outbox"] == baseline["outbox"] + 1
+            assert counts["approval_card_bindings"] == 1
+            decided = await repository.get("tenant", original.approval_id)
+            assert decided is not None and decided.status == "approved"
+            async with databases.platform_sessions() as session:
+                receipt_ref = (
+                    await session.execute(text("SELECT receipt_ref FROM ingress_receipts"))
+                ).scalar_one()
+                audit = (
+                    await session.execute(
+                        text(
+                            "SELECT correlation_id, action FROM audit_events "
+                            "WHERE action = 'approval.decided'"
+                        )
+                    )
+                ).one()
+                assert audit == (receipt_ref, "approval.decided")
+                persisted = str(
+                    (
+                        await session.execute(
+                            text("SELECT * FROM ingress_receipts, audit_events, outbox")
+                        )
+                    ).all()
+                )
+                assert action.action_ref not in persisted
+                assert "checkpoint-secret" not in persisted
+            await receiver.accept(verified)
+            committed_counts = await _counts(databases)
+
+            # A committed retry ignores the old pending revision, but rechecks every
+            # current authorization boundary and never creates another side effect.
+            directory = IdentityDirectory()
+            with pytest.raises(PermissionError):
+                await receiver.accept(verified)
+            directory = IdentityDirectory(bindings=(identity,))
+            changed_identity = identity.model_copy(
+                update={"actor": identity.actor.model_copy(update={"roles": ("operator",)})}
+            )
+            directory = IdentityDirectory(bindings=(changed_identity,))
+            changed_event, _ = _event(action, source, nonce="duplicate-role-change")
+            with pytest.raises(PermissionError):
+                await receiver.accept(changed_event)
+            directory = IdentityDirectory(bindings=(identity,))
+            async with databases.platform_sessions.begin() as session:
+                await session.execute(
+                    text(
+                        "UPDATE approvals SET requester = :requester, decider = 'other-decider' "
+                        "WHERE approval_id = :id"
+                    ),
+                    {"requester": identity.actor.subject_id, "id": original.approval_id},
+                )
+            with pytest.raises(PermissionError):
+                await receiver.accept(verified)
+            async with databases.platform_sessions.begin() as session:
+                await session.execute(
+                    text(
+                        "UPDATE approvals SET requester = :requester, decider = :decider "
+                        "WHERE approval_id = :id"
+                    ),
+                    {
+                        "requester": original.requester,
+                        "decider": identity.actor.subject_id,
+                        "id": original.approval_id,
+                    },
+                )
+                await session.execute(
+                    text("UPDATE approval_card_bindings SET expires_at = :expires"),
+                    {"expires": now.timestamp() - 1},
+                )
+            with pytest.raises(PermissionError):
+                await receiver.accept(verified)
+            async with databases.platform_sessions.begin() as session:
+                await session.execute(
+                    text("UPDATE approval_card_bindings SET expires_at = :expires"),
+                    {"expires": original.expires_at.timestamp()},
+                )
+>           assert await _counts(databases) == committed_counts
+E           AssertionError: assert {'ingress_rec...tbox': 1, ...} == {'ingress_rec...tbox': 1, ...}
+E
+E             Omitting 4 identical items, use -vv to show
+E             Differing items:
+E             {'audit_events': 3} != {'audit_events': 2}
+E             Use -v to get more diff
+
+tests/integration/test_v06_transactional_approval_acceptance.py:270: AssertionError
+__ test_rejected_or_tampered_actions_leave_no_acceptance_writes[role-change] ___
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-6/test_rejected_or_tampered_acti11')
+case = 'role-change'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "case",
+        [
+            "unknown-ref",
+            "revision",
+            "revocation",
+            "sod",
+            "tenant",
+            "chat",
+            "message",
+            "sender",
+            "callback-expiry",
+            "binding-expiry",
+            "approval-expiry",
+            "role-change",
+        ],
+    )
+    async def test_rejected_or_tampered_actions_leave_no_acceptance_writes(tmp_path, case):
+        now = datetime.now(UTC)
+        clock = Clock(now)
+        issued_identity = binding(issuer="feishu:app:ft", subject="ou")
+        directory = IdentityDirectory(bindings=(issued_identity,))
+
+        def source():
+            return directory
+
+        runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+        try:
+            original = await _approval(repository, now)
+            cards = ApprovalCardBindings(runtime, repository, source, databases.platform_sessions)
+            action = await cards.issue(
+                original.approval_id, issued_identity, chat_id="chat", message_id="card-msg"
+            )
+            baseline = await _counts(databases)
+            event, _ = _event(action, source)
+            if case == "unknown-ref":
+                event = event.model_copy(update={"action": CardAction(action_ref="unknown")})
+            elif case == "revision":
+                changed = original.model_copy(update={"updated_at": now + timedelta(seconds=1)})
+                await repository.replace(changed, expected=original)
+            elif case == "revocation":
+                directory = IdentityDirectory()
+            elif case == "sod":
+                changed = original.model_copy(update={"requester": issued_identity.actor.subject_id})
+                async with databases.platform_sessions.begin() as session:
+                    await session.execute(
+                        text("UPDATE approvals SET requester = :requester WHERE approval_id = :id"),
+                        {"requester": changed.requester, "id": changed.approval_id},
+                    )
+                    await session.execute(
+                        text("UPDATE approval_card_bindings SET approval_revision = :revision"),
+                        {"revision": approval_revision(changed)},
+                    )
+            elif case in {"tenant", "chat", "message", "sender"}:
+                field, value = {
+                    "tenant": ("mapped_tenant_id", "other"),
+                    "chat": ("target_ref", "other"),
+                    "message": ("source_message_id", "other"),
+                    "sender": ("sender_ref", "other"),
+                }[case]
+                event = event.model_copy(
+                    update={"message": event.message.model_copy(update={field: value})}
+                )
+            elif case == "callback-expiry":
+                event = event.model_copy(update={"expires_at": now.timestamp() - 1})
+            elif case == "binding-expiry":
+                async with databases.platform_sessions.begin() as session:
+                    await session.execute(
+                        text("UPDATE approval_card_bindings SET expires_at = :expires"),
+                        {"expires": now.timestamp() - 1},
+                    )
+            elif case == "approval-expiry":
+                async with databases.platform_sessions.begin() as session:
+                    await session.execute(
+                        text("UPDATE approval_card_bindings SET expires_at = :expires"),
+                        {"expires": (now + timedelta(hours=3)).timestamp()},
+                    )
+                clock.now = now + timedelta(hours=2)
+                event = event.model_copy(update={"expires_at": (now + timedelta(hours=3)).timestamp()})
+            elif case == "role-change":
+                changed_actor = issued_identity.actor.model_copy(update={"roles": ("operator",)})
+                changed_identity = issued_identity.model_copy(update={"actor": changed_actor})
+                directory = IdentityDirectory(bindings=(changed_identity,))
+                event, _ = _event(action, source, nonce="role-change")
+            receiver = TransactionalFeishuReceiver(
+                databases.platform_sessions,
+                source,
+                TransactionalApprovalCardAcceptor(runtime, repository, source, clock=clock),
+            )
+            with pytest.raises((PermissionError, ValueError)):
+                await receiver.accept(event)
+            counts = await _counts(databases)
+            assert counts["ingress_receipts"] == counts["ingress_replays"] == 0
+            assert counts["approval_card_bindings"] == 1
+            current = await repository.get("tenant", original.approval_id)
+            if case == "approval-expiry":
+                assert current is not None and current.status == "expired"
+                assert counts["audit_events"] == baseline["audit_events"] + 1
+                assert counts["outbox"] == baseline["outbox"] + 1
+            else:
+                assert current is not None and current.status == "pending"
+>               assert counts["audit_events"] == baseline["audit_events"]
+E               assert 2 == 1
+
+tests/integration/test_v06_transactional_approval_acceptance.py:617: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_signed_http_success_duplicate_and_restart_are_exactly_once
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[role-change]
+2 failed, 30 passed, 1 warning in 18.47s

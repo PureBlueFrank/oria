@@ -1,0 +1,8 @@
+imported 178 Oria modules from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+verified installed wheel assets, current revisions, idempotent data init, and V0.3 business tables from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+verified installed T04 providers and fixture embedder from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+verified installed T05 RAG and snapshot behavior from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+verified installed T06 tools and redaction from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+{"checkpoint_tenant_isolation": true, "golden_contract": true, "graph_nodes": ["model", "tools", "validate"], "ok": true, "prompt_version": 1}
+{"business_side_effect_free": true, "eligible_merchants": 10, "ok": true, "package_file": "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent\u9879\u76ee/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py", "runs": 2, "tool_events": ["search_campaign_rules", "query_merchants"]}
+verified installed V0.2-T05 eval assets from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py

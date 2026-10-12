@@ -1,0 +1,4 @@
+{"probe": "same-query-after-expiry", "before_count": 1, "after_expiry_search_count": 1, "after_expiry_view_count": 0, "expired_result_reproduced": true}
+{"probe": "same-query-after-second-runtime-delete", "deleted": true, "stale_search_count": 1, "active_view_count": 0, "deleted_result_reproduced": true}
+{"probe": "structured-repair-preserves-string-content", "input_string": "synthetic,}", "output_string": "synthetic}", "string_changed_reproduced": true}
+{"probe": "codex-provider-tenant-thread-isolation", "transport": "local stub; no provider or subprocess called", "different_tenants": true, "provider_threads_created": 1, "same_remote_thread_reused": true, "second_tenant_messages_sent": 0}

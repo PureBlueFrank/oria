@@ -23,7 +23,7 @@
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
 | V0.4 | 场景 B 动态归因 Agent | T01–T05 已完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 50 条 Golden 已审阅并冻结 30/20 split；GPT-5.6 Sol 完成 20×3，自动通过 55/60，严格盲评 10/10 达线、平均 0.98。 |
 | V0.5 | 多智能体、上下文与记忆 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 已交付上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、公平对照 harness 与 S2–S4 C/SEC 证据；不声明 Live 质量提升。 |
-| V0.6 | API 与 Durable Job | T01 Community/CT 通过，PostgreSQL E-like 缺 DSN blocked；T02 进行中；T03+ 未开始 | 已交付双后端持久化契约、API/JWT、飞书协议和 IM 展示基础，以及 SQLite 事务化持久去重、审批 HTTP 接口与并发保护；实际任务受理尚未接通，不声明真实 PostgreSQL 或飞书已验证。 |
+| V0.6 | API 与 Durable Job | T01 Community/CT 通过，PostgreSQL E-like 缺 DSN blocked；T02 进行中；T03+ 未开始 | 已交付双后端持久化契约、API/JWT、飞书协议和 IM 展示基础，以及 SQLite 事务化持久去重、审批 HTTP 与卡片原子批准；Job/wait 任务受理和生产通道尚未接通，不声明真实 PostgreSQL 或飞书已验证。 |
 
 ## V0.1：场景 A 只读提案 MVP
 
@@ -114,6 +114,14 @@ V0.6-T02 后续（2026-10-05）：新增 `platform_0010` 受理/重放账本和�
 V0.6-T02 后续（2026-10-06）：新增审批详情/决定 HTTP 路由（通过受信运行时注入），复用现有 Policy、租户查询、职责分离和有效期检查；版本指纹和数据库条件更新阻止旧页面及并发覆盖决定，成功决定与审计/outbox 同事务。CLI 审批生命周期装配、飞书 action 持久绑定、Job 及真实通道仍未接通，T02 未收口。见 [审批增量验证卡](reports/verification/v0.6/20261006-t02-approvals/summary.md)。
 
 V0.6-T02 后续（2026-10-08）：已补齐显式配置驱动的审批服务启动装配：只读核验 SQLite schema/版本后启动现有 RuntimeServices，真实本地 HTTP→Policy→审批持久化与撤权已验证，失败/关闭回收资源。仅 Mock/Fixture + SQLite，飞书动作绑定、Job 恢复与真实通道仍待完成；T02 未收口。见 [启动装配验证卡](reports/verification/v0.6/20261008-t02-lifecycle/summary.md)。
+
+V0.6-T02 后续（2026-10-11）：新增 platform_0011 持久审批卡片引用及 ApprovalCardBindings：绑定可信租户、审批完整版本、外部身份、会话、卡片消息和有效期，重启资源后仍可解析，逐次重查审批 Policy 和职责分离。仅内部签发/解析，不提交审批决定；生产投递装配、receipt 与决定原子受理及 Job/wait 恢复仍待完成，T02 未收口。见 [卡片绑定验证卡](reports/verification/v0.6/20261011-t02-card-bindings/summary.md)。
+
+V0.6-T02 后续（2026-10-11，事务受理）：新增服务端显式 `approve` 意图与事务化飞书审批 acceptor；同一 receiver-owned SQLite session 内完成 receipt/replay、完整审批快照 CAS、审计与 outbox。重复已提交 action 重查当前身份/Policy/SOD/binding 但无新副作用，并发卡片与 HTTP 决定仍由完整 CAS 保证单一胜者。仅本地签名回调 + SQLite/Mock/Fixture；默认 receiver 缺失仍返回 503，生产投递/更新、带理由 reject、Job/wait/Graph 恢复、真实飞书与 Enterprise 仍待后续，T02 未收口。见 [事务受理验证卡](reports/verification/v0.6/20261011-t02-transactional-acceptance/summary.md)。
+
+审查修复与工程复核（2026-10-12）：补齐受理过程中撤权回滚及 Policy 拒绝审计，校正卡片解析授权审计证据，并复用审批失效化 SQL；1073 项本地测试、静态检查、构建和 CLI smoke 通过。全工程检查另复现 Codex Provider 跨租户会话复用、V0.5-T02 Memory 缓存过期/删除后仍可见及结构化 JSON 修复改写字符串三项待修复缺陷；历史通过记录不覆盖这些新场景。T02 与 Live/Enterprise 状态不变。见 [修复与检查报告](reports/verification/v0.6/20261012-review-fixes/summary.md)。
+
+新增问题后续修复（2026-10-12）：上述三项已修复。Codex 模型会话与消息计数按 tenant/actor/thread 隔离；Memory 仅缓存查询向量，每次读取有效记录以覆盖 TTL 和另一实例删除/新增；JSON 尾逗号修复保留字符串及转义内容。新增 13 个回归修复前均失败，最终定向 29 passed，全量本地 1086 passed / 3 deselected；静态检查、构建和 CLI 均通过，见 [新增问题修复验证卡](reports/verification/v0.6/20261012-additional-review-fixes/summary.md)。没有运行新 Live/Enterprise，T02 仍在进行中。
 
 - **Fixture（F）**：使用 MockLLM、FixtureEmbedder、Mock Tool 和固定数据，证明控制流、类型契约、错误处理与确定性回归；不能证明真实模型或外部服务。
 - **Community（C）**：使用本地 BGE、Chroma、SQLite、真实进程或网络回环，证明社区版本地链路、恢复和数据一致性；不能证明企业规模或企业系统兼容性。

@@ -55,6 +55,11 @@ class SQLiteApprovalRepository:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
 
+    def bind(self, session: AsyncSession) -> SessionBoundApprovalRepository:
+        """Use the receiver-owned transaction without opening or committing a session."""
+
+        return SessionBoundApprovalRepository(self, session)
+
     async def add(
         self,
         approval: Approval,
@@ -63,24 +68,7 @@ class SQLiteApprovalRepository:
         try:
             async with self._sessions.begin() as session:
                 await set_session_tenant_context(session, approval.tenant_id)
-                await session.execute(
-                    text(
-                        "INSERT INTO approvals (tenant_id, approval_id, approval_action, "
-                        "tool_name, canonical_args_hash, checkpoint_id, policy_version, "
-                        "expires_at, status, requester, decider, decision, reason, created_at, "
-                        "updated_at, decided_at, campaign_id, enrollment_version, link_version, "
-                        "selection_version, selection_hash, rule_snapshot_hash) VALUES "
-                        "(:tenant_id, :approval_id, "
-                        ":approval_action, :tool_name, :canonical_args_hash, :checkpoint_id, "
-                        ":policy_version, :expires_at, :status, :requester, :decider, :decision, "
-                        ":reason, :created_at, :updated_at, :decided_at, :campaign_id, "
-                        ":enrollment_version, :link_version, :selection_version, :selection_hash, "
-                        ":rule_snapshot_hash)"
-                    ),
-                    _approval_values(approval),
-                )
-                if audit_event is not None:
-                    await self._append_approval_events(session, approval, audit_event)
+                await self._add(session, approval, audit_event)
         except IntegrityError as exc:
             raise ValueError("approval already exists") from exc
         except SQLAlchemyError as exc:
@@ -90,36 +78,9 @@ class SQLiteApprovalRepository:
         try:
             async with self._sessions() as session:
                 await set_session_tenant_context(session, tenant_id)
-                result = await session.execute(
-                    text(
-                        "SELECT tenant_id, approval_id, approval_action, tool_name, "
-                        "canonical_args_hash, checkpoint_id, policy_version, expires_at, status, "
-                        "requester, decider, decision, reason, created_at, updated_at, decided_at "
-                        ", campaign_id, enrollment_version, link_version, selection_version, "
-                        "selection_hash, rule_snapshot_hash "
-                        "FROM approvals WHERE tenant_id = :tenant_id AND approval_id = :approval_id"
-                    ),
-                    {"tenant_id": tenant_id, "approval_id": approval_id},
-                )
-                row = result.mappings().one_or_none()
+                return await self._get(session, tenant_id, approval_id)
         except SQLAlchemyError as exc:
             raise PlatformRepositoryError("approval read failed") from exc
-        if row is None:
-            return None
-        values = dict(row)
-        campaign_id = values.pop("campaign_id")
-        binding_values = {
-            "campaign_id": campaign_id,
-            "enrollment_version": values.pop("enrollment_version"),
-            "link_version": values.pop("link_version"),
-            "selection_version": values.pop("selection_version"),
-            "selection_hash": values.pop("selection_hash"),
-            "rule_snapshot_hash": values.pop("rule_snapshot_hash"),
-        }
-        values["business_binding"] = (
-            None if campaign_id is None else ApprovalBusinessBinding.model_validate(binding_values)
-        )
-        return Approval.model_validate(values)
 
     async def replace(
         self,
@@ -138,26 +99,99 @@ class SQLiteApprovalRepository:
         try:
             async with self._sessions.begin() as session:
                 await set_session_tenant_context(session, approval.tenant_id)
-                result = await session.execute(
-                    text(
-                        "UPDATE approvals SET status = :status, decider = :decider, "
-                        "decision = :decision, reason = :reason, updated_at = :updated_at, "
-                        "decided_at = :decided_at WHERE tenant_id = :tenant_id "
-                        "AND approval_id = :approval_id AND " + predicate
-                    ),
-                    _approval_values(approval)
-                    | {f"expected_{key}": value for key, value in expected_values.items()},
+                await self._replace(
+                    session,
+                    approval,
+                    audit_event,
+                    expected_values=expected_values,
+                    predicate=predicate,
                 )
-                if not isinstance(result, CursorResult) or result.rowcount != 1:
-                    raise ApprovalConflict("approval changed")
-                if audit_event is not None:
-                    await self._append_approval_events(session, approval, audit_event)
         except LookupError:
             raise
         except IntegrityError as exc:
             raise ValueError("approval event already exists") from exc
         except SQLAlchemyError as exc:
             raise PlatformRepositoryError("approval update failed") from exc
+
+    async def _add(
+        self,
+        session: AsyncSession,
+        approval: Approval,
+        audit_event: EventEnvelope | None,
+    ) -> None:
+        await session.execute(
+            text(
+                "INSERT INTO approvals (tenant_id, approval_id, approval_action, "
+                "tool_name, canonical_args_hash, checkpoint_id, policy_version, "
+                "expires_at, status, requester, decider, decision, reason, created_at, "
+                "updated_at, decided_at, campaign_id, enrollment_version, link_version, "
+                "selection_version, selection_hash, rule_snapshot_hash) VALUES "
+                "(:tenant_id, :approval_id, :approval_action, :tool_name, "
+                ":canonical_args_hash, :checkpoint_id, :policy_version, :expires_at, "
+                ":status, :requester, :decider, :decision, :reason, :created_at, "
+                ":updated_at, :decided_at, :campaign_id, :enrollment_version, "
+                ":link_version, :selection_version, :selection_hash, :rule_snapshot_hash)"
+            ),
+            _approval_values(approval),
+        )
+        if audit_event is not None:
+            await self._append_approval_events(session, approval, audit_event)
+
+    async def _get(
+        self, session: AsyncSession, tenant_id: str, approval_id: str
+    ) -> Approval | None:
+        result = await session.execute(
+            text(
+                "SELECT tenant_id, approval_id, approval_action, tool_name, "
+                "canonical_args_hash, checkpoint_id, policy_version, expires_at, status, "
+                "requester, decider, decision, reason, created_at, updated_at, decided_at, "
+                "campaign_id, enrollment_version, link_version, selection_version, "
+                "selection_hash, rule_snapshot_hash FROM approvals "
+                "WHERE tenant_id = :tenant_id AND approval_id = :approval_id"
+            ),
+            {"tenant_id": tenant_id, "approval_id": approval_id},
+        )
+        row = result.mappings().one_or_none()
+        if row is None:
+            return None
+        values = dict(row)
+        campaign_id = values.pop("campaign_id")
+        binding_values = {
+            "campaign_id": campaign_id,
+            "enrollment_version": values.pop("enrollment_version"),
+            "link_version": values.pop("link_version"),
+            "selection_version": values.pop("selection_version"),
+            "selection_hash": values.pop("selection_hash"),
+            "rule_snapshot_hash": values.pop("rule_snapshot_hash"),
+        }
+        values["business_binding"] = (
+            None if campaign_id is None else ApprovalBusinessBinding.model_validate(binding_values)
+        )
+        return Approval.model_validate(values)
+
+    async def _replace(
+        self,
+        session: AsyncSession,
+        approval: Approval,
+        audit_event: EventEnvelope | None,
+        *,
+        expected_values: dict[str, Any],
+        predicate: str,
+    ) -> None:
+        result = await session.execute(
+            text(
+                "UPDATE approvals SET status = :status, decider = :decider, "
+                "decision = :decision, reason = :reason, updated_at = :updated_at, "
+                "decided_at = :decided_at WHERE tenant_id = :tenant_id "
+                "AND approval_id = :approval_id AND " + predicate
+            ),
+            _approval_values(approval)
+            | {f"expected_{key}": value for key, value in expected_values.items()},
+        )
+        if not isinstance(result, CursorResult) or result.rowcount != 1:
+            raise ApprovalConflict("approval changed")
+        if audit_event is not None:
+            await self._append_approval_events(session, approval, audit_event)
 
     async def invalidate_campaign_binding(
         self,
@@ -169,28 +203,36 @@ class SQLiteApprovalRepository:
         try:
             async with self._sessions.begin() as session:
                 await set_session_tenant_context(session, tenant_id)
-                result = cast(
-                    CursorResult[Any],
-                    await session.execute(
-                        text(
-                            "UPDATE approvals SET status = 'invalidated', updated_at = "
-                            ":updated_at WHERE tenant_id = :tenant_id AND campaign_id = "
-                            ":campaign_id AND status IN ('pending', 'approved') AND NOT "
-                            "(enrollment_version = :enrollment_version AND link_version = "
-                            ":link_version AND selection_version = :selection_version AND "
-                            "selection_hash IS NOT DISTINCT FROM :selection_hash AND "
-                            "rule_snapshot_hash = :rule_snapshot_hash)"
-                        ),
-                        {
-                            "tenant_id": tenant_id,
-                            "updated_at": updated_at,
-                            **binding.model_dump(),
-                        },
-                    ),
+                return await self._invalidate_campaign_binding(
+                    session, tenant_id=tenant_id, binding=binding, updated_at=updated_at
                 )
-                return result.rowcount
         except SQLAlchemyError as exc:
             raise PlatformRepositoryError("campaign approval invalidation failed") from exc
+
+    async def _invalidate_campaign_binding(
+        self,
+        session: AsyncSession,
+        *,
+        tenant_id: str,
+        binding: ApprovalBusinessBinding,
+        updated_at: datetime,
+    ) -> int:
+        result = cast(
+            CursorResult[Any],
+            await session.execute(
+                text(
+                    "UPDATE approvals SET status = 'invalidated', updated_at = :updated_at "
+                    "WHERE tenant_id = :tenant_id AND campaign_id = :campaign_id "
+                    "AND status IN ('pending', 'approved') AND NOT "
+                    "(enrollment_version = :enrollment_version AND "
+                    "link_version = :link_version AND selection_version = "
+                    ":selection_version AND selection_hash IS NOT DISTINCT FROM "
+                    ":selection_hash AND rule_snapshot_hash = :rule_snapshot_hash)"
+                ),
+                {"tenant_id": tenant_id, "updated_at": updated_at, **binding.model_dump()},
+            ),
+        )
+        return result.rowcount
 
     async def _append_approval_events(
         self,
@@ -238,6 +280,79 @@ class SQLiteApprovalRepository:
                 "occurred_at": event.occurred_at,
             },
         )
+
+
+class SessionBoundApprovalRepository:
+    """Approval repository facade that never opens, commits, or rolls back a session."""
+
+    def __init__(self, owner: SQLiteApprovalRepository, session: AsyncSession) -> None:
+        self._owner = owner
+        self._session = session
+
+    async def add(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+    ) -> None:
+        try:
+            await set_session_tenant_context(self._session, approval.tenant_id)
+            await self._owner._add(self._session, approval, audit_event)
+        except IntegrityError as exc:
+            raise ValueError("approval already exists") from exc
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("approval persistence failed") from exc
+
+    async def get(self, tenant_id: str, approval_id: str) -> Approval | None:
+        try:
+            await set_session_tenant_context(self._session, tenant_id)
+            return await self._owner._get(self._session, tenant_id, approval_id)
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("approval read failed") from exc
+
+    async def replace(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+        *,
+        expected: Approval,
+    ) -> None:
+        if (approval.tenant_id, approval.approval_id) != (
+            expected.tenant_id,
+            expected.approval_id,
+        ):
+            raise ApprovalConflict("approval identity changed")
+        expected_values = _approval_values(expected)
+        predicate = " AND ".join(
+            f"{column} IS NOT DISTINCT FROM :expected_{column}" for column in expected_values
+        )
+        try:
+            await set_session_tenant_context(self._session, approval.tenant_id)
+            await self._owner._replace(
+                self._session,
+                approval,
+                audit_event,
+                expected_values=expected_values,
+                predicate=predicate,
+            )
+        except IntegrityError as exc:
+            raise ValueError("approval event already exists") from exc
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("approval update failed") from exc
+
+    async def invalidate_campaign_binding(
+        self,
+        *,
+        tenant_id: str,
+        binding: ApprovalBusinessBinding,
+        updated_at: datetime,
+    ) -> int:
+        try:
+            await set_session_tenant_context(self._session, tenant_id)
+            return await self._owner._invalidate_campaign_binding(
+                self._session, tenant_id=tenant_id, binding=binding, updated_at=updated_at
+            )
+        except SQLAlchemyError as exc:
+            raise PlatformRepositoryError("campaign approval invalidation failed") from exc
 
 
 class SQLiteApprovalInvalidationRepository:

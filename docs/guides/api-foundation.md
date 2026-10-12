@@ -1,6 +1,6 @@
 # API 与飞书入口基础（V0.6-T02 进行中）
 
-当前交付可运行的 HTTP 外壳、JWT 身份映射、资源授权接缝、飞书签名/加密回调解析和出站适配器、IM v1 展示模型，以及事务化持久去重接收器。新增可注入运行时的审批详情与决定 HTTP 路由。尚未交付 Job 提交/查询/取消、飞书审批 action 持久绑定、实际业务受理处理器或真实飞书双场景链路。不要把 HTTP 健康检查或合成回调通过解释为企业接入完成。
+当前交付可运行的 HTTP 外壳、JWT 身份映射、资源授权接缝、飞书签名/加密回调解析和出站适配器、IM v1 展示模型，以及事务化持久去重接收器。新增可注入运行时的审批详情与决定 HTTP 路由、持久审批卡片绑定和原子批准处理器。尚未交付 Job 提交/查询/取消、飞书审批绑定与处理器的生产装配或真实飞书双场景链路。不要把 HTTP 健康检查或合成回调通过解释为企业接入完成。
 
 ## 本地启动
 
@@ -61,7 +61,7 @@ JWT 中即使签有 `tenant/roles` 也不会被用作授权事实；仅 `(issuer
 - `POST /v1/approvals/{approval_id}/decision` 接收 `decision`（`approve` 或 `reject`）、从详情取得的 `expected_revision`，以及可选 `reason`。拒绝必须提供非空白理由；额外的 tenant、role、checkpoint、wait 等参数返回 422。版本已变化或重复决定返回 409，应刷新详情重新核对。
 - 决定复用现有职责分离、有效期与策略版本校验；发起人不能自批。通过版本检查也不代表获得执行权限，后续 Graph 恢复仍需原有参数、checkpoint、业务绑定和 Policy 校验。接口只记录决定，不直接恢复 Graph。
 - 审批 Repository 的 `replace` 必须携带读取时的 `expected` 快照。数据库更新要求整条快照仍匹配，成功决定和 audit/outbox 同事务；两个不同请求竞争同一审批时，仅一个成功，失败方不覆盖决定、不新增审计。内存 Repository 保持同一契约。没有新增迁移或依赖。
-- 此 HTTP 版本校验不是飞书 `action_ref` 绑定。卡片动作与 tenant/资源/版本/wait 的持久关联、按钮受理和后续 Job 恢复仍待实现；没有因此打开默认飞书接收器。
+- 此 HTTP 版本校验不是飞书 `action_ref` 绑定。已新增 tenant/审批版本/身份/卡片消息的持久关联与按钮原子批准；wait 关联、生产装配和后续 Job 恢复仍待实现，没有因此打开默认飞书接收器。
 
 ## 启用本地审批服务（2026-10-08）
 
@@ -86,10 +86,22 @@ data_dir: /absolute/path/to/initialized-oria-data
 - 身份目录使用 issuer `feishu:<app_id>:<tenant_key>` 与 subject `open_id`，不从文本或卡片 value 获取角色/租户。
 - 消息按平台 source message 派生稳定去重键；卡片 value 只允许版本和不透明 `action_ref`。该引用不等于审批授权，后续处理器必须在服务端绑定资源/版本/wait 并重新鉴权。
 - `TransactionalFeishuReceiver` 已实现持久 source/action/replay 去重：`platform_0010` 新增只保存键、摘要与回执引用的 `ingress_receipts/ingress_replays`。业务处理器的授权和写入与账本共用同一事务，失败或提交前崩溃一起回滚；相同消息重投不再次写入，不同内容复用同一键返回 409。重复请求也重新检查当前身份及业务授权。
-- 接收器只接受受信服务实现的 `TransactionalAcceptor`，其 `persist` 只能使用提供的事务写入已接受业务请求，不能另开连接、主动提交或执行外部副作用；`authorize` 必须绑定真实资源、版本和 wait 并调用 Policy。当前只有合成业务处理器用于验证，默认服务仍没有实际 receiver 装配，已验签业务消息仍返回 **503**。不能把合成写入的一次性证明当作 Job/审批链路完成。
+- 接收器只接受受信服务实现的 `TransactionalAcceptor`，其 `accept(session, event, receipt_ref, duplicate=...)` 检查当前 Policy 与服务端资源绑定，并只能使用提供的事务写入业务请求，不能另开连接、主动提交或执行外部副作用。已实现审批卡片的真实 ApprovalService 受理接缝，本地 SQLite 回调用于验证；Job/wait 处理器与默认服务的 receiver 装配仍未完成，已验签业务消息仍返回 **503**。本地审批批准不代表 Job/Graph 恢复或真实飞书链路完成。
 - 新表带 tenant 复合键与 PostgreSQL FORCE RLS；本轮仅实测 SQLite。迁移通过已有 `oria db upgrade` 路径执行，测试只操作临时数据库；没有改动用户现有数据。nonce 的到期字段已保存，但本轮不自动清理账本，受理回执必须保留至业务幂等保留期结束后再制定清理策略。
 - `FeishuChannel` 提供授权后的文本与卡片发送；只向服务端配置的 tenant/chat/subject 白名单发送，调用现有 `notification:send` Policy。部署方注入按 tenant 取 token 的函数，当前 CLI 不装配出站通道。超时返回 `delivery_unknown`，不自动重发；可靠 delivery ledger 属于 T05。文件上传不支持，也不会读取给定路径。
 - `IMViewModel` v1 覆盖回执、确认、进度、结果、待审批/待事件与失败，限制字段/长度，每页最多五段，展示详情编号与下一步建议。卡片使用纯文本，经过已有输出脱敏。业务服务只能投影已授权的公开摘要，不能传入隐式思维链或原始 Tool/State。审批 HTTP 详情已接入逐次授权；飞书详情/翻页 action 仍待后续接入。
+
+## 持久审批卡片引用（2026-10-11）
+
+`ApprovalCardBindings` 是受信业务服务的内部接口，不开放客户端创建绑定。`issue(approval_id, identity, chat_id=..., message_id=..., decision_intent="approve")` 接收服务端确认的卡片投递目的地与消息 ID，重新读取待审批记录并检查当前审批权限、职责分离和有效期；返回高熵、不透明 `CardAction`。为保持既有调用兼容，省略意图时仍显式持久为 `approve`；当前没有可审计的拒绝理由输入契约，因此任何非 `approve` 意图均失败关闭。绑定只保存引用 SHA-256、可信租户/审批 ID、完整审批版本指纹、决定意图、外部 issuer/subject、actor、chat/message ID 和有效期，不保存原始引用、卡片正文、checkpoint 或凭证。
+
+`platform_0011` 新增 `approval_card_bindings`，以 tenant + 引用摘要为主键，带 tenant + approval 复合外键；PostgreSQL 继承 FORCE RLS。迁移通过既有明确初始化/升级入口执行，API 不自动迁移。本轮只操作临时 SQLite 数据库，测试升级/降级和资源重建后解析；真实 PostgreSQL 未验证。
+
+`resolve(verified_event)` 读取绑定与审批记录，并记录必要的授权审计；它不提交审批决定，不写 receipt/replay 或 outbox，也不是决定凭据。`TransactionalApprovalCardAcceptor` 才是点击受理接缝：它只使用 `TransactionalFeishuReceiver` 提供的 session，调用现有 `ApprovalService` 的 Policy、SOD、过期和策略版本不变量，以完整快照 CAS 写入决定、审批审计和 outbox，与 receipt/replay 一起提交或回滚。成功审计的 correlation ID 为 receipt_ref。
+
+receiver 在受理事务提交前再次核验当前身份及回调有效期，处理期间撤权会使审批、审计/outbox 和 receipt/replay 一起回滚；该检查也覆盖重复回调。Policy 拒绝的受理先回滚，再经原有 AuditService 独立记录脱敏拒绝审计，避免 SQLite 写锁争用；这类审计不会创建新的业务受理或 outbox。
+
+同一已提交 action 的重试会重查当前身份、Policy、SOD 和 binding，但不要求审批仍为 pending 或匹配签发时 revision，也不会再写审批/审计/outbox。另一 action_ref 指向已决定审批时则失败并回滚新 receipt。本地注入 receiver 的真实签名 HTTP 回调已验证；默认 server 仍不自动装配 receiver，缺失时保持 503。生产卡片投递/更新、带理由拒绝、Job/wait 与 Graph 恢复仍待后续；未运行真实飞书、Live 或 Enterprise。
 
 ## 验证与限制
 

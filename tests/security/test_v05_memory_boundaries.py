@@ -54,9 +54,9 @@ async def test_delete_clears_body_vector_cache_and_writes_only_redacted_audit(
             opt_in=True,
         )
         assert await memory.search("待删除正文", ctx)
-        assert memory._search_cache
+        assert memory._query_embedding_cache
         assert await memory.delete(item.id, ctx) is True
-        assert memory._search_cache == {}
+        assert memory._query_embedding_cache == {}
         assert await memory.search("待删除正文", ctx) == []
         assert await memory.view(ctx) == []
         assert await memory.export(ctx) == []

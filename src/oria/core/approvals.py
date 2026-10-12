@@ -263,6 +263,13 @@ class ApprovalConflict(ValueError):
     """Approval changed since it was read; no decision or audit was committed."""
 
 
+class ApprovalDecisionOutcome(ValueModel):
+    """A persisted decision or terminal invalidation that the owner may commit."""
+
+    approval: Approval
+    rejection: Literal["policy_version_changed", "expired"] | None = None
+
+
 class ApprovalRepository(Protocol):
     async def add(
         self,
@@ -431,6 +438,32 @@ class ApprovalService:
         ctx: Context,
         expected: Approval | None = None,
     ) -> Approval:
+        outcome = await self.decide_outcome(
+            tenant_id=tenant_id,
+            approval_id=approval_id,
+            decision=decision,
+            reason=reason,
+            ctx=ctx,
+            expected=expected,
+        )
+        if outcome.rejection == "policy_version_changed":
+            raise PermissionError("approval policy version changed")
+        if outcome.rejection == "expired":
+            raise PermissionError("approval has expired")
+        return outcome.approval
+
+    async def decide_outcome(
+        self,
+        *,
+        tenant_id: str,
+        approval_id: str,
+        decision: Literal["approve", "reject"],
+        reason: str | None,
+        ctx: Context,
+        expected: Approval | None = None,
+    ) -> ApprovalDecisionOutcome:
+        """Persist one complete outcome while leaving commit ownership to the repository."""
+
         if tenant_id != ctx.tenant_id:
             raise PermissionError("cross-tenant approval access is denied")
         approval = await self._required(tenant_id, approval_id)
@@ -438,15 +471,9 @@ class ApprovalService:
             raise ApprovalConflict("approval changed")
         if approval.status != "pending":
             raise ValueError("only pending approvals can be decided")
-        if approval.requester == ctx.actor.subject_id:
-            raise PermissionError("approval requester cannot decide the same approval")
         if decision == "reject" and not reason:
             raise ValueError("approval rejection requires a reason")
-        authorization = await self._authorize(
-            action=_DECIDE_ACTIONS[approval.approval_action],
-            resource_id=approval.approval_id,
-            ctx=ctx,
-        )
+        authorization = await self._authorize_decider(approval, ctx)
         if authorization.policy_version != approval.policy_version:
             invalidated = self._terminalize(approval, status="invalidated")
             await self._repository.replace(
@@ -454,7 +481,10 @@ class ApprovalService:
                 self._audit_event(invalidated, action="approval.invalidated", ctx=ctx),
                 expected=approval,
             )
-            raise PermissionError("approval policy version changed")
+            return ApprovalDecisionOutcome(
+                approval=invalidated,
+                rejection="policy_version_changed",
+            )
         now = self._now()
         if now >= approval.expires_at:
             expired = self._terminalize(approval, status="expired")
@@ -463,7 +493,7 @@ class ApprovalService:
                 self._audit_event(expired, action="approval.expired", ctx=ctx),
                 expected=approval,
             )
-            raise PermissionError("approval has expired")
+            return ApprovalDecisionOutcome(approval=expired, rejection="expired")
         decided = Approval.model_validate(
             {
                 **approval.model_dump(),
@@ -480,7 +510,22 @@ class ApprovalService:
             self._audit_event(decided, action="approval.decided", ctx=ctx),
             expected=approval,
         )
-        return decided
+        return ApprovalDecisionOutcome(approval=decided)
+
+    async def reauthorize_decider(
+        self,
+        *,
+        tenant_id: str,
+        approval_id: str,
+        ctx: Context,
+    ) -> Approval:
+        """Recheck current Policy and separation of duty without requiring pending state."""
+
+        if tenant_id != ctx.tenant_id:
+            raise PermissionError("cross-tenant approval access is denied")
+        approval = await self._required(tenant_id, approval_id)
+        await self._authorize_decider(approval, ctx)
+        return approval
 
     async def get_for_decision(
         self,
@@ -625,6 +670,15 @@ class ApprovalService:
         if not decision.allow or decision.constraints.get("tenant_id") != ctx.tenant_id:
             raise PermissionError("approval operation is not authorized")
         return decision
+
+    async def _authorize_decider(self, approval: Approval, ctx: Context) -> PolicyDecision:
+        if approval.requester == ctx.actor.subject_id:
+            raise PermissionError("approval requester cannot decide the same approval")
+        return await self._authorize(
+            action=_DECIDE_ACTIONS[approval.approval_action],
+            resource_id=approval.approval_id,
+            ctx=ctx,
+        )
 
     async def _required(self, tenant_id: str, approval_id: str) -> Approval:
         approval = await self._repository.get(tenant_id, approval_id)

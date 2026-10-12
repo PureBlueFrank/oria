@@ -188,3 +188,87 @@ async def test_namespace_ttl_and_confidence_filtering(tmp_path: Path) -> None:
         assert [item.id for item in await memory.view(contexts["a"])] == [low_confidence.id]
     finally:
         await runtime.aclose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("elapsed_minutes", [1, 2])
+async def test_same_query_does_not_return_expired_memory(tmp_path: Path, elapsed_minutes: int):
+    current = [datetime(2026, 10, 12, tzinfo=UTC)]
+    _, runtime, contexts, _, _ = await _runtime(tmp_path, lambda: current[0])
+    try:
+        memory = runtime.memory
+        assert isinstance(memory, PersistentMemory)
+        saved = await memory.save_fact(
+            "synthetic expiring preference",
+            contexts["a"],
+            provenance="user-explicit",
+            confidence=0.95,
+            sensitivity="low",
+            expires_at=current[0] + timedelta(minutes=1),
+            opt_in=True,
+        )
+        query = "synthetic expiring preference"
+        assert [item.id for item in await memory.search(query, contexts["a"])] == [saved.id]
+        current[0] += timedelta(minutes=elapsed_minutes)
+        assert await memory.search(query, contexts["a"]) == []
+        assert await memory.view(contexts["a"]) == []
+        assert await memory.export(contexts["a"]) == []
+    finally:
+        await runtime.aclose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mutation", ["delete", "create"])
+async def test_same_query_observes_other_runtime_memory_changes(tmp_path: Path, mutation: str):
+    now = datetime(2026, 10, 12, tzinfo=UTC)
+    config, first, contexts, actors, executors = await _runtime(tmp_path, lambda: now)
+    second = None
+    try:
+        first_memory = first.memory
+        assert isinstance(first_memory, PersistentMemory)
+        second = await build_runtime(
+            config, clock=lambda: now, trusted_actors=actors, trusted_executors=executors
+        )
+        second_memory = second.memory
+        assert isinstance(second_memory, PersistentMemory)
+        second_ctx = second.new_context(
+            actor=actors[0],
+            executor=executors[0],
+            session_id="second-memory-session",
+            thread_id="second-memory-thread",
+            run_id="second-memory-run",
+        )
+        query = "synthetic lifecycle preference"
+        if mutation == "delete":
+            saved = await first_memory.save_fact(
+                query,
+                contexts["a"],
+                provenance="user-explicit",
+                confidence=0.95,
+                sensitivity="low",
+                opt_in=True,
+            )
+            assert [item.id for item in await first_memory.search(query, contexts["a"])] == [
+                saved.id
+            ]
+            assert await second_memory.delete(saved.id, second_ctx) is True
+            assert await first_memory.search(query, contexts["a"]) == []
+            assert await first_memory.view(contexts["a"]) == []
+            assert await first_memory.export(contexts["a"]) == []
+        else:
+            assert await first_memory.search(query, contexts["a"]) == []
+            saved = await second_memory.save_fact(
+                query,
+                second_ctx,
+                provenance="user-explicit",
+                confidence=0.95,
+                sensitivity="low",
+                opt_in=True,
+            )
+            assert [item.id for item in await first_memory.search(query, contexts["a"])] == [
+                saved.id
+            ]
+    finally:
+        if second is not None:
+            await second.aclose()
+        await first.aclose()

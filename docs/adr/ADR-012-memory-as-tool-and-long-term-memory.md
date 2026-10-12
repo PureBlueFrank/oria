@@ -26,6 +26,7 @@ V0.5-T01 已交付会话级上下文治理：短期历史、滑窗摘要、事�
 
 - **命名空间与隔离**：所有读写按 `(tenant_id, subject_id)` 隔离，查询强制带两者，deny-by-default；跨 namespace 写入被 `_authorize` 拒绝。
 - **生命周期**：`expires_at` TTL 到期后 `search`/`view`/`export` 均不可见；`delete` 同步清空正文、删除向量投影、失效搜索缓存，审计 `audit_events` 仅记录脱敏删除事件（`object_hash`），不保留被删除正文。
+- **查询缓存（2026-10-12 修复）**：仅按 tenant/subject/query 缓存查询向量，不缓存记忆正文或结果列表；每次 search 都从当前数据库读取有效记录后重新排序。因此相同查询跨 TTL、另一 RuntimeServices 删除或新增记忆均可见当前生命周期；本实例写入/删除仍清除该 namespace 的查询缓存。
 - **provenance/confidence/sensitivity**：高敏感（非 `low/public/internal`）内容拒绝保存；`confidence < 0.7` 的记忆不自动注入检索结果（`view` 仍可见，便于治理）。
 - **投毒边界**：`search_memory` 返回的每条记忆标记 `trust_level="untrusted_data"`、`authority="non_authoritative"`，不得据此扩大工具权限、绕过 system 指令或覆盖业务系统事实；工具描述明示该约束。
 - **脱敏**：保存时对凭证（api_key/token/password/secret/bearer/authorization）、邮箱、电话做正则脱敏，正文存脱敏后的 `[REDACTED]`。

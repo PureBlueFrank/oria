@@ -1,0 +1,567 @@
+FFFFFFFFFFFFF                                                            [100%]
+=================================== FAILURES ===================================
+_ test_provider_threads_are_isolated_and_followups_reused[tenant-b-subject-a] __
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-0/test_provider_threads_are_isol0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10baa9dd0>
+other_tenant = 'tenant-b', other_subject = 'subject-a'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("other_tenant", "other_subject"),
+        [("tenant-b", "subject-a"), ("tenant-a", "subject-b")],
+    )
+    async def test_provider_threads_are_isolated_and_followups_reused(
+        tmp_path: Path, monkeypatch, other_tenant: str, other_subject: str
+    ) -> None:
+        provider = CodexAppServerProvider(
+            ResolvedLLMProfile(
+                profile_id="synthetic-codex",
+                provider="codex",
+                api_dialect="responses",
+                model="synthetic-model",
+            ),
+            work_dir=tmp_path,
+        )
+        start = AsyncMock(side_effect=["model-thread-a", "model-thread-b"])
+        request = AsyncMock(return_value={"turn": {"id": "synthetic-turn"}})
+        result = json.dumps(
+            {
+                "action": "final",
+                "tool_calls": [],
+                "final_response_json": '{"answer":"synthetic"}',
+                "text": "",
+            }
+        )
+        monkeypatch.setattr(provider, "_start_thread", start)
+        monkeypatch.setattr(provider, "_request", request)
+        monkeypatch.setattr(
+            provider,
+            "_read_turn",
+            AsyncMock(return_value=(result, Usage(input_tokens=0, output_tokens=0), None, None)),
+        )
+        first = SimpleNamespace(
+            tenant_id="tenant-a",
+            actor=SimpleNamespace(subject_id="subject-a"),
+            thread_id="shared-external-thread",
+        )
+        other = SimpleNamespace(
+            tenant_id=other_tenant,
+            actor=SimpleNamespace(subject_id=other_subject),
+            thread_id="shared-external-thread",
+        )
+        options = ChatOptions(response_schema=_response_schema())
+        first_question = Message(role="user", content="first synthetic question")
+        other_question = Message(role="user", content="other synthetic question")
+        followup = [
+            Message(role="assistant", content="synthetic answer"),
+            Message(role="user", content="first synthetic followup"),
+        ]
+        await provider.chat([first_question], first, options=options)
+        await provider.chat([other_question], other, options=options)
+        await provider.chat([first_question, *followup], first, options=options)
+
+        sent = [call.args[1] for call in request.await_args_list]
+>       assert sent[0]["threadId"] != sent[1]["threadId"]
+E       AssertionError: assert 'model-thread-a' != 'model-thread-a'
+
+tests/unit/test_codex_app_server.py:192: AssertionError
+_ test_provider_threads_are_isolated_and_followups_reused[tenant-a-subject-b] __
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-0/test_provider_threads_are_isol1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12442fe10>
+other_tenant = 'tenant-a', other_subject = 'subject-b'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("other_tenant", "other_subject"),
+        [("tenant-b", "subject-a"), ("tenant-a", "subject-b")],
+    )
+    async def test_provider_threads_are_isolated_and_followups_reused(
+        tmp_path: Path, monkeypatch, other_tenant: str, other_subject: str
+    ) -> None:
+        provider = CodexAppServerProvider(
+            ResolvedLLMProfile(
+                profile_id="synthetic-codex",
+                provider="codex",
+                api_dialect="responses",
+                model="synthetic-model",
+            ),
+            work_dir=tmp_path,
+        )
+        start = AsyncMock(side_effect=["model-thread-a", "model-thread-b"])
+        request = AsyncMock(return_value={"turn": {"id": "synthetic-turn"}})
+        result = json.dumps(
+            {
+                "action": "final",
+                "tool_calls": [],
+                "final_response_json": '{"answer":"synthetic"}',
+                "text": "",
+            }
+        )
+        monkeypatch.setattr(provider, "_start_thread", start)
+        monkeypatch.setattr(provider, "_request", request)
+        monkeypatch.setattr(
+            provider,
+            "_read_turn",
+            AsyncMock(return_value=(result, Usage(input_tokens=0, output_tokens=0), None, None)),
+        )
+        first = SimpleNamespace(
+            tenant_id="tenant-a",
+            actor=SimpleNamespace(subject_id="subject-a"),
+            thread_id="shared-external-thread",
+        )
+        other = SimpleNamespace(
+            tenant_id=other_tenant,
+            actor=SimpleNamespace(subject_id=other_subject),
+            thread_id="shared-external-thread",
+        )
+        options = ChatOptions(response_schema=_response_schema())
+        first_question = Message(role="user", content="first synthetic question")
+        other_question = Message(role="user", content="other synthetic question")
+        followup = [
+            Message(role="assistant", content="synthetic answer"),
+            Message(role="user", content="first synthetic followup"),
+        ]
+        await provider.chat([first_question], first, options=options)
+        await provider.chat([other_question], other, options=options)
+        await provider.chat([first_question, *followup], first, options=options)
+
+        sent = [call.args[1] for call in request.await_args_list]
+>       assert sent[0]["threadId"] != sent[1]["threadId"]
+E       AssertionError: assert 'model-thread-a' != 'model-thread-a'
+
+tests/unit/test_codex_app_server.py:192: AssertionError
+______________ test_same_query_does_not_return_expired_memory[1] _______________
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-0/test_same_query_does_not_retur0')
+elapsed_minutes = 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("elapsed_minutes", [1, 2])
+    async def test_same_query_does_not_return_expired_memory(tmp_path: Path, elapsed_minutes: int):
+        current = [datetime(2026, 10, 12, tzinfo=UTC)]
+        _, runtime, contexts, _, _ = await _runtime(tmp_path, lambda: current[0])
+        try:
+            memory = runtime.memory
+            assert isinstance(memory, PersistentMemory)
+            saved = await memory.save_fact(
+                "synthetic expiring preference",
+                contexts["a"],
+                provenance="user-explicit",
+                confidence=0.95,
+                sensitivity="low",
+                expires_at=current[0] + timedelta(minutes=1),
+                opt_in=True,
+            )
+            query = "synthetic expiring preference"
+            assert [item.id for item in await memory.search(query, contexts["a"])] == [saved.id]
+            current[0] += timedelta(minutes=elapsed_minutes)
+>           assert await memory.search(query, contexts["a"]) == []
+E           AssertionError: assert [MemoryItem(i...000000000002)] == []
+E
+E             Left contains one more item: MemoryItem(id='mem_f9eb844f094147ecbdbf5b0ce04c268b', tenant_id='tenant-a', subject_id='subject-a', content='synthetic...tivity='low', expires_at=datetime.datetime(2026, 10, 12, 0, 1, tzinfo=datetime.timezone.utc), score=1.0000000000000002)
+E             Use -v to get more diff
+
+tests/contract/test_v05_long_term_memory.py:213: AssertionError
+______________ test_same_query_does_not_return_expired_memory[2] _______________
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-0/test_same_query_does_not_retur1')
+elapsed_minutes = 2
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("elapsed_minutes", [1, 2])
+    async def test_same_query_does_not_return_expired_memory(tmp_path: Path, elapsed_minutes: int):
+        current = [datetime(2026, 10, 12, tzinfo=UTC)]
+        _, runtime, contexts, _, _ = await _runtime(tmp_path, lambda: current[0])
+        try:
+            memory = runtime.memory
+            assert isinstance(memory, PersistentMemory)
+            saved = await memory.save_fact(
+                "synthetic expiring preference",
+                contexts["a"],
+                provenance="user-explicit",
+                confidence=0.95,
+                sensitivity="low",
+                expires_at=current[0] + timedelta(minutes=1),
+                opt_in=True,
+            )
+            query = "synthetic expiring preference"
+            assert [item.id for item in await memory.search(query, contexts["a"])] == [saved.id]
+            current[0] += timedelta(minutes=elapsed_minutes)
+>           assert await memory.search(query, contexts["a"]) == []
+E           AssertionError: assert [MemoryItem(i...000000000002)] == []
+E
+E             Left contains one more item: MemoryItem(id='mem_7b51d652a3dd4fa5b61ae374e48446cc', tenant_id='tenant-a', subject_id='subject-a', content='synthetic...tivity='low', expires_at=datetime.datetime(2026, 10, 12, 0, 1, tzinfo=datetime.timezone.utc), score=1.0000000000000002)
+E             Use -v to get more diff
+
+tests/contract/test_v05_long_term_memory.py:213: AssertionError
+________ test_same_query_observes_other_runtime_memory_changes[delete] _________
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-0/test_same_query_observes_other0')
+mutation = 'delete'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("mutation", ["delete", "create"])
+    async def test_same_query_observes_other_runtime_memory_changes(tmp_path: Path, mutation: str):
+        now = datetime(2026, 10, 12, tzinfo=UTC)
+        config, first, contexts, actors, executors = await _runtime(tmp_path, lambda: now)
+        second = None
+        try:
+            first_memory = first.memory
+            assert isinstance(first_memory, PersistentMemory)
+            second = await build_runtime(
+                config, clock=lambda: now, trusted_actors=actors, trusted_executors=executors
+            )
+            second_memory = second.memory
+            assert isinstance(second_memory, PersistentMemory)
+            second_ctx = second.new_context(
+                actor=actors[0],
+                executor=executors[0],
+                session_id="second-memory-session",
+                thread_id="second-memory-thread",
+                run_id="second-memory-run",
+            )
+            query = "synthetic lifecycle preference"
+            if mutation == "delete":
+                saved = await first_memory.save_fact(
+                    query,
+                    contexts["a"],
+                    provenance="user-explicit",
+                    confidence=0.95,
+                    sensitivity="low",
+                    opt_in=True,
+                )
+                assert [item.id for item in await first_memory.search(query, contexts["a"])] == [
+                    saved.id
+                ]
+                assert await second_memory.delete(saved.id, second_ctx) is True
+>               assert await first_memory.search(query, contexts["a"]) == []
+E               AssertionError: assert [MemoryItem(i...000000000002)] == []
+E
+E                 Left contains one more item: MemoryItem(id='mem_a1291364911341a4ad0a03879352fa90', tenant_id='tenant-a', subject_id='subject-a', content='synthetic...preference', provenance='user-explicit', confidence=0.95, sensitivity='low', expires_at=None, score=1.0000000000000002)
+E                 Use -v to get more diff
+
+tests/contract/test_v05_long_term_memory.py:255: AssertionError
+________ test_same_query_observes_other_runtime_memory_changes[create] _________
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-0/test_same_query_observes_other1')
+mutation = 'create'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("mutation", ["delete", "create"])
+    async def test_same_query_observes_other_runtime_memory_changes(tmp_path: Path, mutation: str):
+        now = datetime(2026, 10, 12, tzinfo=UTC)
+        config, first, contexts, actors, executors = await _runtime(tmp_path, lambda: now)
+        second = None
+        try:
+            first_memory = first.memory
+            assert isinstance(first_memory, PersistentMemory)
+            second = await build_runtime(
+                config, clock=lambda: now, trusted_actors=actors, trusted_executors=executors
+            )
+            second_memory = second.memory
+            assert isinstance(second_memory, PersistentMemory)
+            second_ctx = second.new_context(
+                actor=actors[0],
+                executor=executors[0],
+                session_id="second-memory-session",
+                thread_id="second-memory-thread",
+                run_id="second-memory-run",
+            )
+            query = "synthetic lifecycle preference"
+            if mutation == "delete":
+                saved = await first_memory.save_fact(
+                    query,
+                    contexts["a"],
+                    provenance="user-explicit",
+                    confidence=0.95,
+                    sensitivity="low",
+                    opt_in=True,
+                )
+                assert [item.id for item in await first_memory.search(query, contexts["a"])] == [
+                    saved.id
+                ]
+                assert await second_memory.delete(saved.id, second_ctx) is True
+                assert await first_memory.search(query, contexts["a"]) == []
+                assert await first_memory.view(contexts["a"]) == []
+                assert await first_memory.export(contexts["a"]) == []
+            else:
+                assert await first_memory.search(query, contexts["a"]) == []
+                saved = await second_memory.save_fact(
+                    query,
+                    second_ctx,
+                    provenance="user-explicit",
+                    confidence=0.95,
+                    sensitivity="low",
+                    opt_in=True,
+                )
+>               assert [item.id for item in await first_memory.search(query, contexts["a"])] == [
+                    saved.id
+                ]
+E               AssertionError: assert [] == ['mem_80112a4...2e50b2062a64']
+E
+E                 Right contains one more item: 'mem_80112a4b39114bdcad8f2e50b2062a64'
+E                 Use -v to get more diff
+
+tests/contract/test_v05_long_term_memory.py:268: AssertionError
+________ test_trailing_comma_repair_preserves_string_content[literal,}] ________
+
+value = 'literal,}'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "literal,}",
+            "literal,]",
+            "literal,  } and literal, \t]",
+            'escaped quote \",} and \",]',
+            'backslash \\ and quote \",} with suffix',
+            "中文,} 与 Unicode,]",
+        ],
+    )
+    def test_trailing_comma_repair_preserves_string_content(value: str) -> None:
+        payload = {"outcome": value}
+        text = json.dumps(payload, ensure_ascii=False)[:-1] + ",}"
+>       assert parse_structured_text(text, _SCHEMA) == payload
+E       AssertionError: assert {'outcome': 'literal}'} == {'outcome': 'literal,}'}
+E
+E         Differing items:
+E         {'outcome': 'literal}'} != {'outcome': 'literal,}'}
+E         Use -v to get more diff
+
+tests/unit/test_structured_salvage.py:73: AssertionError
+________ test_trailing_comma_repair_preserves_string_content[literal,]] ________
+
+value = 'literal,]'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "literal,}",
+            "literal,]",
+            "literal,  } and literal, \t]",
+            'escaped quote \",} and \",]',
+            'backslash \\ and quote \",} with suffix',
+            "中文,} 与 Unicode,]",
+        ],
+    )
+    def test_trailing_comma_repair_preserves_string_content(value: str) -> None:
+        payload = {"outcome": value}
+        text = json.dumps(payload, ensure_ascii=False)[:-1] + ",}"
+>       assert parse_structured_text(text, _SCHEMA) == payload
+E       AssertionError: assert {'outcome': 'literal]'} == {'outcome': 'literal,]'}
+E
+E         Differing items:
+E         {'outcome': 'literal]'} != {'outcome': 'literal,]'}
+E         Use -v to get more diff
+
+tests/unit/test_structured_salvage.py:73: AssertionError
+_ test_trailing_comma_repair_preserves_string_content[literal,  } and literal, \t]] _
+
+value = 'literal,  } and literal, \t]'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "literal,}",
+            "literal,]",
+            "literal,  } and literal, \t]",
+            'escaped quote \",} and \",]',
+            'backslash \\ and quote \",} with suffix',
+            "中文,} 与 Unicode,]",
+        ],
+    )
+    def test_trailing_comma_repair_preserves_string_content(value: str) -> None:
+        payload = {"outcome": value}
+        text = json.dumps(payload, ensure_ascii=False)[:-1] + ",}"
+>       assert parse_structured_text(text, _SCHEMA) == payload
+E       AssertionError: assert {'outcome': '...literal, \t]'} == {'outcome': '...literal, \t]'}
+E
+E         Differing items:
+E         {'outcome': 'literal} and literal, \t]'} != {'outcome': 'literal,  } and literal, \t]'}
+E         Use -v to get more diff
+
+tests/unit/test_structured_salvage.py:73: AssertionError
+_ test_trailing_comma_repair_preserves_string_content[escaped quote ",} and ",]] _
+
+value = 'escaped quote ",} and ",]'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "literal,}",
+            "literal,]",
+            "literal,  } and literal, \t]",
+            'escaped quote \",} and \",]',
+            'backslash \\ and quote \",} with suffix',
+            "中文,} 与 Unicode,]",
+        ],
+    )
+    def test_trailing_comma_repair_preserves_string_content(value: str) -> None:
+        payload = {"outcome": value}
+        text = json.dumps(payload, ensure_ascii=False)[:-1] + ",}"
+>       assert parse_structured_text(text, _SCHEMA) == payload
+E       assert {'outcome': '...te "} and "]'} == {'outcome': '... ",} and ",]'}
+E
+E         Differing items:
+E         {'outcome': 'escaped quote "} and "]'} != {'outcome': 'escaped quote ",} and ",]'}
+E         Use -v to get more diff
+
+tests/unit/test_structured_salvage.py:73: AssertionError
+_ test_trailing_comma_repair_preserves_string_content[backslash \\ and quote ",} with suffix] _
+
+value = 'backslash \\ and quote ",} with suffix'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "literal,}",
+            "literal,]",
+            "literal,  } and literal, \t]",
+            'escaped quote \",} and \",]',
+            'backslash \\ and quote \",} with suffix',
+            "中文,} 与 Unicode,]",
+        ],
+    )
+    def test_trailing_comma_repair_preserves_string_content(value: str) -> None:
+        payload = {"outcome": value}
+        text = json.dumps(payload, ensure_ascii=False)[:-1] + ",}"
+>       assert parse_structured_text(text, _SCHEMA) == payload
+E       assert {'outcome': '... with suffix'} == {'outcome': '... with suffix'}
+E
+E         Differing items:
+E         {'outcome': 'backslash \\ and quote "} with suffix'} != {'outcome': 'backslash \\ and quote ",} with suffix'}
+E         Use -v to get more diff
+
+tests/unit/test_structured_salvage.py:73: AssertionError
+_ test_trailing_comma_repair_preserves_string_content[\u4e2d\u6587,} \u4e0e Unicode,]] _
+
+value = '中文,} 与 Unicode,]'
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "literal,}",
+            "literal,]",
+            "literal,  } and literal, \t]",
+            'escaped quote \",} and \",]',
+            'backslash \\ and quote \",} with suffix',
+            "中文,} 与 Unicode,]",
+        ],
+    )
+    def test_trailing_comma_repair_preserves_string_content(value: str) -> None:
+        payload = {"outcome": value}
+        text = json.dumps(payload, ensure_ascii=False)[:-1] + ",}"
+>       assert parse_structured_text(text, _SCHEMA) == payload
+E       AssertionError: assert {'outcome': '中文} 与 Unicode]'} == {'outcome': '... 与 Unicode,]'}
+E
+E         Differing items:
+E         {'outcome': '中文} 与 Unicode]'} != {'outcome': '中文,} 与 Unicode,]'}
+E         Use -v to get more diff
+
+tests/unit/test_structured_salvage.py:73: AssertionError
+_________ test_trailing_comma_repair_preserves_nested_strings_and_keys _________
+
+value = {'key}': ['value]', 'quote"}']}
+response_schema = ResponseSchema(name='nested_string_test', json_schema={'type': 'object', 'properties': {'key,}': {'type': 'array', 'items': {'type': 'string'}}}, 'required': ['key,}']}, strict=True)
+
+    def validate_structured_value(
+        value: object, response_schema: ResponseSchema
+    ) -> dict[str, JsonValue]:
+        if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
+            raise StructuredOutputError("structured response must be a JSON object", retryable=False)
+        try:
+            schema = (
+                _strict_schema(response_schema.json_schema)
+                if response_schema.strict
+                else response_schema.json_schema
+            )
+            validator_type = validators.validator_for(schema)
+>           validator_type(schema).validate(value)
+
+src/oria/providers/structured.py:32:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Draft202012Validator(schema={'additionalProperties': False, 'properties': {'key,}': {'items': {'type': 'string'}, 'type': 'array'}}, 'required': ['key,}'], 'type': 'object'}, format_checker=None)
+args = ({'key}': ['value]', 'quote"}']},), kwargs = {}
+
+    def validate(self, *args, **kwargs):
+        for error in self.iter_errors(*args, **kwargs):
+>           raise error
+E           jsonschema.exceptions.ValidationError: 'key,}' is a required property
+E
+E           Failed validating 'required' in schema:
+E               {'type': 'object',
+E                'properties': {'key,}': {'type': 'array',
+E                                         'items': {'type': 'string'}}},
+E                'required': ['key,}'],
+E                'additionalProperties': False}
+E
+E           On instance:
+E               {'key}': ['value]', 'quote"}']}
+
+.venv/lib/python3.11/site-packages/jsonschema/validators.py:450: ValidationError
+
+The above exception was the direct cause of the following exception:
+
+    def test_trailing_comma_repair_preserves_nested_strings_and_keys() -> None:
+        schema = ResponseSchema(
+            name="nested_string_test",
+            json_schema={
+                "type": "object",
+                "properties": {
+                    "key,}": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["key,}"],
+            },
+        )
+        text = '{"key,}": ["value,]", "quote\\\",}",],}'
+>       assert parse_structured_text(text, schema) == {"key,}": ["value,]", 'quote",}']}
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/unit/test_structured_salvage.py:88:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/oria/providers/structured.py:138: in parse_structured_text
+    return validate_structured_value(value, response_schema)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = {'key}': ['value]', 'quote"}']}
+response_schema = ResponseSchema(name='nested_string_test', json_schema={'type': 'object', 'properties': {'key,}': {'type': 'array', 'items': {'type': 'string'}}}, 'required': ['key,}']}, strict=True)
+
+    def validate_structured_value(
+        value: object, response_schema: ResponseSchema
+    ) -> dict[str, JsonValue]:
+        if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
+            raise StructuredOutputError("structured response must be a JSON object", retryable=False)
+        try:
+            schema = (
+                _strict_schema(response_schema.json_schema)
+                if response_schema.strict
+                else response_schema.json_schema
+            )
+            validator_type = validators.validator_for(schema)
+            validator_type(schema).validate(value)
+        except JsonSchemaValidationError as exc:
+>           raise StructuredOutputError(
+                "structured response does not match the requested schema", retryable=False
+            ) from exc
+E           oria.providers.errors.StructuredOutputError: structured response does not match the requested schema
+
+src/oria/providers/structured.py:34: StructuredOutputError
+=========================== short test summary info ============================
+FAILED tests/unit/test_codex_app_server.py::test_provider_threads_are_isolated_and_followups_reused[tenant-b-subject-a]
+FAILED tests/unit/test_codex_app_server.py::test_provider_threads_are_isolated_and_followups_reused[tenant-a-subject-b]
+FAILED tests/contract/test_v05_long_term_memory.py::test_same_query_does_not_return_expired_memory[1]
+FAILED tests/contract/test_v05_long_term_memory.py::test_same_query_does_not_return_expired_memory[2]
+FAILED tests/contract/test_v05_long_term_memory.py::test_same_query_observes_other_runtime_memory_changes[delete]
+FAILED tests/contract/test_v05_long_term_memory.py::test_same_query_observes_other_runtime_memory_changes[create]
+FAILED tests/unit/test_structured_salvage.py::test_trailing_comma_repair_preserves_string_content[literal,}]
+FAILED tests/unit/test_structured_salvage.py::test_trailing_comma_repair_preserves_string_content[literal,]]
+FAILED tests/unit/test_structured_salvage.py::test_trailing_comma_repair_preserves_string_content[literal,  } and literal, \t]]
+FAILED tests/unit/test_structured_salvage.py::test_trailing_comma_repair_preserves_string_content[escaped quote ",} and ",]]
+FAILED tests/unit/test_structured_salvage.py::test_trailing_comma_repair_preserves_string_content[backslash \\ and quote ",} with suffix]
+FAILED tests/unit/test_structured_salvage.py::test_trailing_comma_repair_preserves_string_content[\u4e2d\u6587,} \u4e0e Unicode,]]
+FAILED tests/unit/test_structured_salvage.py::test_trailing_comma_repair_preserves_nested_strings_and_keys
+13 failed, 12 deselected in 5.95s

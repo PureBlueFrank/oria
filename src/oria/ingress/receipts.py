@@ -5,7 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
 
@@ -26,20 +27,38 @@ class IngressUnavailable(RuntimeError):
     """Safe storage failure; the caller must not acknowledge acceptance."""
 
 
+class AcceptanceDenied(PermissionError):
+    """An authorization denial whose audit must run after acceptance rollback."""
+
+    def __init__(self, message: str, audit: Callable[[], Awaitable[None]]) -> None:
+        super().__init__(message)
+        self.audit = audit
+
+
+@dataclass(frozen=True, slots=True)
+class AcceptanceOutcome:
+    """A terminal business write to commit without retaining a rejected receipt."""
+
+    post_commit_error: Exception
+
+
 class TransactionalAcceptor(Protocol):
     """Trusted service implementation, not an arbitrary callback or network tool.
 
-    authorize checks current Policy and resolves action_ref against server-owned
-    resource/version/wait. persist writes the accepted intent/job/decision using
-    the provided transaction only: no commit, separate connection, or external I/O.
-    This is an internal seam; the session is never exposed to agents or clients.
+    accept checks current Policy and resolves action_ref against server-owned state.
+    It writes using the provided transaction only: no commit, separate connection,
+    or external I/O. ``duplicate`` is a committed receipt fact, never mutable acceptor
+    state. This is an internal seam; the session is never exposed to agents or clients.
     """
 
-    async def authorize(self, session: AsyncSession, event: VerifiedFeishuEvent) -> None: ...
-
-    async def persist(
-        self, session: AsyncSession, event: VerifiedFeishuEvent, receipt_ref: str
-    ) -> None: ...
+    async def accept(
+        self,
+        session: AsyncSession,
+        event: VerifiedFeishuEvent,
+        receipt_ref: str,
+        *,
+        duplicate: bool,
+    ) -> AcceptanceOutcome | None: ...
 
 
 def _content_hash(event: VerifiedFeishuEvent) -> str:
@@ -91,6 +110,7 @@ class TransactionalFeishuReceiver:
             "replay_key": event.replay_key,
             "expires_at": event.expires_at,
         }
+        outcome: AcceptanceOutcome | None = None
         try:
             async with self._sessions.begin() as session:
                 await set_session_tenant_context(session, binding.actor.tenant_id)
@@ -109,7 +129,7 @@ class TransactionalFeishuReceiver:
                 row = (
                     await session.execute(
                         text(
-                            "SELECT content_hash FROM ingress_receipts "
+                            "SELECT content_hash, receipt_ref FROM ingress_receipts "
                             "WHERE tenant_id = :tenant_id AND dedupe_key = :dedupe_key"
                         ),
                         values,
@@ -145,8 +165,39 @@ class TransactionalFeishuReceiver:
                     raise AuthenticationError("ingress identity changed")
                 if event.expires_at < datetime.now(UTC).timestamp():
                     raise AuthenticationError("ingress request expired")
-                await self._acceptor.authorize(session, event)
-                if created:
-                    await self._acceptor.persist(session, event, str(values["receipt_ref"]))
+                outcome = await self._acceptor.accept(
+                    session,
+                    event,
+                    str(row.receipt_ref),
+                    duplicate=not created,
+                )
+                if outcome is not None:
+                    if not created:
+                        raise RuntimeError("duplicate acceptance cannot replace committed outcome")
+                    await session.execute(
+                        text(
+                            "DELETE FROM ingress_replays WHERE tenant_id = :tenant_id "
+                            "AND replay_key = :replay_key"
+                        ),
+                        values,
+                    )
+                    await session.execute(
+                        text(
+                            "DELETE FROM ingress_receipts WHERE tenant_id = :tenant_id "
+                            "AND dedupe_key = :dedupe_key"
+                        ),
+                        values,
+                    )
+                # Business reads/writes also await I/O. Do not commit a decision or
+                # acknowledge a duplicate using an identity revoked during that work.
+                if self._directory().resolve(binding.issuer, binding.subject) != binding:
+                    raise AuthenticationError("ingress identity changed")
+                if event.expires_at <= datetime.now(UTC).timestamp():
+                    raise AuthenticationError("ingress request expired")
+        except AcceptanceDenied as exc:
+            await exc.audit()
+            raise PermissionError(str(exc)) from None
         except SQLAlchemyError:
             raise IngressUnavailable("ingress storage unavailable") from None
+        if outcome is not None:
+            raise outcome.post_commit_error

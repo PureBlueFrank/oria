@@ -1,0 +1,10 @@
+imported 178 Oria modules from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+verified installed wheel assets, current revisions, idempotent data init, and V0.3 business tables from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+verified installed T04 providers and fixture embedder from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+verified installed T05 RAG and snapshot behavior from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+verified installed T06 tools and redaction from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+{"checkpoint_tenant_isolation": true, "golden_contract": true, "graph_nodes": ["model", "tools", "validate"], "ok": true, "prompt_version": 1}
+usage: verify_t08_wheel.py [-h] --work-dir WORK_DIR
+verify_t08_wheel.py: error: the following arguments are required: --work-dir
+verified installed V0.2-T05 eval assets from /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.artifacts/pkg-20261011/lib/python3.11/site-packages/oria/__init__.py
+[('scripts/verify_t02_wheel.py', 0), ('scripts/verify_t03_wheel.py', 0), ('scripts/verify_t04_wheel.py', 0), ('scripts/verify_t05_wheel.py', 0), ('scripts/verify_t06_wheel.py', 0), ('scripts/verify_t07_wheel.py', 0), ('scripts/verify_t08_wheel.py', 2), ('scripts/verify_v02_t05_wheel.py', 0)]

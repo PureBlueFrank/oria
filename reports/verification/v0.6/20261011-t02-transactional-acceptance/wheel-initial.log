@@ -1,0 +1,33 @@
+Traceback (most recent call last):
+  File "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/scripts/verify_t02_wheel.py", line 8, in <module>
+    import oria
+ModuleNotFoundError: No module named 'oria'
+Traceback (most recent call last):
+  File "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/scripts/verify_t03_wheel.py", line 12, in <module>
+    import oria
+ModuleNotFoundError: No module named 'oria'
+Traceback (most recent call last):
+  File "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/scripts/verify_t04_wheel.py", line 10, in <module>
+    import httpx
+ModuleNotFoundError: No module named 'httpx'
+Traceback (most recent call last):
+  File "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/scripts/verify_t05_wheel.py", line 10, in <module>
+    import oria
+ModuleNotFoundError: No module named 'oria'
+Traceback (most recent call last):
+  File "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/scripts/verify_t06_wheel.py", line 10, in <module>
+    import oria
+ModuleNotFoundError: No module named 'oria'
+Traceback (most recent call last):
+  File "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/scripts/verify_t07_wheel.py", line 11, in <module>
+    from langchain_core.runnables import RunnableConfig
+ModuleNotFoundError: No module named 'langchain_core'
+Traceback (most recent call last):
+  File "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/scripts/verify_t08_wheel.py", line 14, in <module>
+    import oria
+ModuleNotFoundError: No module named 'oria'
+Traceback (most recent call last):
+  File "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/scripts/verify_v02_t05_wheel.py", line 8, in <module>
+    import oria
+ModuleNotFoundError: No module named 'oria'
+[('scripts/verify_t02_wheel.py', 1), ('scripts/verify_t03_wheel.py', 1), ('scripts/verify_t04_wheel.py', 1), ('scripts/verify_t05_wheel.py', 1), ('scripts/verify_t06_wheel.py', 1), ('scripts/verify_t07_wheel.py', 1), ('scripts/verify_t08_wheel.py', 1), ('scripts/verify_v02_t05_wheel.py', 1)]

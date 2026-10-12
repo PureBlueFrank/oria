@@ -11,7 +11,7 @@
 | V0.3 | Core、Community 十步 Workflow 与必需 DeepSeek Live 通过 | SQLite 单 worker、Mock Adapter 下的审批、恢复、幂等、故障注入和对账 | PostgreSQL 多 worker或真实券、招商、商品库、选品、C 端、IM 接入 |
 | V0.4 | T01–T05 完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 合成分析数据、只读 Tool、动态 Agent、冻结 Golden、原 DeepSeek 失败事实及 GPT-5.6 Sol Live 通过卡 | 真实企业数据、OpenAI API 通道或其他 Provider 效果 |
 | V0.5 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、对照 harness 与 S2–S4 C/SEC | single/multi Live 质量提升、Enterprise/Performance |
-| V0.6 | T01 Community/Contract 完成；PostgreSQL E-like blocked；T02 进行中 | 双后端持久化契约、API 身份、飞书协议/展示与 SQLite 持久去重 | 真实 PostgreSQL、实际 Job/审批 HTTP 链路与真实飞书接入 |
+| V0.6 | T01 Community/Contract 完成；PostgreSQL E-like blocked；T02 进行中 | 双后端持久化契约、API 身份、飞书协议/展示、SQLite 持久去重、审批 HTTP 与卡片原子批准 | 真实 PostgreSQL、Job/wait/Graph 恢复、生产装配与真实飞书接入 |
 | P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | 后续平台能力已交付 |
 
 ## 关键证据
@@ -65,6 +65,14 @@
 - [T02 审批 HTTP 与并发保护（10 月 6 日）](v0.6/20261006-t02-approvals/summary.md)：受控详情、版本化决定、SQLite 条件更新与单次审计；CLI 装配、飞书动作绑定与真实通道仍待完成。
 
 - [T02 审批服务启动装配（10 月 8 日）](v0.6/20261008-t02-lifecycle/summary.md)：显式配置、只读数据库门禁、真实本地运行时审批链路与资源回收；飞书动作和 Job 尚待接通。
+
+- [T02 持久审批卡片引用（10 月 11 日）](v0.6/20261011-t02-card-bindings/summary.md)：资源版本、身份、会话与卡片消息绑定，当前 Policy 重查；仅签发/解析，实际决定和 Job 恢复尚未接通。
+
+- [T02 事务化飞书审批受理（10 月 11 日）](v0.6/20261011-t02-transactional-acceptance/summary.md)：本地 SQLite 上的 receiver-owned receipt/replay + 审批 CAS/审计/outbox 原子提交，包含签名 HTTP、重启、并发与故障回滚定向证据；T02 仍在进行中。
+
+- [审查修复与全工程检查（10 月 12 日）](v0.6/20261012-review-fixes/summary.md)：修复处理期间撤权、拒绝审计、解析证据和重复 SQL 四项问题；1073 项本地测试及静态检查/构建通过。另确认 Codex Provider 租户会话隔离、Memory 缓存生命周期和 JSON 修复改写字符串三项待修复缺陷。
+
+- [全工程检查新增问题修复（10 月 12 日）](v0.6/20261012-additional-review-fixes/summary.md)：上述三项已修复；新增 13 个回归修复前均失败，最终定向 29 passed，全量本地 1086 passed / 3 deselected，静态检查/构建/CLI 通过；真实 Provider 与企业后端未运行。
 
 ## Demo 与架构证据
 

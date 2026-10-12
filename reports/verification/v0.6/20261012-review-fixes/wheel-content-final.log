@@ -1,0 +1,7 @@
+{"path": "oria/ingress/receipts.py", "matches_workspace": true, "sha256": "ae29829e20a5a1fe75ef71c98652e7d7e25764096ab73e7577e4c78e1e2ffa67"}
+{"path": "oria/ingress/approval_cards.py", "matches_workspace": true, "sha256": "4f7708d7ec2ab9535c1ee1cdbf4546ce42e17c8bf5c3319d13d68afa7ba1a32f"}
+{"path": "oria/permission/local.py", "matches_workspace": true, "sha256": "1c076c0547510fc77e04184caae925753a7f66a58a2033af230d613d5b9a98c6"}
+{"path": "oria/storage/platform.py", "matches_workspace": true, "sha256": "5bf672b333ad2d869dea6af0fbd6ee14ad1d1e5e66c277d7d6c83e0585164802"}
+{"path": "oria/migrations/platform/versions/platform_0011_approval_card_bindings.py", "matches_workspace": true, "sha256": "d42cf09bc655e2fdcabed72e11cce72bd845d52d38d55cc20391bd338f8a6353"}
+{"path": "oria/migrations/manifest.json", "matches_workspace": true, "sha256": "61f40efa05eb41c9aaaf978cbbb2bc4edff7d8e4d46ad0f7fef0b1ecf4671ac4"}
+wheel source and migration content: passed

@@ -32,17 +32,18 @@ class Acceptor:
         self.fail = False
         self.denied = False
 
-    async def authorize(self, session, event):
+    async def accept(self, session, event, receipt_ref, *, duplicate):
         if self.denied:
             raise PermissionError("denied")
-
-    async def persist(self, session, event, receipt_ref):
+        if duplicate:
+            return None
         self.calls += 1
         await session.execute(
             text("INSERT INTO receipt_test_business VALUES (:ref)"), {"ref": receipt_ref}
         )
         if self.fail:
             raise RuntimeError("synthetic transaction failure")
+        return None
 
 
 def test_upgrade_from_previous_head_and_rollback(tmp_path):
@@ -50,7 +51,7 @@ def test_upgrade_from_previous_head_and_rollback(tmp_path):
     cfg = _config(path)
     command.upgrade(cfg, "platform_0009")
     before = _tables(path)
-    command.upgrade(cfg, "head")
+    command.upgrade(cfg, "platform_0010")
     assert _revision(path) == "platform_0010"
     assert _tables(path) - before == {"ingress_receipts", "ingress_replays"}
     command.downgrade(cfg, "platform_0009")
