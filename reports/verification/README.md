@@ -11,10 +11,13 @@
 | V0.3 | Core、Community 十步 Workflow 与必需 DeepSeek Live 通过 | SQLite 单 worker、Mock Adapter 下的审批、恢复、幂等、故障注入和对账 | PostgreSQL 多 worker或真实券、招商、商品库、选品、C 端、IM 接入 |
 | V0.4 | T01–T05 完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 合成分析数据、只读 Tool、动态 Agent、冻结 Golden、原 DeepSeek 失败事实及 GPT-5.6 Sol Live 通过卡 | 真实企业数据、OpenAI API 通道或其他 Provider 效果 |
 | V0.5 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、对照 harness 与 S2–S4 C/SEC | single/multi Live 质量提升、Enterprise/Performance |
-| V0.6 | T01 Community/Contract 完成；PostgreSQL E-like blocked；T02 进行中 | 双后端持久化契约、API 身份、飞书协议/展示、SQLite 持久去重、审批 HTTP 与卡片原子批准 | 真实 PostgreSQL、Job/wait/Graph 恢复、生产装配与真实飞书接入 |
+| V0.6 | T01 Community/Contract 与本地 PostgreSQL E-like 通过；T02 进行中 | 双后端持久化契约、API 身份、飞书协议/展示、SQLite 持久去重、审批 HTTP 与卡片原子批准 | Job/wait/Graph 恢复、自动会话投递、PostgreSQL API 与多 worker |
 | P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | 后续平台能力已交付 |
 
 ## 关键证据
+
+- [真实飞书截图 GIF 素材核验](v0.6/20261018-feishu-native-gif/summary.md)：17 张原图、24 个裁切画面、29 幕，覆盖十步主流程、三种归因及六类规则；工程能力与实测范围分开标注。
+- [飞书群内合成核心流程演示](v0.6/20261018-feishu-conversation-demo/summary.md)：15 项定向、1132 项本地回归及构建通过，真实群聊 20 条指令、招商 10/10、三种归因结果与规则分页通过；已生成 GIF 并集成 README，现已替换为下列真实截图版本，临时入口关闭，不宣称生产 Job 或真实模型/业务接入。
 
 ### V0.1 · 只读提案 MVP
 
@@ -73,6 +76,15 @@
 - [审查修复与全工程检查（10 月 12 日）](v0.6/20261012-review-fixes/summary.md)：修复处理期间撤权、拒绝审计、解析证据和重复 SQL 四项问题；1073 项本地测试及静态检查/构建通过。另确认 Codex Provider 租户会话隔离、Memory 缓存生命周期和 JSON 修复改写字符串三项待修复缺陷。
 
 - [全工程检查新增问题修复（10 月 12 日）](v0.6/20261012-additional-review-fixes/summary.md)：上述三项已修复；新增 13 个回归修复前均失败，最终定向 29 passed，全量本地 1086 passed / 3 deselected，静态检查/构建/CLI 通过；真实 Provider 与企业后端未运行。
+
+- [T02 飞书审批受理启动装配（10 月 16 日）](v0.6/20261016-t02-receiver-lifecycle/summary.md)：显式启用、同运行时审批 HTTP/卡片受理、真实独立进程重启去重与撤权、文本消息不误受理和资源回收；仅 SQLite/合成数据，不代表真实飞书或 Job 恢复已完成。
+
+- [T01 本地真实 PostgreSQL（10 月 17 日）](v0.6/20261017-postgres-local/summary.md)：原生 PostgreSQL 17.11、临时双库、非超级用户/非 BYPASSRLS 角色，8 项真实 PostgreSQL 与 27 项本地定向回归通过；修复 RLS 目录查询缺陷，原缺 DSN 阻塞已解除。未验证 PostgreSQL API、多 worker 或真实飞书。
+
+- [T02 真实飞书出站（10 月 18 日）](v0.6/20261018-feishu-channel/summary.md)：经明确授权，ClawBot 向 oriaTest 发送一条合成文本和一张无按钮卡片，两条 API 回执成功，用户确认可见且卡片显示正常。仅出站通道验证；真实身份映射、入站/审批回调与 Job 恢复尚未验证，T02 仍进行中。
+
+- [T02 真实审批联调续验（10 月 18 日上午）](v0.6/20261018-t02-real-approval/summary.md)：独立 OriaTest 真实发卡、PATCH、重启后的签名/AES 批准回调与用户终态确认通过；同一真实请求在内存中复验无新增副作用。修复 Go 时间文本兼容问题，保留 401 和旧入口 530 失败历史；临时入口与测试映射已关闭。
+- [T02 审批卡片投递与结果更新（10 月 18 日）](v0.6/20261018-t02-approval-delivery/summary.md)：受信投递、持久绑定后激活、共享卡片 PATCH、已提交终态响应及重复/重启/故障恢复；新增 14 项、全量 1108 项本地测试通过。该卡记录当轮本地实现与配置准备；后续真实审批结果见上方续验记录。
 
 ## Demo 与架构证据
 

@@ -23,7 +23,7 @@
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
 | V0.4 | 场景 B 动态归因 Agent | T01–T05 已完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 50 条 Golden 已审阅并冻结 30/20 split；GPT-5.6 Sol 完成 20×3，自动通过 55/60，严格盲评 10/10 达线、平均 0.98。 |
 | V0.5 | 多智能体、上下文与记忆 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 已交付上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、公平对照 harness 与 S2–S4 C/SEC 证据；不声明 Live 质量提升。 |
-| V0.6 | API 与 Durable Job | T01 Community/CT 通过，PostgreSQL E-like 缺 DSN blocked；T02 进行中；T03+ 未开始 | 已交付双后端持久化契约、API/JWT、飞书协议和 IM 展示基础，以及 SQLite 事务化持久去重、审批 HTTP 与卡片原子批准；Job/wait 任务受理和生产通道尚未接通，不声明真实 PostgreSQL 或飞书已验证。 |
+| V0.6 | API 与 Durable Job | T01 Community/CT 与本地 PostgreSQL E-like 通过；T02 进行中；T03+ 未开始 | PostgreSQL 17.11 双库迁移、Repository/RLS/连接池与官方 saver 已真实验证；API/JWT、飞书协议、SQLite 去重和审批受理可显式装配。真实飞书审批投递、更新、重启后回调及终态显示已验证；Job/wait 与自动会话投递未接通，PostgreSQL API 和多 worker 未验证。 |
 
 ## V0.1：场景 A 只读提案 MVP
 
@@ -109,6 +109,8 @@ V0.6-T02 基础实现（2026-10-03，进行中）：新增 `api serve`、统一�
 
 ## 验证分层说明
 
+飞书核心流程对话演示（2026-10-18）：新增显式合成 `feishu-demo`，复用现有本地招商 Workflow 与归因 Agent，用真实飞书 @ 消息控制演示角色。15 项定向、1132 项本地回归、静态检查、构建和 CLI 通过；独立 OriaTest 1.0.1 已发布，真实群聊 20 条指令全部投递成功，招商流程达到 10/10，归因、冲突、弃答及规则分页均有实际回复。用户改用 GIF，README 已换为 17 张真实飞书截图组成的 29 幕、3 分 30 秒导览，注明截图来源、Mock 范围及平台交付边界；[素材核验](reports/verification/v0.6/20261018-feishu-native-gif/summary.md)独立留证，临时公网入口已关闭。见[演示指南](docs/guides/feishu-conversation-demo.md)和[验证卡](reports/verification/v0.6/20261018-feishu-conversation-demo/summary.md)。本入口使用 Mock 模型/业务和隔离 SQLite，未接入默认 API，不替代 T02 收口或 T03–T05。
+
 V0.6-T02 后续（2026-10-05）：新增 `platform_0010` 受理/重放账本和事务化接收器，规范化内容摘要防止同一键被不同内容复用；提交失败时账本和业务写入一起回滚，重复请求仍重新鉴权。SQLite 并发、重启、异常退出、卡片及租户隔离用例见 [验证卡](reports/verification/v0.6/20261005-t02-receipts/summary.md)。当前没有实际 Job/审批受理处理器，默认回调仍 503，T02 未收口。
 
 V0.6-T02 后续（2026-10-06）：新增审批详情/决定 HTTP 路由（通过受信运行时注入），复用现有 Policy、租户查询、职责分离和有效期检查；版本指纹和数据库条件更新阻止旧页面及并发覆盖决定，成功决定与审计/outbox 同事务。CLI 审批生命周期装配、飞书 action 持久绑定、Job 及真实通道仍未接通，T02 未收口。见 [审批增量验证卡](reports/verification/v0.6/20261006-t02-approvals/summary.md)。
@@ -123,9 +125,21 @@ V0.6-T02 后续（2026-10-11，事务受理）：新增服务端显式 `approve`
 
 新增问题后续修复（2026-10-12）：上述三项已修复。Codex 模型会话与消息计数按 tenant/actor/thread 隔离；Memory 仅缓存查询向量，每次读取有效记录以覆盖 TTL 和另一实例删除/新增；JSON 尾逗号修复保留字符串及转义内容。新增 13 个回归修复前均失败，最终定向 29 passed，全量本地 1086 passed / 3 deselected；静态检查、构建和 CLI 均通过，见 [新增问题修复验证卡](reports/verification/v0.6/20261012-additional-review-fixes/summary.md)。没有运行新 Live/Enterprise，T02 仍在进行中。
 
+V0.6-T02 后续（2026-10-16）：补齐显式配置的飞书审批 receiver 启动装配，HTTP 审批和卡片回调共用一个运行时。默认关闭，启用须提供 Feishu 与审批运行时配置；文本消息因缺少 Job 处理器仍返回 503，不写受理账本。本地独立 API 进程重启、相同回调及新签名重投、撤权拒绝、HTTP/卡片共享审批与启动失败资源回收已验证；新增 8 项测试，全量本地 1094 passed / 3 deselected，静态检查、构建和 CLI smoke 通过，见 [装配验证卡](reports/verification/v0.6/20261016-t02-receiver-lifecycle/summary.md)。仅合成数据、Mock/Fixture 与 SQLite；生产卡片投递/更新、带理由拒绝、飞书详情/翻页和 Job/wait/Graph 恢复仍待完成，T02 未收口。
+
+V0.6-T01 本地 PostgreSQL 实测（2026-10-17）：使用官方源码构建的 PostgreSQL 17.11、临时双库与非超级用户/非 BYPASSRLS 角色，完成真实迁移、Repository、默认拒绝/跨租户隔离、连接池 context 清理及官方 saver 的写入、pending writes、命名空间、跨租户读取、父 checkpoint 和列表验证。实测发现并修复 RLS 验收查询误读 `pg_tables.forcerowsecurity` 的缺陷；六项安全控制缺失用例确认门禁仍失败关闭。最终 8 项 PostgreSQL 验证及 27 项本地定向回归通过，见 [真实 PostgreSQL 验证卡](reports/verification/v0.6/20261017-postgres-local/summary.md)。T01 原缺 DSN 阻塞已解除，历史卡保留；实例均已停止。此结果不代表 PostgreSQL API、双 worker/lease/fencing 或真实飞书已通过，T02 和 V0.5-T07 状态不变。
+
+V0.6-T02 真实飞书出站实测（2026-10-18）：使用已有 ClawBot 应用，核验鉴权、机器人启用状态及唯一匹配的 oriaTest 群。经用户明确批准，通过现有 FeishuChannel/Policy 发送一条合成测试文本和一张无操作按钮的卡片；两次 API 均返回成功回执，用户确认两条可见且卡片显示正常。见 [真实出站验证卡](reports/verification/v0.6/20261018-feishu-channel/summary.md)。本次为真实外部通道的有限验证，actor/executor 仍为合成测试身份；未改动既有应用事件/权限配置，未验证真实入站、审批回调、Job/wait/Graph 恢复或正式投递装配。T02 继续按正式卡片投递/更新、带理由拒绝、详情/翻页及真实回调顺序推进，T03 依赖仍未满足，V0.5-T07 暂停状态不变。
+
+V0.6-T02 审批投递与结果更新（2026-10-18）：新增受信 ApprovalCardDelivery，按“无按钮共享卡片→真实消息回执→持久审批绑定→PATCH 激活”顺序投递；通知与审批身份分别校验，跨租户、未列明目的地、自批和发送期间撤权均拒绝。已启用的审批 receiver 在事务提交后返回无按钮终态卡片，重复/跨进程重投不新增决定或 outbox，投影失败可重试已提交结果。新增 14 项用例，56 项定向、1108 项本地回归、静态检查、构建及 CLI smoke 通过，见 [验证卡](reports/verification/v0.6/20261018-t02-approval-delivery/summary.md)。默认入口不自动发送，可靠投递恢复仍属 T05；带理由拒绝、详情/翻页和 Job/wait/Graph 未完成。ClawBot 被其他程序共用，已按明确批准创建独立 OriaTest 并启用机器人，已按批准收敛四项权限、配置 HTTP 地址并订阅新版回调；尚未发布或实测真实审批按钮；见 [配置指南](docs/guides/feishu-approval-validation.md)。T02 仍进行中，T03 依赖未满足。
+
 - **Fixture（F）**：使用 MockLLM、FixtureEmbedder、Mock Tool 和固定数据，证明控制流、类型契约、错误处理与确定性回归；不能证明真实模型或外部服务。
 - **Community（C）**：使用本地 BGE、Chroma、SQLite、真实进程或网络回环，证明社区版本地链路、恢复和数据一致性；不能证明企业规模或企业系统兼容性。
 - **Live（L）**：调用明确记录的真实公开模型 API，只证明该日期、模型和配置下的调用与质量结果；不能外推到其他模型或未来版本。
 - **Enterprise（E-like/E）**：E-like 使用本地 PostgreSQL、Milvus、Redis、OTel 等企业栈组件，E 使用真实企业环境与 Adapter；两者均按目标独立验证，不能互相或由 Mock 替代。
 
 当前已验证到：V0.1/V0.2/V0.3 Core 与各自必需 DeepSeek Live 卡均已通过；V0.3 Community 使用 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据完成验证。V0.4 T01–T05、合成数据、标签隔离、五个只读归因 Tool、动态 Agent、人工审阅 Golden 与冻结 Fixture baseline 已完成；原 DeepSeek Live 卡 failed，GPT-5.6 Sol 推荐 Live 卡已通过严格人工盲评。V0.5-T01–T06 的上下文、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、对照 harness 与 S2–S4 Fixture/Community/Security 回归已通过，V0.5 Core Gate 已达成。真实企业 Adapter、OpenAI API 通道、Codex 与 DeepSeek 以外 Provider、E-like 多 worker 和 V0.5-T07 单/多 Agent Live 对照仍未验证。
+
+**V0.6-T02 真实联调续验（2026-10-18 上午）**：独立 OriaTest 鉴权通过但尚未激活，已恢复本地接收端并通过九项访问/验签检查和公网合成 challenge，私有重复回调验证程序的单一事务计数检查通过。浏览器自动控制超时，已转为用户手动保存临时地址、发布及入群；真实审批投递、PATCH 与按钮回调尚未运行，T02/T03 状态不变。见 [续验记录](reports/verification/v0.6/20261018-t02-real-approval/summary.md)。
+
+**V0.6-T02 真实审批通过（2026-10-18）**：独立 OriaTest 发布并入群后，四次只读接口确认应用、唯一测试群与 Frank；经受信服务发送一张合成卡片并 PATCH 激活。接收进程重启后，真实签名/AES 批准回调仅提交一次决定、审计/outbox，用户确认已批准且按钮消失；同一真实请求在内存中复验后计数不变。实测发现 Go 时间文本被旧 Unix 秒解析器拒绝，已用回归用例复现并兼容明确格式，保留完整原文验签和至多 300 秒时间窗。新增 9 项时间格式/安全用例；1117 项本地回归与静态检查通过。全部临时入口已关闭，临时映射及凭证副本已清理。见 [真实审批验证卡](reports/verification/v0.6/20261018-t02-real-approval/summary.md)。T02 的带理由拒绝、详情/翻页和默认会话自动投递仍待后续，T03 依赖未满足。

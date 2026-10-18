@@ -1,0 +1,79 @@
+F...........                                                             [100%]
+=================================== FAILURES ===================================
+_______ test_guided_workflow_runs_both_approvals_waits_and_dynamic_chain _______
+
+tmp_path = PosixPath('<TEMP_ROOT>/pytest-of-franklee/pytest-3/test_guided_workflow_runs_both0')
+
+    @pytest.mark.asyncio
+    async def test_guided_workflow_runs_both_approvals_waits_and_dynamic_chain(tmp_path):
+        demo = GuidedDemo(tmp_path, MANIFEST)
+        for text in ("发起招商活动", "餐饮", "华东", "混合报名", "2家"):
+            view = await demo.handle(demo_input(text))
+            assert BOUNDARY in view.summary
+        assert view.stage == "confirmation"
+        assert not demo.state.started
+        assert not (tmp_path / "workflow" / "platform.db").exists()
+>       view = await demo.handle(demo_input("确认发起演示"))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_feishu_guided_demo.py:71:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/oria/chat/guided_demo.py:218: in handle
+    result = await start_local_workflow(
+src/oria/orchestrator/local_executor.py:833: in start_local_workflow
+    value = await _graph(runtime).ainvoke(
+.venv/lib/python3.11/site-packages/langgraph/pregel/main.py:4090: in ainvoke
+    async for chunk in self.astream(
+.venv/lib/python3.11/site-packages/langgraph/pregel/main.py:3440: in astream
+    async for _ in runner.atick(
+.venv/lib/python3.11/site-packages/langgraph/pregel/_runner.py:396: in atick
+    await arun_with_retry(
+.venv/lib/python3.11/site-packages/langgraph/pregel/_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/langgraph/_internal/_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+.venv/lib/python3.11/site-packages/langgraph/_internal/_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/orchestrator/scenario_a.py:1288: in _draft
+    result = await _service(runtime.context).generate_draft(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <oria.orchestrator.scenario_a.DefaultScenarioAWorkflowService object at 0x12a9a01d0>
+request = ScenarioAWorkflowRequest(user_request='生成华东餐饮招商活动；混合报名；目标2家；合成演示数据。', effective_at=datetime.datetime(2026, 7, 10, 4, 0...(2026, 7, 12, 4, 0, tzinfo=TzInfo(0)), external_wait_expires_at=datetime.datetime(2026, 8, 19, 4, 0, tzinfo=TzInfo(0)))
+ctx = Context(runtime=<oria.core.context.RuntimeServices object at 0x12a8b5240>, actor=Principal(subject_id='local-campaign-...e4c31eb72:start', correlation_id='scenario-a:guided-55b87a93673340f0ae3b0e5e4c31eb72', job_id=None, checkpoint_id=None)
+
+    async def generate_draft(self, request: ScenarioAWorkflowRequest, ctx: Context) -> NodeResult:
+        research = await self._research.ainvoke(
+            initial_research_state(
+                user_request=request.user_request,
+                effective_at=request.effective_at.isoformat(),
+                max_candidates=request.max_candidates,
+            ),
+            context=ResearchRunContext(ctx=ctx),
+        )
+        termination = research.get("termination")
+        proposal = research.get("proposal")
+        rule_result = research.get("rule_result")
+        merchant_result = research.get("merchant_result")
+        if (
+            termination is not None
+            or proposal is None
+            or not isinstance(rule_result, Mapping)
+            or not isinstance(merchant_result, Mapping)
+        ):
+>           raise ValueError("research graph did not produce a valid campaign draft")
+E           ValueError: research graph did not produce a valid campaign draft
+E           During task with name 'draft' and id '75cd42fc-204c-381b-ba06-d7e6be4e11d1'
+
+src/oria/orchestrator/scenario_a.py:367: ValueError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  <USER_HOME>/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_feishu_guided_demo.py::test_guided_workflow_runs_both_approvals_waits_and_dynamic_chain
+1 failed, 11 passed, 1 warning in 7.98s

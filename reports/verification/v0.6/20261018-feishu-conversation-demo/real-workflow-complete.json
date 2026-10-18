@@ -1,0 +1,131 @@
+{
+  "recorded_at": "2026-10-18T09:10:31.012926+00:00",
+  "mode": "real_feishu_channel_with_Mock_Fixture_business",
+  "core_status": "completed",
+  "terminal_outcome": "completed",
+  "stage": 10,
+  "placement": "published",
+  "notification_statuses": [
+    "sent"
+  ],
+  "approvals": [
+    {
+      "status": "approved",
+      "separation_of_duty": true
+    },
+    {
+      "status": "approved",
+      "separation_of_duty": true
+    }
+  ],
+  "commands": [
+    {
+      "step": 1,
+      "command": "help",
+      "status": "sent",
+      "title": "【演示】Oria 核心流程导览"
+    },
+    {
+      "step": 2,
+      "command": "slots",
+      "status": "sent",
+      "title": "【演示】补充活动需求"
+    },
+    {
+      "step": 3,
+      "command": "slots",
+      "status": "sent",
+      "title": "【演示】补充活动需求"
+    },
+    {
+      "step": 4,
+      "command": "slots",
+      "status": "sent",
+      "title": "【演示】补充活动需求"
+    },
+    {
+      "step": 5,
+      "command": "slots",
+      "status": "sent",
+      "title": "【演示】补充活动需求"
+    },
+    {
+      "step": 6,
+      "command": "slots",
+      "status": "sent",
+      "title": "【演示】请确认活动参数"
+    },
+    {
+      "step": 7,
+      "command": "start",
+      "status": "sent",
+      "title": "【演示】2/10 招商发布审批"
+    },
+    {
+      "step": 8,
+      "command": "approve",
+      "status": "sent",
+      "title": "【演示】4/10 报名与商品圈选"
+    },
+    {
+      "step": 9,
+      "command": "enroll",
+      "status": "sent",
+      "title": "【演示】4/10 报名与商品圈选"
+    },
+    {
+      "step": 10,
+      "command": "close",
+      "status": "sent",
+      "title": "【演示】5/10 动态业务确认"
+    },
+    {
+      "step": 11,
+      "command": "confirm",
+      "status": "sent",
+      "title": "【演示】5/10 动态业务确认"
+    },
+    {
+      "step": 12,
+      "command": "confirm",
+      "status": "sent",
+      "title": "【演示】5/10 动态业务确认"
+    },
+    {
+      "step": 13,
+      "command": "confirm",
+      "status": "sent",
+      "title": "【演示】7/10 提交并等待招后选品"
+    },
+    {
+      "step": 14,
+      "command": "selection",
+      "status": "sent",
+      "title": "【演示】8/10 C 端发布审批"
+    },
+    {
+      "step": 15,
+      "command": "approve",
+      "status": "sent",
+      "title": "【演示】10/10 通知商家并闭环"
+    },
+    {
+      "step": 16,
+      "command": "attribution",
+      "status": "sent",
+      "title": "【演示】经营异常归因"
+    },
+    {
+      "step": 17,
+      "command": "conflict",
+      "status": "sent",
+      "title": "【演示】经营异常归因"
+    },
+    {
+      "step": 18,
+      "command": "insufficient",
+      "status": "sent",
+      "title": "【演示】经营异常归因"
+    }
+  ]
+}

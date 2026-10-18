@@ -1,0 +1,7 @@
+{
+  "status": "failed",
+  "stage": "read_only_evidence_extraction",
+  "reason": "no such column: decided_by",
+  "correction": "use schema-defined decider",
+  "business_writes": 0
+}

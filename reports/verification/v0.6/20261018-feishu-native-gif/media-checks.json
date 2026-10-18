@@ -1,0 +1,260 @@
+{
+  "status": "passed",
+  "scope": "documentation and native screenshot media only",
+  "source_images": 17,
+  "screenshot_assets": 24,
+  "scenes": 29,
+  "native_response_sequences": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20
+  ],
+  "omitted_response": {
+    "sequence": 1,
+    "reason": "No native help screenshot was supplied; opening uses actual completion screenshot plus labelled editorial overview."
+  },
+  "gif": {
+    "path": "docs/demo/feishu/core-flow.gif",
+    "sha256": "0e5888e2a772c540a7503459fb44ba0ddc2ba29dbc5e3d772ac3bf7bd050ab75",
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "width": 1280,
+          "height": 1040,
+          "duration": "210.000000",
+          "nb_frames": "29"
+        }
+      ],
+      "format": {
+        "duration": "210.000000",
+        "size": "5261898"
+      }
+    },
+    "loop": "infinite",
+    "per_scene_timing_matches": true,
+    "palette_colors": 256,
+    "encoded_frame_quality": {
+      "comparison": "All 29 decoded frames versus corresponding browser captures",
+      "frames": 29,
+      "minimum_psnr_db": 46.51,
+      "overall_psnr_db": 47.47629,
+      "note": "Encoding fidelity only; readability checked separately by visual inspection."
+    }
+  },
+  "browser": {
+    "all_29_scenes_loaded": true,
+    "text_overflow": false,
+    "minimum_screenshot_scale": 0.8838656556372549,
+    "controls_verified": [
+      "next",
+      "previous",
+      "scene_select",
+      "zoom_open_close",
+      "autoplay_advanced",
+      "pause",
+      "last_scene_next_disabled",
+      "autoplay_stops_after_final_scene"
+    ],
+    "console_errors": []
+  },
+  "visual_review": {
+    "all_17_originals_and_24_crops": true,
+    "decoded_sample_scenes_1based": [
+      2,
+      14,
+      25,
+      27,
+      28,
+      29
+    ],
+    "cover_and_longest_card_browser_review": true
+  },
+  "privacy": {
+    "originals_preserved_outside_repository": true,
+    "personal_avatar_and_nickname_cropped_out": true,
+    "source_17_hover_toolbar_and_adjacent_read_receipt_masked": true,
+    "message_pixels_not_redrawn": true,
+    "png_metadata_chunks": {
+      "01-start.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "02-category.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "03-region.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "04-mode.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "05-confirm.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "06-approval.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "07-launched.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "08-enrollment.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "09-merchant.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "10-sales.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "11-manager.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "12-selection-wait.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "13-selection-done.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "14-second-gate.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "15-completed.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "16-receipts.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "17-attribution.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "18-evidence.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "19-conflicting.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "20-insufficient.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "21-rule-base.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "22-rule-scope.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "23-rule-confirm.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ],
+      "24-rule-page.png": [
+        "IDAT",
+        "IEND",
+        "IHDR",
+        "pHYs"
+      ]
+    },
+    "no_private_credentials_accessed_for_this_media_task": true
+  },
+  "reuse_of_prior_1132_test_result": {
+    "source": "../20261018-feishu-conversation-demo/summary.md",
+    "product_test_lockfile_hashes_unchanged": {
+      "src/oria/chat/guided_demo.py": true,
+      "src/oria/chat/feishu_demo.py": true,
+      "src/oria/cli.py": true,
+      "scripts/prepare_feishu_demo.py": true,
+      "tests/integration/test_feishu_guided_demo.py": true,
+      "pyproject.toml": true,
+      "uv.lock": true
+    },
+    "not_rerun": true
+  },
+  "historical_media_hashes_preserved": true,
+  "external_messages_sent": 0,
+  "public_tunnel_opened": false,
+  "published_or_pushed": false
+}

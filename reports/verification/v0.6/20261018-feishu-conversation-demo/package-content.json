@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "artifacts": [
+    {
+      "file": "oria-0.1.0-py3-none-any.whl",
+      "entries": 230,
+      "sha256": "c9c48a1a448708e194b15a188c1822023b40a4c419a2c3ae1cd7b368d878956e"
+    },
+    {
+      "file": "oria-0.1.0.tar.gz",
+      "entries": 850,
+      "sha256": "ed44cf2a71d1ee88b149fe3d7b52a6aa0111227a1c165a12652546c8cf824939"
+    }
+  ]
+}

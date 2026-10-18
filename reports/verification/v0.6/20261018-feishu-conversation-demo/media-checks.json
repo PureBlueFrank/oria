@@ -1,0 +1,51 @@
+{
+  "status": "passed",
+  "source": "real-conversation-views.json",
+  "provenance": "Reformatted replay of actual delivered response records, not native Feishu screenshots or screen recording.",
+  "source_commands": 20,
+  "scenes": 10,
+  "business_mode": "synthetic data, Mock model/business adapters and roles",
+  "gif": {
+    "file": "docs/demo/feishu/core-flow.gif",
+    "sha256": "703cdcff713f081fb764e972396534df51f57c5fd60f08b64f0f95df94d24db2",
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "width": 1120,
+          "height": 760,
+          "nb_frames": "11"
+        }
+      ],
+      "format": {
+        "duration": "65.040000",
+        "size": "1032245"
+      }
+    }
+  },
+  "screenshots": "Browser screenshots of the source-linked Oria replay UI, cropped to the 1120x760 stage.",
+  "manual_visual_checks": [
+    "opening",
+    "enrollment",
+    "dynamic_confirmation_three_levels",
+    "second_approval",
+    "completed",
+    "attribution",
+    "conflicting_insufficient",
+    "rule_pagination"
+  ],
+  "interactive_checks": [
+    "next_scene",
+    "play_pause",
+    "full_reply_dialog"
+  ],
+  "native_feishu_capture": "unavailable_native_API_disabled_and_official_web_messenger_blank",
+  "privacy": {
+    "status": "passed",
+    "changed_and_untracked_files_scanned": 173,
+    "exact_private_values_checked": 7,
+    "render_input": "source-linked synthetic responses scanned before capture; critical screenshots visually inspected",
+    "local_markdown_links_checked": 145
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "mode": "private_loopback_preflight",
+  "external_messages": 0,
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/v1/health",
+      "status": 404
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "status": 404
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me",
+      "status": 404
+    },
+    {
+      "method": "GET",
+      "path": "/v1/ingress/feishu/events",
+      "status": 405
+    },
+    {
+      "method": "POST",
+      "path": "/v1/health",
+      "status": 404
+    }
+  ],
+  "status": "passed",
+  "invalid_callback": 401,
+  "encrypted_challenge": 200,
+  "process_stopped": true
+}

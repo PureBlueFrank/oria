@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ORIA · 真实飞书截图导览</title>
+  <link rel="stylesheet" href="native.css">
+</head>
+<body>
+  <main>
+    <div id="viewport" class="viewport">
+      <article id="stage" class="stage" aria-label="ORIA 截图导览">
+        <header class="heading">
+          <div class="eyebrow"><b>ORIA</b><span id="chapter"></span><span id="counter"></span></div>
+          <h1 id="title"></h1>
+          <p id="subtitle"></p>
+        </header>
+        <ol id="workflow" class="workflow" aria-label="招商流程位置"></ol>
+        <section id="content" class="content" aria-label="当前画面"></section>
+        <footer>
+          <div class="source-row"><strong id="source-type"></strong><span id="source-detail"></span></div>
+          <div class="boundary"><span id="boundary"></span><span>2026.10.18 · 当前交付范围见 ROADMAP</span></div>
+          <div class="progress"><i id="progress"></i></div>
+        </footer>
+      </article>
+    </div>
+    <nav class="controls" aria-label="导览控制">
+      <button id="previous" type="button">上一幕</button>
+      <button id="play" type="button">播放</button>
+      <button id="next" type="button">下一幕</button>
+      <label for="scene-picker">跳到</label><select id="scene-picker"></select>
+      <span id="time"></span>
+    </nav>
+    <div class="notes">
+      <p>17 张真实群聊截图，按消息顺序裁成 24 个画面；仅裁切或遮蔽个人头像、昵称和无关界面，未改写消息。长卡片分段展示，点击截图可放大。文字流程说明与工程能力说明均单独标识。</p>
+      <p>本次在“招商oria平台测试群”使用 OriaTest。审批通过对话指令操控合成角色；独立的真实按钮回调、PostgreSQL 和模型验证请查看各自证据。</p>
+      <p><a href="core-flow.gif">完整 GIF</a> · <a href="storyboard.md">逐幕文字与来源</a> · <a href="../../../reports/verification/v0.6/20261018-feishu-native-gif/summary.md">素材检查记录</a> · <a href="../../../ROADMAP.md">交付进度</a> · <a href="record-replay.html">早期运行记录重排版</a></p>
+    </div>
+  </main>
+  <dialog id="zoom"><button id="close" type="button">关闭放大</button><img id="zoom-image" alt=""><p id="zoom-caption"></p></dialog>
+  <noscript>此页面需要 JavaScript 切换画面。也可查看 <a href="storyboard.md">逐幕文字与图片</a>。</noscript>
+  <script src="native-data.js"></script>
+  <script src="native.js"></script>
+</body>
+</html>

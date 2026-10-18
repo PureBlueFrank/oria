@@ -1,0 +1,405 @@
+[
+  {
+    "scene": 0,
+    "counter": "01 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 620,
+        "renderedHeight": 547.9921875,
+        "renderedWidth": 1081.8515625,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "ORIA：把招商流程与经营分析接起来"
+  },
+  {
+    "scene": 1,
+    "counter": "02 / 29",
+    "images": [],
+    "overflow": [],
+    "title": "先看全貌：招商流程的十个业务步骤"
+  },
+  {
+    "scene": 2,
+    "counter": "03 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 505,
+        "renderedHeight": 492.65625,
+        "renderedWidth": 1198,
+        "width": 1228
+      }
+    ],
+    "overflow": [],
+    "title": "一句指令，启动需求追问"
+  },
+  {
+    "scene": 3,
+    "counter": "04 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 500,
+        "renderedHeight": 489.375,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "先明确招商类目"
+  },
+  {
+    "scene": 4,
+    "counter": "05 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 505,
+        "renderedHeight": 494.265625,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "再确定区域与报名模式"
+  },
+  {
+    "scene": 5,
+    "counter": "06 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 500,
+        "renderedHeight": 489.375,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "补齐候选数量"
+  },
+  {
+    "scene": 6,
+    "counter": "07 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 540,
+        "renderedHeight": 528.5234375,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "由用户确认最终参数"
+  },
+  {
+    "scene": 7,
+    "counter": "08 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 610,
+        "renderedHeight": 597.0390625,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "规则与草案冻结，停在第一次审批"
+  },
+  {
+    "scene": 8,
+    "counter": "09 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 610,
+        "renderedHeight": 597.0390625,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "批准后发布招商，进入报名等待"
+  },
+  {
+    "scene": 9,
+    "counter": "10 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 610,
+        "renderedHeight": 597.0390625,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "接收报名，继续等待关窗"
+  },
+  {
+    "scene": 10,
+    "counter": "11 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 725,
+        "renderedHeight": 709.59375,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "关窗后恢复，先由商家确认"
+  },
+  {
+    "scene": 11,
+    "counter": "12 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 730,
+        "renderedHeight": 714.4921875,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "第二级：销售确认"
+  },
+  {
+    "scene": 12,
+    "counter": "13 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 730,
+        "renderedHeight": 714.4921875,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "第三级：销售经理确认"
+  },
+  {
+    "scene": 13,
+    "counter": "14 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 780,
+        "renderedHeight": 737.9921875,
+        "renderedWidth": 1158.0859375,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "确认完成，关联券并等待选品"
+  },
+  {
+    "scene": 14,
+    "counter": "15 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 705,
+        "renderedHeight": 690.0234375,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "选品完成，进入第二次审批"
+  },
+  {
+    "scene": 15,
+    "counter": "16 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 330,
+        "renderedHeight": 322.984375,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "选中商品仍须通过投放审批"
+  },
+  {
+    "scene": 16,
+    "counter": "17 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 620,
+        "renderedHeight": 606.828125,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "第二次批准，完成全部十步"
+  },
+  {
+    "scene": 17,
+    "counter": "18 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 450,
+        "renderedHeight": 440.4375,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "结果可核对：published 与 sent"
+  },
+  {
+    "scene": 18,
+    "counter": "19 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 720,
+        "renderedHeight": 704.703125,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "从“为什么下降”到有证据的解释"
+  },
+  {
+    "scene": 19,
+    "counter": "20 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 490,
+        "renderedHeight": 479.5859375,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "结论附带可回查的证据路径"
+  },
+  {
+    "scene": 20,
+    "counter": "21 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 830,
+        "renderedHeight": 737.9921875,
+        "renderedWidth": 1088.3203125,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "证据冲突时，明确保留冲突"
+  },
+  {
+    "scene": 21,
+    "counter": "22 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 730,
+        "renderedHeight": 714.4921875,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "证据不足时，允许弃答"
+  },
+  {
+    "scene": 22,
+    "counter": "23 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 650,
+        "renderedHeight": 636.1875,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "流程结束后仍能查询规则"
+  },
+  {
+    "scene": 23,
+    "counter": "24 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 410,
+        "renderedHeight": 401.2890625,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "查看招商范围与报名规则"
+  },
+  {
+    "scene": 24,
+    "counter": "25 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 420,
+        "renderedHeight": 411.078125,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "核对优惠和动态确认规则"
+  },
+  {
+    "scene": 25,
+    "counter": "26 / 29",
+    "images": [
+      {
+        "complete": true,
+        "height": 690,
+        "renderedHeight": 675.3359375,
+        "renderedWidth": 1198,
+        "width": 1224
+      }
+    ],
+    "overflow": [],
+    "title": "继续翻页，查看商家端素材"
+  },
+  {
+    "scene": 26,
+    "counter": "27 / 29",
+    "images": [],
+    "overflow": [],
+    "title": "平台基础：模型、知识与执行边界"
+  },
+  {
+    "scene": 27,
+    "counter": "28 / 29",
+    "images": [],
+    "overflow": [],
+    "title": "平台基础：权限、记忆、协作与评测"
+  },
+  {
+    "scene": 28,
+    "counter": "29 / 29",
+    "images": [],
+    "overflow": [],
+    "title": "看清当前交付范围，再开始体验"
+  }
+]

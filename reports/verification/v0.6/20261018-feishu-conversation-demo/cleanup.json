@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "public_tunnel": "closed_and_no_run_processes_remain",
+  "temporary_receivers_and_preview_listeners": "closed_8018_8129",
+  "self_created_private_scope_files": "two_exact_files_removed",
+  "original_user_credentials": "preserved",
+  "initial_process_check": "sandbox_ps_permission_denied_then_read_only_escalated_check_passed"
+}

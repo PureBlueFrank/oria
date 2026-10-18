@@ -99,6 +99,57 @@ app.add_typer(memory_app, name="memory")
 app.add_typer(api_app, name="api")
 
 
+@app.command("feishu-demo")
+def feishu_demo(
+    config: Annotated[Path, typer.Option(help="Private discovered OriaTest scope (0600).")],
+    data_dir: Annotated[
+        Path, typer.Option(help="New, isolated synthetic demonstration directory.")
+    ],
+    port: Annotated[int, typer.Option(min=1, max=65535)] = 8018,
+    seconds: Annotated[int, typer.Option(min=1, max=1800)] = 1800,
+) -> None:
+    """Run the explicit synthetic Feishu walkthrough on loopback; no production Jobs."""
+    import uvicorn
+
+    from oria.chat.feishu_demo import build_feishu_demo, require_feishu_demo_target
+
+    try:
+        require_feishu_demo_target(os.environ)
+        application = build_feishu_demo(
+            config,
+            data_dir,
+            _default_eval_asset("datasets/scenario_b/manifest.json"),
+            seconds=seconds,
+        )
+    except (OSError, ValueError):
+        raise typer.BadParameter("演示配置或隔离目录无效, 请检查指南; 私有值不会显示。") from None
+
+    async def serve() -> None:
+        server = uvicorn.Server(
+            uvicorn.Config(
+                application,
+                host="127.0.0.1",
+                port=port,
+                access_log=False,
+                proxy_headers=False,
+                log_level="critical",
+            )
+        )
+
+        async def expire() -> None:
+            await asyncio.sleep(seconds)
+            server.should_exit = True
+
+        guard = asyncio.create_task(expire())
+        try:
+            await server.serve()
+        finally:
+            guard.cancel()
+
+    typer.echo("合成演示接收端已准备: 仅回环、单测试群/操作者; 到期停止, 无自动重试。")
+    asyncio.run(serve())
+
+
 @api_app.command("serve")
 def api_serve(
     config: Annotated[Path | None, typer.Option(help="Server-owned JSON configuration.")] = None,

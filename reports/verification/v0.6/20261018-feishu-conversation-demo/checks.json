@@ -1,0 +1,34 @@
+{
+  "status": "real_workflow_and_GIF_passed",
+  "local": {
+    "passed": 1132,
+    "deselected": 9,
+    "warnings": 5,
+    "seconds": 346.91
+  },
+  "targeted": {
+    "passed": 15,
+    "warnings": 1
+  },
+  "lint": "passed",
+  "build": "passed",
+  "cli_smoke": "passed",
+  "package_source_and_privacy": "passed",
+  "feishu_discovery": "passed_refreshed",
+  "app_release": "1.0.1_published",
+  "message_subscription": "im.message.receive_v1",
+  "scope": "one privately verified test chat and operator",
+  "real_conversation": "20_commands_sent_help_visibility_confirmed",
+  "recorded_video": "cancelled_by_user",
+  "business_mode": "isolated Mock/Fixture SQLite",
+  "job_gate": "not_closed",
+  "remote_ci": "not_triggered",
+  "confirmation_before_business_creation": "targeted_passed_with_resolved_database_paths",
+  "real_core_workflow": "completed_10_of_10_Mock_business",
+  "real_attribution_fragments": "attributed_conflicting_insufficient_sent",
+  "temporary_entry": "closed_verified",
+  "gif": "source_linked_replay_complete_README_integrated",
+  "media_checks": "media-checks.json",
+  "cleanup": "passed_temporary_scope_files_removed_original_preserved",
+  "media_final_build": "passed_current_source_and_GIF_match"
+}

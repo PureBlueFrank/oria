@@ -42,6 +42,18 @@ Oria 将执行编排、业务不变量和外部实现分层，并通过稳定契
 
 无需安装或 API Key，可按步骤浏览场景 A 的执行 Trace，并切换查看场景 B 的典型归因案例。这是基于版本化合成数据的场景导览，不是连接真实企业系统的在线 Sandbox；完整流程和执行边界见 [本地 Workflow 手册](docs/guides/local-workflow.md)。
 
+## 飞书对话演示
+
+在真实飞书测试群中，通过 20 条对话指令走完招商核心流程：需求澄清 → 双审批 → 报名与三级确认 → 选品 → 投放通知，再查看经营异常归因、证据冲突与弃答，以及规则分页。
+
+![Oria 飞书核心流程：需求澄清、双审批、报名确认、选品投放闭环与经营归因](docs/demo/feishu/core-flow.gif)
+
+**3 分 30 秒，29 幕，1280 × 1040。** 使用用户提供的 **17 张真实飞书群聊截图**，长卡片分段展示，配有十步进度、章节说明和素材来源。覆盖需求澄清、两次审批、三级确认、两类外部等待、投放通知终态、三种归因结果和六类规则回查；结尾补充模型/工具插件、检索、权限、恢复、审计、记忆与评测等平台能力及交付范围。
+
+飞书通道与截图真实；模型、业务系统、数据和业务角色为 Mock / 合成范围。截图中审批由对话指令控制合成角色；真实按钮回调等独立验证另有证据，不能将此 GIF 视为生产能力已全部交付。
+
+[查看 GIF 原图](docs/demo/feishu/core-flow.gif)（约 5.0 MiB） · [可暂停、跳转、放大的截图导览](docs/demo/feishu/index.html)（克隆仓库后用浏览器打开） · [逐幕文字与来源](docs/demo/feishu/storyboard.md) · [素材验证记录](reports/verification/v0.6/20261018-feishu-native-gif/summary.md)
+
 ## 60 秒本地体验
 
 需要 Python 3.11 和 uv 0.12.6。同步锁定依赖后，运行零配置、无网络依赖的场景 A Demo：
@@ -60,7 +72,7 @@ Demo 会自动准备合成数据并生成带引用的招商提案，不会执行
 | 零配置 Demo | 首次了解 Oria | 核心依赖，无 Key | `uv run oria demo` | Mock/Fixture 下的只读提案、引用和硬资格边界 |
 | 完整本地 Workflow | 评估 10 步流程、HITL 和恢复 | 本地 SQLite、合成数据、Mock Adapter | [本地 Workflow 手册](docs/guides/local-workflow.md) | Community 业务语义、双审批/双等待与幂等对账 |
 | 企业级持久化适配 | 评估 PostgreSQL 双库、Repository、Saver 与 RLS 接入 | 两个独立测试数据库与显式 Enterprise 开关 | [PostgreSQL 接入指南](docs/guides/postgresql.md) | 仅真实 PostgreSQL IT 通过时证明该后端；缺 DSN 为 blocked |
-| API 与飞书入口基础 | 验证身份与协议边界 | 显式本地模式，或受信 JWT/身份目录配置 | [API 基础指南](docs/guides/api-foundation.md) | T02 进行中；HTTP 外壳与 SQLite 持久去重已实现，未接通实际 Job 或真实飞书链路 |
+| API 与飞书入口基础 | 验证身份与协议边界 | 显式本地模式，或受信 JWT/身份目录配置 | [API 基础指南](docs/guides/api-foundation.md) | T02 进行中；真实文本/卡片出站、审批投递与更新、重启后真实按钮回调已验证；Job 待接通 |
 | 场景 B 归因演示 | 观察有界 ReAct 调查 | 默认无 Key；Live 需已配置模型 | `uv run oria attribution ask` | Mock 回放下的可执行证据链；Live 下才验证动态选路能力 |
 | 真实 DeepSeek | 体验真实模型草案/软排序 | `standard` extra、DeepSeek Key、首次 BGE 下载 | [真实 LLM 快速开始](docs/guides/real-llm.md) | 指定 DeepSeek 模型与本地 BGE 的调用；不证明企业 Adapter |
 | 开发验证 | 贡献者和架构评审者 | 开发依赖 | `make lint && make test` | 无 Live/Enterprise/Performance 的本地回归与静态门禁 |
@@ -69,7 +81,7 @@ Demo 会自动准备合成数据并生成带引用的招商提案，不会执行
 
 企业环境可将 Platform 与 Business 分别接入独立 PostgreSQL 数据库，并沿用与 SQLite 相同的 Repository 契约。生产接入需显式配置两个 DSN 与 TLS，以无 `BYPASSRLS` 的最小权限角色验证 RLS；选择 PostgreSQL 后配置缺失会失败关闭，不回退 SQLite。业务表由 Oria migration 管理，官方 `AsyncPostgresSaver` 的 checkpoint 表则由 saver `setup()` 管理。
 
-配置、migration 与验证入口见 [PostgreSQL 接入指南](docs/guides/postgresql.md)，系统边界与扩展方式见 [架构概览](ARCHITECTURE.md)。当前仓库的 PostgreSQL Enterprise 验证因缺少两个真实测试 DSN 仍为 blocked，不能把契约测试提升为真实 PostgreSQL 已通过。
+配置、migration 与验证入口见 [PostgreSQL 接入指南](docs/guides/postgresql.md)，系统边界与扩展方式见 [架构概览](ARCHITECTURE.md)。2026-10-17 已在本地原生 PostgreSQL 17.11 的隔离双库上完成 8 项真实持久化验证，原缺 DSN 阻塞已解除，见 [验证卡](reports/verification/v0.6/20261017-postgres-local/summary.md)。此结果不代表生产部署、PostgreSQL API、双 worker 或真实飞书链路已通过。
 
 ## 开发与文档导航
 
