@@ -53,7 +53,9 @@ CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development �
 
 ## 模块职责
 
-下表是跨 V0.1–V0.8 的目标模块图。当前已交付 V0.5 Core 与 V0.6-T01 持久化基础；V0.6-T02 新增 API 身份、飞书协议、IM 展示、SQLite 事务化去重、审批详情/决定 HTTP 接口及卡片批准的原子 receipt/CAS/审计/outbox 路径，并以完整快照条件更新阻止并发覆盖；Job/wait 任务受理、生产装配与真实飞书通道尚未接通。`jobs/web`、lease/fencing、SSE 与可靠 Webhook 仍属后续任务，不能据此表宣称已经交付。边界见 [API 基础指南](docs/guides/api-foundation.md)。
+下表是跨 V0.1–V0.8 的目标模块图。当前已交付 V0.5 Core 与 V0.6-T01 持久化基础；V0.6-T02 新增 API 身份、飞书协议、IM 展示、SQLite 事务化去重、审批详情/决定 HTTP 接口及卡片批准的原子 receipt/CAS/审计/outbox 路径，并以完整快照条件更新阻止并发覆盖；服务启动可显式装配共用运行时的审批 HTTP 与卡片受理。真实飞书文本与无按钮卡片出站已独立验证；独立 OriaTest 的受信审批投递、持久绑定后 PATCH 激活、接收进程重启后真实签名/AES 批准回调及终态显示也已验证。同一真实回调在内存中复验不新增决定审计/outbox。默认入口不自动发送，可靠投递恢复仍属 T05，Job/wait 与文本会话编排尚未接通。`jobs/web`、lease/fencing、SSE 与可靠 Webhook 仍属后续任务，不能据此表宣称已经交付。边界见 [API 基础指南](docs/guides/api-foundation.md)。
+
+2026-10-17 已在原生本地 PostgreSQL 17.11 隔离双库上验证迁移、Repository、RLS/连接池和官方 saver，见 [独立验证卡](reports/verification/v0.6/20261017-postgres-local/summary.md)。这项持久化基础验证与仍限定 SQLite 的 API 审批装配分开；不代表 PostgreSQL API 或多 worker 恢复已交付。
 
 | 模块 | 主要职责 |
 | --- | --- |

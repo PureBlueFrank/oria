@@ -1,0 +1,27 @@
+{
+  "mode": "public_callback_gateway_synthetic",
+  "status": "passed",
+  "messages_sent": 0,
+  "checks": [
+    {
+      "case": "GET /v1/health",
+      "http_status": 404
+    },
+    {
+      "case": "GET /docs",
+      "http_status": 404
+    },
+    {
+      "case": "GET /v1/me",
+      "http_status": 404
+    },
+    {
+      "case": "GET /v1/ingress/feishu/events",
+      "http_status": 404
+    },
+    {
+      "case": "synthetic_encrypted_signed_challenge",
+      "http_status": 200
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "received_at": "2026-10-18T01:55:49.253090+00:00",
+  "http_status": 401,
+  "structural_diagnostic": {
+    "signature_fields_present": {
+      "x-lark-request-timestamp": true,
+      "x-lark-request-nonce": true,
+      "x-lark-signature": true
+    },
+    "signature_matches_configured_key": true,
+    "signature_matches_empty_key": false,
+    "timestamp_within_300_seconds": false,
+    "timestamp_digit_count": 59,
+    "timestamp_format_mask": "0000-00-00 00:00:00.000000000 +0000 aaa a=+000000.000000000",
+    "timestamp_text_is_ascii": true,
+    "encrypted_envelope": true,
+    "schema_is_v2": true,
+    "header_fields_present": {
+      "app_id": true,
+      "event_id": true,
+      "event_type": true,
+      "tenant_key": true,
+      "token": true
+    },
+    "application_matches": true,
+    "verification_token_matches": true,
+    "event_verification_token_matches": false,
+    "top_level_verification_token_matches": false,
+    "card_action_event_type": true,
+    "operator_fields_present": {
+      "open_id": true,
+      "tenant_key": true
+    },
+    "operator_tenant_matches_header": true,
+    "action_value_type": "dict",
+    "action_version_type": "int",
+    "action_version_matches": true,
+    "action_ref_present": true,
+    "tenant_matches_discovery": true,
+    "operator_matches_discovery": true,
+    "chat_matches_receipt": true,
+    "message_matches_receipt": true
+  }
+}

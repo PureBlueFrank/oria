@@ -1,0 +1,18 @@
+{
+  "mode": "platform_callback_url_validation",
+  "status": "passed",
+  "user_confirmed_save_success": true,
+  "new_observations_after_synthetic_precheck": 1,
+  "observations": [
+    {
+      "received_at": "2026-10-18T01:44:48.619916+00:00",
+      "request_sha256": "d402dbbcfc6108edf76a649adeedfe55e8b0253c8f2ff02c2b49878723240c06",
+      "request_bytes": 206,
+      "http_status": 200,
+      "signature_header_present": false,
+      "challenge_response": true
+    }
+  ],
+  "real_approval_button_callback": "not_run",
+  "raw_payload_saved": false
+}

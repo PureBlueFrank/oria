@@ -1,0 +1,18 @@
+import os,signal,subprocess,sys,time
+from datetime import datetime,timezone
+stop=False
+child=subprocess.Popen(sys.argv[2:],start_new_session=True)
+def request_stop(signum,frame):
+    global stop
+    stop=True
+signal.signal(signal.SIGTERM,request_stop); signal.signal(signal.SIGINT,request_stop)
+deadline=float(sys.argv[1])
+try:
+    while child.poll() is None and not stop and time.time()<deadline: time.sleep(.1)
+finally:
+    if child.poll() is None:
+        os.killpg(child.pid,signal.SIGTERM)
+        try: child.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            os.killpg(child.pid,signal.SIGKILL); child.wait()
+raise SystemExit(child.returncode or 0)

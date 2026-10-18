@@ -1,0 +1,29 @@
+uv run ruff format --check .
+unformatted: File would be reformatted
+   --> tests/integration/test_v06_feishu_server_lifecycle.py:201:16
+    |
+200 |         assert after.json()["revision"] != before.json()["revision"]
+    -         assert client.post(
+    -             "/v1/approvals/approval-card/decision",
+    -             json={
+    -                 "decision": "reject",
+    -                 "reason": "synthetic rejection",
+    -                 "expected_revision": before.json()["revision"],
+    -             },
+    -         ).status_code == 409
+201 +         assert (
+202 +             client.post(
+203 +                 "/v1/approvals/approval-card/decision",
+204 +                 json={
+205 +                     "decision": "reject",
+206 +                     "reason": "synthetic rejection",
+207 +                     "expected_revision": before.json()["revision"],
+208 +                 },
+209 +             ).status_code
+210 +             == 409
+211 +         )
+212 |         assert _snapshot(config)["ingress_receipts"] == 1
+    |
+
+1 file would be reformatted, 358 files already formatted
+make: *** [lint] Error 1

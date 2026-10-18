@@ -1,0 +1,91 @@
+"""Private verification wrapper; public ingress remains the unchanged Oria API."""
+from pathlib import Path
+from datetime import datetime,timezone
+from contextlib import closing
+import hashlib,json,os,socket,sqlite3,sys,uvicorn
+from oria.api.server import build_api
+from oria.config import resolve_runtime_config
+from starlette.responses import Response
+root=Path(__file__).parent
+if __name__!='__main__':
+    app=build_api(config=root/'server.json',local=False,host='127.0.0.1')
+    database=resolve_runtime_config(config_path=root/'runtime.yaml',environ={},cwd=root).data_paths.platform_db
+
+def save(name,value,append=False):
+    fd=os.open(root/name,os.O_CREAT|os.O_WRONLY|(os.O_APPEND if append else os.O_TRUNC),0o600)
+    with os.fdopen(fd,'a' if append else 'w') as file: file.write(json.dumps(value)+'\n')
+def counts():
+    with closing(sqlite3.connect('file:'+str(database)+'?mode=ro',uri=True)) as db:
+        return {table:db.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in ('approvals','approval_card_bindings','ingress_receipts','ingress_replays','audit_events','outbox')}
+def terminal(body):
+    try:
+        value=json.loads(body)
+        card=value.get('card',{})
+        return card.get('type')=='raw' and bool(card.get('data')) and not any(el.get('tag')=='action' for el in card['data'].get('elements',[]))
+    except (ValueError,TypeError,AttributeError): return False
+async def callback_only(scope,receive,send):
+    if scope['type']=='lifespan':
+        async def lifecycle_send(message):
+            if message['type']=='lifespan.startup.complete':
+                save('worker-ready.json',{'pid':os.getpid(),'started_at':datetime.now(timezone.utc).isoformat()})
+            await send(message)
+        await app(scope,receive,lifecycle_send)
+        return
+    if scope['type']=='websocket':
+        await send({'type':'websocket.close','code':1008}); return
+    if scope['type']!='http' or scope['method']!='POST' or scope['path']!='/v1/ingress/feishu/events':
+        await Response(status_code=404)(scope,receive,send); return
+    digest=hashlib.sha256(); request_bytes=0; status=None
+    response_body=bytearray(); original=bytearray()
+    capture=(root/'duplicate-test-enabled').exists() and not (root/'duplicate-callback.json').exists()
+    async def observed_receive():
+        nonlocal request_bytes,capture
+        message=await receive()
+        if message['type']=='http.request':
+            body=message.get('body',b''); digest.update(body); request_bytes+=len(body)
+            if capture:
+                if len(original)+len(body)<=1048576: original.extend(body)
+                else: capture=False; original.clear()
+        return message
+    async def observed_send(message):
+        nonlocal status
+        if message['type']=='http.response.start': status=message['status']
+        if message['type']=='http.response.body' and len(response_body)<65536:
+            response_body.extend(message.get('body',b'')[:65536-len(response_body)])
+        await send(message)
+    await app(scope,observed_receive,observed_send)
+    entry={'received_at':datetime.now(timezone.utc).isoformat(),'worker_pid':os.getpid(),'request_sha256':digest.hexdigest(),'request_bytes':request_bytes,'http_status':status,'signature_header_present':any(key.lower()==b'x-lark-signature' for key,value in scope.get('headers',[])),'terminal_raw_card':terminal(response_body)}
+    try: entry['challenge_response']=set(json.loads(response_body))=={'challenge'}
+    except (ValueError,TypeError): pass
+    destination=root/'callback-observations.jsonl'
+    if not destination.exists() or destination.stat().st_size<65536:
+        save('callback-observations.jsonl',entry,append=True)
+    if capture and status==200 and terminal(response_body):
+        # The platform response is already sent. Replay the exact captured request
+        # once in memory through every normal signature, identity and Policy check.
+        # No body, signature, token or action reference is written to disk.
+        before=counts(); duplicate_status=None; duplicate_body=bytearray(); read=False
+        async def replay_receive():
+            nonlocal read
+            if not read:
+                read=True; return {'type':'http.request','body':bytes(original),'more_body':False}
+            return {'type':'http.disconnect'}
+        async def replay_send(message):
+            nonlocal duplicate_status
+            if message['type']=='http.response.start': duplicate_status=message['status']
+            if message['type']=='http.response.body': duplicate_body.extend(message.get('body',b''))
+        outcome={'mode':'captured_platform_callback_replayed_in_memory_once','before':before,'raw_payload_saved':False}
+        try:
+            await app(dict(scope),replay_receive,replay_send)
+            after=counts()
+            outcome.update(http_status=duplicate_status,terminal_raw_card=terminal(duplicate_body),after=after,counts_unchanged=before==after)
+            outcome['status']='passed' if duplicate_status==200 and terminal(duplicate_body) and before==after else 'failed'
+        except Exception as error:
+            outcome.update(status='failed',error_type=type(error).__name__)
+        save('duplicate-callback.json',outcome)
+    original.clear()
+if __name__=='__main__':
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1',int(sys.argv[1]) if len(sys.argv)>1 else 0)); listener.listen(128)
+        save('connection.json',{'port':listener.getsockname()[1]})
+        uvicorn.run('gateway:callback_only',app_dir=str(root),fd=listener.fileno(),reload=True,reload_dirs=[str(root)],access_log=False,log_level='critical',ws='none')

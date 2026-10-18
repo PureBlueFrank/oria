@@ -46,7 +46,7 @@ class IMViewModel(ValueModel):
         return self
 
 
-def render_card(view: IMViewModel, *, page: int = 1) -> dict[str, Any]:
+def render_card(view: IMViewModel, *, page: int = 1, shared_update: bool = False) -> dict[str, Any]:
     """Render five sections per page; caller reauthorizes detail/pagination access."""
     pages = max(1, (len(view.sections) + 4) // 5)
     if not 1 <= page <= pages:
@@ -72,8 +72,11 @@ def render_card(view: IMViewModel, *, page: int = 1) -> dict[str, Any]:
                 ],
             }
         )
+    config = {"wide_screen_mode": True}
+    if shared_update:
+        config["update_multi"] = True
     return {
-        "config": {"wide_screen_mode": True},
+        "config": config,
         "header": {"title": text(view.title)},
         "elements": elements,
     }

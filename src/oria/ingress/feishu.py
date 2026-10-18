@@ -6,7 +6,9 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any, Literal
 
 from cryptography.hazmat.primitives import padding
@@ -57,6 +59,28 @@ def _digest(*parts: str) -> str:
     return hashlib.sha256(json.dumps(parts, ensure_ascii=False).encode()).hexdigest()
 
 
+_GO_TIMESTAMP = re.compile(
+    r"(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})"
+    r"(?:\.(?P<fraction>[0-9]{1,9}))? (?P<offset>[+-][0-9]{4}) [A-Za-z]{1,10}"
+    r"(?: m=[+-][0-9]{1,20}(?:\.[0-9]{1,9})?)?"
+)
+
+
+def _timestamp_seconds(value: str) -> int | float:
+    if re.fullmatch(r"[0-9]{1,20}", value):
+        return int(value)
+    match = _GO_TIMESTAMP.fullmatch(value)
+    if match is None:
+        raise ValueError("unsupported timestamp")
+    # Go's optional monotonic suffix has no meaning outside its source process.
+    # The explicit UTC offset determines the wall clock; sign the entire original text.
+    seconds = datetime.strptime(
+        f"{match['date']} {match['offset']}", "%Y-%m-%d %H:%M:%S %z"
+    ).timestamp()
+    fraction = match["fraction"]
+    return seconds + (int(fraction) / 10 ** len(fraction) if fraction else 0)
+
+
 class FeishuIngress:
     name = "feishu"
 
@@ -92,13 +116,15 @@ class FeishuIngress:
                 key in headers
                 for key in ("x-lark-request-timestamp", "x-lark-request-nonce", "x-lark-signature")
             )
-            stamp = 0
+            stamp: int | float = 0
+            replay_timestamp = ""
             nonce = ""
             if signed:
-                timestamp = _text(headers.get("x-lark-request-timestamp"), limit=20)
+                timestamp = _text(headers.get("x-lark-request-timestamp"), limit=96)
                 nonce = _text(headers.get("x-lark-request-nonce"))
                 signature = _text(headers.get("x-lark-signature"), limit=64)
-                stamp = int(timestamp)
+                stamp = _timestamp_seconds(timestamp)
+                replay_timestamp = str(stamp) if isinstance(stamp, int) else timestamp
                 now = request.received_at.timestamp()
                 if abs(now - stamp) > self.settings.max_age_seconds:
                     raise ValueError("stale request")
@@ -177,7 +203,7 @@ class FeishuIngress:
                     dedupe_key=dedupe,
                 ),
                 action=action,
-                replay_key=_digest(self.settings.app_id, str(stamp), nonce),
+                replay_key=_digest(self.settings.app_id, replay_timestamp, nonce),
                 expires_at=stamp + self.settings.max_age_seconds,
             )
         except (ValueError, TypeError, KeyError, PermissionError):

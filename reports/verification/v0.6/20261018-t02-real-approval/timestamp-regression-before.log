@@ -1,0 +1,143 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_go_callback_timestamp_preserves_expiry_and_original_signature ______
+
+    def test_go_callback_timestamp_preserves_expiry_and_original_signature():
+        now = datetime(2026, 10, 18, 1, 0, 0, 123456, tzinfo=UTC)
+        timestamp = "2026-10-18 09:00:00.123456789 +0800 CST m=+123456.987654321"
+        doc = event()
+        doc["header"]["event_type"] = "card.action.trigger"
+        doc["event"] = {
+            "operator": {"tenant_key": "ft", "open_id": "ou"},
+            "context": {"open_message_id": "card-msg", "open_chat_id": "chat"},
+            "action": {"value": {"version": 1, "action_ref": "approval-action"}},
+        }
+        inbound = request(doc, timestamp=timestamp, encrypted=True).model_copy(
+            update={"received_at": now}
+        )
+>       result = ingress().verify(inbound)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/contract/test_v06_feishu.py:166:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <oria.ingress.feishu.FeishuIngress object at 0x1284e0750>
+request = InboundRequest(headers={'X-Lark-Request-Timestamp': '2026-10-18 09:00:00.123456789 +0800 CST m=+123456.987654321', 'X-...datetime.datetime(2026, 10, 18, 1, 0, 0, 123456, tzinfo=datetime.timezone.utc), request_id='request', remote_addr=None)
+
+    def verify(self, request: InboundRequest) -> VerifiedFeishuEvent | str:
+        """Return a challenge or a verified event for an atomic, durable receiver.
+
+        The receiver must atomically deduplicate replay_key and message.dedupe_key
+        with business acceptance before returning success. Verification alone must
+        never acknowledge a message. T03 owns that database transaction.
+        """
+        try:
+            headers = {key.lower(): value for key, value in request.headers.items()}
+            # URL verification uses the verification token (official challenge flow).
+            # If signature headers are present, even challenges must pass verification.
+            signed = any(
+                key in headers
+                for key in ("x-lark-request-timestamp", "x-lark-request-nonce", "x-lark-signature")
+            )
+            stamp = 0
+            nonce = ""
+            if signed:
+                timestamp = _text(headers.get("x-lark-request-timestamp"), limit=20)
+                nonce = _text(headers.get("x-lark-request-nonce"))
+                signature = _text(headers.get("x-lark-signature"), limit=64)
+                stamp = int(timestamp)
+                now = request.received_at.timestamp()
+                if abs(now - stamp) > self.settings.max_age_seconds:
+                    raise ValueError("stale request")
+                prefix = timestamp + nonce + self.settings.encrypt_key.get_secret_value()
+                expected = hashlib.sha256(prefix.encode() + request.raw_body).hexdigest()
+                if not hmac.compare_digest(expected, signature):
+                    raise ValueError("invalid signature")
+            document = self._decode(request.raw_body)
+            header = _object(document.get("header", {}))
+            token = (
+                document.get("token")
+                if document.get("type") == "url_verification"
+                else header.get("token")
+            )
+            if not hmac.compare_digest(
+                _text(token), self.settings.verification_token.get_secret_value()
+            ):
+                raise ValueError("invalid verification token")
+            if document.get("type") == "url_verification":
+                return _text(document.get("challenge"))
+            if not signed or document.get("schema") != "2.0":
+                raise ValueError("signed v2 event required")
+            if header.get("app_id") != self.settings.app_id:
+                raise ValueError("wrong application")
+            _text(header.get("event_id"))
+            tenant = _text(header.get("tenant_key"))
+            event = _object(document.get("event"))
+            action = None
+            if header.get("event_type") == "im.message.receive_v1":
+                sender = _object(event.get("sender"))
+                if sender.get("sender_type") != "user" or sender.get("tenant_key") != tenant:
+                    raise ValueError("untrusted sender")
+                subject = _text(_object(sender.get("sender_id")).get("open_id"))
+                message = _object(event.get("message"))
+                if message.get("message_type") != "text":
+                    raise ValueError("unsupported message type")
+                content = _object(json.loads(_text(message.get("content"), limit=32_768)))
+                text = _text(content.get("text"), limit=16_384)
+                source_id = _text(message.get("message_id"))
+                chat = _text(message.get("chat_id"))
+                kind: Literal["message", "action"] = "message"
+            elif header.get("event_type") == "card.action.trigger":
+                operator = _object(event.get("operator"))
+                if operator.get("tenant_key") != tenant:
+                    raise ValueError("untrusted operator")
+                subject = _text(operator.get("open_id"))
+                action = CardAction.model_validate(_object(event.get("action")).get("value"))
+                context = _object(event.get("context"))
+                chat = _text(context.get("open_chat_id"))
+                source_id = _text(context.get("open_message_id"))
+                text, kind = "", "action"
+            else:
+                raise ValueError("unsupported event type")
+            issuer = f"feishu:{self.settings.app_id}:{tenant}"
+            binding = self.directory().resolve(issuer, subject)
+            dedupe = _digest(
+                issuer,
+                kind,
+                source_id,
+                subject if action else "",
+                action.action_ref if action else "",
+            )
+            return VerifiedFeishuEvent(
+                kind=kind,
+                binding=binding,
+                message=InboundMessage(
+                    source="feishu",
+                    source_message_id=source_id,
+                    mapped_tenant_id=binding.actor.tenant_id,
+                    mapped_subject_id=binding.actor.subject_id,
+                    sender_ref=subject,
+                    target_ref=chat,
+                    text=text,
+                    received_at=request.received_at,
+                    verified=True,
+                    dedupe_key=dedupe,
+                ),
+                action=action,
+                replay_key=_digest(self.settings.app_id, str(stamp), nonce),
+                expires_at=stamp + self.settings.max_age_seconds,
+            )
+        except (ValueError, TypeError, KeyError, PermissionError):
+>           raise IngressVerificationError("invalid Feishu callback") from None
+E           oria.ingress.local.IngressVerificationError: invalid Feishu callback
+
+src/oria/ingress/feishu.py:184: IngressVerificationError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  <user-home>/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/contract/test_v06_feishu.py::test_go_callback_timestamp_preserves_expiry_and_original_signature
+1 failed, 15 deselected, 1 warning in 3.31s

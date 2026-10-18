@@ -7,6 +7,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
@@ -23,6 +24,7 @@ from oria.core.types import InboundRequest, ValueModel
 from oria.ingress.feishu import FeishuIngress, VerifiedFeishuEvent
 from oria.ingress.local import IngressVerificationError
 from oria.ingress.receipts import IngressConflict, IngressUnavailable
+from oria.presentation.im import IMViewModel, render_card
 
 
 class APIError(ValueModel):
@@ -42,7 +44,15 @@ class FeishuReceiver(Protocol):
     Never retain raw callback bodies, headers or bearer tokens.
     """
 
-    async def accept(self, event: VerifiedFeishuEvent) -> None: ...
+    async def accept(self, event: VerifiedFeishuEvent) -> IMViewModel | None: ...
+
+
+@dataclass(frozen=True, slots=True)
+class APIServices:
+    """Services sharing one application-owned runtime and database lifecycle."""
+
+    approvals: ApprovalAPI
+    receiver: FeishuReceiver | None = None
 
 
 def create_app(
@@ -54,6 +64,7 @@ def create_app(
     approvals: ApprovalAPI | None = None,
     close: Callable[[], Awaitable[None]] | None = None,
     approval_factory: Callable[[], AbstractAsyncContextManager[ApprovalAPI]] | None = None,
+    services_factory: Callable[[], AbstractAsyncContextManager[APIServices]] | None = None,
 ) -> FastAPI:
     if (authenticator is None) == (local_identity is None):
         raise ValueError("select exactly one explicit authentication profile")
@@ -62,19 +73,28 @@ def create_app(
 
     if approvals is not None and approval_factory is not None:
         raise ValueError("select one approval service source")
+    if services_factory is not None and any(
+        service is not None for service in (approvals, approval_factory, receiver)
+    ):
+        raise ValueError("application services cannot be mixed with injected services")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        nonlocal approvals
+        nonlocal approvals, receiver
         del app
         try:
             async with AsyncExitStack() as stack:
                 if approval_factory is not None:
                     approvals = await stack.enter_async_context(approval_factory())
+                if services_factory is not None:
+                    services = await stack.enter_async_context(services_factory())
+                    approvals, receiver = services.approvals, services.receiver
                 yield
         finally:
-            if approval_factory is not None:
+            if approval_factory is not None or services_factory is not None:
                 approvals = None
+            if services_factory is not None:
+                receiver = None
             if close is not None:
                 await close()
 
@@ -132,7 +152,9 @@ def create_app(
 
     @app.exception_handler(IngressUnavailable)
     async def ingress_unavailable(request: Request, exc: IngressUnavailable) -> JSONResponse:
-        return error(request, 503, "unavailable", "消息暂未受理，请稍后重试。")
+        return error(
+            request, 503, "unavailable", "暂时无法确认处理结果，请稍后重试或查询当前状态。"
+        )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -208,7 +230,9 @@ def create_app(
         if receiver is None:
             # No acknowledgement until an actual durable receiver is installed.
             raise HTTPException(503)
-        await receiver.accept(result)
+        view = await receiver.accept(result)
+        if result.kind == "action" and view is not None:
+            return {"card": {"type": "raw", "data": render_card(view, shared_update=True)}}
         return {} if result.kind == "action" else {"code": 0}
 
     return app

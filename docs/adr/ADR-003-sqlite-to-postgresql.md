@@ -27,3 +27,5 @@ Community 已有 platform/business 两条 SQLite Alembic revision 链和一套 S
 - 配置选择、URL 脱敏/失败关闭、独立 revision 链和安装 wheel 契约。
 - SQLite 全量 Community/Security 回归。
 - 真实 PostgreSQL 必须单独验证 migration、同一 Repository、RLS 无 context 拒绝、跨 tenant 隔离和 pool checkout 后 context 清空；缺 DSN 时只能记为 blocked。
+
+2026-10-17：原生本地 PostgreSQL 17.11 的隔离双库验证已通过，运行角色不是超级用户且没有 BYPASSRLS。实测修复了验收查询错误地从 `pg_tables` 读取 `forcerowsecurity` 的问题，改从 `pg_catalog.pg_class` 与 `pg_namespace` 查询 ENABLE/FORCE 标记，继续要求所有租户表和隔离 policy 齐备；没有放宽控制。六项真实负例覆盖 Platform/Business 的 ENABLE、FORCE 和 policy 缺失；官方 saver 补核跨租户、namespace、pending writes、父游标与列表。证据见 [本地 PostgreSQL 卡](../../reports/verification/v0.6/20261017-postgres-local/summary.md)。生产部署与双 worker/lease/fencing 不在本卡范围内。

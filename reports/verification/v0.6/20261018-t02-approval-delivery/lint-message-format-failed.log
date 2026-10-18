@@ -1,0 +1,14 @@
+uv run ruff format --check .
+unformatted: File would be reformatted
+   --> src/oria/api/app.py:155:22
+    |
+154 |     async def ingress_unavailable(request: Request, exc: IngressUnavailable) -> JSONResponse:
+    -         return error(request, 503, "unavailable", "暂时无法确认处理结果，请稍后重试或查询当前状态。")
+155 +         return error(
+156 +             request, 503, "unavailable", "暂时无法确认处理结果，请稍后重试或查询当前状态。"
+157 +         )
+158 |
+    |
+
+1 file would be reformatted, 360 files already formatted
+make: *** [lint] Error 1

@@ -1,0 +1,149 @@
+import asyncio
+import hashlib
+import json
+import os
+import re
+import uuid
+from datetime import datetime
+from pathlib import Path
+from types import SimpleNamespace
+from zoneinfo import ZoneInfo
+
+import httpx
+from pydantic import SecretStr
+from oria._internal.target_selection import ENTERPRISE_TARGETS, require_explicit_targets
+from oria.core.types import Principal
+from oria.ingress.feishu_channel import FeishuChannel
+from oria.permission.local import LocalPolicyEngine
+from oria.presentation.im import IMSection, IMViewModel
+
+OUTPUT = Path("reports/verification/v0.6/20261018-feishu-channel")
+run_ref = "feishu-20261018-93b13b259b62"
+result = {"target":"feishu","mode":"outbound_smoke","run_ref":run_ref,
+          "run_at":datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(),
+          "expected_bot":"ClawBot","confirmed_test_group":"oriaTest",
+          "status":"blocked","api_requests":0,"messages_attempted":0,"messages_confirmed":0,
+          "synthetic_context":True,"business_workflow_executed":False,"steps":[]}
+stage = "configuration"
+class StopRun(Exception):
+    pass
+async def observe(response):
+    await response.aread()
+    try:
+        value = response.json()
+        code = value.get("code") if isinstance(value,dict) else None
+        safe = {"stage":stage,"http_status":response.status_code,"api_code":code if isinstance(code,int) else None}
+        if response.status_code >= 400 or code != 0:
+            safe["required_scopes"] = sorted(set(re.findall(r"(?:im|contact|application):[A-Za-z0-9_.:-]+",json.dumps(value))))
+    except ValueError:
+        safe = {"stage":stage,"http_status":response.status_code,"invalid_response":True}
+    result["steps"].append(safe)
+async def request(client,method,path,**kwargs):
+    result["api_requests"] += 1
+    if result["api_requests"] > 8:
+        raise StopRun()
+    response = await client.request(method,"https://open.feishu.cn/open-apis/" + path,**kwargs)
+    value = response.json()
+    if response.status_code >= 400 or not isinstance(value,dict) or value.get("code") != 0:
+        result["blocked_by"] = stage + "_rejected"
+        raise StopRun()
+    return value
+async def main():
+    global stage
+    selected = require_explicit_targets(run_flag=os.getenv("ORIA_RUN_ENTERPRISE"),raw_targets=os.getenv("ORIA_ENTERPRISE_TARGETS"),allowed_targets=ENTERPRISE_TARGETS,kind="enterprise")
+    if selected != ("feishu",):
+        raise ValueError()
+    config = json.loads(Path("<user-home>/Documents/feishuTest/credentials.json").read_text())
+    # The user explicitly confirmed oriaTest; the editable credential-file label is not authoritative.
+    result["config_chat_label_matches_confirmed_target"] = config.get("test_chat_name") == "oriaTest"
+    if not all(isinstance(config.get(key),str) and config[key].strip() for key in ("app_id","app_secret")):
+        raise ValueError()
+    OUTPUT.mkdir(parents=True,exist_ok=True)
+    # Exclusive run reservation prevents accidental automatic reruns of real sends.
+    with (OUTPUT / "send-reservation.json").open("x") as stream:
+        json.dump({"run_ref":run_ref,"status":"reserved","maximum_messages":2},stream)
+        stream.write("\n")
+    async with httpx.AsyncClient(trust_env=False,follow_redirects=False,timeout=12,event_hooks={"response":[observe]}) as client:
+        stage = "authentication"
+        auth = await request(client,"POST","auth/v3/tenant_access_token/internal",json={"app_id":config["app_id"],"app_secret":config["app_secret"]})
+        token = auth.get("tenant_access_token")
+        if not isinstance(token,str) or not token:
+            raise ValueError()
+        headers = {"Authorization":"Bearer " + token}
+        stage = "bot_identity"
+        info = await request(client,"GET","bot/v3/info",headers=headers)
+        bot = info.get("bot") or {}
+        if bot.get("app_name") != "ClawBot" or bot.get("activate_status") != 2:
+            result["blocked_by"] = "bot_identity_mismatch_or_inactive"
+            return
+        stage = "group_listing"
+        matches = set()
+        page_token = None
+        for page in range(3):
+            params = {"page_size":100}
+            if page_token:
+                params["page_token"] = page_token
+            listing = await request(client,"GET","im/v1/chats",headers=headers,params=params)
+            data = listing.get("data") or {}
+            for item in data.get("items") or []:
+                if item.get("name") == "oriaTest" and isinstance(item.get("chat_id"),str) and item["chat_id"]:
+                    matches.add(item["chat_id"])
+            if not data.get("has_more"):
+                break
+            page_token = data.get("page_token")
+        else:
+            result["blocked_by"] = "group_pagination_budget_exhausted"
+            return
+        if len(matches) != 1:
+            result["blocked_by"] = "test_group_not_unique"
+            return
+        chat_id = next(iter(matches))
+        result["chat_id_sha256"] = hashlib.sha256(chat_id.encode()).hexdigest()
+        actor = Principal(subject_id="feishu-test-operator",tenant_id="feishu-test-tenant",
+                          kind="human",roles=("campaign_admin",),authn_method="trusted-local-test")
+        executor = Principal(subject_id="feishu-test-executor",tenant_id=actor.tenant_id,
+                             kind="service",roles=("runtime",),authn_method="trusted-local-test")
+        ctx = SimpleNamespace(actor=actor,executor=executor,tenant_id=actor.tenant_id,
+                              correlation_id=run_ref,policy=LocalPolicyEngine(trusted_actors=[actor],trusted_executors=[executor]))
+        async def credential(tenant):
+            if tenant != actor.tenant_id:
+                raise ValueError()
+            return SecretStr(token)
+        channel = FeishuChannel(client,credential,{(actor.tenant_id,chat_id):frozenset({actor.subject_id})})
+        stage = "text_delivery"
+        result["api_requests"] += 1
+        result["messages_attempted"] += 1
+        sent = await channel.send_message(chat_id,"Oria 本地联调测试：真实文本消息投递。\n测试群：oriaTest\n数据：合成测试数据\n验证编号：" + run_ref,ctx)
+        if not sent.ok or not sent.message_id:
+            result["blocked_by"] = "text_" + str(sent.error)
+            return
+        result["messages_confirmed"] += 1
+        result["text_message_id_sha256"] = hashlib.sha256(sent.message_id.encode()).hexdigest()
+        stage = "card_delivery"
+        result["api_requests"] += 1
+        result["messages_attempted"] += 1
+        view = IMViewModel(stage="result",title="Oria 真实飞书通道测试",
+            summary="文本消息与卡片投递验证",
+            sections=(IMSection(title="测试目标",text="ClawBot → oriaTest"),IMSection(title="测试数据",text="合成数据，仅验证通道连通性与卡片展示")),
+            detail_ref=run_ref,next_step="请确认本群可见这张测试卡片，后续继续验证审批回调。")
+        sent = await channel.send_view(chat_id,view,ctx,delivery_id=run_ref + "-card")
+        if not sent.ok or not sent.message_id:
+            result["blocked_by"] = "card_" + str(sent.error)
+            return
+        result["messages_confirmed"] += 1
+        result["card_message_id_sha256"] = hashlib.sha256(sent.message_id.encode()).hexdigest()
+        result["status"] = "outbound_smoke_passed"
+try:
+    asyncio.run(main())
+except StopRun:
+    pass
+except FileExistsError:
+    result["blocked_by"] = "existing_send_reservation_requires_manual_review"
+except httpx.HTTPError:
+    result["blocked_by"] = stage + "_network_unavailable"
+except (ValueError,TypeError,KeyError,OSError):
+    result["blocked_by"] = stage + "_configuration_or_response_invalid"
+result["finished_at"] = datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()
+(OUTPUT / "outbound-smoke.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+print(json.dumps(result,ensure_ascii=False,indent=2))
+raise SystemExit(0 if result["status"] == "outbound_smoke_passed" else 1)

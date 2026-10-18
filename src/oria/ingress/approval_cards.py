@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from oria.api.approvals import approval_revision
+from oria.api.approvals import approval_revision, approval_view
 from oria.api.identity import AuthenticationError, IdentityBinding, IdentityDirectory
 from oria.core.approvals import Approval, ApprovalConflict, ApprovalRepository, ApprovalService
 from oria.core.context import Context, RuntimeServices
@@ -21,6 +21,7 @@ from oria.core.types import AuthorizationRequest, PolicyDecision
 from oria.ingress.feishu import CardAction, VerifiedFeishuEvent
 from oria.ingress.receipts import AcceptanceDenied, AcceptanceOutcome, IngressUnavailable
 from oria.permission.local import LocalPolicyEngine
+from oria.presentation.im import IMAction, IMViewModel
 from oria.storage.database import set_session_tenant_context
 from oria.storage.platform import PlatformRepositoryError, SQLiteApprovalRepository
 
@@ -126,6 +127,7 @@ class ApprovalCardBindings:
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._runtime = runtime
+        self._repository = repository
         self._service = ApprovalService(repository, runtime.policy)
         self._directory = directory
         self._sessions = sessions
@@ -162,6 +164,7 @@ class ApprovalCardBindings:
         chat_id: str,
         message_id: str,
         decision_intent: Literal["approve"] = "approve",
+        expected_revision: str | None = None,
     ) -> CardAction:
         """Issue one approve-only reference; the default preserves the existing API."""
 
@@ -170,6 +173,8 @@ class ApprovalCardBindings:
         if decision_intent != "approve":
             raise ValueError("unsupported approval card decision intent")
         approval = await self._pending(approval_id, identity)
+        if expected_revision is not None and approval_revision(approval) != expected_revision:
+            raise ApprovalConflict("approval card revision changed")
         action = CardAction(action_ref=secrets.token_urlsafe(32))
         values = {
             "tenant_id": identity.actor.tenant_id,
@@ -201,6 +206,49 @@ class ApprovalCardBindings:
         except SQLAlchemyError:
             raise IngressUnavailable("approval card storage unavailable") from None
         return action
+
+    async def pending_view(self, approval_id: str, identity: IdentityBinding) -> IMViewModel:
+        """Authorize the recipient before disclosing any approval summary to a channel."""
+        return approval_view(await self._pending(approval_id, identity))
+
+    async def issue_view(
+        self, approval_id: str, identity: IdentityBinding, *, chat_id: str, message_id: str
+    ) -> IMViewModel:
+        approval = await self._pending(approval_id, identity)
+        action = await self.issue(
+            approval_id,
+            identity,
+            chat_id=chat_id,
+            message_id=message_id,
+            expected_revision=approval_revision(approval),
+        )
+        self._context(identity)
+        return approval_view(approval).model_copy(
+            update={"actions": (IMAction(label="批准", value=action),)}
+        )
+
+    async def accepted_view(self, event: VerifiedFeishuEvent) -> IMViewModel:
+        """Read a committed outcome, including duplicates, under current authorization."""
+        identity = event.binding
+        ctx = self._context(identity)
+        if not isinstance(self._runtime.policy, LocalPolicyEngine):
+            raise IngressUnavailable("approval card presentation requires local Policy")
+        service = ApprovalService(self._repository, _TransactionalLocalPolicy(self._runtime.policy))
+        try:
+            async with self._sessions() as session:
+                row = await _binding_row(session, event, now=self._clock())
+            approval = await service.reauthorize_decider(
+                tenant_id=identity.actor.tenant_id, approval_id=str(row["approval_id"]), ctx=ctx
+            )
+        except AcceptanceDenied as exc:
+            await exc.audit()
+            raise PermissionError("approval card unavailable") from None
+        except (SQLAlchemyError, PlatformRepositoryError):
+            raise IngressUnavailable("approval card storage unavailable") from None
+        self._context(identity)
+        if approval.status == "pending":
+            raise PermissionError("approval card outcome unavailable")
+        return approval_view(approval)
 
     async def resolve(self, event: VerifiedFeishuEvent) -> Approval:
         identity = event.binding

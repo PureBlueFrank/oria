@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from pydantic import SecretStr
@@ -34,19 +35,13 @@ class FeishuChannel:
         self._token = token
         # (tenant, chat_id) -> principals explicitly allowed to publish to that chat.
         self._recipients = dict(recipients)
+        # Only confirmed shared cards sent by this instance may be patched. This is
+        # a destination guard, not a delivery ledger or a reason to retry a send.
+        self._shared_cards: dict[tuple[str, str, str, str], None] = {}
 
-    async def _send(
-        self,
-        target: str,
-        kind: str,
-        content: dict[str, Any],
-        ctx: Context,
-        *,
-        delivery_id: str | None = None,
-    ) -> SendResult:
-        allowed = self._recipients.get((ctx.tenant_id, target), frozenset())
-        if ctx.actor.subject_id not in allowed:
-            return SendResult(ok=False, error="recipient_denied")
+    async def _authorized(self, target: str, ctx: Context) -> bool:
+        if ctx.actor.subject_id not in self._recipients.get((ctx.tenant_id, target), frozenset()):
+            return False
         decision = await ctx.policy.authorize(
             AuthorizationRequest(
                 actor=ctx.actor,
@@ -59,7 +54,19 @@ class FeishuChannel:
             ),
             ctx,
         )
-        if not decision.allow:
+        return decision.allow
+
+    async def _send(
+        self,
+        target: str,
+        kind: str,
+        content: dict[str, Any],
+        ctx: Context,
+        *,
+        delivery_id: str | None = None,
+        check_identity: Callable[[], None] | None = None,
+    ) -> SendResult:
+        if not await self._authorized(target, ctx):
             return SendResult(ok=False, error="recipient_denied")
         payload = {
             "receive_id": target,
@@ -74,6 +81,8 @@ class FeishuChannel:
             credential = await self._token(ctx.tenant_id)
             if not credential.get_secret_value():
                 return SendResult(ok=False, error="credentials_unavailable")
+            if check_identity is not None:
+                check_identity()
             response = await self._client.post(
                 "https://open.feishu.cn/open-apis/im/v1/messages",
                 params={"receive_id_type": "chat_id"},
@@ -106,10 +115,58 @@ class FeishuChannel:
         *,
         page: int = 1,
         delivery_id: str | None = None,
+        shared_update: bool = False,
+        check_identity: Callable[[], None] | None = None,
     ) -> SendResult:
-        return await self._send(
-            target, "interactive", render_card(view, page=page), ctx, delivery_id=delivery_id
+        result = await self._send(
+            target,
+            "interactive",
+            render_card(view, page=page, shared_update=shared_update),
+            ctx,
+            delivery_id=delivery_id,
+            check_identity=check_identity,
         )
+        if shared_update and result.ok and result.message_id:
+            key = (ctx.tenant_id, target, result.message_id, ctx.actor.subject_id)
+            if len(self._shared_cards) >= 1024:
+                self._shared_cards.pop(next(iter(self._shared_cards)))
+            self._shared_cards[key] = None
+        return result
+
+    async def update_view(
+        self,
+        target: str,
+        message_id: str,
+        view: IMViewModel,
+        ctx: Context,
+        *,
+        page: int = 1,
+        check_identity: Callable[[], None] | None = None,
+    ) -> SendResult:
+        """Patch a confirmed shared card; unknown outcomes never trigger another send."""
+        key = (ctx.tenant_id, target, message_id, ctx.actor.subject_id)
+        if key not in self._shared_cards or not await self._authorized(target, ctx):
+            return SendResult(ok=False, error="recipient_denied")
+        content = json.dumps(render_card(view, page=page, shared_update=True), ensure_ascii=False)
+        try:
+            credential = await self._token(ctx.tenant_id)
+            if not credential.get_secret_value():
+                return SendResult(ok=False, error="credentials_unavailable")
+            if check_identity is not None:
+                check_identity()
+            response = await self._client.patch(
+                "https://open.feishu.cn/open-apis/im/v1/messages/" + quote(message_id, safe=""),
+                json={"content": content},
+                headers={"Authorization": "Bearer " + credential.get_secret_value()},
+                timeout=10,
+                follow_redirects=False,
+            )
+            response.raise_for_status()
+            if response.json().get("code") != 0:
+                return SendResult(ok=False, message_id=message_id, error="provider_rejected")
+            return SendResult(ok=True, message_id=message_id)
+        except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+            return SendResult(ok=False, message_id=message_id, error="delivery_unknown")
 
     async def send_file(self, target: str, file_path: str, ctx: Context) -> SendResult:
         # Arbitrary filesystem uploads are not part of this channel's permission contract.

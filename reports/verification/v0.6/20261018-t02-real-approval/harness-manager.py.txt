@@ -1,0 +1,77 @@
+import asyncio,json,os,re,signal,sys,time
+from datetime import datetime,timedelta,timezone
+from pathlib import Path
+import httpx
+root=Path(__file__).parent
+stop=asyncio.Event()
+def save(name,value):
+    fd=os.open(root/name,os.O_CREAT|os.O_WRONLY|os.O_TRUNC,0o600)
+    with os.fdopen(fd,'w') as file: file.write(json.dumps(value)+'\n')
+async def terminate(process):
+    if process and process.returncode is None:
+        process.terminate()
+        try: await asyncio.wait_for(process.wait(),8)
+        except TimeoutError: process.kill(); await process.wait()
+async def main():
+    gateway=tunnel=None
+    result={'provider':'Cloudflare','status':'starting','maximum_seconds':1800,'allowed_method':'POST','allowed_path':'/v1/ingress/feishu/events'}
+    loop=asyncio.get_running_loop()
+    for sig in (signal.SIGTERM,signal.SIGINT): loop.add_signal_handler(sig,stop.set)
+    window=root/'public-window.json'
+    if not window.exists():
+        deadline=datetime.now(timezone.utc)+timedelta(seconds=1740)
+        fd=os.open(window,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+        with os.fdopen(fd,'w') as file: file.write(json.dumps({'stop_at':deadline.isoformat()})+'\n')
+    deadline=datetime.fromisoformat(json.loads(window.read_text())['stop_at'])
+    assert (deadline-datetime.now(timezone.utc)).total_seconds()>120,'fixed public window expired or insufficient'
+    result.update(started_at=datetime.now(timezone.utc).isoformat(),scheduled_stop_at=deadline.isoformat())
+    started=time.monotonic()
+    try:
+        (root/'connection.json').unlink(missing_ok=True)
+        (root/'worker-ready.json').unlink(missing_ok=True)
+        gateway=await asyncio.create_subprocess_exec(sys.executable,str(root/'limited_process.py'),str(deadline.timestamp()),sys.executable,str(root/'gateway.py'),'0',stdout=asyncio.subprocess.DEVNULL,stderr=asyncio.subprocess.DEVNULL)
+        while not (root/'worker-ready.json').exists():
+            if gateway.returncode is not None or stop.is_set() or time.monotonic()-started>25: raise RuntimeError('gateway unavailable')
+            await asyncio.sleep(.05)
+        port=json.loads((root/'connection.json').read_text())['port']
+        async with httpx.AsyncClient(trust_env=False,timeout=2) as client:
+            assert (await client.get(f'http://127.0.0.1:{port}/v1/health')).status_code==404
+        env={key:value for key,value in os.environ.items() if not key.startswith(('TUNNEL_','CLOUDFLARE_','CLOUDFLARED_'))}
+        tunnel=await asyncio.create_subprocess_exec(sys.executable,str(root/'limited_process.py'),str(deadline.timestamp()),str(root/'cloudflared'),'tunnel','--config',str(root/'empty-tunnel.yaml'),'--no-autoupdate','--url',f'http://127.0.0.1:{port}','--metrics','127.0.0.1:0','--loglevel','info',stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT,env=env)
+        log_bytes=0; url=None; registered=False
+        fd=os.open(root/'cloudflared-private.log',os.O_CREAT|os.O_WRONLY|os.O_TRUNC,0o600)
+        with os.fdopen(fd,'wb') as log:
+            while True:
+                if stop.is_set() or time.monotonic()-started>100: raise RuntimeError('tunnel readiness unavailable')
+                try: line=await asyncio.wait_for(tunnel.stdout.readline(),5)
+                except TimeoutError: continue
+                if not line: raise RuntimeError('tunnel exited')
+                if log_bytes<65536: log.write(line); log.flush(); log_bytes+=len(line)
+                match=re.search(rb'https://[a-z0-9-]+\.trycloudflare\.com',line)
+                if match: url=match.group().decode()
+                if b'Registered tunnel connection' in line: registered=True
+                if url and registered:
+                    result.update(status='ready',url=url,port=port)
+                    save('active-tunnel.json',result)
+                    print(json.dumps({key:result[key] for key in ('status','url','scheduled_stop_at')}),flush=True); break
+            async def drain():
+                nonlocal log_bytes
+                while True:
+                    line=await tunnel.stdout.readline()
+                    if not line: return
+                    if log_bytes<65536: log.write(line); log.flush(); log_bytes+=len(line)
+            reader=asyncio.create_task(drain())
+            tasks=[asyncio.create_task(stop.wait()),asyncio.create_task(tunnel.wait()),asyncio.create_task(gateway.wait())]
+            await asyncio.wait(tasks,timeout=max(0,(deadline-datetime.now(timezone.utc)).total_seconds()),return_when=asyncio.FIRST_COMPLETED)
+            for task in tasks:
+                if not task.done(): task.cancel()
+            reader.cancel()
+    except Exception as error:
+        result.update(status='failed',error_type=type(error).__name__)
+        print(json.dumps({'status':'failed','error_type':type(error).__name__}),flush=True)
+    finally:
+        await terminate(tunnel); await terminate(gateway)
+        result.update(status='closed' if result.get('status')=='ready' else result['status'],closed_at=datetime.now(timezone.utc).isoformat(),processes_stopped=True)
+        save('active-tunnel.json',result)
+        print(json.dumps({'status':result['status'],'processes_stopped':True}),flush=True)
+asyncio.run(main())

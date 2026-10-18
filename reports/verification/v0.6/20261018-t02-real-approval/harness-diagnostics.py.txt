@@ -1,0 +1,53 @@
+"""Private structural diagnostics only; never substitutes for the normal verifier."""
+import hashlib,hmac,json,re,time
+from pathlib import Path
+from oria.api.identity import file_directory
+from oria.ingress.feishu import FeishuIngress,FeishuSettings
+
+def diagnose(raw,scope,root):
+    settings=json.loads((root/'server.json').read_text())['feishu']
+    headers={key.decode().lower():value.decode() for key,value in scope.get('headers',[])}
+    result={}
+    try:
+        stamp=headers.get('x-lark-request-timestamp',''); nonce=headers.get('x-lark-request-nonce',''); signature=headers.get('x-lark-signature','')
+        result['signature_fields_present']={key:bool(headers.get(key)) for key in ('x-lark-request-timestamp','x-lark-request-nonce','x-lark-signature')}
+        expected=hashlib.sha256((stamp+nonce+settings['encrypt_key']).encode()+raw).hexdigest()
+        result['signature_matches_configured_key']=hmac.compare_digest(expected,signature)
+        result['signature_matches_empty_key']=hmac.compare_digest(hashlib.sha256((stamp+nonce).encode()+raw).hexdigest(),signature)
+        try: result['timestamp_within_300_seconds']=abs(time.time()-int(stamp))<=300
+        except ValueError: result['timestamp_within_300_seconds']=False
+        result['timestamp_digit_count']=len(stamp)
+        result['timestamp_format_mask']=re.sub(r'[A-Za-z]','a',re.sub(r'[0-9]','0',stamp))
+        result['timestamp_text_is_ascii']=stamp.isascii()
+        try:
+            result['timestamp_delta_seconds']=round(time.time()-int(stamp),3)
+            result['milliseconds_interpretation_within_300_seconds']=abs(time.time()-int(stamp)/1000)<=300
+        except ValueError: pass
+        outer=json.loads(raw)
+        result['encrypted_envelope']=isinstance(outer,dict) and 'encrypt' in outer
+        ingress=FeishuIngress(FeishuSettings.model_validate(settings),file_directory(root/'identities.json'))
+        document=ingress._decode(raw)
+        result['schema_is_v2']=document.get('schema')=='2.0'
+        header=document.get('header',{}); event=document.get('event',{})
+        result['header_fields_present']={key:key in header for key in ('app_id','event_id','event_type','tenant_key','token')}
+        result['application_matches']=header.get('app_id')==settings['app_id']
+        result['verification_token_matches']=isinstance(header.get('token'),str) and hmac.compare_digest(header.get('token'),settings['verification_token'])
+        result['event_verification_token_matches']=isinstance(event.get('token'),str) and hmac.compare_digest(event.get('token'),settings['verification_token'])
+        result['top_level_verification_token_matches']=isinstance(document.get('token'),str) and hmac.compare_digest(document.get('token'),settings['verification_token'])
+        result['card_action_event_type']=header.get('event_type')=='card.action.trigger'
+        operator=event.get('operator',{}); context=event.get('context',{}); action=event.get('action',{}); value=action.get('value',{})
+        result['operator_fields_present']={key:key in operator for key in ('open_id','tenant_key')}
+        result['operator_tenant_matches_header']=operator.get('tenant_key')==header.get('tenant_key')
+        result['action_value_type']=type(value).__name__
+        if isinstance(value,dict):
+            result['action_version_type']=type(value.get('version')).__name__
+            result['action_version_matches']=value.get('version')==1
+            result['action_ref_present']=isinstance(value.get('action_ref'),str) and bool(value.get('action_ref'))
+        expected_context=json.loads((root/'verified-context.json').read_text())
+        receipt=json.loads((root/'delivery-receipt.json').read_text())
+        result['tenant_matches_discovery']=header.get('tenant_key')==expected_context['tenant_key']
+        result['operator_matches_discovery']=operator.get('open_id')==expected_context['open_id']
+        result['chat_matches_receipt']=context.get('open_chat_id')==receipt['chat_id']
+        result['message_matches_receipt']=context.get('open_message_id')==receipt['message_id']
+    except Exception as error: result['diagnostic_error_type']=type(error).__name__
+    return result

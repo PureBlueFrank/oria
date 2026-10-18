@@ -1,0 +1,10 @@
+{
+  "source": "explicit user reply in current conversation",
+  "bot": "ClawBot",
+  "test_group": "oriaTest",
+  "run_ref": "feishu-20261018-93b13b259b62",
+  "text_visible": true,
+  "card_visible": true,
+  "card_rendering": "normal",
+  "confirmation": "两条都可见，卡片显示正常"
+}

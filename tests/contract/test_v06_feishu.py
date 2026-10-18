@@ -150,6 +150,63 @@ def test_challenge_and_action_reference_contract():
         adapter.verify(request(doc))
 
 
+def test_go_callback_timestamp_preserves_expiry_and_original_signature():
+    now = datetime(2026, 10, 18, 1, 0, 0, 123456, tzinfo=UTC)
+    timestamp = "2026-10-18 09:00:00.123456789 +0800 CST m=+123456.987654321"
+    doc = event()
+    doc["header"]["event_type"] = "card.action.trigger"
+    doc["event"] = {
+        "operator": {"tenant_key": "ft", "open_id": "ou"},
+        "context": {"open_message_id": "card-msg", "open_chat_id": "chat"},
+        "action": {"value": {"version": 1, "action_ref": "approval-action"}},
+    }
+    inbound = request(doc, timestamp=timestamp, encrypted=True).model_copy(
+        update={"received_at": now}
+    )
+    result = ingress().verify(inbound)
+    assert isinstance(result, VerifiedFeishuEvent) and result.kind == "action"
+    assert result.expires_at == pytest.approx(now.timestamp() + 300, rel=0, abs=0.000001)
+    headers = dict(inbound.headers)
+    headers["X-Lark-Request-Timestamp"] = timestamp.replace("m=+123456", "m=+654321")
+    with pytest.raises(IngressVerificationError):
+        ingress().verify(inbound.model_copy(update={"headers": headers}))
+
+
+@pytest.mark.security
+@pytest.mark.parametrize(
+    "timestamp",
+    [
+        "2026-10-18 00:54:59 +0000 UTC m=+999999.1",
+        "2026-10-18 01:05:01 +0000 UTC m=+0.1",
+        "2026-02-30 01:00:00 +0000 UTC m=+1.0",
+        "2026-10-18 01:00:00 +2500 UTC m=+1.0",
+        "2026-10-18 01:00:00.1234567890 +0000 UTC m=+1.0",
+        "2026-10-18 01:00:00 +0000 UTC m=nan",
+        "2026-10-18T01:00:00Z",
+    ],
+)
+def test_invalid_go_timestamp_never_bypasses_time_window(timestamp):
+    inbound = request(event(), timestamp=timestamp).model_copy(
+        update={"received_at": datetime(2026, 10, 18, 1, 0, 0, tzinfo=UTC)}
+    )
+    with pytest.raises(IngressVerificationError):
+        ingress().verify(inbound)
+
+
+def test_go_timestamp_without_monotonic_suffix_obeys_configured_shorter_window():
+    now = datetime(2026, 10, 18, 1, 0, 0, tzinfo=UTC)
+    adapter = FeishuIngress(SETTINGS.model_copy(update={"max_age_seconds": 5}), ingress().directory)
+    fresh = request(event(), timestamp="2026-10-18 01:00:00 +0000 UTC").model_copy(
+        update={"received_at": now}
+    )
+    assert adapter.verify(fresh).expires_at == now.timestamp() + 5
+    stale = request(event(), timestamp="2026-10-18 00:59:54 +0000 UTC m=+999999.0").model_copy(
+        update={"received_at": now}
+    )
+    with pytest.raises(IngressVerificationError):
+        adapter.verify(stale)
+
+
 def test_no_acknowledgement_without_durable_receiver():
     directory = IdentityDirectory()
     auth = JWTAuthenticator(

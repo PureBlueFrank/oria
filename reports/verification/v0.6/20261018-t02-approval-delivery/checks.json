@@ -1,0 +1,35 @@
+{
+  "targeted": {
+    "status": "passed",
+    "passed": 56,
+    "warnings": 1,
+    "seconds": 27.57
+  },
+  "community": {
+    "status": "passed",
+    "passed": 1108,
+    "deselected": 9,
+    "warnings": 5,
+    "seconds": 344.75
+  },
+  "final_message_followup": {
+    "status": "passed",
+    "passed": 14,
+    "warnings": 1,
+    "seconds": 11.18
+  },
+  "lint": {
+    "status": "passed",
+    "formatted_files": 361,
+    "mypy_source_files": 180
+  },
+  "build": "passed",
+  "package_content": "passed",
+  "smoke": "passed",
+  "git_diff_check": "passed",
+  "remote_ci": "not_triggered",
+  "real_approval_delivery": "not_run",
+  "real_approval_patch": "not_run",
+  "real_approval_button_callback": "not_run",
+  "private_config_value_scan": "passed"
+}

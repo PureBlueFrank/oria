@@ -8,8 +8,9 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI
+from pydantic import Field, model_validator
 
-from oria.api.app import create_app
+from oria.api.app import APIServices, create_app
 from oria.api.approvals import ApprovalAPI
 from oria.api.identity import (
     IdentityBinding,
@@ -21,9 +22,12 @@ from oria.api.identity import (
 from oria.config import resolve_runtime_config
 from oria.core.runtime import build_runtime
 from oria.core.types import ValueModel
-from oria.ingress.feishu import FeishuIngress, FeishuSettings
+from oria.ingress.approval_cards import ApprovalCardBindings, TransactionalApprovalCardAcceptor
+from oria.ingress.feishu import FeishuIngress, FeishuSettings, VerifiedFeishuEvent
+from oria.ingress.receipts import IngressUnavailable, TransactionalFeishuReceiver
 from oria.migrations.runner import validate_sqlite_databases
 from oria.permission.local import local_cli_executor, local_operator
+from oria.presentation.im import IMViewModel
 from oria.storage.database import DatabaseResources
 from oria.storage.platform import SQLiteApprovalRepository
 
@@ -33,13 +37,40 @@ class ServerSettings(ValueModel):
     identity_file: Path
     feishu: FeishuSettings | None = None
     approval_runtime_config: Path | None = None
+    feishu_approval_receiver: bool = Field(default=False, strict=True)
+
+    @model_validator(mode="after")
+    def receiver_requires_runtime(self) -> ServerSettings:
+        if self.feishu_approval_receiver and (
+            self.feishu is None or self.approval_runtime_config is None
+        ):
+            raise ValueError("Feishu approval receiver requires Feishu and approval runtime")
+        return self
+
+
+class _ApprovalOnlyReceiver:
+    """Until Job acceptance exists, text messages must remain unacknowledged."""
+
+    def __init__(
+        self, receiver: TransactionalFeishuReceiver, bindings: ApprovalCardBindings
+    ) -> None:
+        self._receiver = receiver
+        self._bindings = bindings
+
+    async def accept(self, event: VerifiedFeishuEvent) -> IMViewModel:
+        if event.kind != "action":
+            raise IngressUnavailable("Feishu message service not configured")
+        await self._receiver.accept(event)
+        return await self._bindings.accepted_view(event)
 
 
 @asynccontextmanager
-async def approval_runtime(
+async def api_runtime(
     path: Path,
     directory: Callable[[], IdentityDirectory],
-) -> AsyncIterator[ApprovalAPI]:
+    *,
+    feishu_approval_receiver: bool = False,
+) -> AsyncIterator[APIServices]:
     # Explicit file and empty environment prevent ambient provider/credential activation.
     try:
         config = resolve_runtime_config(config_path=path, environ={}, cwd=path.parent)
@@ -62,9 +93,32 @@ async def approval_runtime(
             trusted_executors=tuple(item.executor for item in identities),
         )
         async with runtime:
-            yield ApprovalAPI(
-                runtime, SQLiteApprovalRepository(databases.platform_sessions), directory
+            repository = SQLiteApprovalRepository(databases.platform_sessions)
+            receiver = (
+                _ApprovalOnlyReceiver(
+                    TransactionalFeishuReceiver(
+                        databases.platform_sessions,
+                        directory,
+                        TransactionalApprovalCardAcceptor(runtime, repository, directory),
+                    ),
+                    ApprovalCardBindings(
+                        runtime, repository, directory, databases.platform_sessions
+                    ),
+                )
+                if feishu_approval_receiver
+                else None
             )
+            yield APIServices(ApprovalAPI(runtime, repository, directory), receiver)
+
+
+@asynccontextmanager
+async def approval_runtime(
+    path: Path,
+    directory: Callable[[], IdentityDirectory],
+) -> AsyncIterator[ApprovalAPI]:
+    """Compatibility seam for callers owning only the approval HTTP service."""
+    async with api_runtime(path, directory) as services:
+        yield services.approvals
 
 
 def build_api(*, config: Path | None, local: bool, host: str) -> FastAPI:
@@ -98,7 +152,11 @@ def build_api(*, config: Path | None, local: bool, host: str) -> FastAPI:
         authenticator=JWTAuthenticator(settings.jwt, directory, client),
         feishu=FeishuIngress(settings.feishu, directory) if settings.feishu else None,
         close=client.aclose,
-        approval_factory=(lambda: approval_runtime(runtime_path, directory))
+        services_factory=(
+            lambda: api_runtime(
+                runtime_path, directory, feishu_approval_receiver=settings.feishu_approval_receiver
+            )
+        )
         if runtime_path is not None
         else None,
     )

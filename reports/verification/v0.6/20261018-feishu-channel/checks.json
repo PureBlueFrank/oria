@@ -1,0 +1,15 @@
+{
+  "outbound_messages_confirmed": 2,
+  "human_rendering_confirmation": "passed",
+  "local_contract_tests": {
+    "passed": 21,
+    "warnings": 1
+  },
+  "lint": "passed",
+  "target_registry_restored_to_head": true,
+  "credential_and_user_directory_scan": "passed",
+  "local_links": "passed",
+  "git_diff_check": "passed",
+  "git_push": false,
+  "ci": "not_triggered"
+}

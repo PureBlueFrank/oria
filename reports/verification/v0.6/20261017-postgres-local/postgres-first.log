@@ -1,0 +1,104 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____ test_real_postgres_revision_chains_repository_contract_and_rls_reset _____
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+.venv/lib/python3.11/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column "forcerowsecurity" does not exist
+E   LINE 1: SELECT tablename, rowsecurity, forcerowsecurity FROM pg_tabl...
+E                                          ^
+
+The above exception was the direct cause of the following exception:
+src/oria/migrations/runner.py:902: in _validate_postgres_target
+    _validate_postgres_rls(connection, target)
+src/oria/migrations/runner.py:864: in _validate_postgres_rls
+    rows = connection.execute(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1421: in execute
+    return meth(
+.venv/lib/python3.11/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context
+    return self._exec_single_context(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+.venv/lib/python3.11/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   sqlalchemy.exc.ProgrammingError: (psycopg.errors.UndefinedColumn) column "forcerowsecurity" does not exist
+E   LINE 1: SELECT tablename, rowsecurity, forcerowsecurity FROM pg_tabl...
+E                                          ^
+E   [SQL: SELECT tablename, rowsecurity, forcerowsecurity FROM pg_tables WHERE schemaname = current_schema()]
+E   (Background on this error at: https://sqlalche.me/e/20/f405)
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_postgres_enterprise.py:85: in test_real_postgres_revision_chains_repository_contract_and_rls_reset
+    revisions = upgrade_databases(config)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/migrations/runner.py:959: in upgrade_databases
+    _upgrade_and_validate(config, "platform", heads["platform"])
+src/oria/migrations/runner.py:939: in _upgrade_and_validate
+    _validate_postgres_target(target, database_url, expected_head)
+src/oria/migrations/runner.py:904: in _validate_postgres_target
+    raise MigrationError(f"{target} database schema verification failed") from exc
+E   oria.migrations.runner.MigrationError: platform database schema verification failed
+___________ test_real_official_postgres_saver_through_tenant_adapter ___________
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+.venv/lib/python3.11/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column "forcerowsecurity" does not exist
+E   LINE 1: SELECT tablename, rowsecurity, forcerowsecurity FROM pg_tabl...
+E                                          ^
+
+The above exception was the direct cause of the following exception:
+src/oria/migrations/runner.py:902: in _validate_postgres_target
+    _validate_postgres_rls(connection, target)
+src/oria/migrations/runner.py:864: in _validate_postgres_rls
+    rows = connection.execute(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1421: in execute
+    return meth(
+.venv/lib/python3.11/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context
+    return self._exec_single_context(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+.venv/lib/python3.11/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   sqlalchemy.exc.ProgrammingError: (psycopg.errors.UndefinedColumn) column "forcerowsecurity" does not exist
+E   LINE 1: SELECT tablename, rowsecurity, forcerowsecurity FROM pg_tabl...
+E                                          ^
+E   [SQL: SELECT tablename, rowsecurity, forcerowsecurity FROM pg_tables WHERE schemaname = current_schema()]
+E   (Background on this error at: https://sqlalche.me/e/20/f405)
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_postgres_enterprise.py:174: in test_real_official_postgres_saver_through_tenant_adapter
+    upgrade_databases(config, target="platform")
+src/oria/migrations/runner.py:959: in upgrade_databases
+    _upgrade_and_validate(config, "platform", heads["platform"])
+src/oria/migrations/runner.py:939: in _upgrade_and_validate
+    _validate_postgres_target(target, database_url, expected_head)
+src/oria/migrations/runner.py:904: in _validate_postgres_target
+    raise MigrationError(f"{target} database schema verification failed") from exc
+E   oria.migrations.runner.MigrationError: platform database schema verification failed
+2 failed in 3.38s

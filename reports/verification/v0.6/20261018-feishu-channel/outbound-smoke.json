@@ -1,0 +1,46 @@
+{
+  "target": "feishu",
+  "mode": "outbound_smoke",
+  "run_ref": "feishu-20261018-93b13b259b62",
+  "run_at": "2026-10-18T00:15:26.815643+08:00",
+  "expected_bot": "ClawBot",
+  "confirmed_test_group": "oriaTest",
+  "status": "outbound_smoke_passed",
+  "api_requests": 5,
+  "messages_attempted": 2,
+  "messages_confirmed": 2,
+  "synthetic_context": true,
+  "business_workflow_executed": false,
+  "steps": [
+    {
+      "stage": "authentication",
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "stage": "bot_identity",
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "stage": "group_listing",
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "stage": "text_delivery",
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "stage": "card_delivery",
+      "http_status": 200,
+      "api_code": 0
+    }
+  ],
+  "config_chat_label_matches_confirmed_target": false,
+  "chat_id_sha256": "3c12e45a7085a1254a901bb365d17b3f5e2f07aa0e88f75780d82fdbed35a282",
+  "text_message_id_sha256": "1e31f0b4ee8ca6c50c36a546b9dcad726b9d2598c623c9272cdf5ef41f4936f3",
+  "card_message_id_sha256": "124c8fa89ff012d8ebaa4feaf556097daf08293c1564fe0accd9a5daaa94570e",
+  "finished_at": "2026-10-18T00:15:28.849093+08:00"
+}

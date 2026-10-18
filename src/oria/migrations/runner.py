@@ -863,8 +863,11 @@ def _validate_postgres_schema(connection: Connection, target: str) -> None:
 def _validate_postgres_rls(connection: Connection, target: str) -> None:
     rows = connection.execute(
         text(
-            "SELECT tablename, rowsecurity, forcerowsecurity FROM pg_tables "
-            "WHERE schemaname = current_schema()"
+            "SELECT c.relname AS tablename, c.relrowsecurity AS rowsecurity, "
+            "c.relforcerowsecurity AS forcerowsecurity "
+            "FROM pg_catalog.pg_class AS c "
+            "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+            "WHERE n.nspname = current_schema() AND c.relkind IN ('r', 'p')"
         )
     ).mappings()
     protected = {
@@ -876,7 +879,8 @@ def _validate_postgres_rls(connection: Connection, target: str) -> None:
         str(row[0])
         for row in connection.execute(
             text(
-                "SELECT tablename FROM pg_policies WHERE schemaname = current_schema() "
+                "SELECT tablename FROM pg_catalog.pg_policies "
+                "WHERE schemaname = current_schema() "
                 "AND policyname = 'oria_tenant_isolation'"
             )
         )

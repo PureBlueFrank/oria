@@ -1,0 +1,41 @@
+{
+  "mode": "real_feishu_approval_delivery",
+  "status": "passed",
+  "synthetic_data": true,
+  "business_operations": 0,
+  "attempts": [
+    {
+      "method": "POST",
+      "operation": "send"
+    },
+    {
+      "method": "PATCH",
+      "operation": "patch"
+    }
+  ],
+  "responses": [
+    {
+      "method": "POST",
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "method": "PATCH",
+      "http_status": 200,
+      "api_code": 0
+    }
+  ],
+  "send_reserved": true,
+  "delivery_error": null,
+  "message_receipt_present": true,
+  "expires_at": "2026-10-18T02:02:25.621327+00:00",
+  "database_counts_after_delivery": {
+    "approvals": 1,
+    "approval_card_bindings": 1,
+    "ingress_receipts": 0,
+    "ingress_replays": 0,
+    "audit_events": 5,
+    "outbox": 0
+  },
+  "message_id_sha256": "52ea6f726035861bb3be6013fee55a87ba666ad7a40c7c57c21bf4706041e12c"
+}

@@ -1,0 +1,85 @@
+import asyncio
+import json
+import os
+import re
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+import httpx
+from oria._internal.target_selection import ENTERPRISE_TARGETS, require_explicit_targets
+
+OUTPUT = Path("reports/verification/v0.6/20261018-feishu-channel")
+OUTPUT.mkdir(parents=True, exist_ok=True)
+result = {"target":"feishu", "mode":"read_only_preflight", "run_at":datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(), "expected_bot":"ClawBot", "confirmed_test_group":"oriaTest", "business_writes":0, "messages_sent":0, "api_requests":0, "status":"blocked"}
+stage = "configuration"
+class StopProbe(Exception):
+    pass
+async def request(client, method, endpoint, **kwargs):
+    global stage
+    result["api_requests"] += 1
+    response = await client.request(method, "https://open.feishu.cn/open-apis/" + endpoint, **kwargs)
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise ValueError("invalid response")
+    code = payload.get("code")
+    result[stage] = {"http_status":response.status_code, "api_code":code if isinstance(code,int) else None}
+    if response.status_code >= 400 or code != 0:
+        scopes = sorted(set(re.findall(r"(?:im|contact|application):[A-Za-z0-9_.:-]+", json.dumps(payload))))
+        result["blocked_by"] = stage + "_rejected"
+        result["required_scopes"] = scopes
+        raise StopProbe()
+    return payload
+async def main():
+    global stage
+    selected = require_explicit_targets(run_flag=os.getenv("ORIA_RUN_ENTERPRISE"),raw_targets=os.getenv("ORIA_ENTERPRISE_TARGETS"),allowed_targets=ENTERPRISE_TARGETS,kind="enterprise")
+    if selected != ("feishu",):
+        raise ValueError("select feishu only")
+    config = json.loads(Path("<user-home>/Documents/feishuTest/credentials.json").read_text())
+    if config.get("test_chat_name") != "oriaTest" or not all(isinstance(config.get(k),str) and bool(config[k].strip()) for k in ("app_id","app_secret")):
+        raise ValueError("configuration is incomplete or unconfirmed")
+    async with httpx.AsyncClient(trust_env=False,follow_redirects=False,timeout=12) as client:
+        stage = "authentication"
+        auth = await request(client,"POST","auth/v3/tenant_access_token/internal",json={"app_id":config["app_id"],"app_secret":config["app_secret"]})
+        token = auth.get("tenant_access_token")
+        if not isinstance(token,str) or not token:
+            raise ValueError("missing token")
+        headers = {"Authorization":"Bearer " + token}
+        stage = "bot_identity"
+        info = await request(client,"GET","bot/v3/info",headers=headers)
+        bot = info.get("bot") or {}
+        result["bot_name_matches"] = bot.get("app_name") == "ClawBot"
+        result["bot_active"] = bot.get("activate_status") == 2
+        if not result["bot_name_matches"] or not result["bot_active"]:
+            result["blocked_by"] = "bot_identity_mismatch_or_inactive"
+            return
+        stage = "group_listing"
+        page_token = None
+        matches = set()
+        for page in range(3):
+            params = {"page_size":100}
+            if page_token:
+                params["page_token"] = page_token
+            listing = await request(client,"GET","im/v1/chats",headers=headers,params=params)
+            data = listing.get("data") or {}
+            for item in data.get("items") or []:
+                if item.get("name") == "oriaTest" and isinstance(item.get("chat_id"),str):
+                    matches.add(item["chat_id"])
+            if not data.get("has_more"):
+                result["matched_chat_count"] = len(matches)
+                result["bot_membership_verified"] = len(matches) == 1
+                result["status"] = "preflight_passed" if len(matches) == 1 else "blocked"
+                if len(matches) != 1:
+                    result["blocked_by"] = "test_group_not_found" if not matches else "ambiguous_test_group"
+                return
+            page_token = data.get("page_token")
+        result["blocked_by"] = "group_pagination_budget_exhausted"
+try:
+    asyncio.run(main())
+except StopProbe:
+    pass
+except httpx.HTTPError:
+    result["blocked_by"] = stage + "_network_unavailable"
+except (ValueError,OSError,TypeError,KeyError):
+    result["blocked_by"] = stage + "_configuration_or_response_invalid"
+(OUTPUT / "preflight-first.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+print(json.dumps(result,ensure_ascii=False,indent=2))
