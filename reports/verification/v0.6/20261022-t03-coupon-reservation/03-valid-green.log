@@ -1,0 +1,105 @@
+F
+=================================== FAILURES ===================================
+_____________ test_valid_approved_coupon_reserves_without_dispatch _____________
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x1274b1890>, db=<oria.storage.database.Database..._id='job_178f7e87d45b441dae3a2aa66b4cf052:lease:1', job_id='job_178f7e87d45b441dae3a2aa66b4cf052', checkpoint_id=None))
+
+    @pytest.mark.asyncio
+    async def test_valid_approved_coupon_reserves_without_dispatch(coupon):
+        c = coupon
+>       result = await c.service.reserve_coupon_materialization(
+            c.token, c.args, c.plan, c.approval.approval_id
+        )
+
+tests/integration/test_v06_job_coupon_reservation.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/oria/orchestrator/job_execution.py:211: in reserve_coupon_materialization
+    return await self._leases._write(reserve())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/orchestrator/job_leases.py:196: in _write
+    return await operation
+           ^^^^^^^^^^^^^^^
+src/oria/orchestrator/job_execution.py:162: in reserve
+    checkpoint = await self._coupon_writer.prepare(session, job, args, plan)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <oria.storage.job_execution.JobCouponReservationWriter object at 0x1274c63d0>
+session = <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x127443010>
+job = Job(job_id='job_178f7e87d45b441dae3a2aa66b4cf052', session_id='session_a7c75d51e5084d1998860743a8cdf485', status='runn...ime.datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)), updated_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)))
+args = MaterializeCouponBatchArgs(campaign_id='campaign_178f7e87d45b441dae3a2aa66b4cf052', coupon_batch_id='coupon_178f7e87d45b441dae3a2aa66b4cf052', coupon_spec_hash='sha256:24107469a485bc8e4643ba61654d06026bf0c6d4779f89e8fa6fecbfef6be775')
+plan = LaunchPlan(campaign_draft_id='campaign_178f7e87d45b441dae3a2aa66b4cf052', campaign_draft_hash='sha256:45ed8894d3d70e38..._policy_version='compensation-v1', plan_hash='sha256:ed0163046bff67d69203334c141cf8188ecec810cade0e88482eeb7228b87399')
+
+    async def prepare(
+        self, session: AsyncSession, job: Job, args: MaterializeCouponBatchArgs, plan: LaunchPlan
+    ) -> str:
+        # Obtain the Business DB write lock BEFORE reading any binding facts. Other
+        # Business writers cannot change draft/saga/history before this commit.
+        campaign_id = (
+            await session.execute(
+                text(
+                    "UPDATE campaigns SET version = version WHERE tenant_id = :tenant "
+                    "AND campaign_id = :campaign RETURNING campaign_id"
+                ),
+                {"tenant": job.tenant_id, "campaign": args.campaign_id},
+            )
+        ).scalar_one_or_none()
+        if campaign_id is None:
+            raise PermissionError("persisted Job draft is unavailable")
+        campaign = await self._drafts._campaigns._find_by_id(
+            session, args.campaign_id, job.tenant_id
+        )
+        if campaign is None:
+            raise PermissionError("persisted Job campaign is unavailable")
+        rule = await self._drafts._rule_refs._find_by_id(
+            session, campaign.rule_snapshot_ref_id, job.tenant_id
+        )
+        coupon = await self._drafts._coupons._find_by_id(
+            session, args.coupon_batch_id, job.tenant_id
+        )
+        publication = await self._drafts._publications._find_by_id(
+            session, f"recruitment_{job.job_id.removeprefix('job_')}", job.tenant_id
+        )
+        if rule is None or coupon is None or publication is None:
+            raise PermissionError("persisted Job draft facts are unavailable")
+        draft = CampaignDraft(
+            campaign=campaign, rule_snapshot_ref=rule, coupon_batch=coupon,
+            recruitment_publication=publication,
+            compensation_policy_version=plan.compensation_policy_version,
+            campaign_draft_hash=plan.campaign_draft_hash,
+            coupon_batch_draft_hash=plan.coupon_batch_draft_hash,
+        )
+        current_plan = DefaultCampaignLaunchService.build_launch_plan(
+            draft=draft, materialize_args=args,
+            publish_args=PublishRecruitmentArgs(
+                campaign_id=campaign.campaign_id,
+                recruitment_publication_id=publication.recruitment_publication_id,
+                merchant_scope_hash=publication.merchant_scope_hash,
+                material_version=publication.material_version,
+            ),
+        )
+        if current_plan != plan:
+            raise PermissionError("current draft/child plan no longer matches approval")
+        history = await self._tools._find_by_idempotency(
+            session, job.tenant_id, "persist_campaign_draft", f"{job.job_id}:campaign-draft:v1"
+        )
+        if history is None or history.status != "succeeded" or (
+            history.receipt_summary_hash != draft.campaign_draft_hash
+        ):
+            raise PermissionError("the Job has no matching committed draft")
+>       saga = await self._sagas._find_by_unique_key(
+            session, (job.tenant_id, args.campaign_id)
+        )
+E       TypeError: SQLiteBusinessRepository._find_by_unique_key() missing 1 required positional argument: 'tenant_id'
+
+src/oria/storage/job_execution.py:208: TypeError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_valid_approved_coupon_reserves_without_dispatch
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1 warning in 5.18s

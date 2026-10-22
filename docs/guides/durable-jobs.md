@@ -115,3 +115,13 @@ spec 的 campaign/coupon/recruitment ID 必须分别为 `campaign_<job suffix>`�
 平台锁不等于跨库原子事务；业务提交后响应失败，业务记录仍可能已经存在，须用同一 Job/参数重试读取。取消只能阻止后续提交，不能撤销已提交草案。最终身份/Policy/期限检查位于 COMMIT 入口；数据库驱动已接收 COMMIT 后发生的撤权、时钟跨越或任务取消，不能保证追溯回滚。ledger checkpoint_id 只保存首次 epoch 的逻辑执行标记，不是 saver checkpoint，也不推进 accepted pointer。
 
 锁期间会阻塞平台写入，边界内仅做本地数据库操作。真实临时 SQLite 两独立资源实例的接管与取消竞争已有定向测试；不代表 PostgreSQL 多 worker、独立 worker 进程或完整恢复安全。其余 domain/外部调用、Graph、调度和异步恢复未接入；T02 真实拒绝/分页缺口、T03/T04/Core 与 V0.5-T07 29/80 状态不变。设计和测试证据见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)及[执行 fencing 验证卡](../../reports/verification/v0.6/20261022-t03-execution-fencing/summary.md)。
+
+## 内部券 reservation（2026-10-22）
+
+只可显式装配 `JobExecutionService.reserve_coupon_materialization(token, args, plan, approval_id)`；固定类型是 `MaterializeCouponBatchArgs` 与 `LaunchPlan`，没有 checkpoint、自由工具名、Context、回调或 adapter 参数，也没有默认 HTTP/Tool/Graph 入口。需要当前有效 Job lease、当前 requester/独立 worker/owner 和实际 campaign 的 draft/launch Policy。只处理该 Job 已成功持久化、原始 version=1 且未 launch 的四草案，并按既有 canonical hash 重建完整计划核对审批与 child。
+
+前置审批必须真实存于 Platform Repository，approved、未过期、policy_version 当前且 requester/SOD 有效；checkpoint 只从 Business Repository 已持久的 planned saga 读取并严格匹配审批。本切片不创建 launch 审批或 saga；验证使用受信合成 fixture 经既有 ApprovalService/Repository 准备，未接入真实 Job Graph。该 checkpoint 是 saga 逻辑审批点，不是 accepted saver pointer；本方法不推进 Job 指针。
+
+SQLite 平台完整快照写锁持有到业务单事务结束；审批在同一平台事务只读检查，不在锁内打开普通授权审计 writer。业务先取得 campaign 写锁，再读草案/saga，授权有效后才在原 ExecutionLedger 的稳定 canonical 业务 key 上 reserve。await 后及 COMMIT 入口重查当前身份、Policy、审批版本/有效期和租约；无效初始审批不会调用 ledger reserve。重复/跨 epoch 重用同 key，旧 token 即使已有 history 仍拒绝，内容变化冲突。只写 reserved，不发外部请求、不标 executing/success，也不授予 dispatch 权限。
+
+业务库单库原子；这不是跨库 2PC。审批撤销/取消/其他业务写若排在本次 COMMIT 后生效，不撤销已提交事实；目录/Policy 在驱动收到 COMMIT 后撤权也不能保证追溯回滚。锁会阻塞其他 SQLite writer，两资源实例实测不代表 PostgreSQL/S2 或独立 worker。Graph runner、派发前 fencing、其他领域、调度/恢复仍未实现；T02/T03/T04/Core 未关闭，V0.5-T07 29/80 不变。证据见[本轮验证卡](../../reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md)与 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)。

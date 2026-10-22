@@ -1,0 +1,169 @@
+{
+  "git_diff_check_exit_code": 0,
+  "git_diff_check_output": "",
+  "new_section_local_links": [
+    {
+      "file": "ROADMAP.md",
+      "target": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "exists": true
+    },
+    {
+      "file": "ROADMAP.md",
+      "target": "docs/adr/ADR-025-job-lease-and-fencing.md",
+      "exists": true
+    },
+    {
+      "file": "docs/adr/ADR-025-job-lease-and-fencing.md",
+      "target": "../../reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "exists": true
+    },
+    {
+      "file": "docs/guides/durable-jobs.md",
+      "target": "../../reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "exists": true
+    },
+    {
+      "file": "docs/guides/durable-jobs.md",
+      "target": "../adr/ADR-025-job-lease-and-fencing.md",
+      "exists": true
+    },
+    {
+      "file": "docs/Oria详细执行路线.md",
+      "target": "../reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "exists": true
+    },
+    {
+      "file": "docs/Oria详细执行路线.md",
+      "target": "adr/ADR-025-job-lease-and-fencing.md",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "review.md",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "01-valid-red.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "02-valid-red.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "03-valid-green.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "04-valid-green.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "05-history-checkpoint-red.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "06-history-green.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "07-bindings.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "08-bindings-boundaries.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "09-races.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "targeted-final.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "10-lint-initial.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "lint-final.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "commands.jsonl",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "targeted-final-rechecked.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "targeted-result.json",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "lint-final-corrected.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "lint-final-corrected.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "lint-final-corrected.log",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "baseline-checks.json",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "changed-files.md",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "source-snapshot.json",
+      "exists": true
+    },
+    {
+      "file": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "target": "documentation-checks.json",
+      "exists": true
+    }
+  ],
+  "broken_links": [],
+  "utf8_lf_final_newline": {
+    "src/oria/core/approvals.py": true,
+    "src/oria/orchestrator/job_execution.py": true,
+    "src/oria/storage/job_execution.py": true,
+    "src/oria/storage/jobs.py": true,
+    "tests/integration/test_v06_job_coupon_reservation.py": true,
+    "ROADMAP.md": true,
+    "docs/adr/ADR-025-job-lease-and-fencing.md": true,
+    "docs/guides/durable-jobs.md": true,
+    "docs/Oria详细执行路线.md": true
+  },
+  "scope": "only new/changed documentation sections, not the entire detailed roadmap"
+}

@@ -1,0 +1,33 @@
+{
+  "log": "targeted-final-rechecked.log",
+  "command": [
+    "uv",
+    "run",
+    "pytest",
+    "tests/integration/test_v06_job_coupon_reservation.py",
+    "tests/integration/test_v06_job_execution_fencing.py",
+    "tests/integration/test_v06_job_leases.py",
+    "tests/contract/test_v03_execution_ledger.py",
+    "tests/unit/test_v03_campaign_launch.py",
+    "tests/unit/test_v03_approval_values.py",
+    "tests/security/test_v03_approval_rbac.py",
+    "tests/integration/test_v03_approval_invalidation.py",
+    "tests/contract/test_v03_campaign_launch_contract.py",
+    "tests/integration/test_v03_campaign_launch_recovery.py",
+    "tests/integration/test_v03_platform_repositories.py",
+    "tests/integration/test_v03_ledger_repositories.py",
+    "-q",
+    "-m",
+    "not live and not enterprise and not performance"
+  ],
+  "exit_code": 0,
+  "seconds": 121.64,
+  "sha256": {
+    "src/oria/core/approvals.py": "414565154acd636f05f42831279aad1ff5d10f54602812c8aefb6b4a77b9e2bc",
+    "src/oria/orchestrator/job_execution.py": "1701048554506a0797e57215063fa1a523ac75eaf51e5bba48d5e90df3296881",
+    "src/oria/storage/job_execution.py": "cb2075abccd8e2b331f13f10d49143c676024edf4e084e11d3310d1d5dd7b97e",
+    "src/oria/storage/jobs.py": "f782b26d35d9fc4cb71e066144a49f305a81770cc06d9a292598382d4fe472fb",
+    "tests/integration/test_v06_job_coupon_reservation.py": "a8463d288a371b275f21a3d613924122e48c74df84e5137c3d09f98b0eac7cb9"
+  },
+  "unchanged_during_run": true
+}

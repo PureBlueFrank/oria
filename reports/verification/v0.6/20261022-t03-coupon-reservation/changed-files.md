@@ -1,0 +1,39 @@
+# 本轮精确文件清单
+
+本清单含源码、测试、四份文档及新验证卡全部文件。`docs/Oria详细执行路线.md` 为既有 ignored 本地资料；没有暂存、提交或修改旧验证卡。
+
+- `src/oria/core/approvals.py`
+- `src/oria/orchestrator/job_execution.py`
+- `src/oria/storage/job_execution.py`
+- `src/oria/storage/jobs.py`
+- `tests/integration/test_v06_job_coupon_reservation.py`
+- `ROADMAP.md`
+- `docs/adr/ADR-025-job-lease-and-fencing.md`
+- `docs/guides/durable-jobs.md`
+- `docs/Oria详细执行路线.md`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/01-valid-red.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/02-valid-red.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/03-valid-green.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/04-valid-green.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/05-history-checkpoint-red.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/06-history-green.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/07-bindings.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/08-bindings-boundaries.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/09-races.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/10-lint-initial.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/baseline-checks.json`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/changed-files.md`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/commands.jsonl`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/documentation-checks.json`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/independent-community.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/independent-package-results.json`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/independent-package.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/independent-start-fingerprints.json`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/lint-final-corrected.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/lint-final.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/review.md`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/source-snapshot.json`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/targeted-final-rechecked.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/targeted-final.log`
+- `reports/verification/v0.6/20261022-t03-coupon-reservation/targeted-result.json`

@@ -1,4 +1,4 @@
-"""Explicit trusted worker boundary for one local campaign draft operation."""
+"""Explicit trusted worker boundaries for local draft and approved coupon reservation."""
 
 import hashlib
 import json
@@ -7,14 +7,30 @@ from sqlalchemy import event
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from oria.core.approvals import (
+    ApprovalResumeRequest,
+    approval_resume_rejection,
+    canonical_args_hash,
+)
+from oria.core.execution_ledger import ExecutionLedger
 from oria.core.job_leases import JobLeaseToken, validate_lease
 from oria.core.jobs import CampaignJobSpec, JobConflict
-from oria.domain.launch import CampaignDraft, CampaignDraftSpec, build_campaign_draft
-from oria.domain.ledger import ToolExecution
-from oria.orchestrator.job_leases import JobLeaseService
+from oria.core.types import AuthorizationContext, AuthorizationRequest, ResourceRef
+from oria.domain.launch import (
+    LAUNCH_PLAN_POLICY,
+    LAUNCH_PLAN_TOOL_NAME,
+    MATERIALIZE_TOOL_NAME,
+    CampaignDraft,
+    CampaignDraftSpec,
+    MaterializeCouponBatchArgs,
+    build_campaign_draft,
+)
+from oria.domain.ledger import LaunchPlan, ToolExecution
+from oria.orchestrator.job_leases import JobLeaseService, _LeaseAuthorization
 from oria.rag.models import CampaignRuleSnapshot
 from oria.storage.database import DatabaseResources
-from oria.storage.job_execution import JobCampaignDraftWriter
+from oria.storage.job_execution import JobCampaignDraftWriter, JobCouponReservationWriter
+from oria.storage.platform import SQLiteApprovalRepository
 from oria.storage.repositories import BusinessRepositoryError
 
 
@@ -32,6 +48,8 @@ class JobExecutionService:
             raise ValueError("execution fencing requires separate file-backed databases")
         self._leases, self._databases = leases, databases
         self._writer = JobCampaignDraftWriter(databases.business_sessions)
+        self._coupon_writer = JobCouponReservationWriter(databases.business_sessions)
+        self._approvals = SQLiteApprovalRepository(databases.platform_sessions)
 
     async def persist_campaign_draft(
         self, token: JobLeaseToken, spec: CampaignDraftSpec, snapshot: CampaignRuleSnapshot
@@ -110,3 +128,110 @@ class JobExecutionService:
             return draft
 
         return await self._leases._write(persist())
+
+    async def reserve_coupon_materialization(
+        self,
+        token: JobLeaseToken,
+        args: MaterializeCouponBatchArgs,
+        plan: LaunchPlan,
+        approval_id: str,
+    ) -> ToolExecution:
+        """Reserve one approved child; this never grants permission to dispatch."""
+        args = MaterializeCouponBatchArgs.model_validate(args.model_dump())
+        plan = LaunchPlan.model_validate(plan.model_dump())
+        job, ctx, guard = await self._leases._leased(token, business_resource_id=args.campaign_id)
+        suffix = job.job_id.removeprefix("job_")
+        if not isinstance(job.submission.spec, CampaignJobSpec) or (
+            args.campaign_id,
+            args.coupon_batch_id,
+        ) != (f"campaign_{suffix}", f"coupon_{suffix}"):
+            raise PermissionError("coupon reservation must belong to the campaign Job")
+        request = AuthorizationRequest(
+            actor=ctx.actor,
+            executor=ctx.executor,
+            action=LAUNCH_PLAN_POLICY.required_action,
+            resource=ResourceRef(
+                tenant_id=job.tenant_id,
+                resource_type="campaign",
+                resource_id=args.campaign_id,
+            ),
+            context=AuthorizationContext(correlation_id=ctx.correlation_id),
+        )
+        launch_guard = _LeaseAuthorization(self._leases, job, ctx, (request,))
+        # Audited authorization happens BEFORE the platform lock. All checks inside
+        # the locked transactions use the same read-only Policy evaluation path.
+        decision = await self._leases._policy.authorize(request, ctx)
+        launch_guard._check(request, decision)
+        args_hash = canonical_args_hash(
+            tool_name=MATERIALIZE_TOOL_NAME,
+            tool_schema_version=1,
+            schema=MaterializeCouponBatchArgs,
+            args=args.model_dump(),
+        )
+
+        async def reserve() -> ToolExecution:
+            async with self._leases._repository._hold_execution_lease(
+                job, token, self._leases._now
+            ) as platform:
+                await guard()
+                await launch_guard()
+                async with self._databases.business_sessions.begin() as session:
+                    checkpoint = await self._coupon_writer.prepare(session, job, args, plan)
+                    approval = await self._approvals.bind(platform).get(job.tenant_id, approval_id)
+                    if approval is None:
+                        raise PermissionError("launch approval is unavailable")
+                    resume = ApprovalResumeRequest(
+                        approval_id=approval_id,
+                        approval_action="launch_approval",
+                        tool_name=LAUNCH_PLAN_TOOL_NAME,
+                        canonical_args_hash=plan.plan_hash,
+                        checkpoint_id=checkpoint,
+                    )
+
+                    def check(_: Session | None = None) -> None:
+                        guard.check_commit()
+                        launch_guard.check_commit()
+                        validate_lease(job, token, self._leases._now())
+                        current = self._leases._policy.evaluate_now(request, ctx)
+                        rejection = approval_resume_rejection(
+                            approval,
+                            resume,
+                            LAUNCH_PLAN_POLICY,
+                            policy_version=current.policy_version,
+                            now=self._leases._now(),
+                        )
+                        if rejection is not None or (
+                            approval.requester != job.requester_subject_id
+                            or approval.decider == approval.requester
+                            or approval.business_binding is not None
+                        ):
+                            raise PermissionError("approved launch binding is not valid")
+
+                    check()
+                    now = self._leases._now()
+                    reservation = ToolExecution(
+                        execution_id=f"{job.job_id}:coupon-materialization:v1",
+                        tenant_id=job.tenant_id,
+                        tool_name=MATERIALIZE_TOOL_NAME,
+                        idempotency_key=ExecutionLedger.build_idempotency_key(
+                            f"{args.campaign_id}:{args.coupon_spec_hash}",
+                            args_hash,
+                        ),
+                        canonical_args_hash=args_hash,
+                        checkpoint_id=checkpoint,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    event.listen(session.sync_session, "before_commit", check)
+                    try:
+                        result = await self._coupon_writer.reserve(session, reservation)
+                        await guard()
+                        await launch_guard()
+                        check()
+                        # Commit while the hook is still installed.
+                        await session.commit()
+                    finally:
+                        event.remove(session.sync_session, "before_commit", check)
+            return result
+
+        return await self._leases._write(reserve())

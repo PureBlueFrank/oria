@@ -1,0 +1,20 @@
+{
+  "baseline": "c8100754817ed715eadc7d78da4630abccca92cb",
+  "head": "c8100754817ed715eadc7d78da4630abccca92cb",
+  "branch": "master",
+  "sha256": {
+    "src/oria/core/approvals.py": "414565154acd636f05f42831279aad1ff5d10f54602812c8aefb6b4a77b9e2bc",
+    "src/oria/orchestrator/job_execution.py": "1701048554506a0797e57215063fa1a523ac75eaf51e5bba48d5e90df3296881",
+    "src/oria/storage/job_execution.py": "cb2075abccd8e2b331f13f10d49143c676024edf4e084e11d3310d1d5dd7b97e",
+    "src/oria/storage/jobs.py": "f782b26d35d9fc4cb71e066144a49f305a81770cc06d9a292598382d4fe472fb",
+    "tests/integration/test_v06_job_coupon_reservation.py": "a8463d288a371b275f21a3d613924122e48c74df84e5137c3d09f98b0eac7cb9",
+    "ROADMAP.md": "cf520bfcd1972831ce12216a908df1623fb1f38da84b8b7cd7b37b2e8b4161b9",
+    "docs/adr/ADR-025-job-lease-and-fencing.md": "7d940799e89b525b5b8d5733ae129b82d03dec0e2729c86f88615a9f191f6df4",
+    "docs/guides/durable-jobs.md": "0cd981dc8dc570fa2a4d51caf8882a68227138fc518e5425bf6159dc6dbda930",
+    "docs/Oria详细执行路线.md": "7a2555549350b7c3c3f72dc01800bf6592807a7a71915ff3aa3c4469fd06c165",
+    "reports/verification/v0.6/20261022-t03-coupon-reservation/review.md": "1da69c2d1aee426c13dcfbbb799ad6cb4ac200ce5f5ed761a44a5f9bf0d88498"
+  },
+  "git_status": " M ROADMAP.md\n M docs/adr/ADR-025-job-lease-and-fencing.md\n M docs/guides/durable-jobs.md\n M src/oria/core/approvals.py\n M src/oria/orchestrator/job_execution.py\n M src/oria/storage/job_execution.py\n M src/oria/storage/jobs.py\n?? reports/verification/v0.6/20261022-t03-coupon-reservation/\n?? tests/integration/test_v06_job_coupon_reservation.py\n",
+  "ignored_local_roadmap": "docs/Oria详细执行路线.md",
+  "verification": "184 passed / 1 warning; 12 related files only; Ruff format/check and mypy passed; no remote or package/full suite run"
+}

@@ -1,0 +1,7 @@
+{
+  "src/oria/orchestrator/job_execution.py:persist_campaign_draft": true,
+  "src/oria/storage/job_execution.py:persist": true,
+  "head_unchanged": true,
+  "prior_verification_card_unchanged": true,
+  "dependency_files_unchanged": true
+}

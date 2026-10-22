@@ -234,6 +234,38 @@ class ApprovalResumeRequest(ValueModel):
     business_binding: ApprovalBusinessBinding | None = None
 
 
+def approval_resume_rejection(
+    approval: Approval,
+    request: ApprovalResumeRequest,
+    tool_policy: ToolPolicy,
+    *,
+    policy_version: str,
+    now: datetime,
+) -> Literal["binding", "expired", "status"] | None:
+    """Shared frozen binding checks; no Policy, IO, mutation or audit writer."""
+    current = (
+        request.approval_action,
+        request.tool_name,
+        request.canonical_args_hash,
+        request.checkpoint_id,
+        policy_version,
+    )
+    frozen = (
+        approval.approval_action,
+        approval.tool_name,
+        approval.canonical_args_hash,
+        approval.checkpoint_id,
+        approval.policy_version,
+    )
+    if current != frozen or tool_policy.approval_action != request.approval_action:
+        return "binding"
+    if now >= approval.expires_at:
+        return "expired"
+    if approval.status != "approved":
+        return "status"
+    return None
+
+
 class ApprovalBindingReader(Protocol):
     async def get_approval_binding(
         self,
@@ -570,21 +602,14 @@ class ApprovalService:
         if request.approval_id is None:
             raise PermissionError("approved binding is required before side-effect execution")
         approval = await self._required(ctx.tenant_id, request.approval_id)
-        current = (
-            request.approval_action,
-            request.tool_name,
-            request.canonical_args_hash,
-            request.checkpoint_id,
-            authorization.policy_version,
+        rejection = approval_resume_rejection(
+            approval,
+            request,
+            tool_policy,
+            policy_version=authorization.policy_version,
+            now=self._now(),
         )
-        frozen = (
-            approval.approval_action,
-            approval.tool_name,
-            approval.canonical_args_hash,
-            approval.checkpoint_id,
-            approval.policy_version,
-        )
-        if current != frozen or tool_policy.approval_action != request.approval_action:
+        if rejection == "binding":
             invalidated = self._terminalize(approval, status="invalidated")
             await self._repository.replace(
                 invalidated,
@@ -592,8 +617,7 @@ class ApprovalService:
                 expected=approval,
             )
             raise PermissionError("approval binding no longer matches the execution")
-        now = self._now()
-        if now >= approval.expires_at:
+        if rejection == "expired":
             expired = self._terminalize(approval, status="expired")
             await self._repository.replace(
                 expired,
@@ -601,7 +625,7 @@ class ApprovalService:
                 expected=approval,
             )
             raise PermissionError("approval has expired")
-        if approval.status != "approved":
+        if rejection == "status":
             raise PermissionError("approval is not approved")
         if approval.business_binding is not None:
             if self._binding_reader is None:

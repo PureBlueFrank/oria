@@ -75,7 +75,7 @@ class JobRepository:
     @asynccontextmanager
     async def _hold_execution_lease(
         self, expected: Job, token: JobLeaseToken, clock: Callable[[], datetime]
-    ) -> AsyncIterator[None]:
+    ) -> AsyncIterator[AsyncSession]:
         """SQLite write lock held through the caller's Business DB commit/rollback.
 
         No Job transition is committed. This serializes cooperating DB writers;
@@ -103,7 +103,7 @@ class JobRepository:
                 validate_lease(expected, token, clock())
                 if expected.status != "running" or expected.cancel_requested:
                     raise JobConflict("job cannot execute a business write")
-                yield
+                yield session
             except SQLAlchemyError:
                 raise JobUnavailable("job execution lock unavailable") from None
             finally:

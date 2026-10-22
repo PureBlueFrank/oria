@@ -1,0 +1,1042 @@
+$ uv run ruff format --check src/oria/core/approvals.py src/oria/orchestrator/job_execution.py src/oria/storage/job_execution.py src/oria/storage/jobs.py tests/integration/test_v06_job_coupon_reservation.py
+unformatted: File would be reformatted
+   --> src/oria/core/approvals.py:247:33
+    |
+246 |     current = (
+    -         request.approval_action, request.tool_name, request.canonical_args_hash,
+    -         request.checkpoint_id, policy_version,
+247 +         request.approval_action,
+248 +         request.tool_name,
+249 +         request.canonical_args_hash,
+250 +         request.checkpoint_id,
+251 +         policy_version,
+252 |     )
+253 |     frozen = (
+    -         approval.approval_action, approval.tool_name, approval.canonical_args_hash,
+    -         approval.checkpoint_id, approval.policy_version,
+254 +         approval.approval_action,
+255 +         approval.tool_name,
+256 +         approval.canonical_args_hash,
+257 +         approval.checkpoint_id,
+258 +         approval.policy_version,
+259 |     )
+--------------------------------------------------------------------------------
+605 |         rejection = approval_resume_rejection(
+    -             approval, request, tool_policy,
+    -             policy_version=authorization.policy_version, now=self._now(),
+606 +             approval,
+607 +             request,
+608 +             tool_policy,
+609 +             policy_version=authorization.policy_version,
+610 +             now=self._now(),
+611 |         )
+    |
+
+unformatted: File would be reformatted
+   --> src/oria/orchestrator/job_execution.py:10:33
+    |
+9   |
+    - from oria.core.approvals import ApprovalResumeRequest, approval_resume_rejection, canonical_args_hash
+10  + from oria.core.approvals import (
+11  +     ApprovalResumeRequest,
+12  +     approval_resume_rejection,
+13  +     canonical_args_hash,
+14  + )
+15  | from oria.core.execution_ledger import ExecutionLedger
+--------------------------------------------------------------------------------
+19  | from oria.domain.launch import (
+    -     LAUNCH_PLAN_POLICY, LAUNCH_PLAN_TOOL_NAME, MATERIALIZE_TOOL_NAME,
+    -     CampaignDraft, CampaignDraftSpec, MaterializeCouponBatchArgs, build_campaign_draft,
+20  +     LAUNCH_PLAN_POLICY,
+21  +     LAUNCH_PLAN_TOOL_NAME,
+22  +     MATERIALIZE_TOOL_NAME,
+23  +     CampaignDraft,
+24  +     CampaignDraftSpec,
+25  +     MaterializeCouponBatchArgs,
+26  +     build_campaign_draft,
+27  | )
+--------------------------------------------------------------------------------
+132 |     async def reserve_coupon_materialization(
+    -         self, token: JobLeaseToken, args: MaterializeCouponBatchArgs,
+    -         plan: LaunchPlan, approval_id: str,
+133 +         self,
+134 +         token: JobLeaseToken,
+135 +         args: MaterializeCouponBatchArgs,
+136 +         plan: LaunchPlan,
+137 +         approval_id: str,
+138 |     ) -> ToolExecution:
+--------------------------------------------------------------------------------
+144 |         if not isinstance(job.submission.spec, CampaignJobSpec) or (
+    -             args.campaign_id, args.coupon_batch_id
+145 +             args.campaign_id,
+146 +             args.coupon_batch_id,
+147 |         ) != (f"campaign_{suffix}", f"coupon_{suffix}"):
+148 |             raise PermissionError("coupon reservation must belong to the campaign Job")
+149 |         request = AuthorizationRequest(
+    -             actor=ctx.actor, executor=ctx.executor,
+150 +             actor=ctx.actor,
+151 +             executor=ctx.executor,
+152 |             action=LAUNCH_PLAN_POLICY.required_action,
+153 |             resource=ResourceRef(
+    -                 tenant_id=job.tenant_id, resource_type="campaign", resource_id=args.campaign_id,
+154 +                 tenant_id=job.tenant_id,
+155 +                 resource_type="campaign",
+156 +                 resource_id=args.campaign_id,
+157 |             ),
+--------------------------------------------------------------------------------
+165 |         args_hash = canonical_args_hash(
+    -             tool_name=MATERIALIZE_TOOL_NAME, tool_schema_version=1,
+    -             schema=MaterializeCouponBatchArgs, args=args.model_dump(),
+166 +             tool_name=MATERIALIZE_TOOL_NAME,
+167 +             tool_schema_version=1,
+168 +             schema=MaterializeCouponBatchArgs,
+169 +             args=args.model_dump(),
+170 |         )
+--------------------------------------------------------------------------------
+180 |                         checkpoint = await self._coupon_writer.prepare(session, job, args, plan)
+    -                         approval = await self._approvals.bind(platform).get(job.tenant_id, approval_id)
+181 +                         approval = await self._approvals.bind(platform).get(
+182 +                             job.tenant_id, approval_id
+183 +                         )
+184 |                         if approval is None:
+185 |                             raise PermissionError("launch approval is unavailable")
+186 |                         resume = ApprovalResumeRequest(
+    -                             approval_id=approval_id, approval_action="launch_approval",
+    -                             tool_name=LAUNCH_PLAN_TOOL_NAME, canonical_args_hash=plan.plan_hash,
+187 +                             approval_id=approval_id,
+188 +                             approval_action="launch_approval",
+189 +                             tool_name=LAUNCH_PLAN_TOOL_NAME,
+190 +                             canonical_args_hash=plan.plan_hash,
+191 |                             checkpoint_id=checkpoint,
+--------------------------------------------------------------------------------
+199 |                             rejection = approval_resume_rejection(
+    -                                 approval, resume, LAUNCH_PLAN_POLICY,
+    -                                 policy_version=current.policy_version, now=self._leases._now(),
+200 +                                 approval,
+201 +                                 resume,
+202 +                                 LAUNCH_PLAN_POLICY,
+203 +                                 policy_version=current.policy_version,
+204 +                                 now=self._leases._now(),
+205 |                             )
+--------------------------------------------------------------------------------
+216 |                             execution_id=f"{job.job_id}:coupon-materialization:v1",
+    -                             tenant_id=job.tenant_id, tool_name=MATERIALIZE_TOOL_NAME,
+217 +                             tenant_id=job.tenant_id,
+218 +                             tool_name=MATERIALIZE_TOOL_NAME,
+219 |                             idempotency_key=ExecutionLedger.build_idempotency_key(
+    -                                 f"{args.campaign_id}:{args.coupon_spec_hash}", args_hash,
+220 +                                 f"{args.campaign_id}:{args.coupon_spec_hash}",
+221 +                                 args_hash,
+222 |                             ),
+    -                             canonical_args_hash=args_hash, checkpoint_id=checkpoint,
+    -                             created_at=now, updated_at=now,
+223 +                             canonical_args_hash=args_hash,
+224 +                             checkpoint_id=checkpoint,
+225 +                             created_at=now,
+226 +                             updated_at=now,
+227 |                         )
+    |
+
+unformatted: File would be reformatted
+   --> src/oria/storage/job_execution.py:12:19
+    |
+11  | from oria.domain.launch import (
+    -     CampaignDraft, DefaultCampaignLaunchService, MaterializeCouponBatchArgs, PublishRecruitmentArgs,
+12  +     CampaignDraft,
+13  +     DefaultCampaignLaunchService,
+14  +     MaterializeCouponBatchArgs,
+15  +     PublishRecruitmentArgs,
+16  | )
+--------------------------------------------------------------------------------
+188 |         draft = CampaignDraft(
+    -             campaign=campaign, rule_snapshot_ref=rule, coupon_batch=coupon,
+189 +             campaign=campaign,
+190 +             rule_snapshot_ref=rule,
+191 +             coupon_batch=coupon,
+192 |             recruitment_publication=publication,
+--------------------------------------------------------------------------------
+197 |         current_plan = DefaultCampaignLaunchService.build_launch_plan(
+    -             draft=draft, materialize_args=args,
+198 +             draft=draft,
+199 +             materialize_args=args,
+200 |             publish_args=PublishRecruitmentArgs(
+--------------------------------------------------------------------------------
+211 |         )
+    -         if history is None or history.status != "succeeded" or (
+    -             history.receipt_summary_hash != draft.campaign_draft_hash
+212 +         if (
+213 +             history is None
+214 +             or history.status != "succeeded"
+215 +             or (history.receipt_summary_hash != draft.campaign_draft_hash)
+216 |         ):
+    |
+
+unformatted: File would be reformatted
+   --> tests/integration/test_v06_job_coupon_reservation.py:77:28
+    |
+76  |         ctx=s.runtime.new_context(
+    -             actor=approver, executor=s.worker, session_id=job.session_id,
+    -             thread_id=job.thread_id, run_id=job.run_id,
+77  +             actor=approver,
+78  +             executor=s.worker,
+79  +             session_id=job.session_id,
+80  +             thread_id=job.thread_id,
+81  +             run_id=job.run_id,
+82  |         ),
+--------------------------------------------------------------------------------
+98  |     return SimpleNamespace(
+    -         s=s, job=job, claimed=claimed, token=token, worker=worker, service=service,
+    -         draft=draft, args=args, plan=plan, approval=approval, approvals=approvals,
+    -         launches=launches, saga=saga, ctx=ctx,
+99  +         s=s,
+100 +         job=job,
+101 +         claimed=claimed,
+102 +         token=token,
+103 +         worker=worker,
+104 +         service=service,
+105 +         draft=draft,
+106 +         args=args,
+107 +         plan=plan,
+108 +         approval=approval,
+109 +         approvals=approvals,
+110 +         launches=launches,
+111 +         saga=saga,
+112 +         ctx=ctx,
+113 |     )
+--------------------------------------------------------------------------------
+137 |     async with c.s.db.business_sessions() as session:
+    -         assert (await session.execute(text("SELECT status FROM coupon_batches"))).scalar() == "draft"
+138 +         assert (
+139 +             await session.execute(text("SELECT status FROM coupon_batches"))
+140 +         ).scalar() == "draft"
+141 |
+--------------------------------------------------------------------------------
+153 |     expected_hash = canonical_args_hash(
+    -         tool_name="materialize_coupon_batch", tool_schema_version=1,
+    -         schema=MaterializeCouponBatchArgs, args=c.args.model_dump(),
+154 +         tool_name="materialize_coupon_batch",
+155 +         tool_schema_version=1,
+156 +         schema=MaterializeCouponBatchArgs,
+157 +         args=c.args.model_dump(),
+158 |     )
+159 |     assert first.idempotency_key == ExecutionLedger.build_idempotency_key(
+160 |         f"{c.args.campaign_id}:{c.args.coupon_spec_hash}", expected_hash
+161 |     )
+    -     assert await c.service.reserve_coupon_materialization(
+    -         c.token, c.args, c.plan, c.approval.approval_id
+    -     ) == first
+162 +     assert (
+163 +         await c.service.reserve_coupon_materialization(
+164 +             c.token, c.args, c.plan, c.approval.approval_id
+165 +         )
+166 +         == first
+167 +     )
+168 |     c.s.clock.advance(30)
+--------------------------------------------------------------------------------
+174 |         )
+    -     assert await JobExecutionService(second, c.s.db).reserve_coupon_materialization(
+    -         token, c.args, c.plan, c.approval.approval_id
+    -     ) == first
+175 +     assert (
+176 +         await JobExecutionService(second, c.s.db).reserve_coupon_materialization(
+177 +             token, c.args, c.plan, c.approval.approval_id
+178 +         )
+179 +         == first
+180 +     )
+181 |     assert await _counts(c.s) == (1, 1, 1, 1, 2, 1, 1, 1)
+--------------------------------------------------------------------------------
+189 |     await ExecutionLedger(c.s.db.business_sessions, clock=c.s.clock.now).reserve_for_args(
+    -         execution_id="preexisting-reservation", tenant_id=c.job.tenant_id,
+    -         tool_name="materialize_coupon_batch", tool_schema_version=1,
+    -         schema=MaterializeCouponBatchArgs, args=c.args.model_dump(),
+190 +         execution_id="preexisting-reservation",
+191 +         tenant_id=c.job.tenant_id,
+192 +         tool_name="materialize_coupon_batch",
+193 +         tool_schema_version=1,
+194 +         schema=MaterializeCouponBatchArgs,
+195 +         args=c.args.model_dump(),
+196 |         stable_business_id=f"{c.args.campaign_id}:{c.args.coupon_spec_hash}",
+--------------------------------------------------------------------------------
+207 | @pytest.mark.asyncio
+    - @pytest.mark.parametrize("change", [
+    -     "missing", "pending", "rejected", "expired", "invalidated", "requester",
+    -     "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    - ])
+208 + @pytest.mark.parametrize(
+209 +     "change",
+210 +     [
+211 +         "missing",
+212 +         "pending",
+213 +         "rejected",
+214 +         "expired",
+215 +         "invalidated",
+216 +         "requester",
+217 +         "action",
+218 +         "tool",
+219 +         "hash",
+220 +         "checkpoint",
+221 +         "version",
+222 +         "tenant",
+223 +         "downstream_binding",
+224 +     ],
+225 + )
+226 | async def test_invalid_approval_never_adds_reservation(coupon, change):
+--------------------------------------------------------------------------------
+261 |             values["business_binding"] = ApprovalBusinessBinding(
+    -                 campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+    -                 selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+262 +                 campaign_id=c.args.campaign_id,
+263 +                 enrollment_version=1,
+264 +                 link_version=0,
+265 +                 selection_version="none",
+266 +                 rule_snapshot_hash=c.plan.rule_snapshot_hash,
+267 |             )
+--------------------------------------------------------------------------------
+287 | @pytest.mark.asyncio
+    - @pytest.mark.parametrize("change", [
+    -     "tenant", "job", "owner", "epoch", "campaign", "coupon", "args_hash",
+    -     "plan_campaign", "plan_coupon", "child", "scope", "plan_version",
+    - ])
+288 + @pytest.mark.parametrize(
+289 +     "change",
+290 +     [
+291 +         "tenant",
+292 +         "job",
+293 +         "owner",
+294 +         "epoch",
+295 +         "campaign",
+296 +         "coupon",
+297 +         "args_hash",
+298 +         "plan_campaign",
+299 +         "plan_coupon",
+300 +         "child",
+301 +         "scope",
+302 +         "plan_version",
+303 +     ],
+304 + )
+305 | async def test_token_business_ids_and_plan_are_bound(coupon, change):
+--------------------------------------------------------------------------------
+311 |         field = {"tenant": "tenant_id", "job": "job_id", "owner": "owner", "epoch": "epoch"}[change]
+    -         token = token.model_copy(update={field: token.epoch + 1 if change == "epoch" else "foreign"})
+312 +         token = token.model_copy(
+313 +             update={field: token.epoch + 1 if change == "epoch" else "foreign"}
+314 +         )
+315 |     elif change in {"campaign", "coupon", "args_hash"}:
+    -         field = {"campaign": "campaign_id", "coupon": "coupon_batch_id", "args_hash": "coupon_spec_hash"}[change]
+    -         args = args.model_copy(update={field: "sha256:" + "a" * 64 if change == "args_hash" else "foreign"})
+316 +         field = {
+317 +             "campaign": "campaign_id",
+318 +             "coupon": "coupon_batch_id",
+319 +             "args_hash": "coupon_spec_hash",
+320 +         }[change]
+321 +         args = args.model_copy(
+322 +             update={field: "sha256:" + "a" * 64 if change == "args_hash" else "foreign"}
+323 +         )
+324 |     elif change == "plan_campaign":
+--------------------------------------------------------------------------------
+330 |         field = "canonical_args_hash" if change == "child" else "idempotency_scope"
+    -         steps[0] = steps[0].model_copy(update={field: "sha256:" + "a" * 64 if change == "child" else "foreign"})
+331 +         steps[0] = steps[0].model_copy(
+332 +             update={field: "sha256:" + "a" * 64 if change == "child" else "foreign"}
+333 +         )
+334 |         plan = _changed_plan(plan, child_steps=steps)
+--------------------------------------------------------------------------------
+343 | @pytest.mark.asyncio
+    - @pytest.mark.parametrize("table", ["campaigns", "campaign_rule_snapshot_refs", "coupon_batches", "recruitment_publications"])
+344 + @pytest.mark.parametrize(
+345 +     "table",
+346 +     ["campaigns", "campaign_rule_snapshot_refs", "coupon_batches", "recruitment_publications"],
+347 + )
+348 | async def test_current_draft_version_change_is_rejected(coupon, table):
+--------------------------------------------------------------------------------
+353 |     with pytest.raises((PermissionError, ValueError)):
+    -         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+354 +         await c.service.reserve_coupon_materialization(
+355 +             c.token, c.args, c.plan, c.approval.approval_id
+356 +         )
+357 |     assert await _counts(c.s) == before
+--------------------------------------------------------------------------------
+364 |     async with c.s.db.business_sessions.begin() as session:
+    -         assignment = "checkpoint = 'other-saga-point'" if change == "checkpoint" else "status = 'failed'"
+365 +         assignment = (
+366 +             "checkpoint = 'other-saga-point'" if change == "checkpoint" else "status = 'failed'"
+367 +         )
+368 |         await session.execute(text(f"UPDATE launch_saga_states SET {assignment}"))
+369 |     with pytest.raises(PermissionError):
+    -         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+370 +         await c.service.reserve_coupon_materialization(
+371 +             c.token, c.args, c.plan, c.approval.approval_id
+372 +         )
+373 |     assert await _counts(c.s) == (1,) * 8
+--------------------------------------------------------------------------------
+395 |             decision = original(request, ctx)
+    -             if request.action == "campaign:launch:request" and request.resource.resource_id == c.args.campaign_id:
+396 +             if (
+397 +                 request.action == "campaign:launch:request"
+398 +                 and request.resource.resource_id == c.args.campaign_id
+399 +             ):
+400 |                 if change == "version":
+401 |                     return decision.model_copy(update={"policy_version": "new-policy-version"})
+402 |                 return PolicyDecision(
+    -                     allow=False, reason="synthetic resource revocation",
+403 +                     allow=False,
+404 +                     reason="synthetic resource revocation",
+405 |                     policy_version=decision.policy_version,
+--------------------------------------------------------------------------------
+413 | @pytest.mark.parametrize("boundary", ["await", "commit"])
+    - @pytest.mark.parametrize("change", [
+    -     "identity", "actor_policy", "worker_policy", "resource_policy", "version",
+    -     "lease", "deadline", "approval_expiry",
+    - ])
+    - async def test_authority_changes_roll_back_at_await_and_commit(coupon, monkeypatch, boundary, change):
+414 + @pytest.mark.parametrize(
+415 +     "change",
+416 +     [
+417 +         "identity",
+418 +         "actor_policy",
+419 +         "worker_policy",
+420 +         "resource_policy",
+421 +         "version",
+422 +         "lease",
+423 +         "deadline",
+424 +         "approval_expiry",
+425 +     ],
+426 + )
+427 + async def test_authority_changes_roll_back_at_await_and_commit(
+428 +     coupon, monkeypatch, boundary, change
+429 + ):
+430 |     from sqlalchemy import event
+--------------------------------------------------------------------------------
+436 |     if change == "approval_expiry":
+    -         c.approval = c.approval.model_copy(update={
+    -             "approval_id": c.approval.approval_id + ":short-lived",
+    -             "expires_at": c.s.clock.now() + timedelta(seconds=2),
+    -         })
+437 +         c.approval = c.approval.model_copy(
+438 +             update={
+439 +                 "approval_id": c.approval.approval_id + ":short-lived",
+440 +                 "expires_at": c.s.clock.now() + timedelta(seconds=2),
+441 +             }
+442 +         )
+443 |         await c.approvals._repository.add(c.approval)
+--------------------------------------------------------------------------------
+460 |
+    -         monkeypatch.setattr(c.service._coupon_writer._tools, "_reserve_in_session", change_after_insert)
+461 +         monkeypatch.setattr(
+462 +             c.service._coupon_writer._tools, "_reserve_in_session", change_after_insert
+463 +         )
+464 |     else:
+465 |         event.listen(Session, "before_commit", mutate)
+466 |     try:
+467 |         with pytest.raises((PermissionError, JobConflict)):
+    -             await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+468 +             await c.service.reserve_coupon_materialization(
+469 +                 c.token, c.args, c.plan, c.approval.approval_id
+470 +             )
+471 |     finally:
+--------------------------------------------------------------------------------
+483 |     # never for requester authorization during reservation.
+    -     result = await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+484 +     result = await c.service.reserve_coupon_materialization(
+485 +         c.token, c.args, c.plan, c.approval.approval_id
+486 +     )
+487 |     assert result.status == "reserved"
+--------------------------------------------------------------------------------
+499 |     if change == "cancel":
+    -         cancelled = Job.model_validate(c.claimed.model_dump() | {
+    -             "status": "cancellation_requested", "cancel_requested": True,
+    -             "revision": c.claimed.revision + 1,
+    -         })
+500 +         cancelled = Job.model_validate(
+501 +             c.claimed.model_dump()
+502 +             | {
+503 +                 "status": "cancellation_requested",
+504 +                 "cancel_requested": True,
+505 +                 "revision": c.claimed.revision + 1,
+506 +             }
+507 +         )
+508 |         await c.s.repo.replace(c.claimed, cancelled, _trusted_guard)
+--------------------------------------------------------------------------------
+512 |     with pytest.raises((PermissionError, JobConflict)):
+    -         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+513 +         await c.service.reserve_coupon_materialization(
+514 +             c.token, c.args, c.plan, c.approval.approval_id
+515 +         )
+516 |     assert await _counts(c.s) == before
+--------------------------------------------------------------------------------
+535 |     monkeypatch.setattr(c.service._coupon_writer._tools, "_reserve_in_session", fail_after_insert)
+    -     task = asyncio.create_task(c.service.reserve_coupon_materialization(
+    -         c.token, c.args, c.plan, c.approval.approval_id
+    -     ))
+536 +     task = asyncio.create_task(
+537 +         c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+538 +     )
+539 |     await asyncio.wait_for(entered.wait(), 5)
+--------------------------------------------------------------------------------
+545 |     monkeypatch.setattr(c.service._coupon_writer._tools, "_reserve_in_session", original)
+    -     assert (await asyncio.wait_for(c.service.reserve_coupon_materialization(
+    -         c.token, c.args, c.plan, c.approval.approval_id
+    -     ), 5)).status == "reserved"
+546 +     assert (
+547 +         await asyncio.wait_for(
+548 +             c.service.reserve_coupon_materialization(
+549 +                 c.token, c.args, c.plan, c.approval.approval_id
+550 +             ),
+551 +             5,
+552 +         )
+553 +     ).status == "reserved"
+554 |     await c.worker.heartbeat(c.token)
+--------------------------------------------------------------------------------
+558 | @pytest.mark.parametrize("contender", ["takeover", "cancel", "revoke"])
+    - async def test_two_sqlite_resources_reach_actual_update_and_cannot_cross_fence(coupon, monkeypatch, contender):
+559 + async def test_two_sqlite_resources_reach_actual_update_and_cannot_cross_fence(
+560 +     coupon, monkeypatch, contender
+561 + ):
+562 |     import asyncio
+--------------------------------------------------------------------------------
+586 |         second = JobLeaseService(
+    -             s.runtime, repo, s.source, executor=s.worker,
+    -             instance_id="independent-resource", clock=s.clock.now,
+587 +             s.runtime,
+588 +             repo,
+589 +             s.source,
+590 +             executor=s.worker,
+591 +             instance_id="independent-resource",
+592 +             clock=s.clock.now,
+593 |         )
+--------------------------------------------------------------------------------
+607 |             ctx = api._context(s.admin, "coupon-cancel-race", c.claimed)
+    -             guard = await api._authorize(s.admin, ctx, (api._request("job:cancel", ctx, c.claimed),))
+608 +             guard = await api._authorize(
+609 +                 s.admin, ctx, (api._request("job:cancel", ctx, c.claimed),)
+610 +             )
+611 |
+--------------------------------------------------------------------------------
+617 |             approvals = ApprovalService(
+    -                 SQLiteApprovalRepository(other.platform_sessions), s.runtime.policy, clock=s.clock.now
+618 +                 SQLiteApprovalRepository(other.platform_sessions),
+619 +                 s.runtime.policy,
+620 +                 clock=s.clock.now,
+621 |             )
+--------------------------------------------------------------------------------
+631 |         event.listen(other._platform_engine.sync_engine, "before_cursor_execute", observe)
+    -         first_task = asyncio.create_task(c.service.reserve_coupon_materialization(
+    -             c.token, c.args, c.plan, c.approval.approval_id
+    -         ))
+632 +         first_task = asyncio.create_task(
+633 +             c.service.reserve_coupon_materialization(
+634 +                 c.token, c.args, c.plan, c.approval.approval_id
+635 +             )
+636 +         )
+637 |         await asyncio.wait_for(entered.wait(), 5)
+--------------------------------------------------------------------------------
+657 |                 monkeypatch.setattr(second, "_authorize", original_authorize)
+    -                 assert (await JobExecutionService(second, other).reserve_coupon_materialization(
+    -                     lease_token(new), c.args, c.plan, c.approval.approval_id
+    -                 )).status == "reserved"
+658 +                 assert (
+659 +                     await JobExecutionService(second, other).reserve_coupon_materialization(
+660 +                         lease_token(new), c.args, c.plan, c.approval.approval_id
+661 +                     )
+662 +                 ).status == "reserved"
+663 |             else:
+664 |                 assert (await first_task).status == "reserved"
+665 |                 changed = await asyncio.wait_for(task, 5)
+    -                 assert changed.status == ("invalidated" if contender == "revoke" else "cancellation_requested")
+666 +                 assert changed.status == (
+667 +                     "invalidated" if contender == "revoke" else "cancellation_requested"
+668 +                 )
+669 |             assert observed
+670 |             assert await _counts(s) == (1, 1, 1, 1, 2, 1, 1, 1)
+671 |             with pytest.raises((PermissionError, JobConflict)):
+    -                 await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+672 +                 await c.service.reserve_coupon_materialization(
+673 +                     c.token, c.args, c.plan, c.approval.approval_id
+674 +                 )
+675 |         finally:
+--------------------------------------------------------------------------------
+685 | @pytest.mark.parametrize("change", ["cancel", "approval"])
+    - async def test_change_after_authorization_before_platform_lock_is_not_lost(coupon, monkeypatch, change):
+686 + async def test_change_after_authorization_before_platform_lock_is_not_lost(
+687 +     coupon, monkeypatch, change
+688 + ):
+689 |     from contextlib import asynccontextmanager
+--------------------------------------------------------------------------------
+709 |     with pytest.raises((PermissionError, JobConflict)):
+    -         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+710 +         await c.service.reserve_coupon_materialization(
+711 +             c.token, c.args, c.plan, c.approval.approval_id
+712 +         )
+713 |     assert await _counts(c.s) == (1,) * 8
+--------------------------------------------------------------------------------
+719 |     approval = await c.approvals.create(
+    -         approval_action="launch_approval", tool_name=LAUNCH_PLAN_TOOL_NAME,
+    -         canonical_args_hash=c.plan.plan_hash, checkpoint_id=c.saga.checkpoint,
+    -         expires_at=c.s.clock.now() + timedelta(hours=1), ctx=c.ctx,
+720 +         approval_action="launch_approval",
+721 +         tool_name=LAUNCH_PLAN_TOOL_NAME,
+722 +         canonical_args_hash=c.plan.plan_hash,
+723 +         checkpoint_id=c.saga.checkpoint,
+724 +         expires_at=c.s.clock.now() + timedelta(hours=1),
+725 +         ctx=c.ctx,
+726 |     )
+727 |     with pytest.raises(PermissionError, match="requester cannot decide"):
+728 |         await c.approvals.decide(
+    -             tenant_id=c.job.tenant_id, approval_id=approval.approval_id,
+    -             decision="approve", reason=None, ctx=c.ctx,
+729 +             tenant_id=c.job.tenant_id,
+730 +             approval_id=approval.approval_id,
+731 +             decision="approve",
+732 +             reason=None,
+733 +             ctx=c.ctx,
+734 |         )
+735 |     with pytest.raises(PermissionError):
+    -         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, approval.approval_id)
+736 +         await c.service.reserve_coupon_materialization(
+737 +             c.token, c.args, c.plan, approval.approval_id
+738 +         )
+739 |     assert await _counts(c.s) == (1,) * 8
+--------------------------------------------------------------------------------
+748 |     existing = await ledger.reserve_for_args(
+    -         execution_id="existing-domain-reservation", tenant_id=c.job.tenant_id,
+    -         tool_name="materialize_coupon_batch", tool_schema_version=1,
+    -         schema=MaterializeCouponBatchArgs, args=c.args.model_dump(),
+749 +         execution_id="existing-domain-reservation",
+750 +         tenant_id=c.job.tenant_id,
+751 +         tool_name="materialize_coupon_batch",
+752 +         tool_schema_version=1,
+753 +         schema=MaterializeCouponBatchArgs,
+754 +         args=c.args.model_dump(),
+755 |         stable_business_id=f"{c.args.campaign_id}:{c.args.coupon_spec_hash}",
+756 |         checkpoint_id=c.saga.checkpoint,
+757 |     )
+    -     assert await c.service.reserve_coupon_materialization(
+    -         c.token, c.args, c.plan, c.approval.approval_id
+    -     ) == existing
+758 +     assert (
+759 +         await c.service.reserve_coupon_materialization(
+760 +             c.token, c.args, c.plan, c.approval.approval_id
+761 +         )
+762 +         == existing
+763 +     )
+764 |     await ledger.mark_executing(existing)
+765 |     with pytest.raises(PermissionError):
+    -         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+766 +         await c.service.reserve_coupon_materialization(
+767 +             c.token, c.args, c.plan, c.approval.approval_id
+768 +         )
+769 |     assert await _counts(c.s) == (1, 1, 1, 1, 2, 1, 1, 1)
+--------------------------------------------------------------------------------
+791 |     suffix = job.job_id.removeprefix("job_")
+    -     args = c.args.model_copy(update={"campaign_id": f"campaign_{suffix}", "coupon_batch_id": f"coupon_{suffix}"})
+792 +     args = c.args.model_copy(
+793 +         update={"campaign_id": f"campaign_{suffix}", "coupon_batch_id": f"coupon_{suffix}"}
+794 +     )
+795 |     with pytest.raises(PermissionError):
+    |
+
+4 files would be reformatted, 1 file already formatted
+
+exit_code: 1
+$ uv run ruff check src/oria/core/approvals.py src/oria/orchestrator/job_execution.py src/oria/storage/job_execution.py src/oria/storage/jobs.py tests/integration/test_v06_job_coupon_reservation.py
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/oria/orchestrator/job_execution.py:3:1
+   |
+ 1 |   """Explicit trusted worker boundary for one local campaign draft operation."""
+ 2 |
+ 3 | / import hashlib
+ 4 | | import json
+ 5 | |
+ 6 | | from sqlalchemy import event
+ 7 | | from sqlalchemy.exc import SQLAlchemyError
+ 8 | | from sqlalchemy.orm import Session
+ 9 | |
+10 | | from oria.core.approvals import ApprovalResumeRequest, approval_resume_rejection, canonical_args_hash
+11 | | from oria.core.execution_ledger import ExecutionLedger
+12 | | from oria.core.types import AuthorizationContext, AuthorizationRequest, ResourceRef
+13 | | from oria.core.job_leases import JobLeaseToken, validate_lease
+14 | | from oria.core.jobs import CampaignJobSpec, JobConflict
+15 | | from oria.domain.launch import (
+16 | |     LAUNCH_PLAN_POLICY, LAUNCH_PLAN_TOOL_NAME, MATERIALIZE_TOOL_NAME,
+17 | |     CampaignDraft, CampaignDraftSpec, MaterializeCouponBatchArgs, build_campaign_draft,
+18 | | )
+19 | | from oria.domain.ledger import LaunchPlan, ToolExecution
+20 | | from oria.orchestrator.job_leases import JobLeaseService, _LeaseAuthorization
+21 | | from oria.rag.models import CampaignRuleSnapshot
+22 | | from oria.storage.database import DatabaseResources
+23 | | from oria.storage.job_execution import JobCampaignDraftWriter, JobCouponReservationWriter
+24 | | from oria.storage.platform import SQLiteApprovalRepository
+25 | | from oria.storage.repositories import BusinessRepositoryError
+   | |_____________________________________________________________^
+help: Organize imports
+   |
+9  |
+   - from oria.core.approvals import ApprovalResumeRequest, approval_resume_rejection, canonical_args_hash
+10 + from oria.core.approvals import (
+11 +     ApprovalResumeRequest,
+12 +     approval_resume_rejection,
+13 +     canonical_args_hash,
+14 + )
+15 | from oria.core.execution_ledger import ExecutionLedger
+   - from oria.core.types import AuthorizationContext, AuthorizationRequest, ResourceRef
+16 | from oria.core.job_leases import JobLeaseToken, validate_lease
+17 | from oria.core.jobs import CampaignJobSpec, JobConflict
+18 + from oria.core.types import AuthorizationContext, AuthorizationRequest, ResourceRef
+19 | from oria.domain.launch import (
+   -     LAUNCH_PLAN_POLICY, LAUNCH_PLAN_TOOL_NAME, MATERIALIZE_TOOL_NAME,
+   -     CampaignDraft, CampaignDraftSpec, MaterializeCouponBatchArgs, build_campaign_draft,
+20 +     LAUNCH_PLAN_POLICY,
+21 +     LAUNCH_PLAN_TOOL_NAME,
+22 +     MATERIALIZE_TOOL_NAME,
+23 +     CampaignDraft,
+24 +     CampaignDraftSpec,
+25 +     MaterializeCouponBatchArgs,
+26 +     build_campaign_draft,
+27 | )
+   |
+
+E501 Line too long (101 > 100)
+  --> src/oria/orchestrator/job_execution.py:10:101
+   |
+ 8 | from sqlalchemy.orm import Session
+ 9 |
+10 | from oria.core.approvals import ApprovalResumeRequest, approval_resume_rejection, canonical_args_hash
+   |                                                                                                     ^
+11 | from oria.core.execution_ledger import ExecutionLedger
+12 | from oria.core.types import AuthorizationContext, AuthorizationRequest, ResourceRef
+   |
+
+SIM117 Use a single `with` statement with multiple contexts instead of nested `with` statements
+   --> src/oria/orchestrator/job_execution.py:160:17
+    |
+158 |                   await guard()
+159 |                   await launch_guard()
+160 | /                 async with self._databases.business_sessions() as session:
+161 | |                     async with session.begin():
+    | |_______________________________________________^
+162 |                           checkpoint = await self._coupon_writer.prepare(session, job, args, plan)
+163 |                           approval = await self._approvals.bind(platform).get(job.tenant_id, approval_id)
+    |
+help: Combine `with` statements
+
+E501 Line too long (103 > 100)
+   --> src/oria/orchestrator/job_execution.py:163:101
+    |
+161 |                     async with session.begin():
+162 |                         checkpoint = await self._coupon_writer.prepare(session, job, args, plan)
+163 |                         approval = await self._approvals.bind(platform).get(job.tenant_id, approval_id)
+    |                                                                                                     ^^^
+164 |                         if approval is None:
+165 |                             raise PermissionError("launch approval is unavailable")
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/oria/storage/job_execution.py:3:1
+   |
+ 1 |   """Fixed local draft/ledger/event transaction used only by the trusted Job boundary."""
+ 2 |
+ 3 | / import json
+ 4 | |
+ 5 | | from sqlalchemy import text
+ 6 | | from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+ 7 | |
+ 8 | | from oria.core.context import Context
+ 9 | | from oria.core.types import EventEnvelope, JsonValue, ResourceRef
+10 | | from oria.core.jobs import Job
+11 | | from oria.domain.launch import (
+12 | |     CampaignDraft, DefaultCampaignLaunchService, MaterializeCouponBatchArgs, PublishRecruitmentArgs,
+13 | | )
+14 | | from oria.domain.ledger import DomainEvent, LaunchPlan, OutboxRecord, ToolExecution
+15 | | from oria.permission.local import LOCAL_POLICY_VERSION
+16 | | from oria.storage.ledger import (
+17 | |     SQLiteBusinessAuditRepository,
+18 | |     SQLiteDomainEventRepository,
+19 | |     SQLiteOutboxRepository,
+20 | |     SQLiteToolExecutionRepository,
+21 | | )
+22 | | from oria.storage.repositories import SQLiteCampaignDraftRepository, SQLiteLaunchSagaStateRepository
+   | |____________________________________________________________________________________________________^
+help: Organize imports
+   |
+8  | from oria.core.context import Context
+9  + from oria.core.jobs import Job
+10 | from oria.core.types import EventEnvelope, JsonValue, ResourceRef
+   - from oria.core.jobs import Job
+11 | from oria.domain.launch import (
+   -     CampaignDraft, DefaultCampaignLaunchService, MaterializeCouponBatchArgs, PublishRecruitmentArgs,
+12 +     CampaignDraft,
+13 +     DefaultCampaignLaunchService,
+14 +     MaterializeCouponBatchArgs,
+15 +     PublishRecruitmentArgs,
+16 | )
+   |
+
+E501 Line too long (101 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:124:101
+    |
+122 |     assert await c.launches.get_saga(c.args.campaign_id, c.ctx) == c.saga
+123 |     async with c.s.db.business_sessions() as session:
+124 |         assert (await session.execute(text("SELECT status FROM coupon_batches"))).scalar() == "draft"
+    |                                                                                                     ^
+
+E501 Line too long (101 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:255:101
+    |
+253 |     if change in {"tenant", "job", "owner", "epoch"}:
+254 |         field = {"tenant": "tenant_id", "job": "job_id", "owner": "owner", "epoch": "epoch"}[change]
+255 |         token = token.model_copy(update={field: token.epoch + 1 if change == "epoch" else "foreign"})
+    |                                                                                                     ^
+256 |     elif change in {"campaign", "coupon", "args_hash"}:
+257 |         field = {"campaign": "campaign_id", "coupon": "coupon_batch_id", "args_hash": "coupon_spec_hash"}[change]
+    |
+
+E501 Line too long (113 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:257:101
+    |
+255 |         token = token.model_copy(update={field: token.epoch + 1 if change == "epoch" else "foreign"})
+256 |     elif change in {"campaign", "coupon", "args_hash"}:
+257 |         field = {"campaign": "campaign_id", "coupon": "coupon_batch_id", "args_hash": "coupon_spec_hash"}[change]
+    |                                                                                                     ^^^^^^^^^^^^^
+258 |         args = args.model_copy(update={field: "sha256:" + "a" * 64 if change == "args_hash" else "foreign"})
+259 |     elif change == "plan_campaign":
+    |
+
+E501 Line too long (108 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:258:101
+    |
+256 |     elif change in {"campaign", "coupon", "args_hash"}:
+257 |         field = {"campaign": "campaign_id", "coupon": "coupon_batch_id", "args_hash": "coupon_spec_hash"}[change]
+258 |         args = args.model_copy(update={field: "sha256:" + "a" * 64 if change == "args_hash" else "foreign"})
+    |                                                                                                     ^^^^^^^^
+259 |     elif change == "plan_campaign":
+260 |         plan = _changed_plan(plan, campaign_draft_id="foreign")
+    |
+
+E501 Line too long (112 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:266:101
+    |
+264 |         steps = [step.model_copy() for step in plan.child_steps]
+265 |         field = "canonical_args_hash" if change == "child" else "idempotency_scope"
+266 |         steps[0] = steps[0].model_copy(update={field: "sha256:" + "a" * 64 if change == "child" else "foreign"})
+    |                                                                                                     ^^^^^^^^^^^^
+267 |         plan = _changed_plan(plan, child_steps=steps)
+268 |     elif change == "plan_version":
+    |
+
+E501 Line too long (125 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:277:101
+    |
+276 | @pytest.mark.asyncio
+277 | @pytest.mark.parametrize("table", ["campaigns", "campaign_rule_snapshot_refs", "coupon_batches", "recruitment_publications"])
+    |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+278 | async def test_current_draft_version_change_is_rejected(coupon, table):
+279 |     c = coupon
+    |
+
+E501 Line too long (103 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:284:101
+    |
+282 |     before = await _counts(c.s)
+283 |     with pytest.raises((PermissionError, ValueError)):
+284 |         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+    |                                                                                                     ^^^
+285 |     assert await _counts(c.s) == before
+    |
+
+E501 Line too long (105 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:293:101
+    |
+291 |     c = coupon
+292 |     async with c.s.db.business_sessions.begin() as session:
+293 |         assignment = "checkpoint = 'other-saga-point'" if change == "checkpoint" else "status = 'failed'"
+    |                                                                                                     ^^^^^
+294 |         await session.execute(text(f"UPDATE launch_saga_states SET {assignment}"))
+295 |     with pytest.raises(PermissionError):
+    |
+
+E501 Line too long (103 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:296:101
+    |
+294 |         await session.execute(text(f"UPDATE launch_saga_states SET {assignment}"))
+295 |     with pytest.raises(PermissionError):
+296 |         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+    |                                                                                                     ^^^
+297 |     assert await _counts(c.s) == (1,) * 8
+    |
+
+E501 Line too long (114 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:320:101
+    |
+318 |         def changed(request, ctx):
+319 |             decision = original(request, ctx)
+320 |             if request.action == "campaign:launch:request" and request.resource.resource_id == c.args.campaign_id:
+    |                                                                                                     ^^^^^^^^^^^^^^
+321 |                 if change == "version":
+322 |                     return decision.model_copy(update={"policy_version": "new-policy-version"})
+    |
+
+E501 Line too long (102 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:338:101
+    |
+336 |     "lease", "deadline", "approval_expiry",
+337 | ])
+338 | async def test_authority_changes_roll_back_at_await_and_commit(coupon, monkeypatch, boundary, change):
+    |                                                                                                     ^^
+339 |     from sqlalchemy import event
+340 |     from sqlalchemy.orm import Session
+    |
+
+E501 Line too long (104 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:368:101
+    |
+366 |             return result
+367 |
+368 |         monkeypatch.setattr(c.service._coupon_writer._tools, "_reserve_in_session", change_after_insert)
+    |                                                                                                     ^^^^
+369 |     else:
+370 |         event.listen(Session, "before_commit", mutate)
+    |
+
+E501 Line too long (107 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:373:101
+    |
+371 |     try:
+372 |         with pytest.raises((PermissionError, JobConflict)):
+373 |             await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+    |                                                                                                     ^^^^^^^
+374 |     finally:
+375 |         if boundary == "commit":
+    |
+
+E501 Line too long (108 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:387:101
+    |
+385 |     # Restoring the Policy fixture also needs the synthetic approver only for setup,
+386 |     # never for requester authorization during reservation.
+387 |     result = await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+    |                                                                                                     ^^^^^^^^
+388 |     assert result.status == "reserved"
+    |
+
+E501 Line too long (103 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:410:101
+    |
+408 |     before = await _counts(c.s)
+409 |     with pytest.raises((PermissionError, JobConflict)):
+410 |         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+    |                                                                                                     ^^^
+411 |     assert await _counts(c.s) == before
+    |
+
+E501 Line too long (111 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:449:101
+    |
+447 | @pytest.mark.asyncio
+448 | @pytest.mark.parametrize("contender", ["takeover", "cancel", "revoke"])
+449 | async def test_two_sqlite_resources_reach_actual_update_and_cannot_cross_fence(coupon, monkeypatch, contender):
+    |                                                                                                     ^^^^^^^^^^^
+450 |     import asyncio
+    |
+
+E501 Line too long (101 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:492:101
+    |
+490 |             api = JobAPI(s.runtime, repo, s.source, clock=s.clock.now)
+491 |             ctx = api._context(s.admin, "coupon-cancel-race", c.claimed)
+492 |             guard = await api._authorize(s.admin, ctx, (api._request("job:cancel", ctx, c.claimed),))
+    |                                                                                                     ^
+493 |
+494 |             async def preauthorized(*args):
+    |
+
+E501 Line too long (102 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:500:101
+    |
+498 |         else:
+499 |             approvals = ApprovalService(
+500 |                 SQLiteApprovalRepository(other.platform_sessions), s.runtime.policy, clock=s.clock.now
+    |                                                                                                     ^^
+501 |             )
+    |
+
+E501 Line too long (111 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:542:101
+    |
+540 |                 assert (await first_task).status == "reserved"
+541 |                 changed = await asyncio.wait_for(task, 5)
+542 |                 assert changed.status == ("invalidated" if contender == "revoke" else "cancellation_requested")
+    |                                                                                                     ^^^^^^^^^^^
+543 |             assert observed
+544 |             assert await _counts(s) == (1, 1, 1, 1, 2, 1, 1, 1)
+    |
+
+E501 Line too long (111 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:546:101
+    |
+544 |             assert await _counts(s) == (1, 1, 1, 1, 2, 1, 1, 1)
+545 |             with pytest.raises((PermissionError, JobConflict)):
+546 |                 await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+    |                                                                                                     ^^^^^^^^^^^
+547 |         finally:
+548 |             release.set()
+    |
+
+E501 Line too long (104 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:558:101
+    |
+556 | @pytest.mark.asyncio
+557 | @pytest.mark.parametrize("change", ["cancel", "approval"])
+558 | async def test_change_after_authorization_before_platform_lock_is_not_lost(coupon, monkeypatch, change):
+    |                                                                                                     ^^^^
+559 |     from contextlib import asynccontextmanager
+    |
+
+E501 Line too long (103 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:580:101
+    |
+578 |     monkeypatch.setattr(c.s.repo, "_hold_execution_lease", change_before_lock)
+579 |     with pytest.raises((PermissionError, JobConflict)):
+580 |         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+    |                                                                                                     ^^^
+581 |     assert await _counts(c.s) == (1,) * 8
+    |
+
+E501 Line too long (101 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:598:101
+    |
+596 |         )
+597 |     with pytest.raises(PermissionError):
+598 |         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, approval.approval_id)
+    |                                                                                                     ^
+599 |     assert await _counts(c.s) == (1,) * 8
+    |
+
+E501 Line too long (103 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:620:101
+    |
+618 |     await ledger.mark_executing(existing)
+619 |     with pytest.raises(PermissionError):
+620 |         await c.service.reserve_coupon_materialization(c.token, c.args, c.plan, c.approval.approval_id)
+    |                                                                                                     ^^^
+621 |     assert await _counts(c.s) == (1, 1, 1, 1, 2, 1, 1, 1)
+    |
+
+E501 Line too long (113 > 100)
+   --> tests/integration/test_v06_job_coupon_reservation.py:644:101
+    |
+642 |     token = lease_token(await c.worker.claim(job.job_id))
+643 |     suffix = job.job_id.removeprefix("job_")
+644 |     args = c.args.model_copy(update={"campaign_id": f"campaign_{suffix}", "coupon_batch_id": f"coupon_{suffix}"})
+    |                                                                                                     ^^^^^^^^^^^^^
+645 |     with pytest.raises(PermissionError):
+646 |         await c.service.reserve_coupon_materialization(token, args, c.plan, c.approval.approval_id)
+    |
+
+Found 30 errors.
+[*] 2 fixable with the `--fix` option.
+
+exit_code: 1
+$ uv run mypy src/oria/core/approvals.py src/oria/orchestrator/job_execution.py src/oria/storage/job_execution.py src/oria/storage/jobs.py
+Success: no issues found in 4 source files
+
+exit_code: 0

@@ -1,0 +1,5 @@
+MUT2 drop checkpoint equality -> exit 1
+failures: 1
+  FAILED tests/integration/test_v06_job_coupon_reservation.py::test_existing_ledger_cannot_supply_an_unapproved_checkpoint
+summary: 1 failed, 71 passed, 1 warning in 69.98s (0:01:09)
+restored: True

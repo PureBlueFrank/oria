@@ -1,0 +1,180 @@
+........F......F........................................................ [100%]
+=================================== FAILURES ===================================
+___________ test_invalid_approval_never_adds_reservation[requester] ____________
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12932f7d0>, db=<oria.storage.database.Database..._id='job_0eb498324d834e77ab01f13f534eac57:lease:1', job_id='job_0eb498324d834e77ab01f13f534eac57', checkpoint_id=None))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x129bbe250>
+change = 'requester'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "change",
+        [
+            "missing",
+            "pending",
+            "rejected",
+            "expired",
+            "invalidated",
+            "requester",
+            "action",
+            "tool",
+            "hash",
+            "checkpoint",
+            "version",
+            "tenant",
+            "downstream_binding",
+        ],
+    )
+    async def test_invalid_approval_never_adds_reservation(coupon, monkeypatch, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id,
+                    enrollment_version=1,
+                    link_version=0,
+                    selection_version="none",
+                    rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            # Binding metadata is immutable: prepare a distinct trusted fixture record.
+            values["approval_id"] += ":changed"
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        reserved = []
+        original = c.service._coupon_writer._tools._reserve_in_session
+    
+        async def observe_reservation(*args):
+            reserved.append(True)
+            return await original(*args)
+    
+        monkeypatch.setattr(c.service._coupon_writer._tools, "_reserve_in_session", observe_reservation)
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:281: Failed
+_______ test_invalid_approval_never_adds_reservation[downstream_binding] _______
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x1298077d0>, db=<oria.storage.database.Database..._id='job_97d0f588a725447b855906b9c46606fb:lease:1', job_id='job_97d0f588a725447b855906b9c46606fb', checkpoint_id=None))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x129232550>
+change = 'downstream_binding'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "change",
+        [
+            "missing",
+            "pending",
+            "rejected",
+            "expired",
+            "invalidated",
+            "requester",
+            "action",
+            "tool",
+            "hash",
+            "checkpoint",
+            "version",
+            "tenant",
+            "downstream_binding",
+        ],
+    )
+    async def test_invalid_approval_never_adds_reservation(coupon, monkeypatch, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id,
+                    enrollment_version=1,
+                    link_version=0,
+                    selection_version="none",
+                    rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            # Binding metadata is immutable: prepare a distinct trusted fixture record.
+            values["approval_id"] += ":changed"
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        reserved = []
+        original = c.service._coupon_writer._tools._reserve_in_session
+    
+        async def observe_reservation(*args):
+            reserved.append(True)
+            return await original(*args)
+    
+        monkeypatch.setattr(c.service._coupon_writer._tools, "_reserve_in_session", observe_reservation)
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:281: Failed
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[requester]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[downstream_binding]
+2 failed, 70 passed, 1 warning in 73.21s (0:01:13)
