@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -36,7 +36,24 @@ def _callback(action, *, reason=None, nonce="interaction", **kwargs):
 
 @pytest.mark.asyncio
 @pytest.mark.recovery
-async def test_reasoned_rejection_restarts_and_retries_without_duplicate_decision(delivery_stack):
+async def test_reasoned_rejection_restarts_and_retries_without_duplicate_decision(
+    delivery_stack, monkeypatch
+):
+    import tests.contract.test_v06_feishu as feishu_fixture
+
+    sent_at = datetime.now(UTC)
+
+    class SenderClock:
+        calls = 0
+
+        @classmethod
+        def now(cls, timezone):
+            # The signing helper reads once for the header and once for received_at.
+            instant = sent_at + timedelta(seconds=cls.calls // 2)
+            cls.calls += 1
+            return instant
+
+    monkeypatch.setattr(feishu_fixture, "datetime", SenderClock)
     state = delivery_stack
     action = await state.bindings.issue(
         "approval-card",
@@ -59,23 +76,34 @@ async def test_reasoned_rejection_restarts_and_retries_without_duplicate_decisio
         transport=httpx.ASGITransport(app), base_url="http://local"
     ) as client:
 
-        async def post(reason, nonce):
-            inbound = _callback(action, reason=reason, nonce=nonce)
+        async def post(inbound):
             return await client.post(
                 "/v1/ingress/feishu/events", content=inbound.raw_body, headers=dict(inbound.headers)
             )
 
-        response = await post("方案预算需要调整", "first")
+        inbound = _callback(action, reason="方案预算需要调整", nonce="first")
+        response = await post(inbound)
         assert response.status_code == 200
         assert "已拒绝" in response.text and "方案预算需要调整" in response.text
         assert action.action_ref not in response.text and "checkpoint-secret" not in response.text
         committed = await _counts(state.databases)
         assert committed["ingress_receipts"] == committed["ingress_replays"] == 1
         assert committed["outbox"] == baseline["outbox"] + 1
-        duplicate = await post("方案预算需要调整", "first")
+        duplicate = await post(inbound)
         assert duplicate.json() == response.json()
         assert await _counts(state.databases) == committed
-        changed = await post("不同的理由", "changed")
+        # A re-signed retry has a new transport replay key, but the same action
+        # receipt must still prevent another approval decision/audit/outbox.
+        resigned = _callback(action, reason="方案预算需要调整", nonce="first")
+        assert (
+            dict(resigned.headers)["X-Lark-Request-Timestamp"]
+            != dict(inbound.headers)["X-Lark-Request-Timestamp"]
+        )
+        retried = await post(resigned)
+        assert retried.json() == response.json()
+        committed = {**committed, "ingress_replays": committed["ingress_replays"] + 1}
+        assert await _counts(state.databases) == committed
+        changed = await post(_callback(action, reason="不同的理由", nonce="changed"))
         assert changed.status_code == 409
         assert await _counts(state.databases) == committed
         approval = await state.repository.get("tenant", "approval-card")

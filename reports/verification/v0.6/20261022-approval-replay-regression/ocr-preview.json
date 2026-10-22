@@ -1,0 +1,48 @@
+{
+  "schema_version": "1",
+  "mode": "workspace",
+  "repository": "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria",
+  "total_files": 5,
+  "reviewable_count": 0,
+  "excluded_count": 5,
+  "total_insertions": 413,
+  "total_deletions": 7,
+  "reviewable_files": [],
+  "excluded_files": [
+    {
+      "path": "tests/integration/test_v06_approval_interactions.py",
+      "status": "modified",
+      "insertions": 34,
+      "deletions": 7,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-approval-replay-regression/01-original-ci-failure.log",
+      "status": "added",
+      "insertions": 280,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-approval-replay-regression/02-deterministic-red.log",
+      "status": "added",
+      "insertions": 82,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-approval-replay-regression/03-targeted-green.log",
+      "status": "added",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-approval-replay-regression/04-lint.log",
+      "status": "added",
+      "insertions": 17,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    }
+  ]
+}

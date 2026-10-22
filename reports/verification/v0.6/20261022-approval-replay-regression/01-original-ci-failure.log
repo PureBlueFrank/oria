@@ -1,0 +1,280 @@
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	﻿2026-10-22T10:40:28.5009230Z ##[group]Run uv run pytest -m "not live and not enterprise and not performance"
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:28.5009748Z ^[[36;1muv run pytest -m "not live and not enterprise and not performance"^[[0m
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:28.5058210Z shell: /usr/bin/bash -e {0}
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:28.5058448Z env:
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:28.5058634Z   UV_NO_PROGRESS: 1
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:28.5058894Z   UV_PYTHON_INSTALL_DIR: /home/runner/work/_temp/uv-python-dir
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:28.5059181Z   UV_PYTHON: 3.11
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:28.5059385Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:28.5059635Z ##[endgroup]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.0870116Z ============================= test session starts ==============================
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.0870577Z platform linux -- Python 3.11.16, pytest-9.1.1, pluggy-1.6.0
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.0870883Z rootdir: /home/runner/work/oria/oria
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.0871119Z configfile: pyproject.toml
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.0871314Z testpaths: tests
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.0871528Z plugins: asyncio-1.4.0, anyio-4.14.2, langsmith-0.11.1
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.0872064Z asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.0872747Z collected 1394 items / 9 deselected / 1385 selected
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.0872972Z 
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.1244654Z tests/contract/test_config_resolution.py ......................          [  1%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.3583898Z tests/contract/test_context_isolation.py .                               [  1%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.3686460Z tests/contract/test_core_types.py ...........                            [  2%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.4369428Z tests/contract/test_imports_and_schemas.py ..                            [  2%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.5775602Z tests/contract/test_runtime_lifecycle.py ....                            [  2%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:36.9179821Z tests/contract/test_t03_domain_services.py ...                           [  3%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:40.2950689Z tests/contract/test_t04_providers.py ...........................         [  5%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:43.9458642Z tests/contract/test_t06_tools.py ..                                      [  5%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:43.9838178Z tests/contract/test_t07_checkpoint.py ...                                [  5%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:43.9956518Z tests/contract/test_t07_golden_dataset.py ...                            [  5%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.0108808Z tests/contract/test_v02_anthropic.py ......                              [  6%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.0135898Z tests/contract/test_v02_baseline_update_policy.py ....                   [  6%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.0150112Z tests/contract/test_v02_eval_workflows.py ..                             [  6%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.0410404Z tests/contract/test_v02_nightly_preflight.py ..........                  [  7%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.0624424Z tests/contract/test_v02_openai_compat.py .........                       [  7%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.1660099Z tests/contract/test_v02_platform_migration.py .                          [  7%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.1690827Z tests/contract/test_v02_policy_acl.py ..                                 [  8%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.1733996Z tests/contract/test_v02_provider_diagnostics.py ..                       [  8%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.3107586Z tests/contract/test_v02_provider_matrix.py ............................. [ 10%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.3561156Z ...............................                                          [ 12%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.3624907Z tests/contract/test_v02_rag_dataset.py ..                                [ 12%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:44.4635745Z tests/contract/test_v02_rag_version_migration.py ..                      [ 12%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:45.2106770Z tests/contract/test_v03_assortment_tools.py ..                           [ 12%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:45.7944743Z tests/contract/test_v03_campaign_draft.py .                              [ 13%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:46.3874423Z tests/contract/test_v03_campaign_launch_contract.py ..                   [ 13%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:48.9036390Z tests/contract/test_v03_enrollment_tools.py .......                      [ 13%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:50.8991399Z tests/contract/test_v03_execution_ledger.py ......                       [ 14%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:50.9086911Z tests/contract/test_v03_integration_events.py .........                  [ 14%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:52.7364151Z tests/contract/test_v03_product_catalog.py .....                         [ 15%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:55.2982243Z tests/contract/test_v04_analytics_tools.py ...                           [ 15%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:55.3865547Z tests/contract/test_v04_attribution_agent_contract.py ......             [ 15%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:55.8304239Z tests/contract/test_v04_attribution_factual_grounding.py ............... [ 16%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:56.0596272Z ..............................................                           [ 20%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:56.2002182Z tests/contract/test_v04_attribution_golden.py .......................    [ 21%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:56.2827247Z tests/contract/test_v04_attribution_golden_v2.py ................        [ 23%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:56.7428069Z tests/contract/test_v05_comparison_runner.py ........                    [ 23%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:56.7628724Z tests/contract/test_v05_eval_compare.py .....                            [ 23%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:59.0072047Z tests/contract/test_v05_eval_compare_live.py ...........                 [ 24%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:40:59.0112587Z tests/contract/test_v05_guardrails.py ...                                [ 24%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:05.6193025Z tests/contract/test_v05_long_term_memory.py ......                       [ 25%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:05.6236850Z tests/contract/test_v05_memory.py ...                                    [ 25%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:05.6751823Z tests/contract/test_v05_supervisor.py ........                           [ 26%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:05.6787072Z tests/contract/test_v06_checkpoint_adapter.py ...                        [ 26%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:05.7393447Z tests/contract/test_v06_feishu.py ..........................             [ 28%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:06.0772309Z tests/contract/test_v06_postgres_persistence.py ............             [ 29%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:09.0456353Z tests/integration/test_attribution_demo.py ........                      [ 29%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:15.6381396Z tests/integration/test_cli_workflow_ux.py .                              [ 29%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:28.3986221Z tests/integration/test_feishu_guided_demo.py ...............             [ 30%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:31.3669377Z tests/integration/test_t03_data_init.py ......                           [ 31%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:37.4681886Z tests/integration/test_t05_rag_pipeline.py ......                        [ 31%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:41:56.5766944Z tests/integration/test_t07_agent_semantics.py ........................   [ 33%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:42:32.1105163Z tests/integration/test_t07_golden_harness.py .                           [ 33%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:42:35.1198928Z tests/integration/test_t07_research_graph.py ...                         [ 33%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:42:43.9732648Z tests/integration/test_t08_demo.py ........                              [ 34%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:42:51.6461019Z tests/integration/test_v02_rag_eval.py .                                 [ 34%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:01.4181713Z tests/integration/test_v02_rag_golden.py .                               [ 34%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:03.5224791Z tests/integration/test_v02_rag_lifecycle.py ....                         [ 34%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:04.6395587Z tests/integration/test_v02_retrieval_pipeline_it.py ..                   [ 34%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:05.3207605Z tests/integration/test_v03_approval_invalidation.py ..                   [ 35%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:05.8510289Z tests/integration/test_v03_assortment_prechecks.py ...                   [ 35%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:08.3003807Z tests/integration/test_v03_assortment_repository.py ........             [ 35%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:08.7059178Z tests/integration/test_v03_business_migration.py ...                     [ 36%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:09.3013826Z tests/integration/test_v03_business_repositories.py .                    [ 36%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:10.5199008Z tests/integration/test_v03_campaign_launch_recovery.py ....              [ 36%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:12.5393611Z tests/integration/test_v03_confirmation_service.py ......                [ 36%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:15.4696233Z tests/integration/test_v03_enrollment_branches.py .........              [ 37%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:16.6973184Z tests/integration/test_v03_enrollment_recovery.py ....                   [ 37%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:18.7303217Z tests/integration/test_v03_enrollment_transaction_eligibility.py ....... [ 38%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:18.7309490Z                                                                          [ 38%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:20.1436641Z tests/integration/test_v03_execution_ledger_migration.py .....           [ 38%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:21.1624578Z tests/integration/test_v03_execution_recovery.py ...                     [ 38%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:22.5984141Z tests/integration/test_v03_fault_injection.py ....                       [ 39%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:23.9592347Z tests/integration/test_v03_ledger_repositories.py ...                    [ 39%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:25.3209690Z tests/integration/test_v03_platform_migration.py .....                   [ 39%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:27.2129703Z tests/integration/test_v03_platform_repositories.py ....                 [ 40%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:36.8788786Z tests/integration/test_v03_scenario_a_workflow.py ..                     [ 40%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:43:51.1822019Z tests/integration/test_v04_attribution_agent.py .................        [ 41%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:00.7716854Z tests/integration/test_v04_attribution_eval.py ...                       [ 41%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:01.0397905Z tests/integration/test_v04_synthetic_analytics.py .............          [ 42%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:01.3546507Z tests/integration/test_v05_context_governance.py ..                      [ 42%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:11.0838785Z tests/integration/test_v05_eval_compare_flow.py .                        [ 42%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:11.1991274Z tests/integration/test_v05_guardrail_runtime.py .                        [ 42%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:12.3062866Z tests/integration/test_v05_memory_cli.py .                               [ 42%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:13.4539567Z tests/integration/test_v05_supervisor_e2e.py .                           [ 43%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:15.4487026Z tests/integration/test_v06_api_lifecycle.py .....                        [ 43%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:17.3996365Z tests/integration/test_v06_approval_cards.py ...                         [ 43%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:28.6394485Z tests/integration/test_v06_approval_delivery.py ..............           [ 44%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:34.7720955Z tests/integration/test_v06_approval_interactions.py F...............     [ 45%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:35.1743341Z tests/integration/test_v06_approval_race.py .                            [ 45%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:43.0308851Z tests/integration/test_v06_feishu_server_lifecycle.py ........           [ 46%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:44:45.0313803Z tests/integration/test_v06_ingress_receipts.py ...                       [ 46%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:45:01.6643437Z tests/integration/test_v06_job_coupon_reservation.py ................... [ 48%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:45:42.7580050Z .....................................................                    [ 51%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:45:58.9413607Z tests/integration/test_v06_job_execution_fencing.py .................... [ 53%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:46:15.5165611Z ....................                                                     [ 54%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:46:24.8755815Z tests/integration/test_v06_job_graph_inputs.py .....                     [ 55%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:46:39.0099895Z tests/integration/test_v06_job_launch_approval.py ...................... [ 56%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:46:52.8522847Z .......................                                                  [ 58%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:07.9093889Z tests/integration/test_v06_job_leases.py .........................       [ 60%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:10.2411990Z tests/integration/test_v06_job_lifecycle.py ......                       [ 60%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:21.9363407Z tests/integration/test_v06_jobs.py ......................                [ 62%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:26.2467317Z tests/integration/test_v06_transactional_approval_acceptance.py ........ [ 62%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:34.5162980Z .................                                                        [ 63%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:34.5281179Z tests/security/test_config_boundaries.py .....                           [ 64%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:35.1751304Z tests/security/test_runtime_boundaries.py ....                           [ 64%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:35.8667477Z tests/security/test_t03_bypass_boundaries.py .................           [ 65%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:36.2131250Z tests/security/test_t04_provider_boundaries.py ........                  [ 66%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:41.9007860Z tests/security/test_t05_rag_boundaries.py .......                        [ 66%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:43.7002882Z tests/security/test_t06_tool_boundaries.py ..                            [ 67%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:44.3454692Z tests/security/test_v02_policy_audit_boundaries.py ...                   [ 67%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:44.3627736Z tests/security/test_v03_approval_rbac.py ............                    [ 68%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:48.1343596Z tests/security/test_v03_campaign_launch_security.py ...........          [ 68%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:51.8894695Z tests/security/test_v03_enrollment_boundaries.py ........                [ 69%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:51.9025582Z tests/security/test_v03_integration_inbox.py ...........                 [ 70%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:54.0781527Z tests/security/test_v04_analytics_tool_boundaries.py ...                 [ 70%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:54.1887384Z tests/security/test_v04_attribution_data_isolation.py ....               [ 70%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:54.2059935Z tests/security/test_v05_abac_guardrails.py .....                         [ 71%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:55.8375806Z tests/security/test_v05_memory_boundaries.py ...                         [ 71%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:55.8491909Z tests/security/test_v05_supervisor_boundaries.py .                       [ 71%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:56.4332018Z tests/security/test_v06_api_identity.py ..............                   [ 72%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:57.2181678Z tests/security/test_v06_approval_api.py ..                               [ 72%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:57.2321648Z tests/unit/test_attribution_ablation_script.py ...                       [ 72%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:57.2446045Z tests/unit/test_attribution_decision_rules.py ...............            [ 73%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:57.2479387Z tests/unit/test_attribution_demo_config.py ..                            [ 74%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:57.2588457Z tests/unit/test_chat_router.py ................                          [ 75%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:57.2708291Z tests/unit/test_chat_session.py ....                                     [ 75%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:57.3806293Z tests/unit/test_cli.py ............                                      [ 76%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:47:57.3969920Z tests/unit/test_codex_app_server.py .......                              [ 76%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:45.8633379Z tests/unit/test_scenario_a_live.py ....................................  [ 79%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:45.8736846Z tests/unit/test_structured_salvage.py ............                       [ 80%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:45.8865530Z tests/unit/test_t03_resources_and_eligibility.py ................        [ 81%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:45.8923127Z tests/unit/test_t04_embedders.py .....                                   [ 81%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:45.9021542Z tests/unit/test_t05_rule_snapshots.py ..............                     [ 82%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:45.9054680Z tests/unit/test_t06_tool_registry.py ..                                  [ 83%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:45.9648203Z tests/unit/test_t07_graph_routing.py .......                             [ 83%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:45.9855279Z tests/unit/test_t07_patterns.py .....                                    [ 83%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:45.9939515Z tests/unit/test_t07_prompt.py ..                                         [ 84%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.0094821Z tests/unit/test_t07_reducers.py ......................                   [ 85%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1308165Z tests/unit/test_t07_scenario_a_graph.py .......                          [ 86%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1361939Z tests/unit/test_t07_tool_executor.py ..                                  [ 86%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1406755Z tests/unit/test_target_selection.py ......                               [ 86%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1433571Z tests/unit/test_v02_bm25.py ..                                           [ 86%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1466292Z tests/unit/test_v02_cross_encoder_reranker.py ...                        [ 87%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1482807Z tests/unit/test_v02_rag_metrics.py ..                                    [ 87%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1496833Z tests/unit/test_v02_rag_public_labels.py ..                              [ 87%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1528966Z tests/unit/test_v02_retrieval_pipeline.py ...                            [ 87%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1583261Z tests/unit/test_v03_approval_values.py .......                           [ 88%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1596389Z tests/unit/test_v03_assortment_selection.py .                            [ 88%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1678556Z tests/unit/test_v03_business_confirmations.py ....                       [ 88%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.1915961Z tests/unit/test_v03_business_domain.py ................................. [ 90%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.2183397Z ............................                                             [ 92%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.2318414Z tests/unit/test_v03_campaign_launch.py .......                           [ 93%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.2437012Z tests/unit/test_v03_ledger_values.py ...............                     [ 94%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.2553633Z tests/unit/test_v03_product_eligibility.py ........                      [ 95%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.2994029Z tests/unit/test_v04_attribution_assembly.py ..                           [ 95%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.3560601Z tests/unit/test_v04_attribution_conclusion.py .........                  [ 95%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.3986218Z tests/unit/test_v04_attribution_live.py .........                        [ 96%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.4008568Z tests/unit/test_v04_attribution_models.py ...                            [ 96%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.4052670Z tests/unit/test_v04_attribution_prompt.py ...                            [ 96%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.4090325Z tests/unit/test_v04_attribution_rubric.py .                              [ 96%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.4128481Z tests/unit/test_v05_context_budget.py .....                              [ 97%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:46.4466175Z tests/unit/test_v06_job_inputs.py ...................                    [ 98%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0193700Z tests/unit/test_workflow_presentation.py ..................              [100%]
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0194161Z 
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0195519Z =================================== FAILURES ===================================
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0196146Z ___ test_reasoned_rejection_restarts_and_retries_without_duplicate_decision ____
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0196405Z 
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0197138Z delivery_stack = namespace(directory=IdentityDirectory(bindings=(IdentityBinding(issuer='https://identity.example', subject='sender', a...ovalRepository object at 0x7f49f8bb9150>, databases=<oria.storage.database.DatabaseResources object at 0x7f49f8bee430>)
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0198097Z 
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0198183Z     @pytest.mark.asyncio
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0198399Z     @pytest.mark.recovery
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0198748Z     async def test_reasoned_rejection_restarts_and_retries_without_duplicate_decision(delivery_stack):
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0199125Z         state = delivery_stack
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0199353Z         action = await state.bindings.issue(
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0199593Z             "approval-card",
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0199794Z             state.approver,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0199983Z             chat_id="chat",
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0200172Z             message_id="card-msg",
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0200397Z             decision_intent="reject",
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0200599Z         )
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0200869Z         # Reconstruct the presentation service; no in-memory issuance state is required.
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0201523Z         cards = ApprovalCardBindings(
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0201868Z             state.runtime, state.repository, state.source, state.databases.platform_sessions
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0202191Z         )
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0202601Z         receiver = _ApprovalOnlyReceiver(state.receiver._receiver, cards)
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0203070Z         auth = _authenticator()
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0203377Z         app = create_app(
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0203859Z             authenticator=auth, feishu=FeishuIngress(SETTINGS, state.source), receiver=receiver
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0204414Z         )
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0204689Z         baseline = await _counts(state.databases)
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0205070Z         async with httpx.AsyncClient(
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0205512Z             transport=httpx.ASGITransport(app), base_url="http://local"
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0205941Z         ) as client:
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0206197Z     
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0206447Z             async def post(reason, nonce):
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0206877Z                 inbound = _callback(action, reason=reason, nonce=nonce)
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0207214Z                 return await client.post(
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0207570Z                     "/v1/ingress/feishu/events", content=inbound.raw_body, headers=dict(inbound.headers)
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0207914Z                 )
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0208076Z     
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0208529Z             response = await post("方案预算需要调整", "first")
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0208900Z             assert response.status_code == 200
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0209258Z             assert "已拒绝" in response.text and "方案预算需要调整" in response.text
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0209682Z             assert action.action_ref not in response.text and "checkpoint-secret" not in response.text
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0210058Z             committed = await _counts(state.databases)
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0210388Z             assert committed["ingress_receipts"] == committed["ingress_replays"] == 1
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0210788Z             assert committed["outbox"] == baseline["outbox"] + 1
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0211118Z             duplicate = await post("方案预算需要调整", "first")
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0211379Z             assert duplicate.json() == response.json()
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0211656Z >           assert await _counts(state.databases) == committed
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0212234Z E           AssertionError: assert {'ingress_rec...tbox': 1, ...} == {'ingress_rec...tbox': 1, ...}
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0212771Z E             
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0212988Z E             Omitting 4 identical items, use -vv to show
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0213239Z E             Differing items:
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0213464Z E             {'ingress_replays': 2} != {'ingress_replays': 1}
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0213697Z E             
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0213867Z E             Full diff:
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0214040Z E               {
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0214219Z E                   'ingress_receipts': 1,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0214445Z E             -     'ingress_replays': 1,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0214674Z E             ?                        ^
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0214891Z E             +     'ingress_replays': 2,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0215096Z E             ?                        ^
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0215301Z E                   'audit_events': 2,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0215513Z E                   'outbox': 1,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0215725Z E                   'approval_card_bindings': 1,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0215941Z E               }
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0216037Z 
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0216191Z tests/integration/test_v06_approval_interactions.py:77: AssertionError
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0216526Z =============================== warnings summary ===============================
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0216845Z .venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0217547Z   /home/runner/work/oria/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0218438Z     from starlette.testclient import TestClient as TestClient  # noqa
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0218657Z 
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0218956Z tests/integration/test_v03_business_migration.py::test_empty_business_database_upgrades_to_v03_and_rolls_back_to_base
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0219610Z tests/integration/test_v03_execution_ledger_migration.py::test_business_0003_empty_upgrade_is_repeatable_and_downgrades_cleanly
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0220246Z tests/integration/test_v03_execution_ledger_migration.py::test_platform_and_business_revision_chains_upgrade_independently
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0220866Z tests/integration/test_v03_execution_ledger_migration.py::test_business_0004_enforces_and_downgrades_launch_saga_states
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0221983Z   /home/runner/work/_temp/uv-python-dir/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/contextlib.py:144: SAWarning: WARNING: SQL-parsed foreign key constraint '('tenant_id', 'campaign_id', 'merchant_id', 'enrollments', 'tenant_id', 'campaign_id', 'merchant_id')' could not be located in PRAGMA foreign_keys for table enrollment_items
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0223085Z     next(self.gen)
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0223195Z 
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0223368Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0223725Z =========================== short test summary info ============================
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0224462Z FAILED tests/integration/test_v06_approval_interactions.py::test_reasoned_rejection_restarts_and_retries_without_duplicate_decision - AssertionError: assert {'ingress_rec...tbox': 1, ...} == {'ingress_rec...tbox': 1, ...}
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0225127Z   
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0225307Z   Omitting 4 identical items, use -vv to show
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0225536Z   Differing items:
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0225730Z   {'ingress_replays': 2} != {'ingress_replays': 1}
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0225956Z   
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0226110Z   Full diff:
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0226264Z     {
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0226427Z         'ingress_receipts': 1,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0226635Z   -     'ingress_replays': 1,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0226834Z   ?                        ^
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0227020Z   +     'ingress_replays': 2,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0227205Z   ?                        ^
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0227387Z         'audit_events': 2,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0227842Z         'outbox': 1,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0228027Z         'approval_card_bindings': 1,
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0228230Z     }
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:47.0228473Z ===== 1 failed, 1384 passed, 9 deselected, 5 warnings in 496.43s (0:08:16) =====
+test-core	Run uv run pytest -m "not live and not enterprise and not performance"	2026-10-22T10:48:48.2379038Z ##[error]Process completed with exit code 1.

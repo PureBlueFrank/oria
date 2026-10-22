@@ -1,0 +1,82 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_reasoned_rejection_restarts_and_retries_without_duplicate_decision ____
+
+delivery_stack = namespace(directory=IdentityDirectory(bindings=(IdentityBinding(issuer='https://identity.example', subject='sender', a...teApprovalRepository object at 0x12b3a7150>, databases=<oria.storage.database.DatabaseResources object at 0x12a809620>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b245f10>
+
+    @pytest.mark.asyncio
+    @pytest.mark.recovery
+    async def test_reasoned_rejection_restarts_and_retries_without_duplicate_decision(
+        delivery_stack, monkeypatch
+    ):
+        import tests.contract.test_v06_feishu as feishu_fixture
+    
+        sent_at = datetime.now(UTC)
+    
+        class SenderClock:
+            calls = 0
+    
+            @classmethod
+            def now(cls, timezone):
+                # The signing helper reads once for the header and once for received_at.
+                instant = sent_at + timedelta(seconds=cls.calls // 2)
+                cls.calls += 1
+                return instant
+    
+        monkeypatch.setattr(feishu_fixture, "datetime", SenderClock)
+        state = delivery_stack
+        action = await state.bindings.issue(
+            "approval-card",
+            state.approver,
+            chat_id="chat",
+            message_id="card-msg",
+            decision_intent="reject",
+        )
+        # Reconstruct the presentation service; no in-memory issuance state is required.
+        cards = ApprovalCardBindings(
+            state.runtime, state.repository, state.source, state.databases.platform_sessions
+        )
+        receiver = _ApprovalOnlyReceiver(state.receiver._receiver, cards)
+        auth = _authenticator()
+        app = create_app(
+            authenticator=auth, feishu=FeishuIngress(SETTINGS, state.source), receiver=receiver
+        )
+        baseline = await _counts(state.databases)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app), base_url="http://local"
+        ) as client:
+    
+            async def post(reason, nonce):
+                inbound = _callback(action, reason=reason, nonce=nonce)
+                return await client.post(
+                    "/v1/ingress/feishu/events", content=inbound.raw_body, headers=dict(inbound.headers)
+                )
+    
+            response = await post("方案预算需要调整", "first")
+            assert response.status_code == 200
+            assert "已拒绝" in response.text and "方案预算需要调整" in response.text
+            assert action.action_ref not in response.text and "checkpoint-secret" not in response.text
+            committed = await _counts(state.databases)
+            assert committed["ingress_receipts"] == committed["ingress_replays"] == 1
+            assert committed["outbox"] == baseline["outbox"] + 1
+            duplicate = await post("方案预算需要调整", "first")
+            assert duplicate.json() == response.json()
+>           assert await _counts(state.databases) == committed
+E           AssertionError: assert {'ingress_rec...tbox': 1, ...} == {'ingress_rec...tbox': 1, ...}
+E             
+E             Omitting 4 identical items, use -vv to show
+E             Differing items:
+E             {'ingress_replays': 2} != {'ingress_replays': 1}
+E             Use -v to get more diff
+
+tests/integration/test_v06_approval_interactions.py:94: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_approval_interactions.py::test_reasoned_rejection_restarts_and_retries_without_duplicate_decision
+1 failed, 1 warning in 4.94s

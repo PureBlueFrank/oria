@@ -1,0 +1,24 @@
+{
+  "method": "open-code-review-delegate; host semantic review",
+  "ocr_reviewable_files": 0,
+  "supplemental_default_excluded_tests": [
+    {
+      "path": "tests/integration/test_v06_approval_interactions.py",
+      "status": "modified",
+      "review_status": "reviewed"
+    }
+  ],
+  "code_files": 1,
+  "reviewed_code_files": 1,
+  "coverage_rate": 100,
+  "unresolved_findings": [],
+  "original_test_unchanged_between_feature_base_and_merge": true,
+  "source_sha256": "7ffe850944bf12f013fe896222a654d1a868eb6be798a14a10335655b4593748",
+  "focus": [
+    "transport timestamp+nonce replay key vs semantic action receipt",
+    "deterministic second boundary",
+    "same request retry vs newly signed envelope",
+    "one decision/audit/outbox and rollback of changed reason",
+    "monkeypatch restoration"
+  ]
+}

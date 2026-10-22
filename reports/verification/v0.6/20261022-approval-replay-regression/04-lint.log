@@ -1,0 +1,17 @@
+uv run ruff format --check .
+unformatted: File would be reformatted
+   --> tests/integration/test_v06_approval_interactions.py:98:16
+    |
+97  |         resigned = _callback(action, reason="方案预算需要调整", nonce="first")
+    -         assert dict(resigned.headers)["X-Lark-Request-Timestamp"] != dict(inbound.headers)[
+    -             "X-Lark-Request-Timestamp"
+    -         ]
+98  +         assert (
+99  +             dict(resigned.headers)["X-Lark-Request-Timestamp"]
+100 +             != dict(inbound.headers)["X-Lark-Request-Timestamp"]
+101 +         )
+102 |         retried = await post(resigned)
+    |
+
+1 file would be reformatted, 385 files already formatted
+make: *** [lint] Error 1
