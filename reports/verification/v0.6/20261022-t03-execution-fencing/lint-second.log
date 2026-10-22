@@ -1,0 +1,13 @@
+E501 Line too long (106 > 100)
+   --> tests/integration/test_v06_job_execution_fencing.py:192:101
+    |
+190 |                 await session.execute(
+191 |                     text(
+192 |                         "SELECT count(*) FROM audit_events WHERE action='job:execute' AND decision='deny'"
+    |                                                                                                     ^^^^^^
+193 |                     )
+194 |                 )
+    |
+
+Found 1 error.
+Success: no issues found in 8 source files

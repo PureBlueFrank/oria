@@ -1,0 +1,20 @@
+$ uv build --out-dir .artifacts/t03-execution-fencing-package/dist
+warning: The cache directory `.artifacts/uv-cache` is inside the build source directory `.` and may be included in distributions
+Building source distribution...
+Building wheel from source distribution...
+Successfully built .artifacts/t03-execution-fencing-package/dist/oria-0.1.0.tar.gz
+Successfully built .artifacts/t03-execution-fencing-package/dist/oria-0.1.0-py3-none-any.whl
+$ uv venv .artifacts/t03-execution-fencing-package/venv --python 3.11
+Using CPython 3.11.15
+Creating virtual environment at: .artifacts/t03-execution-fencing-package/venv
+Activate with: source .artifacts/t03-execution-fencing-package/venv/bin/activate
+$ uv pip install --python .artifacts/t03-execution-fencing-package/venv/bin/python .artifacts/t03-execution-fencing-package/dist/oria-0.1.0-py3-none-any.whl
+Using Python 3.11.15 environment at: .artifacts/t03-execution-fencing-package/venv
+  × No solution found when resolving dependencies:
+  ╰─▶ Because cryptography was not found in the cache and oria==0.1.0 depends
+      on cryptography>=46,<48, we can conclude that oria==0.1.0 cannot be
+      used.
+      And because only oria==0.1.0 is available and you require oria, we can
+      conclude that your requirements are unsatisfiable.
+
+hint: Packages were unavailable because the network was disabled. When the network is disabled, registry packages may only be read from the cache.

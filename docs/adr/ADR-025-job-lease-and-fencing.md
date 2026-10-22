@@ -1,6 +1,6 @@
 # ADR-025：Job lease 与 fencing 恢复
 
-- 状态：已接受（身份恢复与 Job 租约协议）；领域副作用 fencing、runner 和接管验收仍待实施
+- 状态：已接受（身份恢复、Job 租约及 SQLite 本地草案 fencing 切片）；其余领域/外部副作用、runner 和接管验收仍待实施
 - 日期：2026-10-22
 - 关联：V0.6-T03/T04、ADR-004、ADR-014
 
@@ -24,7 +24,21 @@ heartbeat、checkpoint 指针和执行状态提交必须匹配 tenant/job/owner/
 
 同 epoch 的 accepted pointer 只能沿当前已接受 checkpoint 的父链推进；祖先、兄弟和不完整父链拒绝，最多回溯 256 个 checkpoint，避免无限读取。相同指针的重试仅检查当前身份、租约与 saver，不新增状态事件。等待态必须持有本 epoch 的 accepted pointer，不能直接复用上一 epoch 指针冒充当前进度。
 
-此协议只保护 Job 行和 accepted pointer。领域库提交、execution ledger reservation 及实际外部调用前的 fencing 尚未接入，不提供 Graph 执行入口；只有这些边界全部接通并验收后才能声明实际 Job/worker 接管安全。
+租约原语本身只保护 Job 行和 accepted pointer。下节仅补充一个显式本地草案提交边界，其余领域库提交、外部副作用 reservation 及实际外部调用前 fencing 尚未接入，不提供 Graph 执行入口；只有必需边界全部接通并验收后才能声明实际 Job/worker 接管安全。
+
+## SQLite 本地草案执行边界（2026-10-22）
+
+显式装配的内部 `JobExecutionService.persist_campaign_draft(token, spec, snapshot)` 只处理 campaign Job 的本地草案；没有默认 HTTP/Tool/Graph 入口，不接受任意 Context、回调、SQL、工具名或外部 adapter。复用原 JobLeaseService 的 requester 重载、独立 worker、owner/场景 Policy 与 token 验证，并把业务 Policy 资源绑定到实际 campaign ID。campaign/coupon/recruitment ID 沿用 Job 输入适配的派生规则，报名 mode 必须匹配 Job；规则快照与物料/补偿版本仍由受信服务端调用方提供，不代替规则检索或完整 Workflow 业务校验。
+
+仅支持显式 SQLite 双库，JobRepository 必须属于所提供的 platform session factory。平台事务用完整快照条件的 no-op UPDATE 获得 SQLite 数据库写锁，重查 running/未取消和有效 lease，保持到业务事务提交或回滚结束，随后回滚 no-op 释放锁。不以仅提交前 SELECT 或进程内锁冒充 fencing。其他连接的 claim/heartbeat/cancel 写入不能越过该锁；取消排在业务 COMMIT 后时不能撤销已经提交的草案。锁会阻塞其他平台写入，边界内没有模型、网络或审批等待，仍限定 Community 单 worker。
+
+一个业务事务保存四草案实体、固定 `persist_campaign_draft` ledger reservation→local success、Domain/Audit Event 和 outbox。复用现有 Repository 的 in-session 写入；通用 ExecutionLedger 与非 Job domain 路径不自动获得 fencing。按 tenant/job/操作派生稳定 reservation key，规范参数 hash 覆盖 spec 与 snapshot ID/hash；重复调用仍重查当前身份/Policy/lease，确认持久草案未变化后返回，同一 key 换内容拒绝。草案逻辑时间采用 Job.created_at，实际 ledger/event 时间采用操作时钟。ledger 的 `checkpoint_id` 为 `job:<job_id>:epoch:<epoch>:campaign-draft` 逻辑执行标记，只保留首次提交 epoch，**不是官方 saver checkpoint 或 accepted pointer**，不能用于 Graph resume。
+
+事务内 await 后及业务提交入口均重新检查目录、Policy 和期限。LocalPolicy 的 async evaluation 与同步 `evaluate_now` 共用同一决策实现；SQLAlchemy before_commit 同步复核不打开平台审计 writer。Policy 拒绝在业务回滚并释放平台锁之后，经原审计入口记录。身份目录变化失败关闭，不能以 lease token 或旧角色继续写。
+
+**原子性限于业务库内部，不提供跨库事务。** 平台锁只串行化 Job 写入，业务成功而平台锁释放/响应失败时，已提交的业务事实仍存在，重试须按 ledger/稳定 ID 读取。最终授权/期限检查在 COMMIT 入口，无法追溯撤销数据库驱动已接收 COMMIT 后的目录/Policy 撤权、时钟跨越或任务取消；目录/Policy 与业务库没有共同事务。未来若要求更强的撤权线性化，需要另外的受信版本/事务契约，不能靠重读宣称已保证。
+
+真实临时 SQLite 的两独立 engine/repository 实例验证接管/取消 UPDATE 被锁阻塞，旧执行到期后整组回滚、新 epoch 可写，以及取消在提交后生效。竞争用例在持锁前完成真实授权，保留事务内当前身份/Policy guard，使测试直接到达 CAS UPDATE，而不是仅阻塞在授权审计。该证据不包含独立 worker 进程或 PostgreSQL；S2 和 T03/T04/Core 继续未完成。无 migration、依赖或环境变量。实施前设计、严格 RED→GREEN 和限制见[执行 fencing 验证卡](../../reports/verification/v0.6/20261022-t03-execution-fencing/summary.md)。
 
 ## 实施前基线
 

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "independent-community",
+    "command": [
+      "uv",
+      "run",
+      "pytest",
+      "-m",
+      "not live and not enterprise and not performance",
+      "-q"
+    ],
+    "exit_code": 0,
+    "seconds": 552.86
+  },
+  {
+    "name": "independent-security",
+    "command": [
+      "uv",
+      "run",
+      "pytest",
+      "-m",
+      "security",
+      "-q"
+    ],
+    "exit_code": 0,
+    "seconds": 217.99
+  },
+  {
+    "name": "independent-lint",
+    "command": [
+      "make",
+      "lint"
+    ],
+    "exit_code": 0,
+    "seconds": 9.78
+  }
+]

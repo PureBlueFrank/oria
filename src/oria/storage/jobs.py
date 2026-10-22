@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
 
@@ -70,6 +71,43 @@ class JobRepository:
 
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
+
+    @asynccontextmanager
+    async def _hold_execution_lease(
+        self, expected: Job, token: JobLeaseToken, clock: Callable[[], datetime]
+    ) -> AsyncIterator[None]:
+        """SQLite write lock held through the caller's Business DB commit/rollback.
+
+        No Job transition is committed. This serializes cooperating DB writers;
+        it is not a distributed transaction across the two databases.
+        """
+        async with self._sessions() as session:
+            if session.bind is None or session.bind.dialect.name != "sqlite":
+                raise ValueError("execution fencing currently requires SQLite")
+            values = _values(expected)
+            predicate = " AND ".join(
+                f"{column} IS NOT DISTINCT FROM :{column}" for column in values
+            )
+            try:
+                locked = (
+                    await session.execute(
+                        text(
+                            f"UPDATE jobs SET revision = revision WHERE {predicate} "
+                            "RETURNING job_id"
+                        ),
+                        values,
+                    )
+                ).scalar_one_or_none()
+                if locked is None:
+                    raise JobConflict("job revision changed before execution")
+                validate_lease(expected, token, clock())
+                if expected.status != "running" or expected.cancel_requested:
+                    raise JobConflict("job cannot execute a business write")
+                yield
+            except SQLAlchemyError:
+                raise JobUnavailable("job execution lock unavailable") from None
+            finally:
+                await session.rollback()
 
     async def create_session(self, value: JobSession, guard: Guard) -> JobSession:
         try:

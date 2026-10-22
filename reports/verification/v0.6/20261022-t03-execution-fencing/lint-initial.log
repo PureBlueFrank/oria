@@ -1,0 +1,21 @@
+E501 Line too long (101 > 100)
+  --> src/oria/storage/jobs.py:95:101
+   |
+93 |                     await session.execute(
+94 |                         text(
+95 |                             f"UPDATE jobs SET revision = revision WHERE {predicate} RETURNING job_id"
+   |                                                                                                     ^
+96 |                         ),
+97 |                         values,
+   |
+
+Found 1 error.
+src/oria/storage/job_execution.py:72: error: Argument "target" to "_transition" of "SQLiteToolExecutionRepository" has incompatible type "str"; expected "Literal['executing', 'succeeded', 'failed', 'unknown']"  [arg-type]
+src/oria/storage/job_execution.py:73: error: Argument "expected_status" to "_transition" of "SQLiteToolExecutionRepository" has incompatible type "str"; expected "Literal['reserved', 'executing', 'succeeded', 'failed', 'unknown']"  [arg-type]
+src/oria/storage/job_execution.py:90: error: Argument "payload" to "DomainEvent" has incompatible type "dict[str, str | None]"; expected "dict[str, JsonValue]"  [arg-type]
+src/oria/storage/job_execution.py:90: note: "dict" is invariant -- see https://mypy.readthedocs.io/en/stable/common_issues.html#variance
+src/oria/storage/job_execution.py:90: note: Consider using "Mapping" instead, which is covariant in the value type
+src/oria/storage/job_execution.py:113: error: Argument "payload" to "EventEnvelope" has incompatible type "dict[str, str | None]"; expected "dict[str, JsonValue]"  [arg-type]
+src/oria/storage/job_execution.py:113: note: "dict" is invariant -- see https://mypy.readthedocs.io/en/stable/common_issues.html#variance
+src/oria/storage/job_execution.py:113: note: Consider using "Mapping" instead, which is covariant in the value type
+Found 4 errors in 1 file (checked 2 source files)

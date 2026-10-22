@@ -1,0 +1,8 @@
+Using Python 3.11.15 environment at: .artifacts/t03-execution-fencing-package/venv
+Resolved 123 packages in 85ms
+  × Failed to download `tokenizers==0.23.3`
+  ╰─▶ Network connectivity is disabled, but the
+      requested data wasn't found in the cache for:
+      `https://files.pythonhosted.org/packages/aa/2e/4ce5b9716f26e526eff6b0502ebed4ea8d7161f03b3c77617c9f25528e97/tokenizers-0.23.3-cp310-abi3-macosx_10_12_x86_64.whl`
+
+hint: `tokenizers` (v0.23.3) was included because `oria` (v0.1.0) depends on `chromadb` (v1.5.9) which depends on `tokenizers`

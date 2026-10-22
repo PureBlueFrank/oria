@@ -313,6 +313,74 @@ class CampaignLaunchService(Protocol):
     ) -> ToolExecution: ...
 
 
+def build_campaign_draft(
+    spec: CampaignDraftSpec,
+    snapshot: CampaignRuleSnapshot,
+    *,
+    tenant_id: str,
+    now: datetime,
+    rule_ref_id: str,
+) -> CampaignDraft:
+    """Construct validated local facts; authorization and persistence belong to callers."""
+    _validate_rule_snapshot(snapshot, tenant_id)
+    rule_ref = CampaignRuleSnapshotRef(
+        campaign_rule_snapshot_ref_id=rule_ref_id,
+        tenant_id=tenant_id,
+        snapshot_id=snapshot.snapshot_id,
+        snapshot_hash=snapshot.snapshot_hash,
+        version=1,
+        created_at=now,
+        updated_at=now,
+    )
+    campaign = Campaign(
+        campaign_id=spec.campaign_id,
+        tenant_id=tenant_id,
+        rule_snapshot_ref_id=rule_ref.campaign_rule_snapshot_ref_id,
+        enrollment_mode=snapshot.enrollment_policy.mode,
+        version=1,
+        created_at=now,
+        updated_at=now,
+    )
+    coupon_spec_hash = _binding_hash(snapshot.benefit_policy.model_dump(mode="json"))
+    coupon_batch = CouponBatch(
+        coupon_batch_id=spec.coupon_batch_id,
+        tenant_id=tenant_id,
+        campaign_id=spec.campaign_id,
+        coupon_spec_hash=coupon_spec_hash,
+        version=1,
+        created_at=now,
+        updated_at=now,
+    )
+    scope_payload = snapshot.internal_payload()["recruitment_scope"]
+    recruitment_publication = RecruitmentPublication(
+        recruitment_publication_id=spec.recruitment_publication_id,
+        tenant_id=tenant_id,
+        campaign_id=spec.campaign_id,
+        merchant_scope_hash=_binding_hash(scope_payload),
+        material_version=spec.material_version,
+        status="pending",
+        version=1,
+        created_at=now,
+        updated_at=now,
+    )
+    coupon_batch_draft_hash = CampaignDraft.compute_coupon_batch_draft_hash(coupon_batch)
+    return CampaignDraft(
+        campaign=campaign,
+        rule_snapshot_ref=rule_ref,
+        coupon_batch=coupon_batch,
+        recruitment_publication=recruitment_publication,
+        compensation_policy_version=spec.compensation_policy_version,
+        coupon_batch_draft_hash=coupon_batch_draft_hash,
+        campaign_draft_hash=CampaignDraft.compute_campaign_draft_hash(
+            campaign=campaign,
+            rule_snapshot_ref=rule_ref,
+            coupon_batch_draft_hash=coupon_batch_draft_hash,
+            recruitment_publication=recruitment_publication,
+            compensation_policy_version=spec.compensation_policy_version,
+        ),
+    )
+
+
 class DefaultCampaignLaunchService:
     """Own validated local draft writes; external launch steps are added separately."""
 
@@ -349,63 +417,15 @@ class DefaultCampaignLaunchService:
     ) -> CampaignDraft:
         _validate_rule_snapshot(snapshot, ctx.tenant_id)
         await _authorize_campaign_write("campaign:draft:write", spec.campaign_id, ctx)
-        now = self._now()
-        rule_ref = CampaignRuleSnapshotRef(
-            campaign_rule_snapshot_ref_id=self._rule_ref_id_factory(),
+        draft = build_campaign_draft(
+            spec,
+            snapshot,
             tenant_id=ctx.tenant_id,
-            snapshot_id=snapshot.snapshot_id,
-            snapshot_hash=snapshot.snapshot_hash,
-            version=1,
-            created_at=now,
-            updated_at=now,
+            now=self._now(),
+            rule_ref_id=self._rule_ref_id_factory(),
         )
-        campaign = Campaign(
-            campaign_id=spec.campaign_id,
-            tenant_id=ctx.tenant_id,
-            rule_snapshot_ref_id=rule_ref.campaign_rule_snapshot_ref_id,
-            enrollment_mode=snapshot.enrollment_policy.mode,
-            version=1,
-            created_at=now,
-            updated_at=now,
-        )
-        coupon_spec_hash = _binding_hash(snapshot.benefit_policy.model_dump(mode="json"))
-        coupon_batch = CouponBatch(
-            coupon_batch_id=spec.coupon_batch_id,
-            tenant_id=ctx.tenant_id,
-            campaign_id=spec.campaign_id,
-            coupon_spec_hash=coupon_spec_hash,
-            version=1,
-            created_at=now,
-            updated_at=now,
-        )
-        scope_payload = snapshot.internal_payload()["recruitment_scope"]
-        recruitment_publication = RecruitmentPublication(
-            recruitment_publication_id=spec.recruitment_publication_id,
-            tenant_id=ctx.tenant_id,
-            campaign_id=spec.campaign_id,
-            merchant_scope_hash=_binding_hash(scope_payload),
-            material_version=spec.material_version,
-            status="pending",
-            version=1,
-            created_at=now,
-            updated_at=now,
-        )
-        coupon_batch_draft_hash = CampaignDraft.compute_coupon_batch_draft_hash(coupon_batch)
-        draft = CampaignDraft(
-            campaign=campaign,
-            rule_snapshot_ref=rule_ref,
-            coupon_batch=coupon_batch,
-            recruitment_publication=recruitment_publication,
-            compensation_policy_version=spec.compensation_policy_version,
-            coupon_batch_draft_hash=coupon_batch_draft_hash,
-            campaign_draft_hash=CampaignDraft.compute_campaign_draft_hash(
-                campaign=campaign,
-                rule_snapshot_ref=rule_ref,
-                coupon_batch_draft_hash=coupon_batch_draft_hash,
-                recruitment_publication=recruitment_publication,
-                compensation_policy_version=spec.compensation_policy_version,
-            ),
-        )
+        rule_ref, campaign = draft.rule_snapshot_ref, draft.campaign
+        coupon_batch, recruitment_publication = draft.coupon_batch, draft.recruitment_publication
         await self._drafts.create_bundle(
             rule_snapshot_ref=rule_ref,
             campaign=campaign,

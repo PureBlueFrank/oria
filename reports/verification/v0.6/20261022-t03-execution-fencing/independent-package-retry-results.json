@@ -1,0 +1,149 @@
+[
+  {
+    "command": [
+      "uv",
+      "export",
+      "--locked",
+      "--no-dev",
+      "--no-emit-project",
+      "--format",
+      "requirements-txt",
+      "--output-file",
+      ".artifacts/t03-execution-fencing-package/requirements.txt"
+    ],
+    "exit_code": 0,
+    "seconds": 0.07
+  },
+  {
+    "command": [
+      "uv",
+      "pip",
+      "install",
+      "--python",
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "-r",
+      ".artifacts/t03-execution-fencing-package/requirements.txt"
+    ],
+    "exit_code": 0,
+    "seconds": 10.3
+  },
+  {
+    "command": [
+      "uv",
+      "pip",
+      "install",
+      "--python",
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "--no-deps",
+      ".artifacts/t03-execution-fencing-package/dist/oria-0.1.0-py3-none-any.whl"
+    ],
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "-c",
+      "from oria.orchestrator.job_execution import JobExecutionService; from oria.storage.job_execution import JobCampaignDraftWriter; print(\"installed wheel Job fencing modules import OK\")"
+    ],
+    "exit_code": 0,
+    "seconds": 36.86
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/oria",
+      "--version"
+    ],
+    "exit_code": 0,
+    "seconds": 8.4
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "scripts/verify_t02_wheel.py"
+    ],
+    "exit_code": 0,
+    "seconds": 5.08
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "scripts/verify_t03_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-execution-fencing-package/t03-data"
+    ],
+    "exit_code": 0,
+    "seconds": 11.35
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "scripts/verify_t04_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-execution-fencing-package/t04-data"
+    ],
+    "exit_code": 0,
+    "seconds": 5.37
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "scripts/verify_t05_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-execution-fencing-package/t05-data"
+    ],
+    "exit_code": 0,
+    "seconds": 6.14
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "scripts/verify_t06_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-execution-fencing-package/t06-data"
+    ],
+    "exit_code": 0,
+    "seconds": 6.37
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "scripts/verify_t07_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-execution-fencing-package/t07-data"
+    ],
+    "exit_code": 0,
+    "seconds": 4.69
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "scripts/verify_t08_wheel.py",
+      "--work-dir",
+      ".artifacts/t03-execution-fencing-package/t08-work"
+    ],
+    "exit_code": 0,
+    "seconds": 15.65
+  },
+  {
+    "command": [
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "scripts/verify_v02_t05_wheel.py"
+    ],
+    "exit_code": 0,
+    "seconds": 4.77
+  },
+  {
+    "command": [
+      "uv",
+      "run",
+      "mypy",
+      "--python-executable",
+      ".artifacts/t03-execution-fencing-package/venv/bin/python",
+      "--strict",
+      "scripts/wheel_type_consumer.py"
+    ],
+    "exit_code": 0,
+    "seconds": 11.54
+  }
+]

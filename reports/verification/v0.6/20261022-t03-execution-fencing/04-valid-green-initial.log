@@ -1,0 +1,109 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____________ test_cancelled_job_cannot_commit_domain_or_reservation ____________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x1248bb750>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+
+    @pytest.mark.asyncio
+    async def test_cancelled_job_cannot_commit_domain_or_reservation(leases):
+        from oria.orchestrator.job_execution import JobExecutionService
+    
+        s = leases
+        job = await s.add(scenario="campaign", actor=s.admin)
+        worker = s.service()
+        claimed = await worker.claim(job.job_id)
+        cancelled = Job.model_validate(claimed.model_dump() | {
+            "status": "cancellation_requested", "cancel_requested": True,
+            "revision": claimed.revision + 1,
+        })
+        await s.repo.replace(claimed, cancelled, _trusted_guard)
+        with pytest.raises(JobConflict):
+>           await JobExecutionService(worker, s.db).persist_campaign_draft(
+                lease_token(claimed), _spec(job), _snapshot(s)
+            )
+
+tests/integration/test_v06_job_execution_fencing.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <oria.orchestrator.job_execution.JobExecutionService object at 0x1249cc650>
+token = JobLeaseToken(epoch=1)
+spec = CampaignDraftSpec(campaign_id='campaign_f12c81b03ecc41e096db4e945db98301', coupon_batch_id='coupon_f12c81b03ecc41e096d...tment_f12c81b03ecc41e096db4e945db98301', material_version='material-v1', compensation_policy_version='compensation-v1')
+snapshot = CampaignRuleSnapshot(snapshot_id='rs_123456789012345678901234', snapshot_hash='sha256:b808c8d8254fac7287c9562970bf9e61...ject://demo/synthetic-summer-dining-v1', introduction='仅用于 Oria 离线演示的合成招商素材。', tags=('虚构', '离线演示')), field_evidence={})
+
+    async def persist_campaign_draft(
+        self, token: JobLeaseToken, spec: CampaignDraftSpec, snapshot: CampaignRuleSnapshot
+    ) -> CampaignDraft:
+        spec = CampaignDraftSpec.model_validate(spec.model_dump())
+>       snapshot = CampaignRuleSnapshot.model_validate(snapshot.model_dump())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 4 validation errors for CampaignRuleSnapshot
+E       tenant_id
+E         Field required [type=missing, input_value={'snapshot_id': 'rs_12345...}, 'field_evidence': {}}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/missing
+E       recruitment_scope.allowlist_merchant_ids
+E         Field required [type=missing, input_value={'categories': ('餐饮',...tems': ('demo-enroll',)}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/missing
+E       recruitment_scope.denylist_merchant_ids
+E         Field required [type=missing, input_value={'categories': ('餐饮',...tems': ('demo-enroll',)}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/missing
+E       recruitment_scope.sales_org_scope
+E         Field required [type=missing, input_value={'categories': ('餐饮',...tems': ('demo-enroll',)}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/missing
+
+src/oria/orchestrator/job_execution.py:38: ValidationError
+______ test_valid_draft_and_reservation_commit_once_and_survive_new_epoch ______
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x124d2f090>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+
+    @pytest.mark.asyncio
+    async def test_valid_draft_and_reservation_commit_once_and_survive_new_epoch(leases):
+        from oria.orchestrator.job_execution import JobExecutionService
+    
+        s = leases
+        job = await s.add(scenario="campaign", actor=s.admin)
+        worker = s.service()
+        claimed = await worker.claim(job.job_id)
+        service = JobExecutionService(worker, s.db)
+        token = lease_token(claimed)
+>       draft = await service.persist_campaign_draft(token, _spec(job), _snapshot(s))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_execution_fencing.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <oria.orchestrator.job_execution.JobExecutionService object at 0x124d78e50>
+token = JobLeaseToken(epoch=1)
+spec = CampaignDraftSpec(campaign_id='campaign_82cb74dd72b6442f8443d7c3d586a79c', coupon_batch_id='coupon_82cb74dd72b6442f844...tment_82cb74dd72b6442f8443d7c3d586a79c', material_version='material-v1', compensation_policy_version='compensation-v1')
+snapshot = CampaignRuleSnapshot(snapshot_id='rs_123456789012345678901234', snapshot_hash='sha256:b808c8d8254fac7287c9562970bf9e61...ject://demo/synthetic-summer-dining-v1', introduction='仅用于 Oria 离线演示的合成招商素材。', tags=('虚构', '离线演示')), field_evidence={})
+
+    async def persist_campaign_draft(
+        self, token: JobLeaseToken, spec: CampaignDraftSpec, snapshot: CampaignRuleSnapshot
+    ) -> CampaignDraft:
+        spec = CampaignDraftSpec.model_validate(spec.model_dump())
+>       snapshot = CampaignRuleSnapshot.model_validate(snapshot.model_dump())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 4 validation errors for CampaignRuleSnapshot
+E       tenant_id
+E         Field required [type=missing, input_value={'snapshot_id': 'rs_12345...}, 'field_evidence': {}}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/missing
+E       recruitment_scope.allowlist_merchant_ids
+E         Field required [type=missing, input_value={'categories': ('餐饮',...tems': ('demo-enroll',)}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/missing
+E       recruitment_scope.denylist_merchant_ids
+E         Field required [type=missing, input_value={'categories': ('餐饮',...tems': ('demo-enroll',)}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/missing
+E       recruitment_scope.sales_org_scope
+E         Field required [type=missing, input_value={'categories': ('餐饮',...tems': ('demo-enroll',)}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/missing
+
+src/oria/orchestrator/job_execution.py:38: ValidationError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_execution_fencing.py::test_cancelled_job_cannot_commit_domain_or_reservation
+FAILED tests/integration/test_v06_job_execution_fencing.py::test_valid_draft_and_reservation_commit_once_and_survive_new_epoch
+2 failed, 1 warning in 6.24s

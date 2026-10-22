@@ -1,0 +1,46 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+______ test_valid_draft_and_reservation_commit_once_and_survive_new_epoch ______
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x123eb5510>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+
+    @pytest.mark.asyncio
+    async def test_valid_draft_and_reservation_commit_once_and_survive_new_epoch(leases):
+        from oria.orchestrator.job_execution import JobExecutionService
+    
+        s = leases
+        job = await s.add(scenario="campaign", actor=s.admin)
+        worker = s.service()
+        claimed = await worker.claim(job.job_id)
+        service = JobExecutionService(worker, s.db)
+        token = lease_token(claimed)
+>       draft = await service.persist_campaign_draft(token, _spec(job), _snapshot(s))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_execution_fencing.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <oria.orchestrator.job_execution.JobExecutionService object at 0x123ef8a10>
+token = JobLeaseToken(epoch=1)
+spec = CampaignDraftSpec(campaign_id='campaign_d58cd6d3fe464d029bce886b12549193', coupon_batch_id='coupon_d58cd6d3fe464d029bc...tment_d58cd6d3fe464d029bce886b12549193', material_version='material-v1', compensation_policy_version='compensation-v1')
+snapshot = CampaignRuleSnapshot(snapshot_id='rs_123456789012345678901234', snapshot_hash='sha256:b808c8d8254fac7287c9562970bf9e61...ject://demo/synthetic-summer-dining-v1', introduction='仅用于 Oria 离线演示的合成招商素材。', tags=('虚构', '离线演示')), field_evidence={})
+
+    async def persist_campaign_draft(
+        self, token: JobLeaseToken, spec: CampaignDraftSpec, snapshot: CampaignRuleSnapshot
+    ) -> CampaignDraft:
+        job, _, _ = await self._leases._leased(token)
+        if job.status != "running" or job.cancel_requested:
+            raise JobConflict("cancelled execution cannot persist a draft")
+>       raise NotImplementedError("local draft execution is not implemented yet")
+E       NotImplementedError: local draft execution is not implemented yet
+
+src/oria/orchestrator/job_execution.py:22: NotImplementedError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_execution_fencing.py::test_valid_draft_and_reservation_commit_once_and_survive_new_epoch
+1 failed, 1 passed, 1 warning in 6.11s
