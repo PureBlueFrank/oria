@@ -1,0 +1,40 @@
+F
+=================================== FAILURES ===================================
+____________ test_dispatch_materializes_coupon_and_saga_atomically _____________
+
+dispatch = namespace(c=namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x1267a7450>, db=<oria.storage.datab...object at 0x126889710>, service=<oria.orchestrator.job_coupon_dispatch.JobCouponDispatchService object at 0x1268d8210>)
+
+    @pytest.mark.asyncio
+    async def test_dispatch_materializes_coupon_and_saga_atomically(dispatch):
+        d = dispatch
+        c = d.c
+>       result = await d.service.materialize(c.token, c.args, c.plan, d.approval.approval_id)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_coupon_dispatch.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <oria.orchestrator.job_coupon_dispatch.JobCouponDispatchService object at 0x1268d8210>
+token = JobLeaseToken(epoch=1)
+args = MaterializeCouponBatchArgs(campaign_id='campaign_1e771caecab549b2ab7ecb9c236fcbe5', coupon_batch_id='coupon_1e771caecab549b2ab7ecb9c236fcbe5', coupon_spec_hash='sha256:24107469a485bc8e4643ba61654d06026bf0c6d4779f89e8fa6fecbfef6be775')
+plan = LaunchPlan(campaign_draft_id='campaign_1e771caecab549b2ab7ecb9c236fcbe5', campaign_draft_hash='sha256:53e5267a213e34c2..._policy_version='compensation-v1', plan_hash='sha256:a40de5d070c99f91fd93f6432a2897161ec8f14584f9f88f186850770a674afb')
+approval_id = 'job_1e771caecab549b2ab7ecb9c236fcbe5:launch-approval:v1'
+
+    async def materialize(
+        self, token: JobLeaseToken, args: MaterializeCouponBatchArgs,
+        plan: LaunchPlan, approval_id: str,
+    ) -> ToolExecution:
+>       raise PermissionError("controlled Job coupon dispatch is not available")
+E       PermissionError: controlled Job coupon dispatch is not available
+
+src/oria/orchestrator/job_coupon_dispatch.py:33: PermissionError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_coupon_dispatch.py::test_dispatch_materializes_coupon_and_saga_atomically
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1 warning in 12.01s

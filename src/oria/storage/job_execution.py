@@ -191,7 +191,13 @@ class JobCouponReservationWriter:
             raise PermissionError("existing launch saga does not match the Job approval point")
 
     async def validate_draft(
-        self, session: AsyncSession, job: Job, args: MaterializeCouponBatchArgs, plan: LaunchPlan
+        self,
+        session: AsyncSession,
+        job: Job,
+        args: MaterializeCouponBatchArgs,
+        plan: LaunchPlan,
+        *,
+        coupon_ready: bool = False,
     ) -> None:
         # Obtain the Business DB write lock BEFORE reading any binding facts. Other
         # Business writers cannot change draft/saga/history before this commit.
@@ -222,6 +228,14 @@ class JobCouponReservationWriter:
         )
         if rule is None or coupon is None or publication is None:
             raise PermissionError("persisted Job draft facts are unavailable")
+        if coupon_ready:
+            if coupon.status != "ready" or coupon.version != 3:
+                raise PermissionError("completed Job coupon facts are unavailable")
+            # Successful dispatch history is checked by its caller. Reconstruct
+            # the original approved draft solely for the frozen plan/hash check.
+            coupon = coupon.model_copy(
+                update={"status": "draft", "version": 1, "updated_at": job.created_at}
+            )
         if any(entity.version != 1 for entity in (campaign, rule, coupon, publication)):
             raise PermissionError("Job reservation requires the original draft versions")
         draft = CampaignDraft(

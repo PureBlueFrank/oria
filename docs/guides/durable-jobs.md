@@ -133,3 +133,11 @@ SQLite 平台完整快照写锁持有到业务单事务结束；审批在同一�
 Business saga 与 Platform 审批分阶段提交：先持久化 saga，再重新锁定并核验业务事实，提交审批、审计和 outbox。中断可能留下无审批的 planned saga；同一有效 Job 重试补齐审批。已提交审批的重试返回相同 ID/期限，不重复创建，也不延长有效期。冲突、拒绝、失效、过期或旧 Policy 版本的历史均拒绝；重新申请新版本尚未接线。两个阶段均重查当前权限和租约，审批提交期间持有业务写锁，防止草案被并发修改。
 
 返回值复用 `LaunchApprovalBinding`。独立审批人仍通过现有 ApprovalService 决定，批准后才能调用上一节的券 reservation。该链路仅用临时 SQLite 与合成身份验证，尚未接入默认 API、Graph、飞书或独立 worker；不改变 Job 状态/accepted pointer，也不执行外部券派发。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)和[验证卡](../../reports/verification/v0.6/20261022-t03-launch-approval/summary.md)。
+
+## Job 券的受控 Mock 派发
+
+显式内部 `JobCouponDispatchService(leases, databases, adapter).materialize(token, args, plan, approval_id)` 只接受精确的 `InMemoryCouponBatchAdapter`，不接受子类或网络 adapter，Mock 超时最多 5 秒。没有默认 HTTP/Tool/Graph/worker 入口。它重新校验当前 requester/worker/lease、campaign launch Policy、真实已批准且未过期的完整计划以及此前提交的 Job reservation。
+
+业务库先持久化 `reserved → executing` 和 admitted 事件，再调用无网络的 Mock。accepted 在单个业务事务中更新 coupon、launch saga、ledger、Domain/Audit/outbox；rejected 为 failed，unknown、异常、超时为 unknown。若调用后取消、撤权或结果提交失败，executing 历史保留；下一次有效调用将其收敛为 unknown，任何终态或 unknown 都不会盲目重投。异常文本不进入持久事件。
+
+这个切片只证明 Community Mock 闭环。既有 `CouponBatchAdapter` 没有 Job epoch fencing 契约，真实网络派发仍关闭；真实 adapter 实现前还需确定接纳 fencing、稳定幂等与未知结果对账协议。平台和业务 SQLite 写锁覆盖短暂 Mock 调用，另有两个独立资源实例的 writer 阻塞测试；这会阻塞同库 writer，不证明 PostgreSQL、多 worker/S2 或跨库原子性。Job 状态及 accepted checkpoint pointer 不改变，真实外部派发、自动对账/补偿、Graph runner 和恢复仍未接入。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)及[派发验证卡](../../reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。

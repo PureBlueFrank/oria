@@ -1,0 +1,31 @@
+{
+  "review_mode": "host-agent review using Open Code Review delegation",
+  "deterministic_tool": "ocr delegate preview/rule; no OCR LLM endpoint was called",
+  "independent_reviewer": false,
+  "base": "main (workspace branch includes the already reviewed approval replay fix)",
+  "reviewable_code_files": [
+    "src/oria/orchestrator/job_coupon_dispatch.py",
+    "src/oria/storage/job_coupon_dispatch.py",
+    "src/oria/storage/job_execution.py"
+  ],
+  "manually_reviewed_excluded_files": [
+    "tests/integration/test_v06_job_coupon_dispatch.py",
+    "AGENTS.md",
+    "ROADMAP.md",
+    "docs/adr/ADR-025-job-lease-and-fencing.md",
+    "docs/guides/durable-jobs.md"
+  ],
+  "review_focus": [
+    "current requester, worker, owner, epoch, Policy, approval and plan are revalidated before durable writes",
+    "executing is committed before the adapter call; cancellation or result commit failure cannot make a reservation dispatchable again",
+    "unknown, failed and succeeded histories never invoke the adapter a second time",
+    "successful coupon, saga, ledger and event projections share one Business transaction",
+    "the adapter is restricted to the exact network-free InMemoryCouponBatchAdapter; this does not prove real external fencing"
+  ],
+  "findings": [],
+  "test_file_filter_note": "OCR default rules excluded the integration test path; the host manually reviewed the complete test file and its race/failure assertions.",
+  "limitations": [
+    "No independent reviewer was used or claimed.",
+    "PostgreSQL, a real external Adapter, Graph recovery and S2 were not part of this slice."
+  ]
+}

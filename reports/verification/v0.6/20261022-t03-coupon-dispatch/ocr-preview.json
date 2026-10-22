@@ -1,0 +1,186 @@
+{
+  "schema_version": "1",
+  "mode": "workspace",
+  "repository": "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria",
+  "total_files": 25,
+  "reviewable_count": 3,
+  "excluded_count": 22,
+  "total_insertions": 1687,
+  "total_deletions": 3,
+  "reviewable_files": [
+    {
+      "path": "src/oria/storage/job_execution.py",
+      "status": "modified",
+      "insertions": 15,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/orchestrator/job_coupon_dispatch.py",
+      "status": "added",
+      "insertions": 203,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/storage/job_coupon_dispatch.py",
+      "status": "added",
+      "insertions": 226,
+      "deletions": 0
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": "AGENTS.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-025-job-lease-and-fencing.md",
+      "status": "modified",
+      "insertions": 11,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/durable-jobs.md",
+      "status": "modified",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/01-valid-red.log",
+      "status": "added",
+      "insertions": 40,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/02-valid-green.log",
+      "status": "added",
+      "insertions": 76,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/03-valid-corrected.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/04-related-final.log",
+      "status": "added",
+      "insertions": 10,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/05-community-full.log",
+      "status": "added",
+      "insertions": 224,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/06-community-full-loopback.log",
+      "status": "added",
+      "insertions": 192,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/07-lint.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/08-build.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/09-smoke.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/10-dispatch-final.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/11-package-content.md",
+      "status": "added",
+      "insertions": 7,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/design.md",
+      "status": "added",
+      "insertions": 15,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/ocr-preview.json",
+      "status": "added",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/ocr-rules.json",
+      "status": "added",
+      "insertions": 29,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/review.json",
+      "status": "added",
+      "insertions": 31,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/source-snapshot.json",
+      "status": "added",
+      "insertions": 25,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md",
+      "status": "added",
+      "insertions": 68,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "tests/integration/test_v06_job_coupon_dispatch.py",
+      "status": "added",
+      "insertions": 473,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    }
+  ]
+}

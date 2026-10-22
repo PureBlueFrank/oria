@@ -1,0 +1,26 @@
+{
+  "base": "main at 30dd256b649c518254e5d98933828807c7b1c00e",
+  "working_head_before_feature_commit": "88517c3 (codex/job-coupon-dispatch)",
+  "reviewed_code_commit": "3eb053e (feat(jobs): add fenced mock coupon dispatch)",
+  "python": "3.11.15",
+  "uv": "0.12.6",
+  "uv_lock_sha256": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def",
+  "reviewed_files": {
+    "src/oria/orchestrator/job_coupon_dispatch.py": "119f5337055735f43014b904cf0585a637a752c29a62c6a282fe6bf1fd78191d",
+    "src/oria/storage/job_coupon_dispatch.py": "8c34971b1efbab70ee06b224745151bdb263e755bc8ee4580497abe5c1ab65aa",
+    "src/oria/storage/job_execution.py": "d294da1f1163d65093da3f9ad64b264ad81c779dcfa49bbe69e40680d92de0de",
+    "tests/integration/test_v06_job_coupon_dispatch.py": "502813ce3180dd6626291d06c2c7eb7189eac880f41bd15dd158069983a05113"
+  },
+  "verification_logs": [
+    "01-valid-red.log",
+    "02-valid-green.log",
+    "03-valid-corrected.log",
+    "04-related-final.log",
+    "05-community-full.log",
+    "06-community-full-loopback.log",
+    "07-lint.log",
+    "08-build.log",
+    "09-smoke.log",
+    "10-dispatch-final.log"
+  ]
+}
