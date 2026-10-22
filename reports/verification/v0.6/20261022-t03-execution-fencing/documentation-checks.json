@@ -1,0 +1,26 @@
+{
+  "git_diff_check": {
+    "exit_code": 0,
+    "output": ""
+  },
+  "markdown_files_checked": [
+    "ROADMAP.md",
+    "docs/adr/ADR-025-job-lease-and-fencing.md",
+    "docs/guides/durable-jobs.md",
+    "reports/verification/v0.6/20261022-t03-execution-fencing/summary.md",
+    "reports/verification/v0.6/20261022-t03-execution-fencing/review.md",
+    "reports/verification/v0.6/20261022-t03-execution-fencing/changed-files.md"
+  ],
+  "missing_local_links": [],
+  "local_route_new_paragraph_present": true,
+  "required_statuses_retained": [
+    "T02 real refusal/pagination gaps",
+    "T03/T04/Core incomplete",
+    "V0.5-T07 29/80"
+  ],
+  "text_utf8_lf_final_newline": "passed for non-log changed files",
+  "initial_head": "7e804ede91eb2e38a450f2413fefa17b9e50d897",
+  "observed_head": "64cc69287dd6d9e7eab1e2d164f852bfef56186b",
+  "trees_equal": true,
+  "changed_paths_count": 37
+}

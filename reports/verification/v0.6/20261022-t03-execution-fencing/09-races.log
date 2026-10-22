@@ -1,0 +1,122 @@
+F..                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_independent_sqlite_instances_cannot_cross_held_business_commit[takeover] _
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x122dfa450>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x122ad6090>
+contender = 'takeover'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("contender", ["takeover", "cancel"])
+    async def test_independent_sqlite_instances_cannot_cross_held_business_commit(
+        leases, monkeypatch, contender
+    ):
+        import asyncio
+    
+        from sqlalchemy import event
+    
+        from oria.api.jobs import JobAPI
+        from oria.orchestrator.job_execution import JobExecutionService
+        from oria.orchestrator.job_leases import JobLeaseService
+        from oria.storage.database import DatabaseResources
+        from oria.storage.jobs import JobRepository
+    
+        s = leases
+        job = await s.add(scenario="campaign", actor=s.admin)
+        first = s.service()
+        claimed = await first.claim(job.job_id)
+        token = lease_token(claimed)
+        service = JobExecutionService(first, s.db)
+        entered, release, attempted = asyncio.Event(), asyncio.Event(), asyncio.Event()
+        append = service._writer._outbox._append
+    
+        async def pause(*args):
+            await append(*args)
+            entered.set()
+            await release.wait()
+    
+        monkeypatch.setattr(service._writer._outbox, "_append", pause)
+        async with DatabaseResources(s.config) as other:
+            repository = JobRepository(other.platform_sessions)
+            second = JobLeaseService(s.runtime, repository, s.source, executor=s.worker,
+                                     instance_id="independent", clock=s.clock.now)
+            # Preauthorize using real directory/Policy before holding the lock, so the race
+            # reaches the actual CAS UPDATE rather than blocking on its earlier audit write.
+            # The returned real guard still rechecks identity/Policy within the CAS transaction.
+            if contender == "takeover":
+                authorized = await second._authorize(claimed)
+    
+                async def preauthorized(value, **kwargs):
+                    assert value == claimed
+                    return authorized
+    
+                monkeypatch.setattr(second, "_authorize", preauthorized)
+            else:
+                api = JobAPI(s.runtime, repository, s.source, clock=s.clock.now)
+                ctx = api._context(s.admin, "cancel-race", claimed)
+                cancel_guard = await api._authorize(s.admin, ctx, (api._request("job:cancel", ctx, claimed),))
+    
+                async def preauthorized(*args):
+                    return cancel_guard
+    
+                monkeypatch.setattr(api, "_authorize", preauthorized)
+    
+            def observe(connection, cursor, statement, parameters, context, executemany):
+                if statement.startswith("UPDATE jobs SET"):
+                    attempted.set()
+    
+            event.listen(other._platform_engine.sync_engine, "before_cursor_execute", observe)
+            first_task = asyncio.create_task(
+                service.persist_campaign_draft(token, _spec(job), _snapshot(s))
+            )
+            await asyncio.wait_for(entered.wait(), 5)
+            if contender == "takeover":
+                s.clock.advance(30)
+                competing = asyncio.create_task(second.claim(job.job_id))
+            else:
+                competing = asyncio.create_task(api.cancel(job.job_id, s.admin, "cancel-race"))
+            try:
+                await asyncio.wait_for(attempted.wait(), 5)
+                with pytest.raises(TimeoutError):
+                    await asyncio.wait_for(asyncio.shield(competing), 0.1)
+                assert await _counts(s) == (0,) * 8  # Uncommitted business facts are invisible.
+                release.set()
+                if contender == "takeover":
+                    with pytest.raises(JobConflict):
+                        await first_task
+                    new = await asyncio.wait_for(competing, 5)
+                    assert new.lease_epoch == token.epoch + 1
+                    assert await _counts(s) == (0,) * 8
+>                   await JobExecutionService(second, other).persist_campaign_draft(
+                        lease_token(new), _spec(job), _snapshot(s)
+                    )
+
+tests/integration/test_v06_job_execution_fencing.py:406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/oria/orchestrator/job_execution.py:47: in persist_campaign_draft
+    job, ctx, guard = await self._leases._leased(token, business_resource_id=spec.campaign_id)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/orchestrator/job_leases.py:251: in _leased
+    ctx, guard = await self._authorize(job, business_resource_id=business_resource_id)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = Job(job_id='job_8f8da43971b44de2b49f2332bb2f5062', session_id='session_c1542ca1cdd646c18b2ed12cc9a5e34a', status='runn...datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)), updated_at=datetime.datetime(2026, 10, 22, 0, 0, 30, tzinfo=TzInfo(0)))
+kwargs = {'business_resource_id': 'campaign_8f8da43971b44de2b49f2332bb2f5062'}
+
+    async def preauthorized(value, **kwargs):
+>       assert value == claimed
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...timezone.utc))
+E         
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_execution_fencing.py:366: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_execution_fencing.py::test_independent_sqlite_instances_cannot_cross_held_business_commit[takeover]
+1 failed, 2 passed, 32 deselected, 1 warning in 8.15s

@@ -1,0 +1,12 @@
+$ uv run ruff format --check src/oria/core/approvals.py src/oria/orchestrator/job_execution.py src/oria/storage/job_execution.py src/oria/storage/jobs.py tests/integration/test_v06_job_coupon_reservation.py
+5 files already formatted
+
+exit_code: 0
+$ uv run ruff check src/oria/core/approvals.py src/oria/orchestrator/job_execution.py src/oria/storage/job_execution.py src/oria/storage/jobs.py tests/integration/test_v06_job_coupon_reservation.py
+All checks passed!
+
+exit_code: 0
+$ uv run mypy src/oria/core/approvals.py src/oria/orchestrator/job_execution.py src/oria/storage/job_execution.py src/oria/storage/jobs.py
+Success: no issues found in 4 source files
+
+exit_code: 0

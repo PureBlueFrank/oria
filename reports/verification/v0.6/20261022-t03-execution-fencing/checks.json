@@ -1,0 +1,198 @@
+{
+  "baseline_head": "7e804ede91eb2e38a450f2413fefa17b9e50d897",
+  "environment": {
+    "UV_CACHE_DIR": ".artifacts/uv-cache",
+    "UV_OFFLINE": "1",
+    "UV_NO_SYNC": "1"
+  },
+  "pytest_rounds": [
+    {
+      "log": "01-cancel-red.log",
+      "exit_code": 1,
+      "pytest_summary": "1 failed, 1 warning in 7.96s",
+      "sha256": "5b9bba504736c8bc9189866886b98f5e131603818b5676cad9ae528d46377eef"
+    },
+    {
+      "log": "02-cancel-green.log",
+      "exit_code": 0,
+      "pytest_summary": "1 passed, 1 warning in 6.43s",
+      "sha256": "7e088ce08437b32a8c2a8e17613eb7751dddb5bdf4aa78b1ffe28a66a7c99383"
+    },
+    {
+      "log": "03-valid-red.log",
+      "exit_code": 1,
+      "pytest_summary": "1 failed, 1 passed, 1 warning in 6.11s",
+      "sha256": "c45a675d4379d5e9e0082154477115431a9fc4a1b07ab8b82ed462d74812bf35"
+    },
+    {
+      "log": "04-valid-green-initial.log",
+      "exit_code": 1,
+      "pytest_summary": "2 failed, 1 warning in 6.24s",
+      "sha256": "98aa0817c9a8223274bc44366dfac074a82164faf7d3b152a6bf158a95d39317"
+    },
+    {
+      "log": "05-valid-green.log",
+      "exit_code": 0,
+      "pytest_summary": "2 passed, 1 warning in 5.17s",
+      "sha256": "3d109a92f623ab35c7183dbf0d0ae7282acf546dc43818f563a641dce2005a2e"
+    },
+    {
+      "log": "06-commit-authority-red.log",
+      "exit_code": 1,
+      "pytest_summary": "4 failed, 2 passed, 1 warning in 8.95s",
+      "sha256": "b9fa86569146911c15cf9d301148f1eca8792e8eb1e226f1016eb78fd48103aa"
+    },
+    {
+      "log": "07-commit-authority-green.log",
+      "exit_code": 0,
+      "pytest_summary": "6 passed, 1 warning in 8.33s",
+      "sha256": "4fa73c3a8f62899bc4385a3a4ae32c7eca177fcb9c9ee42a1fd84c9524253ca6"
+    },
+    {
+      "log": "08-behaviors.log",
+      "exit_code": 0,
+      "pytest_summary": "32 passed, 1 warning in 30.29s",
+      "sha256": "335083ce4dfc8a58b8036550484b08e017d480b0cc0d72b0f1dd9432f364ec85"
+    },
+    {
+      "log": "09-races.log",
+      "exit_code": 1,
+      "pytest_summary": "1 failed, 2 passed, 32 deselected, 1 warning in 8.15s",
+      "sha256": "dbd346b81c0609f3469cb5405b28ab35ade737e590718f3d991be50d0de3b1d2"
+    },
+    {
+      "log": "10-fencing-targeted.log",
+      "exit_code": 0,
+      "pytest_summary": "37 passed, 1 warning in 25.18s",
+      "sha256": "2d0ae37c69b96cd09f5bba5d447e539cb680ea036ae59cd124e9caecfd982317"
+    },
+    {
+      "log": "targeted-final.log",
+      "exit_code": 0,
+      "pytest_summary": "116 passed, 1 warning in 55.28s",
+      "sha256": "1aef72717feac778bad4bc68bf1cd18fac071beb70c741fc585c7c5c65b76699"
+    }
+  ],
+  "final_pytest": {
+    "command": [
+      "uv",
+      "run",
+      "pytest",
+      "-q",
+      "tests/integration/test_v06_job_execution_fencing.py",
+      "tests/integration/test_v06_job_leases.py",
+      "tests/contract/test_v03_campaign_draft.py",
+      "tests/contract/test_v03_execution_ledger.py",
+      "tests/integration/test_v03_ledger_repositories.py",
+      "tests/unit/test_v06_job_inputs.py",
+      "tests/integration/test_v03_campaign_launch_recovery.py",
+      "tests/contract/test_v03_campaign_launch_contract.py",
+      "tests/security/test_v03_campaign_launch_security.py",
+      "tests/security/test_v02_policy_audit_boundaries.py",
+      "tests/contract/test_v02_policy_acl.py",
+      "-m",
+      "not live and not enterprise and not performance"
+    ],
+    "environment": {
+      "UV_CACHE_DIR": ".artifacts/uv-cache",
+      "UV_OFFLINE": "1",
+      "UV_NO_SYNC": "1"
+    },
+    "exit_code": 0,
+    "seconds": 56.843,
+    "log": "targeted-final.log"
+  },
+  "final_static": [
+    {
+      "command": [
+        "uv",
+        "run",
+        "ruff",
+        "format",
+        "--check",
+        "src/oria/domain/launch.py",
+        "src/oria/orchestrator/job_leases.py",
+        "src/oria/orchestrator/job_execution.py",
+        "src/oria/storage/jobs.py",
+        "src/oria/storage/job_execution.py",
+        "src/oria/storage/ledger.py",
+        "src/oria/storage/repositories.py",
+        "src/oria/permission/local.py",
+        "tests/integration/test_v06_job_execution_fencing.py"
+      ],
+      "exit_code": 0,
+      "seconds": 0.057
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "ruff",
+        "check",
+        "src/oria/domain/launch.py",
+        "src/oria/orchestrator/job_leases.py",
+        "src/oria/orchestrator/job_execution.py",
+        "src/oria/storage/jobs.py",
+        "src/oria/storage/job_execution.py",
+        "src/oria/storage/ledger.py",
+        "src/oria/storage/repositories.py",
+        "src/oria/permission/local.py",
+        "tests/integration/test_v06_job_execution_fencing.py"
+      ],
+      "exit_code": 0,
+      "seconds": 0.056
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "mypy",
+        "src/oria/domain/launch.py",
+        "src/oria/orchestrator/job_leases.py",
+        "src/oria/orchestrator/job_execution.py",
+        "src/oria/storage/jobs.py",
+        "src/oria/storage/job_execution.py",
+        "src/oria/storage/ledger.py",
+        "src/oria/storage/repositories.py",
+        "src/oria/permission/local.py"
+      ],
+      "exit_code": 0,
+      "seconds": 0.626
+    }
+  ],
+  "static_history": [
+    {
+      "log": "lint-initial.log",
+      "ruff_exit_code": 1,
+      "mypy_exit_code": 1
+    },
+    {
+      "log": "lint-second.log",
+      "ruff_exit_code": 1,
+      "mypy_exit_code": 0
+    }
+  ],
+  "not_run": [
+    "full test suite",
+    "build",
+    "smoke",
+    "Live",
+    "Enterprise",
+    "Performance",
+    "PostgreSQL fencing",
+    "real Feishu",
+    "GitHub Actions"
+  ],
+  "remote_writes": false,
+  "commit": false,
+  "push": false,
+  "operation_scope": "assistant actions only; external HEAD change separately recorded",
+  "evidence_head_check": {
+    "initial_assertion_exit_code": 1,
+    "log": "evidence-head-check-failure.log",
+    "initial_head": "7e804ede91eb2e38a450f2413fefa17b9e50d897",
+    "observed_head": "64cc69287dd6d9e7eab1e2d164f852bfef56186b",
+    "trees_equal": true,
+    "resolution": "preserved external change; source tree unchanged"
+  }
+}

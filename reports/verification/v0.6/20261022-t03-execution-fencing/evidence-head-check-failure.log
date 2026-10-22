@@ -1,0 +1,5 @@
+Expected initial HEAD: 7e804ede91eb2e38a450f2413fefa17b9e50d897
+Observed HEAD: 64cc69287dd6d9e7eab1e2d164f852bfef56186b
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+AssertionError: HEAD moved externally; compare file trees before finalizing evidence

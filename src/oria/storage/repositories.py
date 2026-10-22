@@ -1310,6 +1310,31 @@ class SQLiteCampaignDraftRepository:
         recruitment_publication: RecruitmentPublication,
         ctx: Context,
     ) -> None:
+        try:
+            async with self._sessions.begin() as session:
+                await self._create_bundle(
+                    session,
+                    rule_snapshot_ref=rule_snapshot_ref,
+                    campaign=campaign,
+                    coupon_batch=coupon_batch,
+                    recruitment_publication=recruitment_publication,
+                    ctx=ctx,
+                )
+        except BusinessRepositoryError:
+            raise
+        except SQLAlchemyError as exc:
+            raise BusinessRepositoryError("campaign draft persistence failed") from exc
+
+    async def _create_bundle(
+        self,
+        session: AsyncSession,
+        *,
+        rule_snapshot_ref: CampaignRuleSnapshotRef,
+        campaign: Campaign,
+        coupon_batch: CouponBatch,
+        recruitment_publication: RecruitmentPublication,
+        ctx: Context,
+    ) -> None:
         tenant_id = getattr(ctx, "tenant_id", None)
         entities = (rule_snapshot_ref, campaign, coupon_batch, recruitment_publication)
         if not isinstance(tenant_id, str) or not tenant_id:
@@ -1317,24 +1342,14 @@ class SQLiteCampaignDraftRepository:
         if any(entity.tenant_id != tenant_id for entity in entities):
             raise BusinessRepositoryError("cross-tenant business write is forbidden")
         campaign.validate_tenant_links(rule_snapshot_ref, coupon_batch, recruitment_publication)
-        try:
-            async with self._sessions.begin() as session:
-                await set_session_tenant_context(session, tenant_id)
-                existing = await self._campaigns._find_by_id(
-                    session,
-                    campaign.campaign_id,
-                    tenant_id,
-                )
-                if existing is not None:
-                    raise BusinessRepositoryError("campaign already exists")
-                await self._rule_refs._insert(session, rule_snapshot_ref)
-                await self._campaigns._insert(session, campaign)
-                await self._coupons._insert(session, coupon_batch)
-                await self._publications._insert(session, recruitment_publication)
-        except BusinessRepositoryError:
-            raise
-        except SQLAlchemyError as exc:
-            raise BusinessRepositoryError("campaign draft persistence failed") from exc
+        await set_session_tenant_context(session, tenant_id)
+        existing = await self._campaigns._find_by_id(session, campaign.campaign_id, tenant_id)
+        if existing is not None:
+            raise BusinessRepositoryError("campaign already exists")
+        await self._rule_refs._insert(session, rule_snapshot_ref)
+        await self._campaigns._insert(session, campaign)
+        await self._coupons._insert(session, coupon_batch)
+        await self._publications._insert(session, recruitment_publication)
 
 
 class SQLiteCampaignLaunchRepository:

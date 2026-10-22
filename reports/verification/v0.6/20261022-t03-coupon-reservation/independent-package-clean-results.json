@@ -1,0 +1,170 @@
+[
+  {
+    "command": [
+      "uv",
+      "build",
+      "--out-dir",
+      ".artifacts/t03-coupon-reservation-package-clean/dist"
+    ],
+    "exit_code": 0,
+    "seconds": 10.24
+  },
+  {
+    "command": [
+      "uv",
+      "venv",
+      ".artifacts/t03-coupon-reservation-package-clean/venv",
+      "--python",
+      "3.11"
+    ],
+    "exit_code": 0,
+    "seconds": 0.02
+  },
+  {
+    "command": [
+      "uv",
+      "export",
+      "--locked",
+      "--no-dev",
+      "--no-emit-project",
+      "--format",
+      "requirements-txt",
+      "--output-file",
+      ".artifacts/t03-coupon-reservation-package-clean/requirements.txt"
+    ],
+    "exit_code": 0,
+    "seconds": 0.04
+  },
+  {
+    "command": [
+      "uv",
+      "pip",
+      "install",
+      "--python",
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "-r",
+      ".artifacts/t03-coupon-reservation-package-clean/requirements.txt"
+    ],
+    "exit_code": 0,
+    "seconds": 0.67
+  },
+  {
+    "command": [
+      "uv",
+      "pip",
+      "install",
+      "--python",
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "--no-deps",
+      ".artifacts/t03-coupon-reservation-package-clean/dist/oria-0.1.0-py3-none-any.whl"
+    ],
+    "exit_code": 0,
+    "seconds": 0.07
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "-c",
+      "from oria.orchestrator.job_execution import JobExecutionService as S; from oria.storage.job_execution import JobCouponReservationWriter as W; from oria.core.approvals import approval_resume_rejection as R; assert callable(S.reserve_coupon_materialization) and W and R; print(\"installed wheel coupon reservation surface OK\")"
+    ],
+    "exit_code": 0,
+    "seconds": 32.0
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/oria",
+      "--version"
+    ],
+    "exit_code": 0,
+    "seconds": 5.36
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "scripts/verify_t02_wheel.py"
+    ],
+    "exit_code": 0,
+    "seconds": 3.39
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "scripts/verify_t03_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-coupon-reservation-package-clean/t03-data"
+    ],
+    "exit_code": 0,
+    "seconds": 7.47
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "scripts/verify_t04_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-coupon-reservation-package-clean/t04-data"
+    ],
+    "exit_code": 0,
+    "seconds": 3.68
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "scripts/verify_t05_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-coupon-reservation-package-clean/t05-data"
+    ],
+    "exit_code": 0,
+    "seconds": 3.72
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "scripts/verify_t06_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-coupon-reservation-package-clean/t06-data"
+    ],
+    "exit_code": 0,
+    "seconds": 3.85
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "scripts/verify_t07_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-coupon-reservation-package-clean/t07-data"
+    ],
+    "exit_code": 0,
+    "seconds": 2.75
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "scripts/verify_t08_wheel.py",
+      "--work-dir",
+      ".artifacts/t03-coupon-reservation-package-clean/t08-work"
+    ],
+    "exit_code": 0,
+    "seconds": 9.21
+  },
+  {
+    "command": [
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "scripts/verify_v02_t05_wheel.py"
+    ],
+    "exit_code": 0,
+    "seconds": 2.85
+  },
+  {
+    "command": [
+      "uv",
+      "run",
+      "mypy",
+      "--python-executable",
+      ".artifacts/t03-coupon-reservation-package-clean/venv/bin/python",
+      "--strict",
+      "scripts/wheel_type_consumer.py"
+    ],
+    "exit_code": 0,
+    "seconds": 7.08
+  }
+]

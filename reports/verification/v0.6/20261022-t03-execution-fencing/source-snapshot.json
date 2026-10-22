@@ -1,0 +1,63 @@
+{
+  "initial_head": "7e804ede91eb2e38a450f2413fefa17b9e50d897",
+  "observed_head": "64cc69287dd6d9e7eab1e2d164f852bfef56186b",
+  "initial_tree": "fe43f4b4c173ffc9a86aac238b1b01eb6c133c02",
+  "observed_tree": "fe43f4b4c173ffc9a86aac238b1b01eb6c133c02",
+  "tree_equivalent": true,
+  "head_change": "external checkout observed in local reflog; no assistant checkout/commit/remote operation",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "sha256": "b4d2502ca985ae34822c4a8d28c488ae27fb741a342f8e0a7822ced03964a89c"
+    },
+    {
+      "path": "docs/Oria详细执行路线.md",
+      "scope": "only new T03 fencing paragraph, local ignored document",
+      "sha256": "ab2b3f45ec02221e4a26193a42b4afb22d1defb75f37d9a6e48c12781453f60d"
+    },
+    {
+      "path": "docs/adr/ADR-025-job-lease-and-fencing.md",
+      "sha256": "990e47f77e5938bca8b155ed9e6530a898ee21c99d2505d5c69053e7b723bb94"
+    },
+    {
+      "path": "docs/guides/durable-jobs.md",
+      "sha256": "ce9cf09d539906bea47d8005b8cae080f620d03f8fd8dd32fa496b401f003228"
+    },
+    {
+      "path": "src/oria/domain/launch.py",
+      "sha256": "a39732cb0ea551c8399f00daa053a74f320f3fc030cf46f8b8ffc8d26cc5bcd4"
+    },
+    {
+      "path": "src/oria/orchestrator/job_execution.py",
+      "sha256": "ce50311e2da12978e64fa30cdf1ac14463631ee0cf6f2a74cdf676abedc05f86"
+    },
+    {
+      "path": "src/oria/orchestrator/job_leases.py",
+      "sha256": "97131aa3067b4d7d80b3b3eae4a59f9a948c60b5362e479c0419c81b712b93dd"
+    },
+    {
+      "path": "src/oria/permission/local.py",
+      "sha256": "e781295ea8b1cd13a96da62202877c00a7ecf85123cb93d5bffbf6bbceb8e236"
+    },
+    {
+      "path": "src/oria/storage/job_execution.py",
+      "sha256": "b2457fc9e9921f6664ecdc08a816a032d69eddc1be05befaea91169a044e6ccd"
+    },
+    {
+      "path": "src/oria/storage/jobs.py",
+      "sha256": "7173b467d5067154fbebe0431a491348b978cde8879727007782b7f258fca7e0"
+    },
+    {
+      "path": "src/oria/storage/ledger.py",
+      "sha256": "966e4090e6efe85e6af67bce96d59b76430c14d1a1408c0cbb9548dbd9953898"
+    },
+    {
+      "path": "src/oria/storage/repositories.py",
+      "sha256": "8021f8513569452f6e31cda25d5e7b5a53471f1c3cb61c4cc4216aae0ed724a9"
+    },
+    {
+      "path": "tests/integration/test_v06_job_execution_fencing.py",
+      "sha256": "0f719f6c7cae79204526eee354ed3b2acc4f54631950100d9712d7fe39341297"
+    }
+  ]
+}

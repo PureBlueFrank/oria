@@ -1,0 +1,889 @@
+......F.FFFFFFF.F..............F..                                       [100%]
+=================================== FAILURES ===================================
+____________ test_invalid_approval_never_adds_reservation[expired] _____________
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x124ff11d0>, db=<oria.storage.database.Database..._id='job_a844b234fa9c4e478c8446c17295e6ca:lease:1', job_id='job_a844b234fa9c4e478c8446c17295e6ca', checkpoint_id=None))
+change = 'expired'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", [
+        "missing", "pending", "rejected", "expired", "invalidated", "requester", "sod",
+        "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    ])
+    async def test_invalid_approval_never_adds_reservation(coupon, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "sod":
+                values["decider"] = values["requester"]
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+                    selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            await c.approvals._repository.replace(
+                Approval.model_validate(values), expected=c.approval
+            )
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:221: Failed
+___________ test_invalid_approval_never_adds_reservation[requester] ____________
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x124b50e90>, db=<oria.storage.database.Database..._id='job_8b428116b75044a99149d891f490e053:lease:1', job_id='job_8b428116b75044a99149d891f490e053', checkpoint_id=None))
+change = 'requester'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", [
+        "missing", "pending", "rejected", "expired", "invalidated", "requester", "sod",
+        "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    ])
+    async def test_invalid_approval_never_adds_reservation(coupon, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "sod":
+                values["decider"] = values["requester"]
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+                    selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            await c.approvals._repository.replace(
+                Approval.model_validate(values), expected=c.approval
+            )
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:221: Failed
+______________ test_invalid_approval_never_adds_reservation[sod] _______________
+
+self = <sqlalchemy.engine.base.Connection object at 0x124b70fd0>
+dialect = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteDialect_aiosqlite object at 0x124ee5850>
+context = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteExecutionContext_aiosqlite object at 0x124c71710>
+statement = <sqlalchemy.dialects.sqlite.base.SQLiteCompiler object at 0x124ea3450>
+parameters = [('approved', 'campaign-admin', 'approve', None, datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), ...)]
+
+    def _exec_single_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+        statement: Union[str, Compiled],
+        parameters: Optional[_AnyMultiExecuteParams],
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for a single DBAPI
+        cursor.execute() or cursor.executemany() call.
+    
+        """
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+    
+            if generic_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor, generic_setinputsizes, context
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e, str(statement), parameters, None, context
+                    )
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters: Optional[_AnyExecuteParams]
+    
+        if not context.executemany:
+            effective_parameters = parameters[0]
+        else:
+            effective_parameters = parameters
+    
+        if self._has_events or self.engine._has_events:
+            for fn in self.dispatch.before_cursor_execute:
+                str_statement, effective_parameters = fn(
+                    self,
+                    cursor,
+                    str_statement,
+                    effective_parameters,
+                    context,
+                    context.executemany,
+                )
+    
+        if self._echo:
+            self._log_info(str_statement)
+    
+            stats = context._get_cache_stats()
+    
+            if not self.engine.hide_parameters:
+                self._log_info(
+                    "[%s] %r",
+                    stats,
+                    sql_util._repr_params(
+                        effective_parameters,
+                        batches=10,
+                        ismulti=context.executemany,
+                    ),
+                )
+            else:
+                self._log_info(
+                    "[%s] [SQL parameters hidden due to hide_parameters=True]",
+                    stats,
+                )
+    
+        evt_handled: bool = False
+        try:
+            if context.execute_style is ExecuteStyle.EXECUTEMANY:
+                effective_parameters = cast(
+                    "_CoreMultiExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                    )
+            elif not effective_parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, str_statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_execute_no_params(
+                        cursor, str_statement, context
+                    )
+            else:
+                effective_parameters = cast(
+                    "_CoreSingleExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_execute(
+                        cursor, str_statement, effective_parameters, context
+                    )
+
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1969: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+.venv/lib/python3.11/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:213: in execute
+    self._adapt_connection._handle_exception(error)
+.venv/lib/python3.11/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:373: in _handle_exception
+    raise error
+.venv/lib/python3.11/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:195: in execute
+    self.await_(_cursor.execute(operation, parameters))
+.venv/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/aiosqlite/cursor.py:40: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+.venv/lib/python3.11/site-packages/aiosqlite/cursor.py:32: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/aiosqlite/core.py:160: in _execute
+    return await future
+           ^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+tx = <_queue.SimpleQueue object at 0x124c79b70>
+
+    def _connection_worker_thread(tx: _TxQueue):
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+    
+            future, function = tx.get()
+    
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+                         ^^^^^^^^^^
+E               sqlite3.IntegrityError: CHECK constraint failed: decider IS NULL OR requester <> decider
+
+.venv/lib/python3.11/site-packages/aiosqlite/core.py:63: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+self = <oria.storage.platform.SQLiteApprovalRepository object at 0x124e12fd0>
+approval = Approval(approval_id='approval_30b0c1ed8b9342acaef426ffe38a418a', approval_action='launch_approval', tool_name='Launch...e.timezone.utc), decided_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), business_binding=None)
+audit_event = None
+expected = Approval(approval_id='approval_30b0c1ed8b9342acaef426ffe38a418a', approval_action='launch_approval', tool_name='Launch...e.timezone.utc), decided_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), business_binding=None)
+
+    async def replace(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+        *,
+        expected: Approval,
+    ) -> None:
+        if (approval.tenant_id, approval.approval_id) != (expected.tenant_id, expected.approval_id):
+            raise ApprovalConflict("approval identity changed")
+        expected_values = _approval_values(expected)
+        # Column names come solely from the fixed internal serializer, never client input.
+        predicate = " AND ".join(
+            f"{column} IS NOT DISTINCT FROM :expected_{column}" for column in expected_values
+        )
+        try:
+            async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, approval.tenant_id)
+>               await self._replace(
+                    session,
+                    approval,
+                    audit_event,
+                    expected_values=expected_values,
+                    predicate=predicate,
+                )
+
+src/oria/storage/platform.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/oria/storage/platform.py:181: in _replace
+    result = await session.execute(
+.venv/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/session.py:448: in execute
+    result = await greenlet_spawn(
+.venv/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:201: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py:2373: in execute
+    return self._execute_internal(
+.venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py:2280: in _execute_internal
+    result = conn.execute(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1421: in execute
+    return meth(
+.venv/lib/python3.11/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context
+    return self._exec_single_context(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+.venv/lib/python3.11/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:213: in execute
+    self._adapt_connection._handle_exception(error)
+.venv/lib/python3.11/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:373: in _handle_exception
+    raise error
+.venv/lib/python3.11/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:195: in execute
+    self.await_(_cursor.execute(operation, parameters))
+.venv/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/aiosqlite/cursor.py:40: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+.venv/lib/python3.11/site-packages/aiosqlite/cursor.py:32: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/aiosqlite/core.py:160: in _execute
+    return await future
+           ^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+tx = <_queue.SimpleQueue object at 0x124c79b70>
+
+    def _connection_worker_thread(tx: _TxQueue):
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+    
+            future, function = tx.get()
+    
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+                         ^^^^^^^^^^
+E               sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) CHECK constraint failed: decider IS NULL OR requester <> decider
+E               [SQL: UPDATE approvals SET status = ?, decider = ?, decision = ?, reason = ?, updated_at = ?, decided_at = ? WHERE tenant_id = ? AND approval_id = ? AND approval_id IS NOT DISTINCT FROM ? AND tenant_id IS NOT DISTINCT FROM ? AND approval_action IS NOT DISTINCT FROM ? AND tool_name IS NOT DISTINCT FROM ? AND canonical_args_hash IS NOT DISTINCT FROM ? AND checkpoint_id IS NOT DISTINCT FROM ? AND policy_version IS NOT DISTINCT FROM ? AND expires_at IS NOT DISTINCT FROM ? AND status IS NOT DISTINCT FROM ? AND requester IS NOT DISTINCT FROM ? AND decider IS NOT DISTINCT FROM ? AND decision IS NOT DISTINCT FROM ? AND reason IS NOT DISTINCT FROM ? AND created_at IS NOT DISTINCT FROM ? AND updated_at IS NOT DISTINCT FROM ? AND decided_at IS NOT DISTINCT FROM ? AND campaign_id IS NOT DISTINCT FROM ? AND enrollment_version IS NOT DISTINCT FROM ? AND link_version IS NOT DISTINCT FROM ? AND selection_version IS NOT DISTINCT FROM ? AND selection_hash IS NOT DISTINCT FROM ? AND rule_snapshot_hash IS NOT DISTINCT FROM ?]
+E               [parameters: ('approved', 'campaign-admin', 'approve', None, datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), 'tenant', 'approval_30b0c1ed8b9342acaef426ffe38a418a', 'approval_30b0c1ed8b9342acaef426ffe38a418a', 'tenant', 'launch_approval', 'LaunchPlan', 'sha256:0d467c5d916c7cbae9727141eb631bb2b8c5b0fc9065822bff2ecebe368b4ecb', 'synthetic-saga:job_0226f00c28c1433aba69334612f0bb9c', 'local-v2', datetime.datetime(2026, 10, 22, 1, 0, tzinfo=TzInfo(0)), 'approved', 'campaign-admin', 'synthetic-approver', 'approve', None, datetime.datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)), datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), None, None, None, None, None, None)]
+E               (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+.venv/lib/python3.11/site-packages/aiosqlite/core.py:63: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x124e00c50>, db=<oria.storage.database.Database..._id='job_0226f00c28c1433aba69334612f0bb9c:lease:1', job_id='job_0226f00c28c1433aba69334612f0bb9c', checkpoint_id=None))
+change = 'sod'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", [
+        "missing", "pending", "rejected", "expired", "invalidated", "requester", "sod",
+        "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    ])
+    async def test_invalid_approval_never_adds_reservation(coupon, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "sod":
+                values["decider"] = values["requester"]
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+                    selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+>           await c.approvals._repository.replace(
+                Approval.model_validate(values), expected=c.approval
+            )
+
+tests/integration/test_v06_job_coupon_reservation.py:217: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <oria.storage.platform.SQLiteApprovalRepository object at 0x124e12fd0>
+approval = Approval(approval_id='approval_30b0c1ed8b9342acaef426ffe38a418a', approval_action='launch_approval', tool_name='Launch...e.timezone.utc), decided_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), business_binding=None)
+audit_event = None
+expected = Approval(approval_id='approval_30b0c1ed8b9342acaef426ffe38a418a', approval_action='launch_approval', tool_name='Launch...e.timezone.utc), decided_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), business_binding=None)
+
+    async def replace(
+        self,
+        approval: Approval,
+        audit_event: EventEnvelope | None = None,
+        *,
+        expected: Approval,
+    ) -> None:
+        if (approval.tenant_id, approval.approval_id) != (expected.tenant_id, expected.approval_id):
+            raise ApprovalConflict("approval identity changed")
+        expected_values = _approval_values(expected)
+        # Column names come solely from the fixed internal serializer, never client input.
+        predicate = " AND ".join(
+            f"{column} IS NOT DISTINCT FROM :expected_{column}" for column in expected_values
+        )
+        try:
+            async with self._sessions.begin() as session:
+                await set_session_tenant_context(session, approval.tenant_id)
+                await self._replace(
+                    session,
+                    approval,
+                    audit_event,
+                    expected_values=expected_values,
+                    predicate=predicate,
+                )
+        except LookupError:
+            raise
+        except IntegrityError as exc:
+>           raise ValueError("approval event already exists") from exc
+E           ValueError: approval event already exists
+
+src/oria/storage/platform.py:112: ValueError
+_____________ test_invalid_approval_never_adds_reservation[action] _____________
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12501b110>, db=<oria.storage.database.Database..._id='job_d718c21e7b1842e1a420b81b11b5eb40:lease:1', job_id='job_d718c21e7b1842e1a420b81b11b5eb40', checkpoint_id=None))
+change = 'action'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", [
+        "missing", "pending", "rejected", "expired", "invalidated", "requester", "sod",
+        "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    ])
+    async def test_invalid_approval_never_adds_reservation(coupon, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "sod":
+                values["decider"] = values["requester"]
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+                    selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            await c.approvals._repository.replace(
+                Approval.model_validate(values), expected=c.approval
+            )
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:221: Failed
+______________ test_invalid_approval_never_adds_reservation[tool] ______________
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x124f7d510>, db=<oria.storage.database.Database..._id='job_87443f0278c049529a3678bf3c545f6e:lease:1', job_id='job_87443f0278c049529a3678bf3c545f6e', checkpoint_id=None))
+change = 'tool'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", [
+        "missing", "pending", "rejected", "expired", "invalidated", "requester", "sod",
+        "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    ])
+    async def test_invalid_approval_never_adds_reservation(coupon, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "sod":
+                values["decider"] = values["requester"]
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+                    selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            await c.approvals._repository.replace(
+                Approval.model_validate(values), expected=c.approval
+            )
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:221: Failed
+______________ test_invalid_approval_never_adds_reservation[hash] ______________
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x124ee4610>, db=<oria.storage.database.Database..._id='job_143503216a6e4e4ea41f5df7fb9e1547:lease:1', job_id='job_143503216a6e4e4ea41f5df7fb9e1547', checkpoint_id=None))
+change = 'hash'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", [
+        "missing", "pending", "rejected", "expired", "invalidated", "requester", "sod",
+        "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    ])
+    async def test_invalid_approval_never_adds_reservation(coupon, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "sod":
+                values["decider"] = values["requester"]
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+                    selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            await c.approvals._repository.replace(
+                Approval.model_validate(values), expected=c.approval
+            )
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:221: Failed
+___________ test_invalid_approval_never_adds_reservation[checkpoint] ___________
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x124dffe50>, db=<oria.storage.database.Database..._id='job_08bfdb5b70ad4c3fa9f075bd9e8979fd:lease:1', job_id='job_08bfdb5b70ad4c3fa9f075bd9e8979fd', checkpoint_id=None))
+change = 'checkpoint'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", [
+        "missing", "pending", "rejected", "expired", "invalidated", "requester", "sod",
+        "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    ])
+    async def test_invalid_approval_never_adds_reservation(coupon, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "sod":
+                values["decider"] = values["requester"]
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+                    selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            await c.approvals._repository.replace(
+                Approval.model_validate(values), expected=c.approval
+            )
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:221: Failed
+____________ test_invalid_approval_never_adds_reservation[version] _____________
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x1247569d0>, db=<oria.storage.database.Database..._id='job_fec0308ee28843b2a59c2d84d661253a:lease:1', job_id='job_fec0308ee28843b2a59c2d84d661253a', checkpoint_id=None))
+change = 'version'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", [
+        "missing", "pending", "rejected", "expired", "invalidated", "requester", "sod",
+        "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    ])
+    async def test_invalid_approval_never_adds_reservation(coupon, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "sod":
+                values["decider"] = values["requester"]
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+                    selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            await c.approvals._repository.replace(
+                Approval.model_validate(values), expected=c.approval
+            )
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:221: Failed
+_______ test_invalid_approval_never_adds_reservation[downstream_binding] _______
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x124f0e7d0>, db=<oria.storage.database.Database..._id='job_71d8cf4eb50a4ac0a7148892c6d44081:lease:1', job_id='job_71d8cf4eb50a4ac0a7148892c6d44081', checkpoint_id=None))
+change = 'downstream_binding'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", [
+        "missing", "pending", "rejected", "expired", "invalidated", "requester", "sod",
+        "action", "tool", "hash", "checkpoint", "version", "tenant", "downstream_binding",
+    ])
+    async def test_invalid_approval_never_adds_reservation(coupon, change):
+        from oria.core.approvals import Approval, ApprovalBusinessBinding
+    
+        c = coupon
+        values = c.approval.model_dump()
+        approval_id = c.approval.approval_id
+        if change == "missing":
+            approval_id = "missing-approval"
+        elif change == "invalidated":
+            await c.approvals.invalidate_binding(c.approval, ctx=c.ctx)
+        elif change == "tenant":
+            values.update(tenant_id="other-tenant", approval_id="other-tenant-approval")
+            await c.approvals._repository.add(Approval.model_validate(values))
+            approval_id = values["approval_id"]
+        else:
+            if change == "pending":
+                values.update(status="pending", decider=None, decision=None, decided_at=None)
+            elif change == "rejected":
+                values.update(status="rejected", decision="reject", reason="synthetic rejection")
+            elif change == "expired":
+                values["expires_at"] = c.s.clock.now() + timedelta(seconds=1)
+                c.s.clock.advance(1)
+            elif change == "requester":
+                values["requester"] = "different-requester"
+            elif change == "sod":
+                values["decider"] = values["requester"]
+            elif change == "action":
+                values["approval_action"] = "consumer_publish_approval"
+            elif change == "tool":
+                values["tool_name"] = "other-tool"
+            elif change == "hash":
+                values["canonical_args_hash"] = "sha256:" + "a" * 64
+            elif change == "checkpoint":
+                values["checkpoint_id"] = "arbitrary-untrusted-pointer"
+            elif change == "version":
+                values["policy_version"] = "stale-policy-version"
+            elif change == "downstream_binding":
+                values["business_binding"] = ApprovalBusinessBinding(
+                    campaign_id=c.args.campaign_id, enrollment_version=1, link_version=0,
+                    selection_version="none", rule_snapshot_hash=c.plan.rule_snapshot_hash,
+                )
+            await c.approvals._repository.replace(
+                Approval.model_validate(values), expected=c.approval
+            )
+        before = await _counts(c.s)
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_job_coupon_reservation.py:221: Failed
+___ test_current_draft_version_change_is_rejected[recruitment_publications] ____
+
+coupon = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x124cb5dd0>, db=<oria.storage.database.Database..._id='job_37d448d76c7a42648087ab8f99ec9d12:lease:1', job_id='job_37d448d76c7a42648087ab8f99ec9d12', checkpoint_id=None))
+table = 'recruitment_publications'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("table", ["campaigns", "coupon_batches", "recruitment_publications"])
+    async def test_current_draft_version_change_is_rejected(coupon, table):
+        c = coupon
+        async with c.s.db.business_sessions.begin() as session:
+            await session.execute(text(f"UPDATE {table} SET version = version + 1"))
+        before = await _counts(c.s)
+>       with pytest.raises((PermissionError, ValueError)):
+E       Failed: DID NOT RAISE any of (PermissionError, ValueError)
+
+tests/integration/test_v06_job_coupon_reservation.py:275: Failed
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[expired]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[requester]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[sod]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[action]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[tool]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[hash]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[checkpoint]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[version]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_invalid_approval_never_adds_reservation[downstream_binding]
+FAILED tests/integration/test_v06_job_coupon_reservation.py::test_current_draft_version_change_is_rejected[recruitment_publications]
+10 failed, 24 passed, 1 warning in 25.38s

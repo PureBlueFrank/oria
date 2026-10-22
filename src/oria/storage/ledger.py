@@ -74,6 +74,32 @@ class SQLiteToolExecutionRepository:
         row = result.mappings().one_or_none()
         return None if row is None else _tool_from_row(dict(row))
 
+    async def _reserve_in_session(
+        self, session: AsyncSession, execution: ToolExecution
+    ) -> ToolExecution:
+        """Trusted caller owns the transaction and serializes the business scope."""
+        execution = ToolExecution.model_validate(execution.model_dump())
+        if execution.status != "reserved":
+            raise ValueError("reservation requires a reserved execution")
+        existing = await self._find_by_idempotency(
+            session, execution.tenant_id, execution.tool_name, execution.idempotency_key
+        )
+        if existing is not None:
+            if existing.canonical_args_hash != execution.canonical_args_hash:
+                raise ValueError("business idempotency scope conflicts with canonical payload")
+            return existing
+        await session.execute(
+            text(
+                f"INSERT INTO tool_executions ({_TOOL_COLUMNS}) VALUES "
+                "(:execution_id, :tenant_id, :tool_name, :idempotency_key, "
+                ":canonical_args_hash, :checkpoint_id, :status, :receipt_id, "
+                ":receipt_summary_hash, :compensation_status, :attempt_count, :created_at, "
+                ":updated_at, :executed_at)"
+            ),
+            execution.model_dump(),
+        )
+        return execution
+
     async def _reserve_with_status(
         self,
         execution: ToolExecution,

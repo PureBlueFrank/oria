@@ -1,0 +1,58 @@
+[
+  {
+    "command": [
+      "uv",
+      "run",
+      "ruff",
+      "format",
+      "--check",
+      "src/oria/domain/launch.py",
+      "src/oria/orchestrator/job_leases.py",
+      "src/oria/orchestrator/job_execution.py",
+      "src/oria/storage/jobs.py",
+      "src/oria/storage/job_execution.py",
+      "src/oria/storage/ledger.py",
+      "src/oria/storage/repositories.py",
+      "src/oria/permission/local.py",
+      "tests/integration/test_v06_job_execution_fencing.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.057
+  },
+  {
+    "command": [
+      "uv",
+      "run",
+      "ruff",
+      "check",
+      "src/oria/domain/launch.py",
+      "src/oria/orchestrator/job_leases.py",
+      "src/oria/orchestrator/job_execution.py",
+      "src/oria/storage/jobs.py",
+      "src/oria/storage/job_execution.py",
+      "src/oria/storage/ledger.py",
+      "src/oria/storage/repositories.py",
+      "src/oria/permission/local.py",
+      "tests/integration/test_v06_job_execution_fencing.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.056
+  },
+  {
+    "command": [
+      "uv",
+      "run",
+      "mypy",
+      "src/oria/domain/launch.py",
+      "src/oria/orchestrator/job_leases.py",
+      "src/oria/orchestrator/job_execution.py",
+      "src/oria/storage/jobs.py",
+      "src/oria/storage/job_execution.py",
+      "src/oria/storage/ledger.py",
+      "src/oria/storage/repositories.py",
+      "src/oria/permission/local.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.626
+  }
+]

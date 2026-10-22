@@ -157,6 +157,10 @@ class LocalPolicyEngine:
     async def evaluate(self, request: AuthorizationRequest, ctx: Context) -> PolicyDecision:
         """Evaluate Policy without I/O when its audit is part of a caller-owned transaction."""
 
+        return self.evaluate_now(request, ctx)
+
+    def evaluate_now(self, request: AuthorizationRequest, ctx: Context) -> PolicyDecision:
+        """The same local decision without I/O, usable at a DB commit dispatch boundary."""
         denial_code = self._denial_code(request, ctx)
         allowed = denial_code is None
         attribute_constraints = self._attribute_constraints(request)[0] if allowed else {}

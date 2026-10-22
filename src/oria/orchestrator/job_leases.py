@@ -35,6 +35,35 @@ class _DeferredDenial(PermissionError):
         self.request, self.ctx, self.decision = request, ctx, decision
 
 
+class _LeaseAuthorization:
+    """One recovered identity and the existing owner/scenario Policy requests."""
+
+    def __init__(
+        self,
+        service: JobLeaseService,
+        job: Job,
+        ctx: Context,
+        requests: tuple[AuthorizationRequest, ...],
+    ) -> None:
+        self._service, self._job, self._ctx, self._requests = service, job, ctx, requests
+
+    def _check(self, request: AuthorizationRequest, decision: PolicyDecision) -> None:
+        self._service._current(self._job, self._ctx)
+        if not decision.allow or decision.constraints.get("tenant_id") != self._job.tenant_id:
+            raise _DeferredDenial(request, self._ctx, decision)
+
+    async def __call__(self) -> None:
+        self._service._current(self._job, self._ctx)
+        for request in self._requests:
+            self._check(request, await self._service._policy.evaluate(request, self._ctx))
+
+    def check_commit(self) -> None:
+        """No await between current authority evaluation and DB COMMIT dispatch."""
+        self._service._current(self._job, self._ctx)
+        for request in self._requests:
+            self._check(request, self._service._policy.evaluate_now(request, self._ctx))
+
+
 class JobLeaseService:
     """Internal primitives only: no queue loop, Graph execution or external effects.
 
@@ -109,7 +138,9 @@ class JobLeaseService:
             raise PermissionError("job unavailable")
         return job
 
-    async def _authorize(self, job: Job) -> tuple[Context, Guard]:
+    async def _authorize(
+        self, job: Job, *, business_resource_id: str | None = None
+    ) -> tuple[Context, _LeaseAuthorization]:
         ctx = self._runtime.new_context(
             actor=self._actor(job),
             executor=self._executor,
@@ -132,7 +163,11 @@ class JobLeaseService:
                 resource=ResourceRef(
                     tenant_id=job.tenant_id,
                     resource_type=resource_type,
-                    resource_id=job.job_id,
+                    resource_id=(
+                        job.job_id
+                        if action == "job:execute"
+                        else business_resource_id or job.job_id
+                    ),
                 ),
                 context=AuthorizationContext(
                     correlation_id=ctx.correlation_id,
@@ -154,15 +189,7 @@ class JobLeaseService:
             if not decision.allow or decision.constraints.get("tenant_id") != job.tenant_id:
                 raise PermissionError("job execution unavailable")
 
-        async def guard() -> None:
-            self._current(job, ctx)
-            for request in requests:
-                decision = await self._policy.evaluate(request, ctx)
-                self._current(job, ctx)
-                if not decision.allow or decision.constraints.get("tenant_id") != job.tenant_id:
-                    raise _DeferredDenial(request, ctx, decision)
-
-        return ctx, guard
+        return ctx, _LeaseAuthorization(self, job, ctx, requests)
 
     async def _write(self, operation: Awaitable[T]) -> T:
         try:
@@ -213,13 +240,15 @@ class JobLeaseService:
         )
         return await self._update(job, replacement, ctx, guard, "claim", None)
 
-    async def _leased(self, token: JobLeaseToken) -> tuple[Job, Context, Guard]:
+    async def _leased(
+        self, token: JobLeaseToken, *, business_resource_id: str | None = None
+    ) -> tuple[Job, Context, _LeaseAuthorization]:
         token = JobLeaseToken.model_validate(token.model_dump())
         if token.tenant_id != self._executor.tenant_id or token.owner != self._owner:
             raise PermissionError("lease belongs to another worker")
         job = await self._load(token.job_id)
         validate_lease(job, token, self._now())
-        ctx, guard = await self._authorize(job)
+        ctx, guard = await self._authorize(job, business_resource_id=business_resource_id)
         return job, ctx, guard
 
     async def heartbeat(self, token: JobLeaseToken) -> Job:

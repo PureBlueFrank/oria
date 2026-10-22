@@ -1,0 +1,130 @@
+{
+  "schema_version": "1",
+  "mode": "workspace",
+  "repository": "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria",
+  "total_files": 17,
+  "reviewable_count": 3,
+  "excluded_count": 14,
+  "total_insertions": 1419,
+  "total_deletions": 6,
+  "reviewable_files": [
+    {
+      "path": "src/oria/orchestrator/job_execution.py",
+      "status": "modified",
+      "insertions": 156,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/storage/job_execution.py",
+      "status": "modified",
+      "insertions": 48,
+      "deletions": 3
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/ocr-preview.json",
+      "status": "added",
+      "insertions": 0,
+      "deletions": 0
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": "ARCHITECTURE.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-025-job-lease-and-fencing.md",
+      "status": "modified",
+      "insertions": 12,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/durable-jobs.md",
+      "status": "modified",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/01-valid-red.log",
+      "status": "added",
+      "insertions": 42,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/02-valid-green.log",
+      "status": "added",
+      "insertions": 37,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/03-bindings-boundaries.log",
+      "status": "added",
+      "insertions": 337,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/04-bindings-corrected.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/05-races-commit.log",
+      "status": "added",
+      "insertions": 96,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/06-targeted.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/07-lint.log",
+      "status": "added",
+      "insertions": 48,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/08-lint-corrected.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/design.md",
+      "status": "added",
+      "insertions": 11,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "tests/integration/test_v06_job_launch_approval.py",
+      "status": "added",
+      "insertions": 608,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    }
+  ]
+}

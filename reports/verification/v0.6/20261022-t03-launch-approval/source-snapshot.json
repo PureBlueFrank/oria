@@ -1,0 +1,16 @@
+{
+  "src/oria/core/approvals.py": "414565154acd636f05f42831279aad1ff5d10f54602812c8aefb6b4a77b9e2bc",
+  "src/oria/domain/launch.py": "a39732cb0ea551c8399f00daa053a74f320f3fc030cf46f8b8ffc8d26cc5bcd4",
+  "src/oria/orchestrator/job_execution.py": "9ed43657e1c013306fe1f32e1c20f2433ce4954b3cda93517a59fcdda7ef1283",
+  "src/oria/orchestrator/job_leases.py": "97131aa3067b4d7d80b3b3eae4a59f9a948c60b5362e479c0419c81b712b93dd",
+  "src/oria/permission/local.py": "e781295ea8b1cd13a96da62202877c00a7ecf85123cb93d5bffbf6bbceb8e236",
+  "src/oria/storage/job_execution.py": "70a0553095f77cdf79aa2e40fe1cd800cd658bea33faefd2f0aa89d5fc059476",
+  "src/oria/storage/jobs.py": "f782b26d35d9fc4cb71e066144a49f305a81770cc06d9a292598382d4fe472fb",
+  "src/oria/storage/ledger.py": "966e4090e6efe85e6af67bce96d59b76430c14d1a1408c0cbb9548dbd9953898",
+  "src/oria/storage/repositories.py": "8021f8513569452f6e31cda25d5e7b5a53471f1c3cb61c4cc4216aae0ed724a9",
+  "tests/integration/test_v06_job_coupon_reservation.py": "a8463d288a371b275f21a3d613924122e48c74df84e5137c3d09f98b0eac7cb9",
+  "tests/integration/test_v06_job_execution_fencing.py": "0f719f6c7cae79204526eee354ed3b2acc4f54631950100d9712d7fe39341297",
+  "tests/integration/test_v06_job_launch_approval.py": "71b8f8b75904384866cf56bdbdda7e3a38a0ec05dac3d3a34091f0e9b0cffdc9",
+  "pyproject.toml": "2480e383526b0ce2c12944ec2466671ae497f22b09ee9b35b266a6754dfdacfe",
+  "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def"
+}

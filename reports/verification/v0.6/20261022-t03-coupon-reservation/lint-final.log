@@ -1,0 +1,25 @@
+$ uv run ruff format --check src/oria/core/approvals.py src/oria/orchestrator/job_execution.py src/oria/storage/job_execution.py src/oria/storage/jobs.py tests/integration/test_v06_job_coupon_reservation.py
+5 files already formatted
+
+exit_code: 0
+$ uv run ruff check src/oria/core/approvals.py src/oria/orchestrator/job_execution.py src/oria/storage/job_execution.py src/oria/storage/jobs.py tests/integration/test_v06_job_coupon_reservation.py
+SIM117 Use a single `with` statement with multiple contexts instead of nested `with` statements
+   --> src/oria/orchestrator/job_execution.py:178:17
+    |
+176 |                   await guard()
+177 |                   await launch_guard()
+178 | /                 async with self._databases.business_sessions() as session:
+179 | |                     async with session.begin():
+    | |_______________________________________________^
+180 |                           checkpoint = await self._coupon_writer.prepare(session, job, args, plan)
+181 |                           approval = await self._approvals.bind(platform).get(
+    |
+help: Combine `with` statements
+
+Found 1 error.
+
+exit_code: 1
+$ uv run mypy src/oria/core/approvals.py src/oria/orchestrator/job_execution.py src/oria/storage/job_execution.py src/oria/storage/jobs.py
+Success: no issues found in 4 source files
+
+exit_code: 0

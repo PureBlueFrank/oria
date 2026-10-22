@@ -1,0 +1,29 @@
+{
+  "command": [
+    "uv",
+    "run",
+    "pytest",
+    "-q",
+    "tests/integration/test_v06_job_execution_fencing.py",
+    "tests/integration/test_v06_job_leases.py",
+    "tests/contract/test_v03_campaign_draft.py",
+    "tests/contract/test_v03_execution_ledger.py",
+    "tests/integration/test_v03_ledger_repositories.py",
+    "tests/unit/test_v06_job_inputs.py",
+    "tests/integration/test_v03_campaign_launch_recovery.py",
+    "tests/contract/test_v03_campaign_launch_contract.py",
+    "tests/security/test_v03_campaign_launch_security.py",
+    "tests/security/test_v02_policy_audit_boundaries.py",
+    "tests/contract/test_v02_policy_acl.py",
+    "-m",
+    "not live and not enterprise and not performance"
+  ],
+  "environment": {
+    "UV_CACHE_DIR": ".artifacts/uv-cache",
+    "UV_OFFLINE": "1",
+    "UV_NO_SYNC": "1"
+  },
+  "exit_code": 0,
+  "seconds": 56.843,
+  "log": "targeted-final.log"
+}

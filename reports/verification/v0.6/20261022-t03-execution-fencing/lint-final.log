@@ -1,0 +1,6 @@
+$ uv run ruff format --check src/oria/domain/launch.py src/oria/orchestrator/job_leases.py src/oria/orchestrator/job_execution.py src/oria/storage/jobs.py src/oria/storage/job_execution.py src/oria/storage/ledger.py src/oria/storage/repositories.py src/oria/permission/local.py tests/integration/test_v06_job_execution_fencing.py
+9 files already formatted
+$ uv run ruff check src/oria/domain/launch.py src/oria/orchestrator/job_leases.py src/oria/orchestrator/job_execution.py src/oria/storage/jobs.py src/oria/storage/job_execution.py src/oria/storage/ledger.py src/oria/storage/repositories.py src/oria/permission/local.py tests/integration/test_v06_job_execution_fencing.py
+All checks passed!
+$ uv run mypy src/oria/domain/launch.py src/oria/orchestrator/job_leases.py src/oria/orchestrator/job_execution.py src/oria/storage/jobs.py src/oria/storage/job_execution.py src/oria/storage/ledger.py src/oria/storage/repositories.py src/oria/permission/local.py
+Success: no issues found in 8 source files
