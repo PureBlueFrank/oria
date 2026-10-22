@@ -73,8 +73,12 @@ def _content_hash(event: VerifiedFeishuEvent) -> str:
         "sender": message.sender_ref,
         "target": message.target_ref,
         "text": message.text,
-        "action": event.action.model_dump() if event.action else None,
+        "action": event.action.model_dump(exclude_none=True) if event.action else None,
     }
+    # Preserve hashes of already committed pre-form receipts. Reasons are hashed,
+    # never copied into the ingress ledger or application logs.
+    if event.rejection_reason is not None:
+        content["rejection_reason"] = event.rejection_reason
     return hashlib.sha256(
         json.dumps(content, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()

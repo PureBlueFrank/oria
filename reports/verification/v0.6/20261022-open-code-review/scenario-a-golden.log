@@ -1,0 +1,1 @@
+{"case_count": 45, "dataset_version": "1", "metrics": {"case_pass_rate": 1.0, "critical_pass_rate": 1.0, "grounded_proposal_rate": 1.0, "outcome_accuracy": 1.0, "tool_sequence_accuracy": 1.0}, "ok": true, "output": ".artifacts/eval/scenario_a_v1.json", "passed_count": 45, "suite": "scenario_a"}

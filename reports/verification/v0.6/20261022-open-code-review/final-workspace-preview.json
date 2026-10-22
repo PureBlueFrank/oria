@@ -1,0 +1,902 @@
+{
+  "schema_version": "1",
+  "mode": "workspace",
+  "repository": ".",
+  "total_files": 133,
+  "reviewable_count": 43,
+  "excluded_count": 90,
+  "total_insertions": 8627,
+  "total_deletions": 85,
+  "reviewable_files": [
+    {
+      "path": "docs/demo/feishu/record-replay.html",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 1
+    },
+    {
+      "path": "pyproject.toml",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/api/app.py",
+      "status": "modified",
+      "insertions": 60,
+      "deletions": 4
+    },
+    {
+      "path": "src/oria/api/approvals.py",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/api/server.py",
+      "status": "modified",
+      "insertions": 17,
+      "deletions": 2
+    },
+    {
+      "path": "src/oria/ingress/approval_cards.py",
+      "status": "modified",
+      "insertions": 122,
+      "deletions": 23
+    },
+    {
+      "path": "src/oria/ingress/approval_delivery.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/ingress/feishu.py",
+      "status": "modified",
+      "insertions": 15,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/ingress/receipts.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/migrations/manifest.json",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 2
+    },
+    {
+      "path": "src/oria/migrations/runner.py",
+      "status": "modified",
+      "insertions": 64,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/permission/local.py",
+      "status": "modified",
+      "insertions": 16,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/presentation/im.py",
+      "status": "modified",
+      "insertions": 78,
+      "deletions": 5
+    },
+    {
+      "path": "src/oria/providers/demo.py",
+      "status": "modified",
+      "insertions": 12,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/resources/loader.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "LICENSE",
+      "status": "added",
+      "insertions": 202,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/checks.json",
+      "status": "added",
+      "insertions": 103,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/documentation-checks.json",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/package-content.json",
+      "status": "added",
+      "insertions": 19,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/source-snapshot.json",
+      "status": "added",
+      "insertions": 36,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/wheel-import.json",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/checks.json",
+      "status": "added",
+      "insertions": 62,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/documentation-checks.json",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/package-content.json",
+      "status": "added",
+      "insertions": 19,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/source-snapshot.json",
+      "status": "added",
+      "insertions": 18,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/checks.json",
+      "status": "added",
+      "insertions": 64,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/documentation-checks.json",
+      "status": "added",
+      "insertions": 18,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/documentation-initial.json",
+      "status": "added",
+      "insertions": 7,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/package-content.json",
+      "status": "added",
+      "insertions": 20,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/source-snapshot.json",
+      "status": "added",
+      "insertions": 65,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/wheel-import.json",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/checks.json",
+      "status": "added",
+      "insertions": 68,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/documentation-checks.json",
+      "status": "added",
+      "insertions": 15,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/package-content.json",
+      "status": "added",
+      "insertions": 23,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/source-snapshot.json",
+      "status": "added",
+      "insertions": 25,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/api/jobs.py",
+      "status": "added",
+      "insertions": 265,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/core/job_leases.py",
+      "status": "added",
+      "insertions": 132,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/core/jobs.py",
+      "status": "added",
+      "insertions": 286,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/migrations/platform/versions/platform_0012_approval_card_interactions.py",
+      "status": "added",
+      "insertions": 45,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/migrations/platform/versions/platform_0013_durable_job_admission.py",
+      "status": "added",
+      "insertions": 131,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/orchestrator/job_inputs.py",
+      "status": "added",
+      "insertions": 116,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/orchestrator/job_leases.py",
+      "status": "added",
+      "insertions": 301,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/storage/jobs.py",
+      "status": "added",
+      "insertions": 290,
+      "deletions": 0
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": "ARCHITECTURE.md",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "README.md",
+      "status": "modified",
+      "insertions": 8,
+      "deletions": 2,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "README_EN.md",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "modified",
+      "insertions": 17,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-037-api-identity-and-feishu-boundary.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 2,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/api-foundation.md",
+      "status": "modified",
+      "insertions": 19,
+      "deletions": 9,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/feishu-approval-validation.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/README.md",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "tests/contract/test_v06_feishu.py",
+      "status": "modified",
+      "insertions": 58,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/contract/test_v06_postgres_persistence.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_t03_data_init.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v03_execution_ledger_migration.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v03_platform_migration.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_approval_cards.py",
+      "status": "modified",
+      "insertions": 48,
+      "deletions": 3,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_approval_delivery.py",
+      "status": "modified",
+      "insertions": 12,
+      "deletions": 7,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_postgres_enterprise.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_transactional_approval_acceptance.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 3,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/security/test_t03_bypass_boundaries.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/security/test_v06_api_identity.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 1,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/unit/test_t03_resources_and_eligibility.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "docs/adr/ADR-014-durable-job-admission.md",
+      "status": "added",
+      "insertions": 31,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-025-job-lease-and-fencing.md",
+      "status": "added",
+      "insertions": 35,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-039-reasoned-approval-card-interactions.md",
+      "status": "added",
+      "insertions": 25,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/durable-jobs.md",
+      "status": "added",
+      "insertions": 105,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/licensing.md",
+      "status": "added",
+      "insertions": 47,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/build-final.log",
+      "status": "added",
+      "insertions": 4,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/build-first.log",
+      "status": "added",
+      "insertions": 4,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/community-final.log",
+      "status": "added",
+      "insertions": 180,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/community-first-pass.log",
+      "status": "added",
+      "insertions": 180,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/lint-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/lint-first.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/lint-review-adjustment.log",
+      "status": "added",
+      "insertions": 27,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/real-validation-plan.md",
+      "status": "added",
+      "insertions": 19,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/regression-before-tests.log",
+      "status": "added",
+      "insertions": 65,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/regression-before.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/smoke-final.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/summary.md",
+      "status": "added",
+      "insertions": 59,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-after-review.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-expanded.log",
+      "status": "added",
+      "insertions": 22,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-final.log",
+      "status": "added",
+      "insertions": 21,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-first.log",
+      "status": "added",
+      "insertions": 1236,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-second.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-verified.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/build.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/lint-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/lint-initial.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/lint-verified.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/regression.log",
+      "status": "added",
+      "insertions": 184,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/smoke.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/summary.md",
+      "status": "added",
+      "insertions": 36,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/targeted-expanded.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-graph-inputs/targeted-initial.log",
+      "status": "added",
+      "insertions": 29,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/build-initial.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/identity-contract.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/lint-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/lint-identity-format.log",
+      "status": "added",
+      "insertions": 14,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/lint-initial.log",
+      "status": "added",
+      "insertions": 16,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/lint.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/mypy-initial.log",
+      "status": "added",
+      "insertions": 3,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/regression-initial.log",
+      "status": "added",
+      "insertions": 209,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/regression.log",
+      "status": "added",
+      "insertions": 182,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/smoke.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/summary.md",
+      "status": "added",
+      "insertions": 45,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/targeted-expanded.log",
+      "status": "added",
+      "insertions": 18,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/targeted-final.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-admission/targeted-first.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/api-worker-separation-before.log",
+      "status": "added",
+      "insertions": 15,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/api-worker-separation-fixture-initial.log",
+      "status": "added",
+      "insertions": 20,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/build-final.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/build.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-initial.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-second.log",
+      "status": "added",
+      "insertions": 206,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-third.log",
+      "status": "added",
+      "insertions": 16,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-verified.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/regression-final.log",
+      "status": "added",
+      "insertions": 182,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/regression.log",
+      "status": "added",
+      "insertions": 185,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/smoke.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/summary.md",
+      "status": "added",
+      "insertions": 46,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/targeted-expanded.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/targeted-final.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-leases/targeted-initial.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "tests/contract/fixtures/feishu-approval-cards-v2.json",
+      "status": "added",
+      "insertions": 251,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_approval_interactions.py",
+      "status": "added",
+      "insertions": 263,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_job_graph_inputs.py",
+      "status": "added",
+      "insertions": 95,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_job_leases.py",
+      "status": "added",
+      "insertions": 640,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_job_lifecycle.py",
+      "status": "added",
+      "insertions": 165,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_jobs.py",
+      "status": "added",
+      "insertions": 412,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/unit/test_v06_job_inputs.py",
+      "status": "added",
+      "insertions": 180,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    }
+  ]
+}

@@ -38,4 +38,6 @@ HTTP 与飞书入口需要把已验证外部身份转换为现有 Principal/Poli
 
 ## 验证
 
+2026-10-21：带理由拒绝和逐次授权详情/翻页已接入同一受理事务，卡片表单使用 JSON 2.0，旧批准引用保持兼容。新增迁移及交互边界见 [ADR-039](ADR-039-reasoned-approval-card-interactions.md)。此前仅 approve 的描述保留为历史实现范围；新增真实表单/分页、本 revision 的 PostgreSQL 与 T02 总门禁仍待验收。
+
 见 [API 使用与限制](../guides/api-foundation.md) 和 [验证卡](../../reports/verification/v0.6/20261003-t02-foundation/summary.md)。现有失败/暂停 Live 卡保持不变，V0.6 Core 未完成。

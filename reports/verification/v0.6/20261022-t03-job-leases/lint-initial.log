@@ -1,0 +1,9 @@
+uv run ruff format --check .
+380 files already formatted
+uv run ruff check .
+All checks passed!
+uv run mypy src/oria
+src/oria/storage/jobs.py:227: error: Argument 2 to "validate_lease" has incompatible type "JobLeaseToken | None"; expected "JobLeaseToken"  [arg-type]
+src/oria/orchestrator/job_leases.py:279: error: Argument 1 to "aget_tuple" of "TenantCheckpointSaver" has incompatible type "RunnableConfig | None"; expected "RunnableConfig"  [arg-type]
+Found 2 errors in 2 files (checked 190 source files)
+make: *** [lint] Error 1

@@ -32,6 +32,8 @@ class CardAction(ValueModel):
     # Opaque reference resolved against server-owned approval/resource/version/wait.
     # Neither this reference nor a valid platform signature grants approval permission.
     action_ref: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    # An untrusted display selector, never a resource or decision selector.
+    page: int | None = Field(default=None, ge=1, le=20, strict=True)
 
 
 class VerifiedFeishuEvent(ValueModel):
@@ -39,6 +41,7 @@ class VerifiedFeishuEvent(ValueModel):
     binding: IdentityBinding
     message: InboundMessage
     action: CardAction | None = None
+    rejection_reason: str | None = Field(default=None, min_length=1, max_length=1000, repr=False)
     replay_key: str
     expires_at: float
 
@@ -153,6 +156,7 @@ class FeishuIngress:
             tenant = _text(header.get("tenant_key"))
             event = _object(document.get("event"))
             action = None
+            rejection_reason = None
             if header.get("event_type") == "im.message.receive_v1":
                 sender = _object(event.get("sender"))
                 if sender.get("sender_type") != "user" or sender.get("tenant_key") != tenant:
@@ -171,7 +175,15 @@ class FeishuIngress:
                 if operator.get("tenant_key") != tenant:
                     raise ValueError("untrusted operator")
                 subject = _text(operator.get("open_id"))
-                action = CardAction.model_validate(_object(event.get("action")).get("value"))
+                callback = _object(event.get("action"))
+                action = CardAction.model_validate(callback.get("value"))
+                if "form_value" in callback:
+                    form = _object(callback["form_value"])
+                    if set(form) != {"rejection_reason"}:
+                        raise ValueError("unsupported form fields")
+                    rejection_reason = _text(form["rejection_reason"], limit=1000).strip()
+                    if not rejection_reason:
+                        raise ValueError("rejection requires a reason")
                 context = _object(event.get("context"))
                 chat = _text(context.get("open_chat_id"))
                 source_id = _text(context.get("open_message_id"))
@@ -186,6 +198,7 @@ class FeishuIngress:
                 source_id,
                 subject if action else "",
                 action.action_ref if action else "",
+                *([str(action.page)] if action is not None and action.page is not None else []),
             )
             return VerifiedFeishuEvent(
                 kind=kind,
@@ -203,6 +216,7 @@ class FeishuIngress:
                     dedupe_key=dedupe,
                 ),
                 action=action,
+                rejection_reason=rejection_reason,
                 replay_key=_digest(self.settings.app_id, replay_timestamp, nonce),
                 expires_at=stamp + self.settings.max_age_seconds,
             )

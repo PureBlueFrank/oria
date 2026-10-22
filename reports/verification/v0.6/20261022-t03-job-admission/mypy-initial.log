@@ -1,0 +1,3 @@
+src/oria/storage/jobs.py:126: error: Argument 1 to "_job" has incompatible type "RowMapping"; expected "Mapping[str, Any]"  [arg-type]
+src/oria/storage/jobs.py:164: error: Argument 1 to "_job" has incompatible type "RowMapping"; expected "Mapping[str, Any]"  [arg-type]
+Found 2 errors in 1 file (checked 187 source files)

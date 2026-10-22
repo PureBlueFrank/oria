@@ -31,7 +31,8 @@
     const data = window.ORIA_FEISHU_REPLAY;
     const byId = id => document.getElementById(id);
     const text = (tag, value, className = '') => {const node = document.createElement(tag); node.textContent = value; node.className = className; return node;};
-    let current = Math.min(data.scenes.length - 1, Math.max(0, Number(new URLSearchParams(location.search).get('scene')) || 0));
+    const initial = Number(new URLSearchParams(location.search).get('scene'));
+    let current = Number.isInteger(initial) ? Math.min(data.scenes.length - 1, Math.max(0, initial)) : 0;
     let timer;
     function cardNode(card, full = false) {
       const block = document.createElement('article'); block.className = 'reply';

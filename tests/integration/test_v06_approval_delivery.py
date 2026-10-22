@@ -86,7 +86,7 @@ async def delivery_stack(tmp_path):
                         state.directory = IdentityDirectory(bindings=(sender,))
                     return httpx.Response(200, json={"code": 0, "data": {"message_id": "card-msg"}})
                 # The binding must already be committed when buttons become visible.
-                assert (await _counts(databases))["approval_card_bindings"] == 1
+                assert (await _counts(databases))["approval_card_bindings"] == 3
                 return httpx.Response(200, json={"code": 0})
 
             async def token(tenant):
@@ -135,7 +135,8 @@ async def _deliver(state, **kwargs):
 
 def _action(state):
     active = json.loads(state.calls[-1][2]["content"])
-    return CardAction.model_validate(active["elements"][-1]["actions"][0]["value"])
+    button = next(element for element in active["body"]["elements"] if element["tag"] == "button")
+    return CardAction.model_validate(button["behaviors"][0]["value"])
 
 
 @pytest.mark.asyncio
@@ -150,7 +151,7 @@ async def test_delivery_binds_confirmed_message_before_activation_and_callback_u
     inactive = json.loads(state.calls[0][2]["content"])
     active = json.loads(state.calls[1][2]["content"])
     assert inactive["config"]["update_multi"] and active["config"]["update_multi"]
-    assert all(item["tag"] != "action" for item in inactive["elements"])
+    assert all(item["tag"] not in {"button", "form"} for item in inactive["body"]["elements"])
     assert state.calls[1][1].path == "/open-apis/im/v1/messages/card-msg"
     assert set(state.calls[1][2]) == {"content"}
     assert "checkpoint-secret" not in json.dumps(active)
@@ -179,7 +180,11 @@ async def test_delivery_binds_confirmed_message_before_activation_and_callback_u
         assert card["type"] == "raw" and card["data"]["config"]["update_multi"]
         assert "已批准" in response.text
         assert "checkpoint-secret" not in response.text and action.action_ref not in response.text
-        assert all(item["tag"] != "action" for item in card["data"]["elements"])
+        assert all(item["tag"] != "form" for item in card["data"]["body"]["elements"])
+        assert all(
+            item.get("text", {}).get("content") != "批准"
+            for item in card["data"]["body"]["elements"]
+        )
         committed = await _counts(state.databases)
         assert committed["ingress_receipts"] == 1
         assert (await state.repository.get("tenant", "approval-card")).status == "approved"
@@ -196,10 +201,10 @@ async def test_delivery_binds_confirmed_message_before_activation_and_callback_u
     [
         ("POST_timeout", ["POST"], 0, "delivery_unknown"),
         ("POST_rejected", ["POST"], 0, "provider_rejected"),
-        ("PATCH_timeout", ["POST", "PATCH"], 1, "delivery_unknown"),
-        ("PATCH_rejected", ["POST", "PATCH"], 1, "provider_rejected"),
+        ("PATCH_timeout", ["POST", "PATCH"], 3, "delivery_unknown"),
+        ("PATCH_rejected", ["POST", "PATCH"], 3, "provider_rejected"),
         ("revoked_after_send", ["POST"], 0, "card_binding_unavailable"),
-        ("revoked_before_patch", ["POST"], 1, "card_binding_unavailable"),
+        ("revoked_before_patch", ["POST"], 3, "card_binding_unavailable"),
     ],
 )
 @pytest.mark.asyncio

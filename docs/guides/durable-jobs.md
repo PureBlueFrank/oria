@@ -1,0 +1,105 @@
+# Durable Job 本地受理（V0.6-T03 进行中）
+
+已支持创建会话、幂等提交两类结构化任务、查询和取消，状态与事件持久保存到 SQLite。两场景的 Graph 输入适配也已有独立本地验证。当前服务只受理任务，`queued` 不会自动开始执行；实际调度、飞书槽位对话、事件恢复与独立 worker 仍待接入。
+
+## 显式启用
+
+沿用 [API 身份配置](api-foundation.md)，在服务端 JSON 中增加：
+
+```json
+{
+  "jwt": {
+    "issuer": "https://identity.example",
+    "audience": "oria",
+    "jwks_url": "https://identity.example/.well-known/jwks.json"
+  },
+  "identity_file": "identities.json",
+  "approval_runtime_config": "runtime.yaml",
+  "job_service": true
+}
+```
+
+`job_service` 默认为 false，只接受布尔值。它要求显式运行时文件，目前限定 Mock/Fixture 与 SQLite，共用审批运行时；`--local` 不自动初始化或启用存储。运行时 YAML 采用原有格式，例如 `data_dir: /absolute/path/to/initialized-test-data`。部署方先通过既有 `oria db upgrade` 入口显式升级；API 只读验证 `platform_0013`/`business_0011` 及 schema，缺库或旧库会停止启动，不自动迁移用户数据。
+
+```bash
+uv run oria api serve --config /path/to/private/server.json
+```
+
+启用后 `GET /v1/health` 中 `job_service` 为 `admission_only`。未启用时已认证的任务请求返回 503；未认证请求仍按原鉴权规则拒绝。没有新增环境变量。
+
+## 请求
+
+所有请求均使用既有 JWT。以下示例是 JSON 请求体，不含可用身份或令牌。
+
+1. `POST /v1/sessions`，请求 `{}`，返回 201 及服务端生成的 `session_id/created_at`。
+2. `POST /v1/jobs`，必须携带 `Idempotency-Key: example-20261022-1`，返回 202 和 Job 当前状态。用第一步的 session ID 替换示例值。
+
+归因：
+
+```json
+{
+  "session_id": "session_0123456789abcdef0123456789abcdef",
+  "spec": {
+    "scenario": "attribution",
+    "metric": "redemptions",
+    "period": {"start_date": "2026-07-01", "end_date": "2026-07-07"},
+    "region": "上海"
+  }
+}
+```
+
+招商：
+
+```json
+{
+  "session_id": "session_0123456789abcdef0123456789abcdef",
+  "spec": {
+    "scenario": "campaign",
+    "categories": ["餐饮"],
+    "cities": ["上海"],
+    "enrollment_mode": "hybrid",
+    "max_candidates": 10
+  }
+}
+```
+
+归因沿用 AnalyticsPeriod（起止日期之差最多 366 天，含首尾最多 367 个日历日）与枚举指标，可选 region/category。招商每组过滤值最多 10 个且不能重复，候选上限 1–100，报名模式沿用 `merchant/auto/hybrid`。HTTP 不接受自由自然语言或客户端自报 tenant、actor、role、checkpoint、wait、lease 和 status。未知字段返回 422，错误不回显输入。
+
+3. `GET /v1/jobs/{job_id}` 查询自己的任务。只返回任务/会话 ID、场景、状态、revision、尝试预算、取消标记和时间；不返回原始提交、主体引用、内部 thread/run/checkpoint、lease 或幂等键。
+4. `POST /v1/jobs/{job_id}/cancel`，可不传请求体或传 `{}`。queued/waiting/retry 直接取消；running 只请求取消，重复请求返回已有状态。成功/失败终态返回 409。当前 API 不会自行创建 running/waiting 状态。
+
+## 幂等、授权和恢复
+
+幂等键仅允许 1–128 个 ASCII 字母、数字或 `._:-`，数据库只保存摘要。范围为可信租户与内部主体；同键同内容重试返回已有 Job 的当前状态，同键换内容或换 session 返回 409。创建新任务应换键。客户端应保存 session/job ID；服务重启后仍可凭原 JWT 查询或用原键重试。
+
+operator 与 campaign_admin 可创建自己的会话并提交、读取和取消自己的任务；招商另需既有 `campaign:draft:write`，归因另需 `analytics:read`。不能读取、提交到或取消其他人的会话/Job；不存在、跨主体和跨租户统一 404。每次操作及提交前重查身份和 Policy，撤权期间的写入会回滚。排队授权不能替代未来 worker 的业务授权。
+
+状态与序号事件同事务保存，事件写失败时 Job 及幂等占位也回滚。取消是协作式请求，不撤销已提交的数据库或外部副作用。新迁移不会覆盖审批数据；只要新表有任一记录就拒绝降级，不自动删除历史数据。
+
+本增量仅验证临时 SQLite、Mock/Fixture、JWT/Policy 与独立进程持久读取/应用重启；没有运行新 PostgreSQL、真实模型或真实飞书。飞书文本回调仍缺少 Job 消息处理器，不因打开本开关而被受理。见 [ADR-014](../adr/ADR-014-durable-job-admission.md)、[ADR-025](../adr/ADR-025-job-lease-and-fencing.md)和[受理验证卡](../../reports/verification/v0.6/20261022-t03-job-admission/summary.md)。
+
+## 两场景 Graph 输入适配（2026-10-22）
+
+受信内部调用可使用 `oria.orchestrator.job_inputs` 的 `campaign_job_input(job, ctx, template=...)` 与 `attribution_job_input(job, ctx)`。两者只生成现有 Graph 的初始 state，不调用模型、写数据库或推进 Job。Job 必须为全新 queued、attempt/epoch 为 0、没有取消请求或 accepted checkpoint；Context 中的 tenant、owner、session/thread/run/job ID 必须逐项一致，executor 必须为同租户 service，恢复 Context 不能用来重建初始输入。也会重新验证持久快照与 request hash。
+
+招商必须显式传入服务端 `ScenarioAWorkflowRequest` 模板，沿用已有物料/补偿、选品、投放、通知和有效期契约；不调用 CLI 的固定合成默认值。适配层只从已确认槽位生成规范请求，设置候选上限/报名模式，以 Job ID 派生稳定业务 ID 和幂等键，effective_at 取提交时刻。两个等待有效期必须晚于该时刻且不超过 Job timeout，超出直接拒绝，不静默截断。投放和通知策略继续由服务端模板决定。
+
+归因复用既有 `initial_attribution_state`、ResearchSpec 和固定版本 Prompt，将指标、起止日期、区域/类目编码作为规范数据输入，并绑定当前租户。执行方仍须显式装配已有的只读 AnalyticsQueryStore 和五工具 registry，沿用归因预算、证据校验、动态选路和弃答规则。输入适配不提供业务数据，也不生成或猜测结论。
+
+本地输入契约 E2E-F 已覆盖招商到达真实审批中断及归因的两种不同调查路径；这不代表持久化 Job 已执行、已恢复或已获得执行权。HTTP 仍为 `admission_only`。身份恢复与 Job 租约原语见下节；实际调度和领域副作用 fencing 尚未接入。详见[输入适配验证卡](../../reports/verification/v0.6/20261022-t03-graph-inputs/summary.md)。
+
+## 内部身份恢复与 Job 租约（2026-10-22）
+
+`JobLeaseService` 是受信内部接口，未装配到默认 API，也没有队列轮询或 Graph runner。配置必须显式提供已被 LocalPolicy 信任的独立 service executor，角色含 `job_worker`；API executor 的 `runtime` 角色不能替代它。每个实例具有独立 owner，服务固定到该 executor 的 tenant。服务不会自动把传入的 principal 加入可信集合。
+
+worker 与当前目录中的 API executor 必须使用不同的 service ID，双角色或额外策略信任不能替代这条隔离。实例标识默认为每次新建的 UUID；显式 instance_id 仅用于当前进程生命周期，不能在不同启动间复用固定值。
+
+每次操作从 Job 保存的 issuer/external subject 重载当前 actor，核对原 tenant/internal subject；只继承业务发起人的稳定身份，不继承其原 API executor、bearer 或角色快照。`job:execute` 同时要求所有者、operator/campaign_admin 和受信 worker，招商另查 `campaign:draft:write`，归因另查 `analytics:read`。读取后、异步鉴权后及事务提交前均重查目录与 Policy。当前 LocalPolicy 的可信 principal 集合由启动装配；目录属性变化会失败关闭，新的合法属性仍需受信运行时/策略重新装配。
+
+`claim(job_id)` 以完整快照 CAS 领取 queued 或已到期的 running Job，同事务记录事件。每次领取都增加 epoch；首次执行 attempt=1，正常等待后的 queued 续行保持 attempt，过期 running 接管才增加失败尝试。超过失败预算、取消状态或 Job timeout 均不能接管。租约默认 30 秒，可在内部配置为 1–300 秒，并受 Job deadline 限制。`lease_token(claimed_job)` 只提取已保存的 tenant/job/owner/epoch；单凭 token 不能取得任何权限。
+
+`heartbeat(token)` 续租且保持 attempt/epoch；`finish(token, status)` 只允许合法终态/等待态并清除 lease。取消请求后只接受 cancelled/failed，不能再提交成功或等待。每次写入前后均检查租约期限，旧 token、不同实例和撤权会拒绝；写入或事件失败同事务回滚。此处的 finish 是受信执行器原语，不能据此把未运行的业务标为成功；未来 runner 仍须验证 Graph 结果。
+
+`publish_checkpoint(token, checkpoint_id)` 要求显式 tenant-scoped 官方 saver。namespace 只能由当前 Job/epoch 派生，不能由调用方指定；checkpoint 必须已存在。同 epoch 仅能沿 accepted 父链推进（最多回溯 256 个），重复发布同一指针不新增事件，祖先/兄弟/其他 namespace 均拒绝。指针推进仍重新鉴权并走租约 CAS；新 epoch 保留原 accepted pointer，旧 epoch 的迟到写入不改变它。orphan 清理尚未实现。
+
+本地已覆盖两执行实例与两独立仓储进程竞争、续租、暂停过期、接管后旧 token、取消、真实 SQLite saver 指针与 lineage、目录/Policy 撤权及回滚。仓储子进程用受信测试 guard 验证 SQL/CAS，不代表完整 worker 进程或生产接管。当前仅保护 Job 行和 accepted pointer，领域提交、execution ledger reservation、外部调用前 fencing、自动 retry/timeout 回收及独立 worker 尚未接入；不得将其用于真实任务自动执行。没有新环境变量、迁移或外部连接。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)和[本轮验证卡](../../reports/verification/v0.6/20261022-t03-job-leases/summary.md)。

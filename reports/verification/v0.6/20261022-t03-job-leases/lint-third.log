@@ -1,0 +1,16 @@
+uv run ruff format --check .
+381 files already formatted
+uv run ruff check .
+E501 Line too long (106 > 100)
+   --> tests/integration/test_v06_job_leases.py:292:101
+    |
+290 |             await session.execute(
+291 |                 text(
+292 |                     "SELECT count(*) FROM audit_events WHERE action = 'job:execute' AND decision = 'deny'"
+    |                                                                                                     ^^^^^^
+293 |                 )
+294 |             )
+    |
+
+Found 1 error.
+make: *** [lint] Error 1

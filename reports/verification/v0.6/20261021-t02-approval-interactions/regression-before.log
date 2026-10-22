@@ -1,0 +1,2 @@
+error: Failed to initialize cache at `[user-home]/.cache/uv`
+  Caused by: failed to open file `[user-home]/.cache/uv/sdists-v9/.git`: Operation not permitted (os error 1)

@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-10-22T09:17:27.478451+08:00",
+  "baseline_head": "02261a59e46927eedfaf1a9518c282bd256f8276",
+  "inherited_evidence": "../20261022-t03-graph-inputs/source-snapshot.json",
+  "python": "3.11.15",
+  "uv": "0.12.6",
+  "files_sha256": {
+    "src/oria/core/jobs.py": "f1b8ad53d0d25e4ef64abeb1a4463064bc7d495e37246680a1340b0693041ae1",
+    "src/oria/core/job_leases.py": "9b799d0983b991b9a4919efb1ee56e7427da71b8e2e799e577378d614d3e75bf",
+    "src/oria/storage/jobs.py": "20ada7ae9ae8fe664e41ff11293e9bcecca727c81416a196b3aad6e43ee27563",
+    "src/oria/orchestrator/job_leases.py": "964f4eaf468d1835553e0ac133b4ae6845aaa987e9cf0dd1e323b284f685ed59",
+    "src/oria/permission/local.py": "4b6b87feb7fcd5d959f2edec8ab646415e3262bb8a9e7753748a06cf5d18efca",
+    "tests/integration/test_v06_job_leases.py": "bdba75e9536a5acf624f172ba73e1f47b60fa74f49507c57ca52d0b6fd02374d",
+    "pyproject.toml": "8e21b42f57e9679759227c41ef3ccee8cf0cccd0331a3e00034d39afbcda665f",
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def",
+    "src/oria/migrations/manifest.json": "69989bb324c16098d1d8989c42ce91be4536f5b66246b1198c794a30fc0861cf",
+    "docs/adr/README.md": "07743f423b9ce81ff41c68b29c990eada54b1e9e34ee62831a406f69040b4ea1",
+    "docs/adr/ADR-025-job-lease-and-fencing.md": "fce546ee1bb16c04218a258ac1d47ced437bb02ddfc676624cc828dc5fb537bb",
+    "docs/adr/ADR-014-durable-job-admission.md": "28a32037bd6e0e6e6953127277524f4f90d5349b0e0142fd20afc6e8f7b04024",
+    "docs/guides/durable-jobs.md": "59333b2d2f75db2714d4abcad119d12e6b4dc1ba475f786aeaafed2b0a68ae73",
+    "ROADMAP.md": "0ef093712cbe595de0b17ae0b83637d6c740ef87554cf330c22548d01dba6ab5",
+    "docs/Oria详细执行路线.md": "caf048c0f241bf06dfda69b6bb2979740a27d3187fba67c8a51f602fa40b8eba",
+    "reports/verification/README.md": "0ca7adc28f35495603b6ed7a7e91d03eb9173c1e8cf55b8b779363c243f7f11f"
+  }
+}

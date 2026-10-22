@@ -42,7 +42,7 @@ class ApprovalCardDelivery:
         chat_id: str,
         delivery_id: str,
     ) -> SendResult:
-        """Deliver one approve card; the initiator is never implicitly its approver."""
+        """Deliver one approval card; the initiator is never implicitly its approver."""
         if not delivery_id or len(delivery_id) > 50:
             raise ValueError("invalid delivery ID")
 

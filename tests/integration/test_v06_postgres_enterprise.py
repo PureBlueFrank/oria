@@ -84,7 +84,7 @@ async def test_real_postgres_revision_chains_repository_contract_and_rls_reset(
     approval_id = f"approval-{run_prefix}"
     merchant_id = f"merchant-{run_prefix}"
     revisions = upgrade_databases(config)
-    assert revisions.platform_revision == "platform_0011"
+    assert revisions.platform_revision == "platform_0013"
     assert revisions.business_revision == "business_0011"
 
     async with DatabaseResources(config) as databases:

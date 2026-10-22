@@ -1,0 +1,7 @@
+{
+  "result": "failed",
+  "missing_links": [
+    "source-snapshot.json"
+  ],
+  "reason": "snapshot file not yet generated when links checked"
+}

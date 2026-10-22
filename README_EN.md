@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-Oria is an open-source AI Agent engineering project for the full lifecycle of merchant recruitment campaigns.
+Oria is an AI Agent platform for the full lifecycle of merchant recruitment campaigns, with an **Apache 2.0 open-source Community edition and a proprietary commercial Enterprise edition**. This repository contains the open-source Community edition; proprietary Enterprise extensions are distributed separately. See [licensing and edition boundaries](docs/licensing.md#english).
 
 A complete campaign spans requirement understanding, rule retrieval, merchant and product screening, campaign and coupon planning, multi-party approvals, enrollment and product collection, post-recruitment assortment selection, channel publishing, and result notification. Some work benefits from an LLM's ability to process unstructured information and perform open-ended analysis; eligibility rules, authorization boundaries, and business side effects must remain deterministic. Oria brings both into one executable, recoverable, and auditable system: the LLM handles understanding, exploration, and explanation, while deterministic policies, state machines, approvals, idempotency ledgers, and evidence validation control the final boundary.
 
@@ -86,3 +86,9 @@ make smoke
 - Planning and evidence: [Roadmap](ROADMAP.md) · [Verification evidence index](reports/verification/README.md) · [Verification template](reports/verification/TEMPLATE.md)
 
 Dependencies must be synchronized through `uv.lock`. The repository does not commit secrets, tokens, real customer data, or `.env` files.
+
+## License and Enterprise Edition
+
+This repository is licensed under the [Apache License 2.0](LICENSE), which permits commercial use, modification, and redistribution subject to its terms. Proprietary Enterprise modules are distributed separately through private repositories or packages under a commercial license; the public core remains under Apache 2.0.
+
+The PostgreSQL, authorization, approval, and enterprise integration implementations published in this repository are also open source. `edition=production` selects runtime configuration, and the `enterprise` test marker identifies a verification category; neither changes the license. Enterprise capabilities and delivery status are documented separately. See [licensing and edition boundaries](docs/licensing.md#english).

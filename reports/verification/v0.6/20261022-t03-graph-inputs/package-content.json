@@ -1,0 +1,19 @@
+{
+  "wheel": "oria-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "a274a9e1e86a430c8977ac620d437f9e2508f879641a15b4afdb9564f06e8ae3",
+  "matching_modules": [
+    "orchestrator/job_inputs.py",
+    "providers/demo.py",
+    "migrations/manifest.json"
+  ],
+  "all_matching": true,
+  "workspace_cache_excluded": true,
+  "wheel_import": {
+    "imported_from_built_wheel": true,
+    "heads": {
+      "platform": "platform_0013",
+      "business": "business_0011"
+    },
+    "job_input_adapters_imported": true
+  }
+}

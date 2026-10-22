@@ -1,6 +1,6 @@
 # API 与飞书入口基础（V0.6-T02 进行中）
 
-当前交付可运行的 HTTP 外壳、JWT 身份映射、资源授权接缝、飞书签名/加密回调解析和出站适配器、IM v1 展示模型，以及事务化持久去重接收器。审批详情与决定 HTTP 路由、持久审批卡片绑定和原子批准处理器已实现；服务启动可显式装配飞书审批受理，共用审批运行时。新增受信内部卡片投递/激活服务和批准回调的结果卡片响应；默认 CLI/API 不自动发送卡片。尚未交付 Job 提交/查询/取消或真实飞书双场景链路。不要把 HTTP 健康检查或合成回调通过解释为企业接入完成。
+当前交付可运行的 HTTP 外壳、JWT 身份映射、资源授权接缝、飞书签名/加密回调解析和出站适配器、IM v1 展示模型，以及事务化持久去重接收器。审批详情与决定 HTTP 路由、持久审批卡片绑定和原子批准处理器已实现；服务启动可显式装配飞书审批受理，共用审批运行时。新增受信内部卡片投递/激活服务和批准回调的结果卡片响应；默认 CLI/API 不自动发送卡片。2026-10-22 起可另行显式启用 [Job 会话/提交/查询/取消](durable-jobs.md)，当前仅持久化受理；Graph 与真实飞书双场景链路尚未接通。
 
 ## 本地启动
 
@@ -49,7 +49,7 @@ uv run oria api serve --config /path/to/private/server.json
 
 只接受固定 RS256 与至少 2048 位 RSA 公钥，要求 `iss/aud/sub/exp/iat`，校验签名和时间；`nbf` 存在时也校验。JWKS 仅从服务端配置的 HTTPS 地址获取，不跟随重定向、不读取 token 中的 URL。缓存最多 60 秒，刷新最短间隔 5 秒；密钥轮换需保留足够重叠窗口，未知 key 在刷新冷却期内失败关闭。生产代理负责 HTTPS 终止和请求速率限制。配置的 issuer/JWKS URL 属于部署信任根。
 
-JWT 中即使签有 `tenant/roles` 也不会被用作授权事实；仅 `(issuer, sub)` 选择目录中的当前 Principal。资源层 `authorize_resource` 还会重新解析身份、检查租户、复用现有 PolicyEngine，并对审批执行职责分离。资源必须先按可信 tenant 查询；不存在与拒绝都返回相同错误。审批路由已复用既有 ApprovalService 的 tenant 查询与 Policy；Job 路由仍未连接，不能据此声明双场景全链路验收完成。
+JWT 中即使签有 `tenant/roles` 也不会被用作授权事实；仅 `(issuer, sub)` 选择目录中的当前 Principal。资源层 `authorize_resource` 还会重新解析身份、检查租户、复用现有 PolicyEngine，并对审批执行职责分离。资源必须先按可信 tenant 查询；不存在与拒绝都返回相同错误。审批路由复用既有 ApprovalService 的 tenant 查询与 Policy；Job 路由另加所有者及场景权限校验，提交不等于 Graph 已执行。
 
 错误统一为 `{code, message, request_id, retryable, details}`，不返回异常原文、校验输入、外部响应、令牌或回调正文。`request_id` 由服务端生成；响应禁止缓存。OpenAPI 可在 `/openapi.json` 查看，完整 snapshot/drift 门禁仍属 T06。
 
@@ -75,7 +75,7 @@ data_dir: /absolute/path/to/initialized-oria-data
 
 数据库必须事先通过已有 `oria db upgrade --config /path/to/runtime.yaml` 或演示数据初始化流程准备。启动只读核验两条迁移链和完整 schema；缺库、旧版本或损坏时停止，不创建数据库、不自动迁移。通过检查后启动现有运行时，其 saver、向量索引和对象存储会在配置的数据目录初始化运行所需资源。部署操作须自行明确授权；本次测试只使用临时目录。
 
-仍使用 `oria api serve --config /path/to/server.json` 启动。应用 lifespan 管理审批运行时、数据库和 HTTP 客户端；启动失败与正常关闭均回收资源。审批决定持久化在上述 platform 数据库。身份目录的启动快照提供 Policy 信任集合，每次请求仍读取当前目录；撤销映射即时生效，新增用户或角色变更需重启，使 Policy 快照同步。`--local` 不启用审批服务。默认不启用飞书 receiver；显式启用方法见下节，Job、真实模型和 PostgreSQL 接入仍未装配。
+仍使用 `oria api serve --config /path/to/server.json` 启动。应用 lifespan 管理审批运行时、数据库和 HTTP 客户端；启动失败与正常关闭均回收资源。审批决定持久化在上述 platform 数据库。身份目录的启动快照提供 Policy 信任集合，每次请求仍读取当前目录；撤销映射即时生效，新增用户或角色变更需重启，使 Policy 快照同步。`--local` 不启用审批服务。默认不启用飞书 receiver；显式启用方法见下节。Job 可另行[显式启用持久化受理](durable-jobs.md)，实际 Graph 执行、真实模型和 PostgreSQL API 接入仍未装配。
 
 ## 启用飞书审批受理（2026-10-16）
 
@@ -116,16 +116,16 @@ HTTP 审批与飞书回调共享同一个应用生命周期中的 RuntimeService
 - URL challenge 验证 Verification Token；支持 AES-256-CBC 加密载荷。携带签名头的 challenge 也必须通过验签。
 - 普通回调要求完整签名、时间窗、应用 ID、Token 和平台租户/用户一致；使用 SHA-256(timestamp + nonce + encrypt_key + 原始 body) 验签后解密。
 - 身份目录使用 issuer `feishu:<app_id>:<tenant_key>` 与 subject `open_id`，不从文本或卡片 value 获取角色/租户。
-- 消息按平台 source message 派生稳定去重键；卡片 value 只允许版本和不透明 `action_ref`。该引用不等于审批授权，后续处理器必须在服务端绑定资源/版本/wait 并重新鉴权。
+- 消息按平台 source message 派生稳定去重键；卡片 value 只允许版本、不透明 `action_ref` 和可选的严格整数 `page`（1–20）。页码仅用于展示，实际页数在授权后验证。该引用不等于审批授权，处理器必须在服务端绑定资源/版本并重新鉴权，Job/wait 仍待后续。
 - `TransactionalFeishuReceiver` 已实现持久 source/action/replay 去重：`platform_0010` 新增只保存键、摘要与回执引用的 `ingress_receipts/ingress_replays`。业务处理器的授权和写入与账本共用同一事务，失败或提交前崩溃一起回滚；相同消息重投不再次写入，不同内容复用同一键返回 409。重复请求也重新检查当前身份及业务授权。
 - 接收器只接受受信服务实现的 `TransactionalAcceptor`，其 `accept(session, event, receipt_ref, duplicate=...)` 检查当前 Policy 与服务端资源绑定，并只能使用提供的事务写入业务请求，不能另开连接、主动提交或执行外部副作用。审批卡片复用真实 ApprovalService，可通过上述开关装配受理接缝；本地 SQLite 回调用于验证。Job/wait 消息处理器尚未完成，已验签文本消息仍返回 **503**。本地审批批准不代表 Job/Graph 恢复或真实飞书链路完成。
 - 新表带 tenant 复合键与 PostgreSQL FORCE RLS；本轮仅实测 SQLite。迁移通过已有 `oria db upgrade` 路径执行，测试只操作临时数据库；没有改动用户现有数据。nonce 的到期字段已保存，但本轮不自动清理账本，受理回执必须保留至业务幂等保留期结束后再制定清理策略。
 - `FeishuChannel` 提供授权后的文本与卡片发送；只向服务端配置的 tenant/chat/subject 白名单发送，调用现有 `notification:send` Policy。共享卡片可通过 `update_view()` 更新，须为当前实例成功发送且确认回执的同 tenant/chat/发送主体卡片；普通卡片、任意消息 ID 或其他主体均拒绝。此内存目标守卫最多保留 1024 条，重启/淘汰后不授权主动 PATCH，不替代持久投递账本。部署方注入按 tenant 取 token 的函数，当前 CLI 不装配出站通道。超时返回 `delivery_unknown`，不自动重发；可靠 delivery ledger 属于 T05。文件上传不支持，也不会读取给定路径。
-- `IMViewModel` v1 覆盖回执、确认、进度、结果、待审批/待事件与失败，限制字段/长度，每页最多五段，展示详情编号与下一步建议。卡片使用纯文本，经过已有输出脱敏。业务服务只能投影已授权的公开摘要，不能传入隐式思维链或原始 Tool/State。审批 HTTP 详情已接入逐次授权；飞书详情/翻页 action 仍待后续接入。
+- `IMViewModel` v1 覆盖回执、确认、进度、结果、待审批/待事件与失败，限制字段/长度，每页最多五段，展示详情编号与下一步建议。卡片经过已有输出脱敏，JSON 2.0 的文本另作 Markdown/HTML 转义。业务服务只能投影已授权的公开摘要，不能传入隐式思维链或原始 Tool/State。审批 HTTP 和飞书详情/翻页均逐次授权；后者新增真实交互待验收。
 
 ## 持久审批卡片引用（2026-10-11）
 
-`ApprovalCardBindings` 是受信业务服务的内部接口，不开放客户端创建绑定。`issue(approval_id, identity, chat_id=..., message_id=..., decision_intent="approve")` 接收服务端确认的卡片投递目的地与消息 ID，重新读取待审批记录并检查当前审批权限、职责分离和有效期；返回高熵、不透明 `CardAction`。为保持既有调用兼容，省略意图时仍显式持久为 `approve`；当前没有可审计的拒绝理由输入契约，因此任何非 `approve` 意图均失败关闭。绑定只保存引用 SHA-256、可信租户/审批 ID、完整审批版本指纹、决定意图、外部 issuer/subject、actor、chat/message ID 和有效期，不保存原始引用、卡片正文、checkpoint 或凭证。
+`ApprovalCardBindings` 是受信业务服务的内部接口，不开放客户端创建绑定。`issue(approval_id, identity, chat_id=..., message_id=..., decision_intent="approve")` 接收服务端确认的卡片投递目的地与消息 ID，重新读取待审批记录并检查当前审批权限、职责分离和有效期；返回高熵、不透明 `CardAction`。省略意图仍签发兼容的 `approve` 引用；2026-10-21 起另支持 `reject` 和只读 `view`，未知意图失败关闭。绑定只保存引用 SHA-256、可信租户/审批 ID、完整审批版本指纹、决定意图、卡片 JSON 版本、外部 issuer/subject、actor、chat/message ID 和有效期，不保存原始引用、卡片正文、checkpoint 或凭证。
 
 `platform_0011` 新增 `approval_card_bindings`，以 tenant + 引用摘要为主键，带 tenant + approval 复合外键；PostgreSQL 继承 FORCE RLS。迁移通过既有明确初始化/升级入口执行，API 不自动迁移。本轮只操作临时 SQLite 数据库，测试升级/降级和资源重建后解析；真实 PostgreSQL 未验证。
 
@@ -133,17 +133,27 @@ HTTP 审批与飞书回调共享同一个应用生命周期中的 RuntimeService
 
 receiver 在受理事务提交前再次核验当前身份及回调有效期，处理期间撤权会使审批、审计/outbox 和 receipt/replay 一起回滚；该检查也覆盖重复回调。Policy 拒绝的受理先回滚，再经原有 AuditService 独立记录脱敏拒绝审计，避免 SQLite 写锁争用；这类审计不会创建新的业务受理或 outbox。
 
-同一已提交 action 的重试会重查当前身份、Policy、SOD 和 binding，但不要求审批仍为 pending 或匹配签发时 revision，也不会再写审批/审计/outbox。另一 action_ref 指向已决定审批时则失败并回滚新 receipt。本地注入 receiver 的真实签名 HTTP 回调已验证；10 月 16 日补齐显式配置的服务启动装配，默认仍关闭，缺失时保持 503。10 月 18 日新增受信内部投递/更新与终态结果卡片；默认入口的自动投递触发、带理由拒绝、Job/wait 与 Graph 恢复仍待后续；真实外部验证的范围见下文。
+同一已提交决定 action 的重试会重查当前身份、Policy、SOD 和 binding，但不要求审批仍为 pending 或匹配签发时 revision，也不会再写审批/审计/outbox。另一决定 action_ref 指向已决定审批时则失败并回滚新 receipt。本地注入 receiver 的签名 HTTP 回调已验证；10 月 16 日补齐显式配置的服务启动装配，默认仍关闭，缺失时保持 503。10 月 18 日新增受信内部投递/更新与终态结果卡片；默认入口的自动投递触发、Job/wait 与 Graph 恢复仍待后续；真实外部验证的范围见下文。
 
 ## 受信审批卡片投递与更新（2026-10-18）
 
 `ApprovalCardDelivery` 是受信内部服务接口，复用同一个 RuntimeServices、`ApprovalCardBindings`、当前身份目录和 `FeishuChannel`。调用 `deliver(approval_id, sender=..., approver=..., chat_id=..., delivery_id=...)` 时，sender 和 approver 必须来自当前服务端身份映射且属于同一租户；发送者仍须满足通知 Policy/收件人白名单，审批人另受明确的 tenant/chat/subject 目的地白名单、审批 Policy、有效期与职责分离限制。不能让聊天文本或客户端提交角色、租户、目的地、审批人映射或消息 ID。
 
-投递顺序固定为：授权审批摘要 → 发送无按钮共享卡片 → 取得非空消息回执 → 持久绑定该消息与完整审批版本 → PATCH 同一消息以显示批准按钮。`issue_view()` 通过 expected revision 确保按钮对应的摘要与持久绑定版本一致；原始 action_ref 不落库。发送前与取得 token 后都重查两人的当前身份映射。令牌按 tenant 注入，不由服务读取个人环境或凭证文件。
+投递顺序固定为：授权审批摘要 → 发送无按钮共享卡片 → 取得非空消息回执 → 持久绑定该消息与完整审批版本 → PATCH 同一消息以显示交互控件。`issue_view()` 从同一已授权审批快照原子签发三种绑定，确保摘要与绑定版本一致；原始 action_ref 不落库。发送前与取得 token 后都重查两人的当前身份映射。令牌按 tenant 注入，不由服务读取个人环境或凭证文件。
 
 发送结果不确定时不签发绑定、不激活按钮、不自动重发。卡片已发送但绑定失败时，返回 `card_binding_unavailable` 和该消息回执，保留无按钮卡片供人工对账；激活 PATCH 失败时如实返回拒绝或 `delivery_unknown`，不额外发送卡片。服务器不会因展示失败回滚或重做已经提交的审批决定。可靠投递账本、后台重试和跨进程主动 PATCH 恢复仍由 T05 后续实现；签名回调的终态响应则可复用持久绑定跨进程恢复。
 
-本增量只有 `approve` 按钮。带理由拒绝、飞书详情/分页仍待后续，默认服务启动不发送消息，也没有新增客户端投递路由或扩大角色权限。验证结果见 [投递与结果更新卡](../../reports/verification/v0.6/20261018-t02-approval-delivery/summary.md)，真实环境准备见 [飞书审批联调指南](feishu-approval-validation.md)。
+10 月 18 日通过卡仅包含原批准按钮，见 [投递与结果更新卡](../../reports/verification/v0.6/20261018-t02-approval-delivery/summary.md)。2026-10-21 新增 JSON 2.0 拒绝表单及详情/上一页/下一页，默认启动仍不发送消息，新增真实交互待独立验收，见 [飞书审批联调指南](feishu-approval-validation.md)。
+
+## 带理由拒绝与审批详情（2026-10-21）
+
+本地新增 `platform_0012`，测试仅迁移临时 SQLite 库，未升级任何用户数据。旧绑定默认保留 JSON 1.0；受信投递的新卡片从占位到终态使用 JSON 2.0。存在 reject/view 绑定时降级会拒绝，不能通过删除数据降级。本 revision 的 PostgreSQL 未实测，10 月 17 日证据不覆盖它。
+
+拒绝按钮提交 `action.form_value.rejection_reason`，要求 1–1000 字且不能全为空白；未知表单字段、非字符串和超长理由拒绝。决定类型以绑定记录为准，给 approve 引用添加理由不能改为拒绝。理由只按已有领域契约保存，受理账本保存内容摘要；同一动作换理由返回 409，不能修改已提交决定。
+
+详情和每次翻页均重新检查目录、Policy、职责分离、卡片身份/chat/message/有效期及实际页数。详情回调不决定审批、不生成业务 outbox，重试不新增绑定；审批版本改变后不恢复旧版本的决定控件。终态移除批准/拒绝及输入框，可保留只读详情入口。所有操作仍复用现有 HTTP/卡片审批运行时，没有 Job 处理器时文本消息继续返回 503。
+
+实现与验证边界见 [ADR-039](../adr/ADR-039-reasoned-approval-card-interactions.md) 和 [本轮验证卡](../../reports/verification/v0.6/20261021-t02-approval-interactions/summary.md)。T02 仍进行中；按详细路线 §1.4，新增真实交互验证不作为后续代码实施前置，T03 已继续开发，整体门禁仍保留。
 
 ## 验证与限制
 

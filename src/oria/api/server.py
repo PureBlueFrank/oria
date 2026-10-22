@@ -19,6 +19,7 @@ from oria.api.identity import (
     JWTSettings,
     file_directory,
 )
+from oria.api.jobs import JobAPI
 from oria.config import resolve_runtime_config
 from oria.core.runtime import build_runtime
 from oria.core.types import ValueModel
@@ -29,6 +30,7 @@ from oria.migrations.runner import validate_sqlite_databases
 from oria.permission.local import local_cli_executor, local_operator
 from oria.presentation.im import IMViewModel
 from oria.storage.database import DatabaseResources
+from oria.storage.jobs import JobRepository
 from oria.storage.platform import SQLiteApprovalRepository
 
 
@@ -38,9 +40,12 @@ class ServerSettings(ValueModel):
     feishu: FeishuSettings | None = None
     approval_runtime_config: Path | None = None
     feishu_approval_receiver: bool = Field(default=False, strict=True)
+    job_service: bool = Field(default=False, strict=True)
 
     @model_validator(mode="after")
     def receiver_requires_runtime(self) -> ServerSettings:
+        if self.job_service and self.approval_runtime_config is None:
+            raise ValueError("job admission requires an explicit runtime configuration")
         if self.feishu_approval_receiver and (
             self.feishu is None or self.approval_runtime_config is None
         ):
@@ -70,6 +75,7 @@ async def api_runtime(
     directory: Callable[[], IdentityDirectory],
     *,
     feishu_approval_receiver: bool = False,
+    job_service: bool = False,
 ) -> AsyncIterator[APIServices]:
     # Explicit file and empty environment prevent ambient provider/credential activation.
     try:
@@ -108,7 +114,13 @@ async def api_runtime(
                 if feishu_approval_receiver
                 else None
             )
-            yield APIServices(ApprovalAPI(runtime, repository, directory), receiver)
+            yield APIServices(
+                ApprovalAPI(runtime, repository, directory),
+                receiver,
+                JobAPI(runtime, JobRepository(databases.platform_sessions), directory)
+                if job_service
+                else None,
+            )
 
 
 @asynccontextmanager
@@ -154,7 +166,10 @@ def build_api(*, config: Path | None, local: bool, host: str) -> FastAPI:
         close=client.aclose,
         services_factory=(
             lambda: api_runtime(
-                runtime_path, directory, feishu_approval_receiver=settings.feishu_approval_receiver
+                runtime_path,
+                directory,
+                feishu_approval_receiver=settings.feishu_approval_receiver,
+                job_service=settings.job_service,
             )
         )
         if runtime_path is not None

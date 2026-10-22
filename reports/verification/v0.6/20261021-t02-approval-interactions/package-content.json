@@ -1,0 +1,19 @@
+{
+  "wheel": "oria-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "678da27b5d0e314a277e8ff4a2256966aca5d7fa10c5199511036988882d95b8",
+  "platform_head": "platform_0012",
+  "matching_modules": [
+    "api/approvals.py",
+    "ingress/approval_cards.py",
+    "ingress/approval_delivery.py",
+    "ingress/feishu.py",
+    "ingress/receipts.py",
+    "migrations/manifest.json",
+    "migrations/platform/versions/platform_0012_approval_card_interactions.py",
+    "migrations/runner.py",
+    "presentation/im.py",
+    "resources/loader.py"
+  ],
+  "all_matching": true,
+  "all_platform_migration_hashes_verified": true
+}

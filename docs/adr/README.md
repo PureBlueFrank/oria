@@ -6,6 +6,7 @@
 
 - **计划中**：已识别决策主题，但尚未评审或实体化；必须在对应实施任务开始前补齐。
 - **提议中**：已有文档和候选方案，正在评审，不可作为已冻结实现依据。
+- **实施中**：已有实施记录但整体范围或验证尚未收口，不等同于已接受的完整交付。
 - **已接受**：边界、后果和验证要求已冻结，实现必须遵循。
 - **已替代**：历史决策，仅供追溯；索引必须指向替代它的 ADR。
 - **已废弃**：不再采用且无直接替代方案。
@@ -27,7 +28,7 @@
 | ADR-011 | RAG 权限 pre-filter | 计划中 | V0.2-T03 前实体化 |
 | ADR-012 | Memory 生命周期与 opt-in memory-as-tool | 已接受 | [ADR-012](ADR-012-memory-as-tool-and-long-term-memory.md) |
 | ADR-013 | 端到端流式事件 | 计划中 | V0.6-T05 前实体化 |
-| ADR-014 | Durable Job | 计划中 | V0.6-T03 前实体化 |
+| ADR-014 | Durable Job 受理与状态存储 | 已接受 | [ADR-014](ADR-014-durable-job-admission.md)；受理切片，完整 T03 实施中 |
 | ADR-015 | Eval 子系统 | 已接受 | [ADR-015](ADR-015-eval-subsystem-and-gates.md) |
 | ADR-016 | 薄核心与插件 seam | 计划中 | V0.7-T04 前实体化 |
 | ADR-017 | Context + Protocol | 计划中 | V0.1-T02 前实体化 |
@@ -38,7 +39,7 @@
 | ADR-022 | Prompt 版本管理 | 计划中 | V0.1-T06 前实体化 |
 | ADR-023 | Supabase 到 DMS | 计划中 | 企业商家/商品 Adapter 开发前实体化 |
 | ADR-024 | HITL 后副作用幂等 | 计划中 | V0.3-T03 前实体化 |
-| ADR-025 | Job lease/fencing 恢复 | 计划中 | V0.6-T03 前实体化 |
+| ADR-025 | Job lease/fencing 恢复 | 已接受 | [ADR-025](ADR-025-job-lease-and-fencing.md)；Job 租约协议，领域 fencing/runner 尚未收口 |
 | ADR-026 | 招商领域模型 | 计划中 | V0.3-T01 前实体化 |
 | ADR-027 | RAG/Memory 内容安全 | 计划中 | V0.2-T03 前实体化 |
 | ADR-028 | 确定性资格与 LLM 软排序 | 已接受 | [ADR-028](ADR-028-deterministic-eligibility-and-llm-ranking.md) |
@@ -52,6 +53,7 @@
 | ADR-036 | single/multi 公平对照 harness | 已接受 | [ADR-036](ADR-036-single-multi-comparison-harness.md)；等额预算、随机顺序、盲评和预注册 rubric |
 | ADR-037 | API 身份映射与飞书受理边界 | 实施中 | [ADR-037](ADR-037-api-identity-and-feishu-boundary.md)；T02 基础实现，持久去重与任务受理未收口 |
 | ADR-038 | 显式合成飞书对话演示 | 实施中 | [ADR-038](ADR-038-guided-feishu-demo.md)；复用现有核心，不替代 T03–T05 |
+| ADR-039 | 带理由拒绝与审批卡片详情 | 实施中 | [ADR-039](ADR-039-reasoned-approval-card-interactions.md)；本地实现，新增真实交互待验收 |
 
 新建 ADR 使用 [ADR 模板](000-template.md)。已接受 ADR 如需改变关键边界，应新建 ADR 并把原记录标为“已替代”，不直接覆盖历史理由。
 

@@ -1,0 +1,27 @@
+uv run ruff format --check .
+369 files already formatted
+uv run ruff check .
+RUF001 String contains ambiguous `，` (FULLWIDTH COMMA). Did you mean `,` (COMMA)?
+  --> src/oria/ingress/approval_cards.py:49:40
+   |
+47 |     }
+48 |     if approval.status == "pending" and approval_revision(approval) != row["approval_revision"]:
+49 |         updates["next_step"] = "审批方案已更新，请联系发起人重新发送当前版本的审批卡片。"
+   |                                               ^^
+50 |     # The action family shares a random 256-bit prefix. Only rows stored by the
+51 |     # server grant an intent; deriving a sibling reference grants no new permission.
+   |
+
+E501 Line too long (102 > 100)
+   --> tests/contract/test_v06_feishu.py:319:96
+    |
+317 |         update={
+318 |             "card_schema": "2.0",
+319 |             "summary": """预算 "A" 与 'B' <at id=all> [链接](https://example.com) demo@example.com""",
+    |                                                                                                     ^^
+320 |         }
+321 |     )
+    |
+
+Found 2 errors.
+make: *** [lint] Error 1

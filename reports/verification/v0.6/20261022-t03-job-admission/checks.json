@@ -1,0 +1,64 @@
+{
+  "task": "V0.6-T03",
+  "increment": "durable_job_admission",
+  "task_status": "in_progress",
+  "validation_status": "passed",
+  "checks": {
+    "local_suite": {
+      "passed": 1179,
+      "deselected": 9,
+      "warnings": 5,
+      "seconds": 373.76,
+      "exit_code": 0,
+      "log": "regression.log"
+    },
+    "new_job_tests": {
+      "passed": 28,
+      "log": "targeted-final.log"
+    },
+    "identity_contract": {
+      "passed": 14,
+      "log": "identity-contract.log"
+    },
+    "lint": {
+      "status": "passed",
+      "log": "lint-final.log"
+    },
+    "build": {
+      "status": "passed",
+      "log": "build-initial.log"
+    },
+    "smoke": {
+      "status": "passed",
+      "log": "smoke.log"
+    },
+    "wheel_import": {
+      "status": "passed",
+      "evidence": "wheel-import.json"
+    }
+  },
+  "not_run": [
+    "postgresql_platform_0013",
+    "new_real_feishu_interactions",
+    "live",
+    "enterprise",
+    "performance"
+  ],
+  "not_implemented": [
+    "job_graph_execution",
+    "feishu_job_conversation",
+    "job_wait_event_resume",
+    "claim_heartbeat_retry_timeout",
+    "worker_fencing",
+    "sse_webhook_delivery"
+  ],
+  "external_writes": false,
+  "user_database_migration": false,
+  "git_push": false,
+  "github_actions": "not_triggered",
+  "evidence_refs": [
+    "../20261021-t02-approval-interactions/summary.md",
+    "../20261017-postgres-local/summary.md",
+    "../20261018-t02-real-approval/summary.md"
+  ]
+}

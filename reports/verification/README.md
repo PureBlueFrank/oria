@@ -11,11 +11,16 @@
 | V0.3 | Core、Community 十步 Workflow 与必需 DeepSeek Live 通过 | SQLite 单 worker、Mock Adapter 下的审批、恢复、幂等、故障注入和对账 | PostgreSQL 多 worker或真实券、招商、商品库、选品、C 端、IM 接入 |
 | V0.4 | T01–T05 完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 合成分析数据、只读 Tool、动态 Agent、冻结 Golden、原 DeepSeek 失败事实及 GPT-5.6 Sol Live 通过卡 | 真实企业数据、OpenAI API 通道或其他 Provider 效果 |
 | V0.5 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、对照 harness 与 S2–S4 C/SEC | single/multi Live 质量提升、Enterprise/Performance |
-| V0.6 | T01 Community/Contract 与本地 PostgreSQL E-like 通过；T02 进行中 | 双后端持久化契约、API 身份、飞书协议/展示、SQLite 持久去重、审批 HTTP 与卡片原子批准 | Job/wait/Graph 恢复、自动会话投递、PostgreSQL API 与多 worker |
+| V0.6 | T01 Community/Contract 与本地 PostgreSQL E-like 通过；T02/T03 进行中 | 双后端持久化、API 身份、SQLite 去重/审批、Job 受理及租约原语；新审批交互为本地验证 | 新交互真实通道、新 revision PostgreSQL、领域副作用 fencing、Job→Graph/事件恢复、自动会话投递与多 worker |
 | P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | 后续平台能力已交付 |
 
 ## 关键证据
 
+- [提交前 Open Code Review](v0.6/20261022-open-code-review/summary.md)：覆盖工作区及 main→master 的 54 个不同代码文件，修复演示页非法下标和文档状态矛盾；完整集唯一回环沙箱失败已单独复验，保留首次失败及逐文件记录。
+- [T03 当前身份恢复与 Job 租约](v0.6/20261022-t03-job-leases/summary.md)：独立 worker 授权、claim/heartbeat/finish、epoch/尝试预算、真实 saver 指针/父链及旧 token 拒绝；Job 行原语验证，不代表 Graph 或领域副作用已 fencing。
+- [T03 两场景 Graph 输入适配](v0.6/20261022-t03-graph-inputs/summary.md)：owner/标识与初始状态绑定、显式业务模板、稳定派生 ID、期限约束，以及招商审批中断和归因动态选路/弃答 E2E-F；不代表 Job runner 已执行或恢复。
+- [T03 Job 持久化受理](v0.6/20261022-t03-job-admission/summary.md)：会话所有权、两场景结构化提交、并发幂等、状态/事件原子 CAS、取消、撤权回滚和进程重建；当前只受理，不执行 Graph，worker/事件恢复尚未实施。
+- [带理由拒绝与审批详情/翻页](v0.6/20261021-t02-approval-interactions/summary.md)：服务端三种意图绑定、理由冲突、逐页鉴权、批准/拒绝竞争及旧卡片兼容；本地 SQLite 验证，新增真实飞书和 PostgreSQL 待验收。
 - [真实飞书截图 GIF 素材核验](v0.6/20261018-feishu-native-gif/summary.md)：17 张原图、24 个裁切画面、29 幕，覆盖十步主流程、三种归因及六类规则；工程能力与实测范围分开标注。
 - [飞书群内合成核心流程演示](v0.6/20261018-feishu-conversation-demo/summary.md)：15 项定向、1132 项本地回归及构建通过，真实群聊 20 条指令、招商 10/10、三种归因结果与规则分页通过；已生成 GIF 并集成 README，现已替换为下列真实截图版本，临时入口关闭，不宣称生产 Job 或真实模型/业务接入。
 

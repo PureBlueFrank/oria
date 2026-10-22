@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-10-22T08:49:00.174543+08:00",
+  "baseline_head": "02261a59e46927eedfaf1a9518c282bd256f8276",
+  "inherited_evidence": "../20261022-t03-job-admission/source-snapshot.json",
+  "files_sha256": {
+    "src/oria/orchestrator/job_inputs.py": "52e002881f55f3c460fc0c9103b186a55332dd9b0f53d374c6d035acac8007fb",
+    "src/oria/providers/demo.py": "a16a61d9a24c70639b03540484f1153d0624006b9cee8ac39dc000723b65b1e1",
+    "tests/unit/test_v06_job_inputs.py": "62c833b1504124937c69bb26143fe25bbefe1c0dec26adc9863daf2f72844b35",
+    "tests/integration/test_v06_job_graph_inputs.py": "7ff0fca07f6c2ea8d27356b7e8a65a41d67253b20383d5bf9ba338225c8a134e",
+    "pyproject.toml": "8e21b42f57e9679759227c41ef3ccee8cf0cccd0331a3e00034d39afbcda665f",
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def",
+    "ROADMAP.md": "94b5e580533e8281d773a52c47fe5fdaa297609e224b1c8801e2c764a7b34ac6",
+    "docs/Oria详细执行路线.md": "a76ebaed905d509e49572f97776fd2419de567b2fd254743031bb44e8d28dfa2",
+    "docs/guides/durable-jobs.md": "01aee1beaf9d55e389c277bc6dda1c683bbbe72239b92f585ae1685bef1a3de4",
+    "docs/adr/ADR-014-durable-job-admission.md": "19f19f8c67194411dbfa936f869660e0672a65cb8057f36eb23de8ee92de8cdf",
+    "reports/verification/README.md": "f9e78b34960f0a7d334e0176e74032b8a388da4bf467908011d6be528b9c3d85"
+  }
+}

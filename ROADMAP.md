@@ -2,6 +2,8 @@
 
 本文是 GitHub 可见的适度简略版执行计划：保留版本状态、任务依赖、主要产物和完成验证，省略逐字段规则、完整测试清单、详细真实验证场景和验证报告链接。
 
+**产品与许可定位（2026-10-22）**：Apache 2.0 开源社区版 + 闭源商业企业版。本仓库路线覆盖公开核心与已公开的企业适配实现，统一适用 [Apache License 2.0](LICENSE)；企业专有扩展在独立私有仓库或发行包中按商业许可交付，具体清单与验收另行维护。本路线中的 `production` 配置、Enterprise 验证等级及企业组件目标均不自动成为闭源或付费功能，也不表示商业企业版已经交付，详见[许可证与版本边界](docs/licensing.md)。
+
 ## 当前优先执行路线（`CODEX_TODO_ORIA_MAIN_PROJECT`）
 
 当前先完成演示与证据验收，再继续平台扩展，执行顺序不可跳过：
@@ -14,6 +16,8 @@
 
 **门禁状态**：P0–P2 已完成，本轮演示与证据验收门禁关闭。V0.5-T01–T06 已完成并达到 Core Gate，V0.6 可按依赖实施；V0.5-T07 Live single/multi 对照仍是独立必需卡，完成前不声明多智能体质量提升。
 
+**当前开发顺序（2026-10-22）**：T02 本地身份、受理、审批与展示契约已有实现，T03 Job 持久化、两场景输入、身份恢复与 Job 租约原语已有本地验证。下一步把租约接入领域提交/副作用边界，再接受控 Graph 调度、retry/timeout、飞书会话和审批/外部事件恢复，随后进入 T04 独立 worker 接管、T05 可靠通知与事件流。新增真实飞书交互和 PostgreSQL revision 各自留待独立验证。按详细路线 §1.4，`Depends on` 表示代码/schema/契约依赖，外部验证尚未通过不阻止已有契约上的开发；此前日期记录中的“T03 依赖未满足”按此更正，不关闭任何验证门禁。
+
 ## 版本状态总览
 
 | 版本 | 定位 | 状态 | 一句话交付 |
@@ -23,7 +27,7 @@
 | V0.3 | 场景 A 完整 Workflow | T01–T09 与 Core 已完成；DeepSeek Live 卡已通过 | 本地 SQLite、官方 AsyncSqliteSaver、Mock 企业 Adapter 和合成数据已跑通 10 步流程、双等待恢复、幂等与对账。 |
 | V0.4 | 场景 B 动态归因 Agent | T01–T05 已完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 50 条 Golden 已审阅并冻结 30/20 split；GPT-5.6 Sol 完成 20×3，自动通过 55/60，严格盲评 10/10 达线、平均 0.98。 |
 | V0.5 | 多智能体、上下文与记忆 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 已交付上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、公平对照 harness 与 S2–S4 C/SEC 证据；不声明 Live 质量提升。 |
-| V0.6 | API 与 Durable Job | T01 Community/CT 与本地 PostgreSQL E-like 通过；T02 进行中；T03+ 未开始 | PostgreSQL 17.11 双库迁移、Repository/RLS/连接池与官方 saver 已真实验证；API/JWT、飞书协议、SQLite 去重和审批受理可显式装配。真实飞书审批投递、更新、重启后回调及终态显示已验证；Job/wait 与自动会话投递未接通，PostgreSQL API 和多 worker 未验证。 |
+| V0.6 | API 与 Durable Job | T01 Community/CT 与本地 PostgreSQL E-like 通过；T02/T03 进行中；T04+ 未开始 | PostgreSQL 双库与原飞书批准已真实验证；新增审批交互及 Job 会话/幂等提交/查询/取消已本地验证。Graph/事件恢复、自动会话投递、PostgreSQL API 和多 worker 仍待完成或验证。 |
 
 ## V0.1：场景 A 只读提案 MVP
 
@@ -143,3 +147,15 @@ V0.6-T02 审批投递与结果更新（2026-10-18）：新增受信 ApprovalCard
 **V0.6-T02 真实联调续验（2026-10-18 上午）**：独立 OriaTest 鉴权通过但尚未激活，已恢复本地接收端并通过九项访问/验签检查和公网合成 challenge，私有重复回调验证程序的单一事务计数检查通过。浏览器自动控制超时，已转为用户手动保存临时地址、发布及入群；真实审批投递、PATCH 与按钮回调尚未运行，T02/T03 状态不变。见 [续验记录](reports/verification/v0.6/20261018-t02-real-approval/summary.md)。
 
 **V0.6-T02 真实审批通过（2026-10-18）**：独立 OriaTest 发布并入群后，四次只读接口确认应用、唯一测试群与 Frank；经受信服务发送一张合成卡片并 PATCH 激活。接收进程重启后，真实签名/AES 批准回调仅提交一次决定、审计/outbox，用户确认已批准且按钮消失；同一真实请求在内存中复验后计数不变。实测发现 Go 时间文本被旧 Unix 秒解析器拒绝，已用回归用例复现并兼容明确格式，保留完整原文验签和至多 300 秒时间窗。新增 9 项时间格式/安全用例；1117 项本地回归与静态检查通过。全部临时入口已关闭，临时映射及凭证副本已清理。见 [真实审批验证卡](reports/verification/v0.6/20261018-t02-real-approval/summary.md)。T02 的带理由拒绝、详情/翻页和默认会话自动投递仍待后续，T03 依赖未满足。
+
+**V0.6-T02 本地交互补齐（2026-10-21）**：新增 JSON 2.0 拒绝表单与逐次鉴权的审批详情/翻页，复用现有 ApprovalService、唯一受理事务、完整快照 CAS 和职责分离。相同动作换理由拒绝，详情不产生审批决定或业务 outbox，重试不增发绑定。新增 `platform_0012` 保留旧卡片引用，存在新意图记录时拒绝有损降级；仅迁移临时 SQLite 测试库。验证见[本轮验收卡](reports/verification/v0.6/20261021-t02-approval-interactions/summary.md)与 [ADR-039](docs/adr/ADR-039-reasoned-approval-card-interactions.md)。新表单/翻页的真实飞书及本 revision 的 PostgreSQL 尚未实测；T02 仍进行中，T03 依赖未关闭，V0.5-T07 仍为 29/80。
+
+**V0.6-T03 持久化受理（2026-10-22，进行中）**：新增服务端所有权绑定的会话、两类结构化任务提交、Idempotency-Key、任务查询和协作式取消。`platform_0013` 保存 Job 完整快照与状态事件，唯一约束保证并发同键只创建一次，状态 CAS 与事件同事务，提交前撤权回滚。显式 `job_service` 开关默认关闭；HTTP 不执行 Graph。28 项新测试覆盖并发、跨主体/租户、故障回滚、独立进程读取和应用重启，静态检查通过。见[使用指南](docs/guides/durable-jobs.md)和[验证卡](reports/verification/v0.6/20261022-t03-job-admission/summary.md)。当前仅 SQLite/Mock/Fixture；lease 列为执行协议预留，不代表 claim/heartbeat/fencing 已实现。两场景会话、Graph 和既有 wait/inbox 的 Job 恢复仍属本任务后续，T03 与 V0.6 Core 未关闭；T07 Live 29/80 不变。
+
+**V0.6-T03 两场景输入适配（2026-10-22）**：受理增量全量 1179 项已通过；继续增加 Job→现有招商 Workflow/归因 ResearchSpec 的初始 state 适配。所有者与执行标识逐项绑定，恢复/取消任务不能重置为新输入；招商显式接收服务端策略模板，期限受 Job timeout 约束，业务 ID/幂等键稳定派生。输入 E2E-F 覆盖审批中断、动态调查和弃答，并修复离线 Demo 固定请求 10 家导致较小候选上限失败的问题。见[独立验证卡](reports/verification/v0.6/20261022-t03-graph-inputs/summary.md)。当前只完成输入桥接；下一优先项为当前主体恢复与 lease 执行协议，再接实际调度和异步恢复。HTTP 仍只受理，T03/Core 未关闭。
+
+本轮最终本地门禁为 **1203 passed / 9 deselected / 5 既有 warnings**，新增 52 项（受理 28、输入适配 24）；格式/Lint/mypy、构建、wheel 导入和 CLI smoke 均通过。未执行新 Live/Enterprise/真实飞书或用户库迁移，未推送代码；验证等级和未完成边界保持上述范围。
+
+**V0.6-T03 身份与租约增量（2026-10-22）**：新增 requester 当前身份重载、独立受信 `job_worker` 身份和逐次 Policy 检查，实现 Job 行原子 claim、续租、终态/等待态提交及 epoch checkpoint 指针。正常等待续行只增 epoch，失败接管才耗 attempt；旧 token、撤权、过期、取消后成功提交均拒绝。指针须存在于 tenant-scoped 官方 saver 的当前 epoch，并沿 accepted 父链推进。首批 84 项扩展定向通过；审查另复现并修复 worker/API service ID 混用，最终 25 项新增租约用例通过，含两独立仓储进程竞争、真实 SQLite saver、暂停过期及回滚。见[验证卡](reports/verification/v0.6/20261022-t03-job-leases/summary.md)。当前不执行 Graph，领域写/外部 reservation fencing、自动 retry/timeout、会话/异步恢复和独立 worker 尚未接入；T03/Core 与 T04 门禁均未关闭。
+
+租约增量最终本地门禁 **1228 passed / 9 deselected / 5 既有 warnings**；381 文件格式/Ruff、190 源文件 mypy、最终包构建/直接导入、迁移完整性和 CLI smoke 均通过。没有新外部验证、用户库迁移或 Git 推送。

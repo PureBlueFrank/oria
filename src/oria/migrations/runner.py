@@ -42,6 +42,53 @@ def _business_columns(
 
 _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
     "platform": {
+        "sessions": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("session_id", "VARCHAR", 1, 2),
+            ("requester_subject_id", "VARCHAR", 1, 0),
+            ("requester_issuer", "VARCHAR", 1, 0),
+            ("requester_external_subject", "VARCHAR", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+        ),
+        "jobs": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("job_id", "VARCHAR", 1, 2),
+            ("session_id", "VARCHAR", 1, 0),
+            ("thread_id", "VARCHAR", 1, 0),
+            ("run_id", "VARCHAR", 1, 0),
+            ("requester_subject_id", "VARCHAR", 1, 0),
+            ("requester_issuer", "VARCHAR", 1, 0),
+            ("requester_external_subject", "VARCHAR", 1, 0),
+            ("scenario", "VARCHAR", 1, 0),
+            ("request_hash", "VARCHAR", 1, 0),
+            ("request_json", "TEXT", 1, 0),
+            ("idempotency_key", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+            ("revision", "INTEGER", 1, 0),
+            ("attempt", "INTEGER", 1, 0),
+            ("max_attempts", "INTEGER", 1, 0),
+            ("lease_owner", "VARCHAR", 0, 0),
+            ("lease_epoch", "INTEGER", 1, 0),
+            ("lease_expires_at", "DATETIME", 0, 0),
+            ("heartbeat_at", "DATETIME", 0, 0),
+            ("retry_at", "DATETIME", 0, 0),
+            ("timeout_at", "DATETIME", 1, 0),
+            ("cancel_requested", "BOOLEAN", 1, 0),
+            ("schedule_policy", "VARCHAR", 1, 0),
+            ("webhook_id", "VARCHAR", 0, 0),
+            ("accepted_checkpoint_ns", "VARCHAR", 0, 0),
+            ("accepted_checkpoint_id", "VARCHAR", 0, 0),
+            ("created_at", "DATETIME", 1, 0),
+            ("updated_at", "DATETIME", 1, 0),
+        ),
+        "job_events": (
+            ("tenant_id", "VARCHAR", 1, 1),
+            ("job_id", "VARCHAR", 1, 2),
+            ("sequence", "INTEGER", 1, 3),
+            ("event_type", "VARCHAR", 1, 0),
+            ("status", "VARCHAR", 1, 0),
+            ("created_at", "DATETIME", 1, 0),
+        ),
         "approval_card_bindings": (
             ("tenant_id", "VARCHAR", 1, 1),
             ("action_hash", "VARCHAR", 1, 2),
@@ -54,6 +101,7 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
             ("chat_id", "VARCHAR", 1, 0),
             ("message_id", "VARCHAR", 1, 0),
             ("expires_at", "FLOAT", 1, 0),
+            ("card_schema", "VARCHAR", 1, 0),
         ),
         "ingress_receipts": (
             ("tenant_id", "VARCHAR", 1, 1),
@@ -451,6 +499,22 @@ _EXPECTED_COLUMNS: dict[str, dict[str, tuple[ColumnSignature, ...]]] = {
 }
 _EXPECTED_FOREIGN_KEYS: dict[str, dict[str, frozenset[ForeignKeySignature]]] = {
     "platform": {
+        "sessions": frozenset(),
+        "jobs": frozenset(
+            {
+                (
+                    "sessions",
+                    (
+                        ("tenant_id", "tenant_id"),
+                        ("session_id", "session_id"),
+                        ("requester_subject_id", "requester_subject_id"),
+                        ("requester_issuer", "requester_issuer"),
+                        ("requester_external_subject", "requester_external_subject"),
+                    ),
+                )
+            }
+        ),
+        "job_events": frozenset({("jobs", (("tenant_id", "tenant_id"), ("job_id", "job_id")))}),
         "approval_card_bindings": frozenset(
             {("approvals", (("tenant_id", "tenant_id"), ("approval_id", "approval_id")))}
         ),

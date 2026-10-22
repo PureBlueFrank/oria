@@ -5,7 +5,9 @@ build-backend = "hatchling.build"
 [project]
 name = "oria"
 version = "0.1.0"
-description = "Enterprise-grade AI agent platform for merchant campaign workflows"
+description = "Open-source AI agent platform for merchant campaign workflows"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.11,<3.12"
 dependencies = [
   "aiosqlite>=0.21,<1",

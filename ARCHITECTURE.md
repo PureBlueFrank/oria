@@ -8,6 +8,8 @@ Oria 是面向招商活动编排的 AI Agent 工程。它把模型擅长的理�
 
 ## 项目定位
 
+Oria 采用 **Apache 2.0 开源社区版 + 闭源商业企业版** 的产品模式。本仓库的公开实现适用 [Apache License 2.0](LICENSE)；企业专有扩展通过既有 Protocol/Adapter 边界集成，在独立私有仓库或发行包中维护并附带商业许可。已有公开代码继续开源，`edition=community|production` 只选择运行配置，不代表许可证或付费授权切换；详细边界见[许可证与版本边界](docs/licensing.md)。
+
 Oria 同时展示两类 Agent 工程问题：步骤已知、需要跨天恢复的业务 Workflow，以及路径未知、随证据动态展开的 Agent loop。执行层统一使用 LangGraph，领域逻辑、适配层、评测集和集成代码由 Oria 实现；Checkpoint、MCP 等协议与基础设施复用成熟实现。
 
 项目按永久纵向切片演进：早期版本建立的 Context、Protocol、Graph、Repository 和测试骨架会被后续版本扩展，不为演示另建一次性流程。
@@ -53,7 +55,9 @@ CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development �
 
 ## 模块职责
 
-下表是跨 V0.1–V0.8 的目标模块图。当前已交付 V0.5 Core 与 V0.6-T01 持久化基础；V0.6-T02 新增 API 身份、飞书协议、IM 展示、SQLite 事务化去重、审批详情/决定 HTTP 接口及卡片批准的原子 receipt/CAS/审计/outbox 路径，并以完整快照条件更新阻止并发覆盖；服务启动可显式装配共用运行时的审批 HTTP 与卡片受理。真实飞书文本与无按钮卡片出站已独立验证；独立 OriaTest 的受信审批投递、持久绑定后 PATCH 激活、接收进程重启后真实签名/AES 批准回调及终态显示也已验证。同一真实回调在内存中复验不新增决定审计/outbox。默认入口不自动发送，可靠投递恢复仍属 T05，Job/wait 与文本会话编排尚未接通。`jobs/web`、lease/fencing、SSE 与可靠 Webhook 仍属后续任务，不能据此表宣称已经交付。边界见 [API 基础指南](docs/guides/api-foundation.md)。
+下表是跨 V0.1–V0.8 的目标模块图。当前已交付 V0.5 Core 与 V0.6-T01 持久化基础。V0.6-T02 已有 API 身份、飞书协议、IM 展示、SQLite 事务化去重及共用运行时的审批 HTTP/卡片受理；完整快照 CAS 保护审批、审计/outbox 与 receipt 的原子提交。原飞书文本/卡片出站、审批投递与 PATCH 激活、重启后真实签名/AES 批准回调及终态显示已独立验证；新增带理由拒绝与详情/分页仅有本地验证。默认入口不自动发送，可靠投递恢复仍属 T05，见 [API 基础指南](docs/guides/api-foundation.md)。
+
+2026-10-22：V0.6-T03 已本地验证会话/幂等任务受理、查询/取消、两场景初始 Graph 输入，以及当前身份恢复、独立 worker 授权、Job 行租约和 accepted checkpoint 指针；HTTP 仍只持久受理。领域副作用 fencing、实际 Graph 调度、审批/外部事件恢复、文本会话编排与独立 worker 尚未接通；Web 工作台、SSE 和可靠 Webhook 仍待后续，不能据此表宣称完成。详见 [Durable Job 指南](docs/guides/durable-jobs.md)。
 
 2026-10-17 已在原生本地 PostgreSQL 17.11 隔离双库上验证迁移、Repository、RLS/连接池和官方 saver，见 [独立验证卡](reports/verification/v0.6/20261017-postgres-local/summary.md)。这项持久化基础验证与仍限定 SQLite 的 API 审批装配分开；不代表 PostgreSQL API 或多 worker 恢复已交付。
 

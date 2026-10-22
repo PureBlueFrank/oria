@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Header, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import Field
@@ -19,7 +19,9 @@ from starlette.exceptions import HTTPException
 
 from oria.api.approvals import ApprovalAPI, ApprovalDecisionBody
 from oria.api.identity import AuthenticationError, IdentityBinding, JWTAuthenticator
+from oria.api.jobs import JobAPI, SessionCreateBody, SessionView
 from oria.core.approvals import ApprovalConflict
+from oria.core.jobs import JobConflict, JobSubmission, JobUnavailable, JobView
 from oria.core.types import InboundRequest, ValueModel
 from oria.ingress.feishu import FeishuIngress, VerifiedFeishuEvent
 from oria.ingress.local import IngressVerificationError
@@ -53,6 +55,7 @@ class APIServices:
 
     approvals: ApprovalAPI
     receiver: FeishuReceiver | None = None
+    jobs: JobAPI | None = None
 
 
 def create_app(
@@ -62,6 +65,7 @@ def create_app(
     feishu: FeishuIngress | None = None,
     receiver: FeishuReceiver | None = None,
     approvals: ApprovalAPI | None = None,
+    jobs: JobAPI | None = None,
     close: Callable[[], Awaitable[None]] | None = None,
     approval_factory: Callable[[], AbstractAsyncContextManager[ApprovalAPI]] | None = None,
     services_factory: Callable[[], AbstractAsyncContextManager[APIServices]] | None = None,
@@ -74,13 +78,13 @@ def create_app(
     if approvals is not None and approval_factory is not None:
         raise ValueError("select one approval service source")
     if services_factory is not None and any(
-        service is not None for service in (approvals, approval_factory, receiver)
+        service is not None for service in (approvals, approval_factory, receiver, jobs)
     ):
         raise ValueError("application services cannot be mixed with injected services")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        nonlocal approvals, receiver
+        nonlocal approvals, receiver, jobs
         del app
         try:
             async with AsyncExitStack() as stack:
@@ -89,12 +93,14 @@ def create_app(
                 if services_factory is not None:
                     services = await stack.enter_async_context(services_factory())
                     approvals, receiver = services.approvals, services.receiver
+                    jobs = services.jobs
                 yield
         finally:
             if approval_factory is not None or services_factory is not None:
                 approvals = None
             if services_factory is not None:
                 receiver = None
+                jobs = None
             if close is not None:
                 await close()
 
@@ -156,6 +162,16 @@ def create_app(
             request, 503, "unavailable", "暂时无法确认处理结果，请稍后重试或查询当前状态。"
         )
 
+    @app.exception_handler(JobConflict)
+    async def job_conflict(request: Request, exc: JobConflict) -> JSONResponse:
+        return error(
+            request, 409, "job_conflict", "任务已变化或幂等键内容不一致，请查询状态或使用新键。"
+        )
+
+    @app.exception_handler(JobUnavailable)
+    async def job_unavailable(request: Request, exc: JobUnavailable) -> JSONResponse:
+        return error(request, 503, "unavailable", "暂时无法确认任务状态，请稍后重试。")
+
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         return error(request, 422, "invalid_request", "请求格式不正确，请检查参数。")
@@ -169,7 +185,11 @@ def create_app(
 
     @app.get("/v1/health")
     async def health() -> dict[str, str]:
-        return {"status": "ok", "api_version": "v1", "job_service": "not_configured"}
+        return {
+            "status": "ok",
+            "api_version": "v1",
+            "job_service": "admission_only" if jobs is not None else "not_configured",
+        }
 
     async def authenticate(request: Request) -> IdentityBinding:
         if local_identity is not None:
@@ -185,6 +205,42 @@ def create_app(
     async def me(request: Request) -> dict[str, Any]:
         binding = await authenticate(request)
         return {"actor": binding.actor.model_dump(), "executor": binding.executor.model_dump()}
+
+    @app.post("/v1/sessions", status_code=201, response_model=SessionView)
+    async def session_create(body: SessionCreateBody, request: Request) -> SessionView:
+        identity = await authenticate(request)
+        if jobs is None:
+            raise HTTPException(503)
+        return await jobs.create_session(identity, request.state.request_id)
+
+    @app.post("/v1/jobs", status_code=202, response_model=JobView)
+    async def job_submit(
+        body: JobSubmission,
+        request: Request,
+        idempotency_key: str = Header(alias="Idempotency-Key", pattern=r"^[A-Za-z0-9._:-]{1,128}$"),
+    ) -> JobView:
+        identity = await authenticate(request)
+        if jobs is None:
+            raise HTTPException(503)
+        return await jobs.submit(body, idempotency_key, identity, request.state.request_id)
+
+    @app.get("/v1/jobs/{job_id}", response_model=JobView)
+    async def job_detail(job_id: str, request: Request) -> JobView:
+        identity = await authenticate(request)
+        if jobs is None:
+            raise HTTPException(503)
+        return await jobs.detail(job_id, identity, request.state.request_id)
+
+    @app.post("/v1/jobs/{job_id}/cancel", response_model=JobView)
+    async def job_cancel(
+        job_id: str,
+        request: Request,
+        body: SessionCreateBody | None = None,
+    ) -> JobView:
+        identity = await authenticate(request)
+        if jobs is None:
+            raise HTTPException(503)
+        return await jobs.cancel(job_id, identity, request.state.request_id)
 
     @app.get("/v1/approvals/{approval_id}")
     async def approval_detail(

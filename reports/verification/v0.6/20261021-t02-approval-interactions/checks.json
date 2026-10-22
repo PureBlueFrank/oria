@@ -1,0 +1,103 @@
+{
+  "run_id": "20261021T235937+0800",
+  "version": "V0.6",
+  "task_id": "V0.6-T02",
+  "milestone_id": null,
+  "depends_on": [
+    "V0.5-Core",
+    "V0.5-T03"
+  ],
+  "verification_level": [
+    "fixture",
+    "community",
+    "security"
+  ],
+  "base_commit": "02261a59e46927eedfaf1a9518c282bd256f8276",
+  "worktree_state": "dirty: scoped approval interactions, migration, regressions, docs and verification evidence",
+  "executed_at": "2026-10-21T23:59:37.418142+08:00",
+  "environment": {
+    "os": "Darwin 25.6.0",
+    "architecture": "x86_64",
+    "python": "3.11.15",
+    "uv": "uv 0.12.6 (7938ca5d5 2026-08-25 x86_64-apple-darwin)"
+  },
+  "install_mode": "source and built-wheel direct import",
+  "provider_model": {
+    "provider": "mock",
+    "model": null,
+    "revision": null,
+    "request_ids": []
+  },
+  "config_fingerprint": null,
+  "config_fingerprint_reason": "Each pytest case builds isolated temporary synthetic configuration; no shared deployed configuration.",
+  "dataset_version": null,
+  "eval_fingerprint": null,
+  "eval_fingerprint_reason": "API/card contract and persistence verification, no model-quality evaluation.",
+  "result": "passed",
+  "stage_status": "in_progress",
+  "full_local": {
+    "passed": 1151,
+    "deselected": 9,
+    "warnings": 5,
+    "seconds": 352.76,
+    "exit_code": 0
+  },
+  "new_tests": 19,
+  "latest_targeted": {
+    "passed": 59,
+    "exit_code": 0
+  },
+  "lint": "passed",
+  "build": "passed",
+  "smoke": "passed",
+  "built_wheel_import": "passed",
+  "platform_head": "platform_0012",
+  "commands": [
+    "UV_OFFLINE=1 UV_NO_SYNC=1 make test",
+    "UV_OFFLINE=1 UV_NO_SYNC=1 make lint",
+    "UV_OFFLINE=1 UV_NO_SYNC=1 uv build --out-dir .artifacts/v06-t02-approval-interactions-20261021",
+    "UV_OFFLINE=1 UV_NO_SYNC=1 make smoke"
+  ],
+  "verification_levels": {
+    "fixture": "passed",
+    "community_security": "passed",
+    "live": "not-run",
+    "postgres_new_revision": "not-run",
+    "real_feishu_new_interactions": "not-run",
+    "enterprise": "not-run",
+    "performance": "not-run"
+  },
+  "assertions": [
+    "bounded reason and conflict protection",
+    "server-owned intents and identity/message binding",
+    "approve/reject single CAS winner",
+    "reauthorized pages with no business side effects",
+    "stale-revision controls hidden",
+    "legacy receipt/card compatibility",
+    "lossless migration downgrade guard",
+    "JSON 2.0 card goldens and text sanitization"
+  ],
+  "blocked_by": [],
+  "next_gate_requirements": [
+    "Explicit approval for real Feishu message, callback address update and time-limited HTTPS entry.",
+    "Actual acceptance of new form and pagination on selected real channel."
+  ],
+  "known_limits": [
+    "T02 remains open; T03 dependencies are not closed.",
+    "No default message-to-Job/Graph acceptance, reliable delivery, PostgreSQL API or multi-worker verification.",
+    "V0.5-T07 remains at 29/80.",
+    "No existing user database migration, external message, application permission change, commit or push."
+  ],
+  "artifacts": [
+    "source-snapshot.json",
+    "community-final.log",
+    "targeted-after-review.log",
+    "lint-final.log",
+    "build-final.log",
+    "smoke-final.log",
+    "package-content.json",
+    "wheel-import.json",
+    "documentation-checks.json",
+    "real-validation-plan.md"
+  ]
+}

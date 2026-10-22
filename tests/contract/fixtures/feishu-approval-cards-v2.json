@@ -1,0 +1,251 @@
+{
+  "pending": {
+    "schema": "2.0",
+    "config": {
+      "update_multi": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商发布审批"
+      }
+    },
+    "body": {
+      "elements": [
+        {
+          "tag": "markdown",
+          "content": "等待审批"
+        },
+        {
+          "tag": "markdown",
+          "content": "审批摘要 0\n合成业务摘要"
+        },
+        {
+          "tag": "markdown",
+          "content": "审批摘要 1\n合成业务摘要"
+        },
+        {
+          "tag": "markdown",
+          "content": "审批摘要 2\n合成业务摘要"
+        },
+        {
+          "tag": "markdown",
+          "content": "审批摘要 3\n合成业务摘要"
+        },
+        {
+          "tag": "markdown",
+          "content": "审批摘要 4\n合成业务摘要"
+        },
+        {
+          "tag": "markdown",
+          "content": "请核对方案后提交决定。"
+        },
+        {
+          "tag": "markdown",
+          "content": "第 1/2 页 · 详情编号 approval-example"
+        },
+        {
+          "tag": "button",
+          "text": {
+            "tag": "plain_text",
+            "content": "批准"
+          },
+          "behaviors": [
+            {
+              "type": "callback",
+              "value": {
+                "version": 1,
+                "action_ref": "example-approve"
+              }
+            }
+          ]
+        },
+        {
+          "tag": "button",
+          "text": {
+            "tag": "plain_text",
+            "content": "查看详情"
+          },
+          "behaviors": [
+            {
+              "type": "callback",
+              "value": {
+                "version": 1,
+                "action_ref": "example-view"
+              }
+            }
+          ]
+        },
+        {
+          "tag": "form",
+          "name": "approval_rejection",
+          "elements": [
+            {
+              "tag": "input",
+              "name": "rejection_reason",
+              "required": true,
+              "input_type": "multiline_text",
+              "max_length": 1000,
+              "placeholder": {
+                "tag": "plain_text",
+                "content": "请说明拒绝原因 (最多 1000 字, 请勿填写敏感信息)"
+              }
+            },
+            {
+              "tag": "button",
+              "name": "reject_approval",
+              "text": {
+                "tag": "plain_text",
+                "content": "拒绝并提交理由"
+              },
+              "type": "danger",
+              "form_action_type": "submit",
+              "behaviors": [
+                {
+                  "type": "callback",
+                  "value": {
+                    "version": 1,
+                    "action_ref": "example-reject"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "page-2": {
+    "schema": "2.0",
+    "config": {
+      "update_multi": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商发布审批"
+      }
+    },
+    "body": {
+      "elements": [
+        {
+          "tag": "markdown",
+          "content": "等待审批"
+        },
+        {
+          "tag": "markdown",
+          "content": "审批摘要 5\n合成业务摘要"
+        },
+        {
+          "tag": "markdown",
+          "content": "请核对方案后提交决定。"
+        },
+        {
+          "tag": "markdown",
+          "content": "第 2/2 页 · 详情编号 approval-example"
+        },
+        {
+          "tag": "button",
+          "text": {
+            "tag": "plain_text",
+            "content": "批准"
+          },
+          "behaviors": [
+            {
+              "type": "callback",
+              "value": {
+                "version": 1,
+                "action_ref": "example-approve"
+              }
+            }
+          ]
+        },
+        {
+          "tag": "button",
+          "text": {
+            "tag": "plain_text",
+            "content": "上一页"
+          },
+          "behaviors": [
+            {
+              "type": "callback",
+              "value": {
+                "version": 1,
+                "action_ref": "example-view",
+                "page": 1
+              }
+            }
+          ]
+        },
+        {
+          "tag": "form",
+          "name": "approval_rejection",
+          "elements": [
+            {
+              "tag": "input",
+              "name": "rejection_reason",
+              "required": true,
+              "input_type": "multiline_text",
+              "max_length": 1000,
+              "placeholder": {
+                "tag": "plain_text",
+                "content": "请说明拒绝原因 (最多 1000 字, 请勿填写敏感信息)"
+              }
+            },
+            {
+              "tag": "button",
+              "name": "reject_approval",
+              "text": {
+                "tag": "plain_text",
+                "content": "拒绝并提交理由"
+              },
+              "type": "danger",
+              "form_action_type": "submit",
+              "behaviors": [
+                {
+                  "type": "callback",
+                  "value": {
+                    "version": 1,
+                    "action_ref": "example-reject"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "rejected": {
+    "schema": "2.0",
+    "config": {
+      "update_multi": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "招商发布审批"
+      }
+    },
+    "body": {
+      "elements": [
+        {
+          "tag": "markdown",
+          "content": "已拒绝"
+        },
+        {
+          "tag": "markdown",
+          "content": "审批说明\n合成拒绝理由: 预算需要调整"
+        },
+        {
+          "tag": "markdown",
+          "content": "修改方案后请重新申请审批。"
+        },
+        {
+          "tag": "markdown",
+          "content": "第 1/1 页 · 详情编号 approval-example"
+        }
+      ]
+    }
+  }
+}

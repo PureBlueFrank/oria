@@ -31,8 +31,8 @@ def test_binding_migration_upgrade_and_downgrade(tmp_path):
     command.upgrade(cfg, "platform_0010")
     before = _tables(path)
     command.upgrade(cfg, "head")
-    assert _revision(path) == "platform_0011"
-    assert _tables(path) - before == {"approval_card_bindings"}
+    assert _revision(path) == "platform_0013"
+    assert _tables(path) - before == {"approval_card_bindings", "sessions", "jobs", "job_events"}
     with sqlite3.connect(path) as connection:
         columns = {
             row[1]: row for row in connection.execute("PRAGMA table_info(approval_card_bindings)")
@@ -44,6 +44,51 @@ def test_binding_migration_upgrade_and_downgrade(tmp_path):
         assert "decision_intent" in sql and "approve" in sql
     command.downgrade(cfg, "platform_0010")
     assert _tables(path) == before
+
+
+@pytest.mark.asyncio
+async def test_interaction_upgrade_preserves_legacy_binding_and_downgrade_is_lossless(tmp_path):
+    config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
+    upgrade_databases(config)
+    cfg = _config(config.data_paths.platform_db)
+    command.downgrade(cfg, "platform_0011")
+    now = datetime.now(UTC)
+    approval = Approval(
+        approval_id="legacy",
+        tenant_id="tenant",
+        approval_action="launch_approval",
+        tool_name="LaunchPlan",
+        canonical_args_hash="sha256:" + "a" * 64,
+        checkpoint_id="checkpoint",
+        policy_version="local-v2",
+        requester="requester",
+        created_at=now,
+        updated_at=now,
+        expires_at=now + timedelta(hours=1),
+    )
+    async with DatabaseResources(config) as databases:
+        repository = SQLiteApprovalRepository(databases.platform_sessions)
+        await repository.add(approval)
+    with sqlite3.connect(config.data_paths.platform_db) as connection:
+        connection.execute(
+            "INSERT INTO approval_card_bindings VALUES "
+            "('tenant', 'hash', 'legacy', 'revision', 'approve', "
+            "'issuer', 'subject', 'actor', 'chat', 'message', 1)"
+        )
+    command.upgrade(cfg, "platform_0012")
+    with sqlite3.connect(config.data_paths.platform_db) as connection:
+        row = connection.execute("SELECT * FROM approval_card_bindings").fetchone()
+        assert row[1] == "hash" and row[-1] == "1.0"
+    command.downgrade(cfg, "platform_0011")
+    command.upgrade(cfg, "platform_0012")
+    with sqlite3.connect(config.data_paths.platform_db) as connection:
+        connection.execute("UPDATE approval_card_bindings SET decision_intent = 'reject'")
+    with pytest.raises(ValueError, match="cannot downgrade"):
+        command.downgrade(cfg, "platform_0011")
+    with sqlite3.connect(config.data_paths.platform_db) as connection:
+        assert connection.execute(
+            "SELECT decision_intent FROM approval_card_bindings"
+        ).fetchone() == ("reject",)
 
 
 @pytest.mark.asyncio
@@ -100,7 +145,7 @@ async def test_persistent_reference_adversarial_resolution(tmp_path):
                 identity,
                 chat_id="chat",
                 message_id="msg",
-                decision_intent="reject",  # type: ignore[arg-type]
+                decision_intent="delete",  # type: ignore[arg-type]
             )
     # Reopen connections and service: the binding must survive process-resource restart.
     async with DatabaseResources(config) as db:

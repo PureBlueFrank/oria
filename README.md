@@ -2,7 +2,7 @@
 
 **简体中文** | [English](README_EN.md)
 
-Oria 是一个面向招商活动全生命周期的开源 AI Agent 工程。
+Oria 是一个面向招商活动全生命周期的 AI Agent 平台，采用 **Apache 2.0 开源社区版 + 闭源商业企业版** 的产品模式。本仓库承载开源社区版，企业专有扩展独立交付，详见[许可证与版本边界](docs/licensing.md)。
 
 一次完整的招商活动会跨越需求理解、规则检索、商家与商品筛选、活动和券方案、多人审批、报名圈品、招后选品、渠道投放与结果通知。这里既有适合大模型处理的非结构化信息和开放式分析，也有不能交给模型自由决定的资格规则、权限边界和业务副作用。Oria 的目标，是把两者放进同一套可执行、可恢复、可审计的系统：让 LLM 负责理解、探索和解释，让确定性 Policy、状态机、审批、幂等账本与证据校验掌控最终边界。
 
@@ -72,7 +72,7 @@ Demo 会自动准备合成数据并生成带引用的招商提案，不会执行
 | 零配置 Demo | 首次了解 Oria | 核心依赖，无 Key | `uv run oria demo` | Mock/Fixture 下的只读提案、引用和硬资格边界 |
 | 完整本地 Workflow | 评估 10 步流程、HITL 和恢复 | 本地 SQLite、合成数据、Mock Adapter | [本地 Workflow 手册](docs/guides/local-workflow.md) | Community 业务语义、双审批/双等待与幂等对账 |
 | 企业级持久化适配 | 评估 PostgreSQL 双库、Repository、Saver 与 RLS 接入 | 两个独立测试数据库与显式 Enterprise 开关 | [PostgreSQL 接入指南](docs/guides/postgresql.md) | 仅真实 PostgreSQL IT 通过时证明该后端；缺 DSN 为 blocked |
-| API 与飞书入口基础 | 验证身份与协议边界 | 显式本地模式，或受信 JWT/身份目录配置 | [API 基础指南](docs/guides/api-foundation.md) | T02 进行中；真实文本/卡片出站、审批投递与更新、重启后真实按钮回调已验证；Job 待接通 |
+| API 与飞书入口基础 | 验证身份与协议边界 | 显式本地模式，或受信 JWT/身份目录配置 | [API 基础指南](docs/guides/api-foundation.md) | T02/T03 进行中；原飞书批准链路已真实验证；新增审批交互、Job 持久化受理及租约原语已本地验证，Graph 待接通 |
 | 场景 B 归因演示 | 观察有界 ReAct 调查 | 默认无 Key；Live 需已配置模型 | `uv run oria attribution ask` | Mock 回放下的可执行证据链；Live 下才验证动态选路能力 |
 | 真实 DeepSeek | 体验真实模型草案/软排序 | `standard` extra、DeepSeek Key、首次 BGE 下载 | [真实 LLM 快速开始](docs/guides/real-llm.md) | 指定 DeepSeek 模型与本地 BGE 的调用；不证明企业 Adapter |
 | 开发验证 | 贡献者和架构评审者 | 开发依赖 | `make lint && make test` | 无 Live/Enterprise/Performance 的本地回归与静态门禁 |
@@ -99,3 +99,9 @@ make smoke
 - 规划与证据：[执行计划](ROADMAP.md) · [统一验证证据索引](reports/verification/README.md) · [验证证据模板](reports/verification/TEMPLATE.md)
 
 依赖必须通过 `uv.lock` 同步。仓库不提交密钥、令牌、真实客户数据或 `.env` 文件。
+
+## 许可证与企业版
+
+本仓库采用 [Apache License 2.0](LICENSE)，允许在遵守许可证条款的前提下商用、修改与再分发。企业版专有模块通过独立私有仓库或发行包闭源交付，适用单独的商业许可；公开核心继续适用 Apache 2.0。
+
+当前仓库中已公开的 PostgreSQL、权限、审批和企业集成实现同样属于开源范围。`edition=production` 是运行配置，`enterprise` 测试标记是验证分类，均不切换许可证。企业版具体能力与交付状态另行说明，见[许可证与版本边界](docs/licensing.md)。

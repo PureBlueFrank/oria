@@ -81,7 +81,7 @@ class DemoMockLLMProvider(MockLLMProvider):
                 ToolCall(
                     id=_MERCHANT_CALL_ID,
                     name="query_merchants",
-                    args={"rule_snapshot_id": snapshot_id, "limit": 10},
+                    args={"rule_snapshot_id": snapshot_id, "limit": _candidate_limit(tools)},
                 )
             )
         return _structured_result(_proposal(rules, merchants), options)
@@ -101,6 +101,17 @@ class DemoMockLLMProvider(MockLLMProvider):
             request_id=result.request_id,
             finish_reason=result.finish_reason,
         )
+
+
+def _candidate_limit(tools: list[ToolSpec] | None) -> int:
+    for spec in tools or ():
+        if spec.name == "query_merchants":
+            properties = spec.json_schema.get("properties")
+            limit = properties.get("limit") if isinstance(properties, dict) else None
+            maximum = limit.get("maximum") if isinstance(limit, dict) else None
+            if isinstance(maximum, int) and not isinstance(maximum, bool) and 1 <= maximum <= 100:
+                return min(10, maximum)
+    raise StructuredOutputError("demo candidate bound is unavailable", retryable=False)
 
 
 def _tool_result(call: ToolCall) -> ChatResult:

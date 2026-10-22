@@ -269,6 +269,64 @@ def test_card_golden_all_stages_and_pagination_redaction():
     assert "secret-value" not in card and "demo@example.com" not in card
     with pytest.raises(ValueError):
         render_card(view, page=3)
+
+
+def approval_interaction_cards():
+    pending = IMViewModel(
+        card_schema="2.0",
+        stage="waiting_approval",
+        title="招商发布审批",
+        summary="等待审批",
+        detail_ref="approval-example",
+        next_step="请核对方案后提交决定。",
+        sections=tuple(IMSection(title=f"审批摘要 {i}", text="合成业务摘要") for i in range(6)),
+        actions=(IMAction(label="批准", value=CardAction(action_ref="example-approve")),),
+        rejection_action=CardAction(action_ref="example-reject"),
+        navigation=(IMAction(label="查看详情", value=CardAction(action_ref="example-view")),),
+    )
+    page = pending.model_copy(
+        update={
+            "page": 2,
+            "navigation": (
+                IMAction(label="上一页", value=CardAction(action_ref="example-view", page=1)),
+            ),
+        }
+    )
+    rejected = IMViewModel(
+        card_schema="2.0",
+        stage="result",
+        title="招商发布审批",
+        summary="已拒绝",
+        detail_ref="approval-example",
+        next_step="修改方案后请重新申请审批。",
+        sections=(IMSection(title="审批说明", text="合成拒绝理由: 预算需要调整"),),
+    )
+    return {
+        name: render_card(view, shared_update=True)
+        for name, view in (("pending", pending), ("page-2", page), ("rejected", rejected))
+    }
+
+
+def test_approval_interaction_card_v2_goldens():
+    path = Path(__file__).parent / "fixtures/feishu-approval-cards-v2.json"
+    assert approval_interaction_cards() == json.loads(path.read_text())
+
+
+def test_card_v2_escapes_markup_redacts_private_text_and_preserves_quotes():
+    view = next(views()).model_copy(
+        update={
+            "card_schema": "2.0",
+            "summary": (
+                """预算 "A" 与 'B' <at id=all> """
+                "[链接](https://example.com) demo@example.com"
+            ),
+        }
+    )
+    content = render_card(view)["body"]["elements"][0]["content"]
+    assert """预算 "A" 与 'B' """ in content
+    assert "<at" not in content and "&lt;at" in content
+    assert "\\[链接\\]\\(" in content
+    assert "demo@example.com" not in content
     with pytest.raises(ValueError):
         IMViewModel.model_validate(next(views()).model_dump() | {"raw_tool_json": {}})
 
