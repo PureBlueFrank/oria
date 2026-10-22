@@ -1,0 +1,76 @@
+F
+=================================== FAILURES ===================================
+____________ test_dispatch_materializes_coupon_and_saga_atomically _____________
+
+dispatch = namespace(c=namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x11ebffc10>, db=<oria.storage.datab...object at 0x11ed35e10>, service=<oria.orchestrator.job_coupon_dispatch.JobCouponDispatchService object at 0x11ed8bc50>)
+
+    @pytest.mark.asyncio
+    async def test_dispatch_materializes_coupon_and_saga_atomically(dispatch):
+        d = dispatch
+        c = d.c
+>       result = await d.service.materialize(c.token, c.args, c.plan, d.approval.approval_id)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_coupon_dispatch.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/oria/orchestrator/job_coupon_dispatch.py:171: in materialize
+    return await self._leases._write(execute())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/orchestrator/job_leases.py:196: in _write
+    return await operation
+           ^^^^^^^^^^^^^^^
+src/oria/orchestrator/job_coupon_dispatch.py:109: in execute
+    result = await self._writer.admit(
+src/oria/storage/job_coupon_dispatch.py:84: in admit
+    await self._append(session, result, ctx, epoch, policy_version, "admitted", now)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <oria.storage.job_coupon_dispatch.JobCouponDispatchWriter object at 0x11ed26d90>
+session = <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x11ec5ee10>
+execution = ToolExecution(execution_id='job_f9c6cd0fe8b740b99c38a4eee86dac86:coupon-materialization:v1', tool_name='materialize_co...0, tzinfo=TzInfo(0)), updated_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), executed_at=None)
+ctx = Context(runtime=<oria.core.context.RuntimeServices object at 0x11ea0f940>, actor=Principal(subject_id='campaign-admin'...n_id='job_f9c6cd0fe8b740b99c38a4eee86dac86:lease:1', job_id='job_f9c6cd0fe8b740b99c38a4eee86dac86', checkpoint_id=None)
+epoch = 1, policy_version = 'local-v2', outcome = 'admitted'
+now = datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc)
+
+    async def _append(
+        self, session: AsyncSession, execution: ToolExecution, ctx: Context,
+        epoch: int, policy_version: str, outcome: str, now: datetime,
+    ) -> None:
+        event_id = f"{execution.execution_id}:{outcome}"
+        event_type = f"coupon_batch.job_dispatch.{outcome}"
+        payload: dict[str, JsonValue] = {
+            "job_id": ctx.job_id, "execution_id": execution.execution_id,
+            "lease_epoch": epoch, "args_hash": execution.canonical_args_hash,
+        }
+        resource = ResourceRef(
+            tenant_id=ctx.tenant_id, resource_type="tool_execution",
+            resource_id=execution.execution_id,
+        )
+        await self._events._append(session, DomainEvent(
+            event_id=event_id, tenant_id=ctx.tenant_id, aggregate_type=resource.resource_type,
+            aggregate_id=resource.resource_id, event_type=event_type, event_version=1,
+            payload=payload, occurred_at=now, correlation_id=ctx.correlation_id,
+        ))
+>       await self._audit._append(session, EventEnvelope(
+            event_id=f"{event_id}:audit", tenant_id=ctx.tenant_id, occurred_at=now,
+            actor=ctx.actor.subject_id, action=event_type, resource=resource,
+            decision="allow", policy_version=policy_version,
+            args_hash=execution.canonical_args_hash, result=outcome,
+            correlation_id=ctx.correlation_id, payload=payload,
+        ))
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for EventEnvelope
+E       result
+E         Input should be 'success', 'denied' or 'failure' [type=literal_error, input_value='admitted', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.13/v/literal_error
+
+src/oria/storage/job_coupon_dispatch.py:140: ValidationError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_coupon_dispatch.py::test_dispatch_materializes_coupon_and_saga_atomically
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1 warning in 4.48s

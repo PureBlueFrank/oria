@@ -1,6 +1,6 @@
 # ADR-025：Job lease 与 fencing 恢复
 
-- 状态：已接受（身份恢复、Job 租约及 SQLite 草案/launch 审批准备/券 reservation 切片）；其余领域/外部副作用、runner 和接管验收仍待实施
+- 状态：已接受（身份恢复、Job 租约及 SQLite 草案/launch 审批/reservation/受控 Mock 派发切片）；真实外部副作用、其余领域、runner 和接管验收仍待实施
 - 日期：2026-10-22
 - 关联：V0.6-T03/T04、ADR-004、ADR-014
 
@@ -65,6 +65,16 @@ await 后及业务 COMMIT 入口以当前目录和只读 Policy 同步复核 req
 await 后及两种 COMMIT 入口均复核当前目录/Policy/lease；平台提交还复核审批绑定与有效期。取消、接管及业务 writer 排在锁后执行，不撤销已经提交的审批；驱动接收 COMMIT 后的撤权/时钟变化/cancellation 仍受前述限制。审批决定复用现有 ApprovalService，要求独立 decider；本入口不决定审批、不预留券、不调用 adapter、不改变 Job 状态或 accepted pointer，逻辑审批点不是官方 saver checkpoint。
 
 仅临时 SQLite/合成身份，未接入默认 API/Graph/worker；不证明 PostgreSQL、多进程 worker 或 S2。实现与验证见[本轮验证卡](../../reports/verification/v0.6/20261022-t03-launch-approval/summary.md)。外部 dispatch fencing、其他领域写入、Graph/异步恢复、T02 真实交互缺口及 T03/T04/Core 门禁保留，V0.5-T07 仍为 29/80。
+
+## SQLite Job 券的受控 Mock 派发（2026-10-22）
+
+显式内部 `JobCouponDispatchService.materialize(token, args, plan, approval_id)` 只接受既有 `InMemoryCouponBatchAdapter` 的精确类型和固定 coupon 参数；子类/网络 Adapter 被拒绝，超时上限为 5 秒。没有默认 API、Tool、Graph、worker 装配或真实外部连接。现有 `CouponBatchAdapter` 没有消费 Job epoch 的 fencing 参数，因此此实现**仅验证 Community Mock 状态闭环，不宣称真实外部派发已安全**。后续真实 Adapter 必须先明确调用接纳 fencing、稳定幂等键及结果未知后的对账协议，不能只在网络请求前检查一次 lease。
+
+派发前仍重新加载 requester、独立 worker、owner/epoch、Job 状态、实际 campaign launch Policy、批准的完整 LaunchPlan 和稳定 coupon reservation。平台 SQLite 写锁覆盖固定 Mock 调用窗口；业务库先原子提交 `reserved → executing` 和 admitted 事件，再执行 adapter。Mock accepted 后，在一个业务事务内提交 coupon `draft → materializing → ready`、saga `planned → coupon_materialized`、ledger succeeded、Domain/Audit/outbox；rejected 记为 failed，unknown/异常/超时记为 unknown。exception 内容不持久化。
+
+若进程取消、结果提交失败、lease/Policy 失效，先前已提交的 executing 行不会回滚成 reserved；有效重试把遗留 executing 收敛到 unknown，unknown/failed/succeeded 均不再调用 adapter。成功重试只复用原结果并再次验证 ready coupon、原始审批计划和 saga。审批/Job/Business SQLite 写锁会阻塞其他连接直至 Mock 结果提交或回滚；这是 Community 单 worker 证据，不代表 PostgreSQL/S2、真实网络、独立 worker 或跨库 2PC。COMMIT 交给驱动后撤权/时钟变化不保证追溯撤销。
+
+验证限临时 SQLite、合成身份与 Mock；覆盖成功与重复、拒绝/未知、异常/超时、取消、结果 COMMIT 失败、调用期间撤权/租约过期、新旧 epoch，以及两个独立 SQLite 资源实例的写锁。实现前决策、原始失败、定向结果、全库门禁和限制见[派发验证卡](../../reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。真实外部 adapter、对账/补偿、其他领域 fencing、Graph/调度/恢复及 PostgreSQL S2 仍未完成。
 
 ## 实施前基线
 

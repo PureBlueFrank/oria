@@ -16,7 +16,7 @@
 
 **门禁状态**：P0–P2 已完成，本轮演示与证据验收门禁关闭。V0.5-T01–T06 已完成并达到 Core Gate，V0.6 可按依赖实施；V0.5-T07 Live single/multi 对照仍是独立必需卡，完成前不声明多智能体质量提升。
 
-**当前开发顺序（2026-10-22）**：T02 本地身份、受理、审批与展示契约已有实现，T03 Job 持久化、两场景输入、身份恢复与 Job 租约原语已有本地验证。本地草案提交、launch 审批准备和审批后的券预留已接入租约；下一步完成外部派发与其余领域提交的 fencing，再接受控 Graph 调度、retry/timeout、飞书会话和审批/外部事件恢复，随后进入 T04 独立 worker 接管、T05 可靠通知与事件流。新增真实飞书交互和 PostgreSQL revision 各自留待独立验证。按详细路线 §1.4，`Depends on` 表示代码/schema/契约依赖，外部验证尚未通过不阻止已有契约上的开发；此前日期记录中的“T03 依赖未满足”按此更正，不关闭任何验证门禁。
+**当前开发顺序（2026-10-22）**：T02 本地身份、受理、审批与展示契约已有实现，T03 Job 持久化、两场景输入、身份恢复与 Job 租约原语已有本地验证。本地草案、launch 审批、券 reservation 与**受控 Mock 券派发**已接入租约；该派发只接受内存 Mock，不证明真实外部副作用 fencing。下一步先定义真实 adapter 的接纳 fencing、幂等与未知结果对账契约，并继续覆盖其余领域提交；再接 Graph 调度、retry/timeout、飞书会话和审批/外部事件恢复，随后进入 T04 独立 worker 接管、T05 可靠通知与事件流。真实飞书交互和 PostgreSQL revision 各自留待独立验证。按详细路线 §1.4，`Depends on` 表示代码/schema/契约依赖，外部验证尚未通过不阻止已有契约上的开发；此前日期记录中的“T03 依赖未满足”按此更正，不关闭任何验证门禁。
 
 ## 版本状态总览
 
@@ -167,3 +167,5 @@ V0.6-T02 审批投递与结果更新（2026-10-18）：新增受信 ApprovalCard
 **V0.6-T03 Job launch 审批准备（2026-10-22）**：新增显式内部 `request_launch_approval(token, args, plan)`，从已持久原始草案及成功 draft receipt 创建固定 planned saga 与真实 pending approval，复用 requester/独立 worker、实际资源和审批申请 Policy；服务端固定逻辑审批点和有效期，重复/跨 epoch 不新增或延长审批。两阶段分别提交并重新锁定/核验全部事实，中断可重试补齐；不是跨库 2PC。已本地验证申请→独立审批→券 reservation，45 项新增测试随 182 项相关回归通过，完整 Community 1385 passed / 9 deselected、静态检查及 16 条构建/安装包检查通过，完整验证见 [验证卡](reports/verification/v0.6/20261022-t03-launch-approval/summary.md)。未执行外部 dispatch，不改变 Job/accepted pointer，未连默认 API/Graph/飞书/worker；其余 fencing、调度/异步恢复、T02 真实交互缺口和 PostgreSQL/S2 仍待完成，T03/T04/Core 未关闭，V0.5-T07 29/80 不变。
 
 **审批测试 CI 收尾（2026-10-22）**：并行同步 PR 的旧回放测试跨秒误判已用确定性 RED 复现；原样重放同一请求并显式覆盖重新签名重试，70 项相关回归及全库静态通过。保留原失败，生产防重放/审批逻辑未改，见 [回归卡](reports/verification/v0.6/20261022-approval-replay-regression/summary.md)。
+
+**V0.6-T03 Job 券的受控 Mock 派发（2026-10-22）**：新增显式内部 `JobCouponDispatchService.materialize`，仅接受精确 `InMemoryCouponBatchAdapter` 和 SQLite 双库；从审批后的稳定 reservation 持久化 executing 后才调用 Mock，并原子提交成功的 coupon/saga/ledger/domain/audit/outbox 结果。rejected、unknown、异常或超时不会自动重投；取消、撤权或结果提交失败保留 executing，后续有效重试失败关闭为 unknown。新增 19 项覆盖审批状态、成功/重放、状态映射、异常/超时、取消、提交失败、撤权、lease 过期、epoch 接管和两个独立 SQLite 连接的 writer 阻塞；派发文件 20 项通过，相关回归 202 项通过。见 [设计与验证卡](reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。本切片**不表示真实网络/企业 Adapter 已获 fencing**：现有 Adapter 协议没有 Job epoch 接纳语义；真实派发、其余领域提交 fencing、对账/补偿、Graph/调度/异步恢复及 PostgreSQL S2 仍待完成，T03/T04/Core 未关闭，V0.5-T07 29/80 不变。
