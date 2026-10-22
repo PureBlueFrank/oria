@@ -1,0 +1,57 @@
+{
+  "bot": "ClawBot",
+  "test_group": "oriaTest",
+  "maximum_messages": 2,
+  "run_ref": "feishu-20261018-93b13b259b62",
+  "text": "Oria 本地联调测试：真实文本消息投递。\n测试群：oriaTest\n数据：合成测试数据\n验证编号：feishu-20261018-93b13b259b62",
+  "card": {
+    "config": {
+      "wide_screen_mode": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": "Oria 真实飞书通道测试"
+      }
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "文本消息与卡片投递验证"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "测试目标\nClawBot → oriaTest"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "测试数据\n合成数据，仅验证通道连通性与卡片展示"
+        }
+      },
+      {
+        "tag": "div",
+        "text": {
+          "tag": "plain_text",
+          "content": "请确认本群可见这张测试卡片，后续继续验证审批回调。"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "第 1/1 页 · 详情编号 feishu-20261018-93b13b259b62"
+          }
+        ]
+      }
+    ]
+  }
+}

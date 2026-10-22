@@ -1,0 +1,14 @@
+uv run ruff format --check .
+unformatted: File would be reformatted
+   --> tests/security/test_v06_api_identity.py:168:34
+    |
+167 |         assert missing_auth.json()["code"] == "unauthenticated"
+    -         unavailable = client.get(
+    -             "/v1/jobs/unknown", headers={"Authorization": "Bearer " + token()}
+    -         )
+168 +         unavailable = client.get("/v1/jobs/unknown", headers={"Authorization": "Bearer " + token()})
+169 |         assert unavailable.status_code == 503
+    |
+
+1 file would be reformatted, 374 files already formatted
+make: *** [lint] Error 1

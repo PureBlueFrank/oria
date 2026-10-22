@@ -1,0 +1,85 @@
+F.FFFFFF                                                                 [100%]
+=================================== FAILURES ===================================
+_____ test_real_postgres_revision_chains_repository_contract_and_rls_reset _____
+tests/integration/test_v06_postgres_enterprise.py:103: in test_real_postgres_revision_chains_repository_contract_and_rls_reset
+    approval = Approval(
+E   pydantic_core._pydantic_core.ValidationError: 2 validation errors for Approval
+E   created_at
+E     Field required [type=missing, input_value={'approval_id': 'approval...quester': 'requester-a'}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.13/v/missing
+E   updated_at
+E     Field required [type=missing, input_value={'approval_id': 'approval...quester': 'requester-a'}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.13/v/missing
+_ test_real_postgres_schema_gate_rejects_missing_rls_controls[enabled-platform-approvals] _
+tests/integration/test_v06_postgres_enterprise.py:241: in test_real_postgres_schema_gate_rejects_missing_rls_controls
+    with connection.begin():
+         ^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:857: in begin
+    self._transaction = RootTransaction(self)
+                        ^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2692: in __init__
+    TransactionalContext._trans_ctx_check(connection)
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/util.py:111: in _trans_ctx_check
+    raise exc.InvalidRequestError(
+E   sqlalchemy.exc.InvalidRequestError: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+_ test_real_postgres_schema_gate_rejects_missing_rls_controls[enabled-business-merchants] _
+tests/integration/test_v06_postgres_enterprise.py:241: in test_real_postgres_schema_gate_rejects_missing_rls_controls
+    with connection.begin():
+         ^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:857: in begin
+    self._transaction = RootTransaction(self)
+                        ^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2692: in __init__
+    TransactionalContext._trans_ctx_check(connection)
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/util.py:111: in _trans_ctx_check
+    raise exc.InvalidRequestError(
+E   sqlalchemy.exc.InvalidRequestError: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+_ test_real_postgres_schema_gate_rejects_missing_rls_controls[forced-platform-approvals] _
+tests/integration/test_v06_postgres_enterprise.py:241: in test_real_postgres_schema_gate_rejects_missing_rls_controls
+    with connection.begin():
+         ^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:857: in begin
+    self._transaction = RootTransaction(self)
+                        ^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2692: in __init__
+    TransactionalContext._trans_ctx_check(connection)
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/util.py:111: in _trans_ctx_check
+    raise exc.InvalidRequestError(
+E   sqlalchemy.exc.InvalidRequestError: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+_ test_real_postgres_schema_gate_rejects_missing_rls_controls[forced-business-merchants] _
+tests/integration/test_v06_postgres_enterprise.py:241: in test_real_postgres_schema_gate_rejects_missing_rls_controls
+    with connection.begin():
+         ^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:857: in begin
+    self._transaction = RootTransaction(self)
+                        ^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2692: in __init__
+    TransactionalContext._trans_ctx_check(connection)
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/util.py:111: in _trans_ctx_check
+    raise exc.InvalidRequestError(
+E   sqlalchemy.exc.InvalidRequestError: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+_ test_real_postgres_schema_gate_rejects_missing_rls_controls[policy-platform-approvals] _
+tests/integration/test_v06_postgres_enterprise.py:241: in test_real_postgres_schema_gate_rejects_missing_rls_controls
+    with connection.begin():
+         ^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:857: in begin
+    self._transaction = RootTransaction(self)
+                        ^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2692: in __init__
+    TransactionalContext._trans_ctx_check(connection)
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/util.py:111: in _trans_ctx_check
+    raise exc.InvalidRequestError(
+E   sqlalchemy.exc.InvalidRequestError: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+_ test_real_postgres_schema_gate_rejects_missing_rls_controls[policy-business-merchants] _
+tests/integration/test_v06_postgres_enterprise.py:241: in test_real_postgres_schema_gate_rejects_missing_rls_controls
+    with connection.begin():
+         ^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:857: in begin
+    self._transaction = RootTransaction(self)
+                        ^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2692: in __init__
+    TransactionalContext._trans_ctx_check(connection)
+.venv/lib/python3.11/site-packages/sqlalchemy/engine/util.py:111: in _trans_ctx_check
+    raise exc.InvalidRequestError(
+E   sqlalchemy.exc.InvalidRequestError: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+7 failed, 1 passed in 4.60s

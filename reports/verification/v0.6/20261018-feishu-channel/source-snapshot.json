@@ -1,0 +1,25 @@
+{
+  "base_commit": "c57d59e08c7a09969214a130aa67c0e191bab9ea",
+  "working_tree": "uncommitted; includes earlier V0.6 work",
+  "python": "3.11.15",
+  "packages": {
+    "httpx": "0.28.1",
+    "pydantic": "2.13.4",
+    "pytest": "9.1.1"
+  },
+  "at_send_sha256": {
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def",
+    "src/oria/ingress/feishu_channel.py": "6ba3b33847bf4e9a7bfcc11cf35ec5862c0a7158ebc8ca196e721f7011b10170",
+    "src/oria/presentation/im.py": "f38aeb93496b931eb2b534a14ba9c1615032fa8319a20a3997cf750d6324ba58",
+    "src/oria/permission/local.py": "1c076c0547510fc77e04184caae925753a7f66a58a2033af230d613d5b9a98c6",
+    "src/oria/_internal/target_selection.py": "a08b5aecadccd0b2b058b6df0ab8400f41f3c9832fa6e261903a9ad081a0d590",
+    "tests/unit/test_target_selection.py": "a4dd271acccb71f7128db30a38e7d3e72959adb381889458833b859736493b7f",
+    "tests/contract/test_v06_feishu.py": "439bb152e9b4876f545e59a3fc479e52c20509f589881ea0d2035ffebbf3011a"
+  },
+  "verification_target_note": "During this bounded run, feishu was temporarily registered in ENTERPRISE_TARGETS. After the run the registry was restored; this is a manual guarded probe, not a pytest enterprise target.",
+  "executed_harness_sha256": {
+    "probe.py": "39dd1c4f4da2ed5baded6488028f1618943c50c050af9f78460d4a7412d75b49",
+    "send_smoke.py": "3e4d7cad2834dc070738d1aacb8eca1046370acc3e7ef3da62eca29ac13772fc"
+  },
+  "final_target_registry_sha256": "6a238059b12053f328c30123c4b41dc1d2e21863b345d5f785db8cdafcc36490"
+}

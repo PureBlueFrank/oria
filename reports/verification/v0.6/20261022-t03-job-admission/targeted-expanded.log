@@ -1,0 +1,18 @@
+..........................F.....................                         [100%]
+=================================== FAILURES ===================================
+_ test_job_service_is_off_by_default_and_local_mode_does_not_initialize_storage _
+tests/integration/test_v06_job_lifecycle.py:122: in test_job_service_is_off_by_default_and_local_mode_does_not_initialize_storage
+    assert client.post("/v1/sessions", json={}).status_code == 503
+E   AssertionError: assert 401 == 503
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+E    +    where <Response [401 Unauthorized]> = post('/v1/sessions', json={})
+E    +      where post = <starlette.testclient.TestClient object at 0x11f6ebb50>.post
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  <workspace>/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_lifecycle.py::test_job_service_is_off_by_default_and_local_mode_does_not_initialize_storage
+1 failed, 47 passed, 1 warning in 25.13s

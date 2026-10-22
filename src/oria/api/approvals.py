@@ -60,6 +60,16 @@ def approval_view(approval: Approval) -> IMViewModel:
         sections.append(IMSection(title="审批说明", text=approval.reason))
     if approval.business_binding:
         sections.append(IMSection(title="活动编号", text=approval.business_binding.campaign_id))
+    sections.extend(
+        (
+            IMSection(
+                title="批准后续", text="批准仅记录决定，后续执行仍须重新校验权限和方案版本。"
+            ),
+            IMSection(
+                title="拒绝后续", text="本次审批终止，不执行此项操作；修改方案后须重新申请审批。"
+            ),
+        )
+    )
     pending = approval.status == "pending"
     return IMViewModel(
         stage="waiting_approval" if pending else "result",

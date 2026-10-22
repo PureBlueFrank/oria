@@ -1,0 +1,56 @@
+{
+  "callback_observations": [
+    {
+      "received_at": "2026-10-18T01:44:16.654220+00:00",
+      "request_bytes": 231,
+      "http_status": 200,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": true
+    },
+    {
+      "received_at": "2026-10-18T01:44:48.619916+00:00",
+      "request_bytes": 206,
+      "http_status": 200,
+      "signature_header_present": false,
+      "terminal_raw_card": false,
+      "challenge_response": true
+    },
+    {
+      "received_at": "2026-10-18T01:48:42.556411+00:00",
+      "request_bytes": 974,
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:48:49.034544+00:00",
+      "request_bytes": 974,
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:49:15.331831+00:00",
+      "request_bytes": 974,
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    }
+  ],
+  "database_counts": {
+    "approvals": 1,
+    "approval_card_bindings": 1,
+    "ingress_receipts": 0,
+    "ingress_replays": 0,
+    "audit_events": 5,
+    "outbox": 0
+  },
+  "approval_statuses": {
+    "pending": 1
+  },
+  "duplicate_evidence_present": false
+}

@@ -1,0 +1,17 @@
+{
+  "target": "feishu",
+  "mode": "outbound_smoke",
+  "run_ref": "feishu-20261018-93b13b259b62",
+  "run_at": "2026-10-18T00:12:44.981675+08:00",
+  "expected_bot": "ClawBot",
+  "confirmed_test_group": "oriaTest",
+  "status": "blocked",
+  "api_requests": 0,
+  "messages_attempted": 0,
+  "messages_confirmed": 0,
+  "synthetic_context": true,
+  "business_workflow_executed": false,
+  "steps": [],
+  "blocked_by": "configuration_configuration_or_response_invalid",
+  "finished_at": "2026-10-18T00:12:44.982472+08:00"
+}

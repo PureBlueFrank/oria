@@ -628,7 +628,7 @@ async def test_rejected_or_tampered_actions_leave_no_acceptance_writes(tmp_path,
         await runtime.aclose()
 
 
-def test_migration_rejects_non_approve_intent(tmp_path):
+def test_migration_rejects_unknown_intent(tmp_path):
     import sqlite3
 
     config = resolve_runtime_config(environ={}, data_dir=tmp_path / "data")
@@ -638,8 +638,10 @@ def test_migration_rejects_non_approve_intent(tmp_path):
         pytest.raises(sqlite3.IntegrityError),
     ):
         connection.execute(
-            "INSERT INTO approval_card_bindings VALUES "
-            "('tenant', 'hash', 'approval', 'revision', 'reject', "
+            "INSERT INTO approval_card_bindings "
+            "(tenant_id, action_hash, approval_id, approval_revision, decision_intent, "
+            "issuer, subject, actor_id, chat_id, message_id, expires_at) VALUES "
+            "('tenant', 'hash', 'approval', 'revision', 'delete', "
             "'issuer', 'subject', 'actor', 'chat', 'message', 1)"
         )
 

@@ -1,0 +1,32 @@
+[
+  {
+    "query": "",
+    "status": "passed"
+  },
+  {
+    "query": "?scene=2",
+    "status": "passed"
+  },
+  {
+    "query": "?scene=-1",
+    "status": "passed"
+  },
+  {
+    "query": "?scene=999",
+    "status": "passed"
+  },
+  {
+    "query": "?scene=0.5",
+    "status": "failed",
+    "error": "TypeError"
+  },
+  {
+    "query": "?scene=NaN",
+    "status": "passed"
+  },
+  {
+    "query": "?scene=Infinity",
+    "status": "failed",
+    "error": "AssertionError"
+  }
+]

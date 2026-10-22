@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-10-18T09:00:30.848500+00:00",
+  "mode": "real_feishu_to_isolated_demo",
+  "user_visible_help": "confirmed",
+  "commands": [
+    {
+      "sequence": 1,
+      "canonical_command": "help",
+      "status": "sent",
+      "view_title": "【演示】Oria 核心流程导览"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "app": "independent OriaTest",
+  "shared_app_unchanged": true,
+  "private_credentials_present": true,
+  "bot_enabled": true,
+  "published": false,
+  "bot_active": false,
+  "configured_scopes": [
+    "im:chat:read",
+    "im:chat.members:read",
+    "im:message:send_as_bot",
+    "im:message:update"
+  ],
+  "default_scopes_removed": 9,
+  "callback_mode": "HTTP",
+  "subscribed_callback": "card.action.trigger",
+  "platform_callback_address_accepted": true,
+  "callback_only_public_precheck": "passed_synthetic",
+  "temporary_tunnel_max_seconds": 1800,
+  "original_window_stop_at": "2026-10-17T17:44:37.251624+00:00",
+  "publish_approval": "pending",
+  "test_approver_mapping_approval": "pending",
+  "single_synthetic_card_send_approval": "pending",
+  "real_approval_card_sent": false,
+  "real_approval_button_callback": "not_run",
+  "temporary_tunnel_status": "closed",
+  "callback_address_note": "Saved temporary address is inactive after test teardown; refresh and reverify before real button validation."
+}

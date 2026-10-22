@@ -41,6 +41,12 @@ _LOCAL_ACTIONS = frozenset(
 )
 _DOCUMENT_READ_ACTIONS = frozenset({"document:read", "rule:read"})
 _WRITE_ACTION_ROLES: dict[str, frozenset[str]] = {
+    "session:create": frozenset({"operator", "campaign_admin"}),
+    "session:read": frozenset({"operator", "campaign_admin"}),
+    "job:submit": frozenset({"operator", "campaign_admin"}),
+    "job:read": frozenset({"operator", "campaign_admin"}),
+    "job:cancel": frozenset({"operator", "campaign_admin"}),
+    "job:execute": frozenset({"operator", "campaign_admin"}),
     "ingress:submit": frozenset({"operator"}),
     "knowledge:delete": frozenset({"operator"}),
     "knowledge:write": frozenset({"operator"}),
@@ -70,6 +76,7 @@ _WRITE_ACTION_ROLES: dict[str, frozenset[str]] = {
     "integration:event:ingest": frozenset({"integration_adapter"}),
 }
 _EXECUTOR_ACTION_ROLES: dict[str, frozenset[str]] = {
+    "job:execute": frozenset({"job_worker"}),
     "selection:event:apply": frozenset({"integration_adapter"}),
 }
 _DENIAL_REASONS = {
@@ -80,6 +87,7 @@ _DENIAL_REASONS = {
     "unknown_action": "action is not allowed by the local read policy",
     "role_denied": "actor role is not authorized for the write action",
     "assignment_denied": "confirmation task is not assigned to the actor",
+    "owner_denied": "resource is not owned by the actor",
     "invalid_attributes": "authorization resource attributes are invalid",
     "attribute_mismatch": "principal attributes do not match the resource scope",
 }
@@ -193,6 +201,14 @@ class LocalPolicyEngine:
         required_roles = _WRITE_ACTION_ROLES.get(request.action)
         if required_roles is not None and not required_roles.intersection(actor.roles):
             return "role_denied"
+        if request.action in {
+            "session:read",
+            "job:submit",
+            "job:read",
+            "job:cancel",
+            "job:execute",
+        } and (request.context.attributes.get("requester_subject_id") != actor.subject_id):
+            return "owner_denied"
         if request.action.startswith("confirmation:") and request.action.endswith(":decide"):
             assigned = self._confirmation_assignments.get(request.resource.resource_id)
             if assigned != actor.subject_id:

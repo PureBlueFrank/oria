@@ -1,0 +1,41 @@
+........F.................                                               [100%]
+=================================== FAILURES ===================================
+___ test_delivery_denies_invalid_recipient_before_any_network[self_approval] ___
+
+delivery_stack = namespace(directory=IdentityDirectory(bindings=(IdentityBinding(issuer='https://identity.example', subject='sender', a...teApprovalRepository object at 0x12af12ad0>, databases=<oria.storage.database.DatabaseResources object at 0x12b1908b0>)
+change = 'self_approval'
+
+    @pytest.mark.parametrize("change", ["destination", "revoked", "self_approval", "cross_tenant"])
+    @pytest.mark.asyncio
+    async def test_delivery_denies_invalid_recipient_before_any_network(delivery_stack, change):
+        state = delivery_stack
+        chat_id = "foreign" if change == "destination" else "chat"
+        if change == "revoked":
+            state.directory = IdentityDirectory(bindings=(state.sender,))
+        elif change == "self_approval":
+            original = state.approval
+            await state.repository.replace(
+                original.model_copy(update={"requester": state.approver.actor.subject_id}),
+                expected=original,
+            )
+        elif change == "cross_tenant":
+            state.sender = state.sender.model_copy(
+                update={
+                    "actor": state.sender.actor.model_copy(update={"tenant_id": "foreign"}),
+                    "executor": state.sender.executor.model_copy(update={"tenant_id": "foreign"}),
+                }
+            )
+            state.directory = IdentityDirectory(bindings=(state.sender, state.approver))
+>       with pytest.raises(PermissionError):
+E       Failed: DID NOT RAISE PermissionError
+
+tests/integration/test_v06_approval_delivery.py:236: Failed
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  <user-home>/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_approval_delivery.py::test_delivery_denies_invalid_recipient_before_any_network[self_approval]
+1 failed, 25 passed, 1 warning in 8.72s

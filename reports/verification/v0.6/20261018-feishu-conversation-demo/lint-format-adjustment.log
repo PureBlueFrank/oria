@@ -1,0 +1,13 @@
+uv run ruff format --check .
+unformatted: File would be reformatted
+   --> src/oria/chat/feishu_demo.py:252:44
+    |
+251 |                             "summary": "演示已暂停，上次执行或发送结果待维护者核对。"
+    -                             "以下仅为只读查询。\n\n"
+    -                             + view.summary
+252 +                             "以下仅为只读查询。\n\n" + view.summary
+253 |                         }
+    |
+
+1 file would be reformatted, 364 files already formatted
+make: *** [lint] Error 1

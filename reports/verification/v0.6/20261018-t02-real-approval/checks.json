@@ -1,0 +1,75 @@
+{
+  "status": "passed_for_real_approval_slice",
+  "real_authentication": "passed",
+  "bot_active_at_preflight": false,
+  "restored_local_gateway": "passed",
+  "public_synthetic_gateway": "passed",
+  "browser_control": "unavailable_after_user_retry",
+  "backend_configuration": "user_confirmed_published_and_in_group",
+  "real_card_delivery": "passed",
+  "real_card_patch": "passed",
+  "real_button_callback": "passed",
+  "synthetic_business_execution": 0,
+  "temporary_tunnel": "closed_verified",
+  "deadline": "2026-10-18T02:12:40.419100+00:00",
+  "remote_ci": "not_triggered",
+  "private_config_value_scan": "passed",
+  "private_harness_synthetic_replay_test": {
+    "status": "passed",
+    "passed": 1,
+    "warnings": 1,
+    "seconds": 3.77
+  },
+  "expired_url_diagnostic": {
+    "http_status": 530,
+    "content_type": "text/html",
+    "response_is_json": false,
+    "credentials_sent": false
+  },
+  "bot_active": true,
+  "test_group_unique": true,
+  "test_approver_unique": true,
+  "platform_callback_url_validation": "passed",
+  "real_callback_encryption": "passed",
+  "real_callback_signature": "passed",
+  "user_visible_terminal_card": "confirmed",
+  "one_decision_and_outbox": "passed",
+  "captured_real_callback_replay": "passed_in_memory",
+  "temporary_identity_mapping": "removed",
+  "time_format_fix": "full_local_regression_and_real_callback_passed",
+  "local_community": {
+    "status": "passed",
+    "passed": 1117,
+    "deselected": 9,
+    "warnings": 5,
+    "seconds": 330.89
+  },
+  "time_format_regression_before": {
+    "status": "expected_failure",
+    "failed": 1
+  },
+  "timestamp_targeted": {
+    "status": "passed",
+    "passed": 30,
+    "warnings": 1
+  },
+  "timestamp_contract_final": {
+    "status": "passed",
+    "passed": 24,
+    "warnings": 1
+  },
+  "lint": {
+    "status": "passed",
+    "formatted_files": 361,
+    "mypy_source_files": 180
+  },
+  "build": "passed",
+  "package_content": "passed",
+  "package_private_value_scan": "passed",
+  "cli_smoke": "passed",
+  "final_private_config_scan": "passed",
+  "final_evidence_links": "passed",
+  "final_source_fingerprints": "passed",
+  "locked_uv_version": "0.12.6",
+  "git_diff_check": "passed"
+}

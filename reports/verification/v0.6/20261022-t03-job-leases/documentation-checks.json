@@ -1,0 +1,15 @@
+{
+  "checked_files": [
+    "docs/adr/README.md",
+    "docs/adr/ADR-025-job-lease-and-fencing.md",
+    "docs/adr/ADR-014-durable-job-admission.md",
+    "docs/guides/durable-jobs.md",
+    "ROADMAP.md",
+    "docs/Oria详细执行路线.md",
+    "reports/verification/README.md",
+    "reports/verification/v0.6/20261022-t03-job-leases/summary.md"
+  ],
+  "relative_links_exist": true,
+  "utf8_lf_final_newline": true,
+  "git_diff_check": "passed"
+}

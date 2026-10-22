@@ -1,0 +1,29 @@
+{
+  "recorded_at": "2026-10-17T17:28:34.241339+00:00",
+  "base_commit": "c57d59e08c7a09969214a130aa67c0e191bab9ea",
+  "working_tree": "uncommitted",
+  "files": {
+    "src/oria/api/app.py": "2ca2f4c419cff1cbf08fd426fb3a02d758eb4b84b1e14728d094b6fad7098684",
+    "src/oria/api/server.py": "99ab5a27970ddc3008b71f748118875e9f65aa341ff526eb9a594abe814f48c1",
+    "src/oria/ingress/approval_cards.py": "211c3567d60e172f84731fa09c093873f6dc5a3f74ec9c767171cf140070d30a",
+    "src/oria/ingress/approval_delivery.py": "3ab15c1daf38d6ba01a09a8f11651e60bab8a87fb89ca16fa4866cd717b98355",
+    "src/oria/ingress/feishu_channel.py": "e802a02b67484c5d0e58a02d6f2dca72819cfb5b982d0f46e1555f675e80bac4",
+    "src/oria/presentation/im.py": "3147deb5b248bb788e17801408d4cf0ae06b87ae317985a387fac55584f0777d",
+    "tests/integration/test_v06_approval_delivery.py": "49a3ad8a5121cbc4667fb2189a77e71fd8be9763f6de156ce32d6217c48b1b36",
+    "tests/integration/test_v06_feishu_server_lifecycle.py": "6d619f38e9f28758289e2d67b6bd3d30b9d67f82972e20787b01921dd86ff7c7",
+    "pyproject.toml": "8e21b42f57e9679759227c41ef3ccee8cf0cccd0331a3e00034d39afbcda665f",
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def"
+  },
+  "environment": {
+    "python": "3.11.15",
+    "uv": "uv 0.12.6 (7938ca5d5 2026-08-25 x86_64-apple-darwin)",
+    "packages": {
+      "fastapi": "0.142.2",
+      "httpx": "0.28.1",
+      "sqlalchemy": "2.0.52",
+      "alembic": "1.19.1",
+      "pytest": "9.1.1",
+      "uvicorn": "0.52.4"
+    }
+  }
+}

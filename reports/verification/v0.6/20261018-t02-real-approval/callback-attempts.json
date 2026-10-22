@@ -1,0 +1,86 @@
+{
+  "synthetic_precheck_records": 1,
+  "platform_url_verification_records": 1,
+  "rejected_card_callbacks": 9,
+  "successful_card_callbacks": 1,
+  "attempts": [
+    {
+      "received_at": "2026-10-18T01:44:48.619916+00:00",
+      "http_status": 200,
+      "signature_header_present": false,
+      "terminal_raw_card": false,
+      "challenge_response": true
+    },
+    {
+      "received_at": "2026-10-18T01:48:42.556411+00:00",
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:48:49.034544+00:00",
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:49:15.331831+00:00",
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:51:48.613101+00:00",
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:52:01.539514+00:00",
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:53:55.709969+00:00",
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:54:03.845916+00:00",
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:55:49.253090+00:00",
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:56:14.211254+00:00",
+      "http_status": 401,
+      "signature_header_present": true,
+      "terminal_raw_card": false,
+      "challenge_response": false
+    },
+    {
+      "received_at": "2026-10-18T01:59:53.566516+00:00",
+      "http_status": 200,
+      "signature_header_present": true,
+      "terminal_raw_card": true,
+      "challenge_response": false
+    }
+  ],
+  "raw_payload_saved": false
+}

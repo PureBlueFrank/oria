@@ -1,0 +1,30 @@
+{
+  "task_id": "V0.6-T02",
+  "verification_level": [
+    "Fixture",
+    "Community",
+    "Security",
+    "Recovery"
+  ],
+  "base_commit": "c57d59e08c7a09969214a130aa67c0e191bab9ea",
+  "executed_at": "2026-10-16T22:16:41.845373+08:00",
+  "python": "3.11.15 (main, Jul 23 2026, 14:51:25) [Clang 22.1.3 ]",
+  "platform": "macOS-26.6.1-x86_64-i386-64bit",
+  "uv": "uv 0.12.6 (7938ca5d5 2026-08-25 x86_64-apple-darwin)",
+  "lock_sha256": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def",
+  "source_sha256": {
+    "src/oria/api/app.py": "21778a6ece0e3b5e4b18b3403c38aa3bc8efbc4a5601c1943e8f37b3ce893f90",
+    "src/oria/api/server.py": "192321c948879c8b9dc7f9c5073033861dbbd308918128f038ac7b2dbc02ff50",
+    "tests/integration/test_v06_feishu_server_lifecycle.py": "c0b2e8e946665a2b2ccbcff300ec5467d96ba7d1651fd140f34aeaf95a3b60ed"
+  },
+  "packages": {
+    "fastapi": "0.142.2",
+    "uvicorn": "0.52.4",
+    "pydantic": "2.13.4",
+    "sqlalchemy": "2.0.52",
+    "httpx": "0.28.1",
+    "pytest": "9.1.1"
+  },
+  "dataset": "synthetic Feishu app/tenant/user, temporary SQLite approvals and receipts",
+  "provider_model": "MockLLM/FixtureEmbedder; no external calls"
+}

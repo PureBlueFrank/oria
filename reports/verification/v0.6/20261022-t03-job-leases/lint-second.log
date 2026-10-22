@@ -1,0 +1,206 @@
+uv run ruff format --check .
+381 files already formatted
+uv run ruff check .
+SIM117 [*] Use a single `with` statement with multiple contexts instead of nested `with` statements
+  --> tests/integration/test_v06_job_leases.py:69:5
+   |
+68 |       upgrade_databases(config)
+69 | /     async with (
+70 | |         DatabaseResources(config) as db,
+71 | |         open_tenant_sqlite_saver(config.data_paths.platform_db) as saver,
+72 | |     ):
+73 | |         async with await build_runtime(
+74 | |             config,
+75 | |             resource_factories=(lambda: db,),
+76 | |             trusted_actors=(owner.actor, admin.actor),
+77 | |             trusted_executors=(owner.executor, worker),
+78 | |             clock=clock.now,
+79 | |         ) as runtime:
+   | |_____________________^
+80 |               repo = JobRepository(db.platform_sessions)
+   |
+help: Combine `with` statements
+    |
+70  |         DatabaseResources(config) as db,
+    -         open_tenant_sqlite_saver(config.data_paths.platform_db) as saver,
+71  +         open_tenant_sqlite_saver(config.data_paths.platform_db) as saver,await build_runtime(
+72  +         config,
+73  +         resource_factories=(lambda: db,),
+74  +         trusted_actors=(owner.actor, admin.actor),
+75  +         trusted_executors=(owner.executor, worker),
+76  +         clock=clock.now,
+77  +     ) as runtime
+78  |     ):
+    -         async with await build_runtime(
+    -             config,
+    -             resource_factories=(lambda: db,),
+    -             trusted_actors=(owner.actor, admin.actor),
+    -             trusted_executors=(owner.executor, worker),
+    -             clock=clock.now,
+    -         ) as runtime:
+    -             repo = JobRepository(db.platform_sessions)
+    -
+    -             def service(instance="worker-a", **kwargs):
+    -                 return JobLeaseService(
+    -                     runtime,
+    -                     repo,
+    -                     source,
+    -                     executor=kwargs.pop("executor", worker),
+    -                     instance_id=instance,
+    -                     clock=clock.now,
+    -                     checkpointer=saver,
+    -                     **kwargs,
+    -                 )
+79  +         repo = JobRepository(db.platform_sessions)
+80  |
+    -             async def add(*, scenario="attribution", actor=owner, **changes):
+    -                 session_id = "session_" + uuid.uuid4().hex
+    -                 await repo.create_session(
+    -                     JobSession(
+    -                         tenant_id=actor.actor.tenant_id,
+    -                         session_id=session_id,
+    -                         requester_subject_id=actor.actor.subject_id,
+    -                         requester_issuer=actor.issuer,
+    -                         requester_external_subject=actor.subject,
+    -                         created_at=clock.now(),
+    -                     ),
+    -                     _trusted_guard,
+    -                 )
+    -                 spec = (
+    -                     {
+    -                         "scenario": "attribution",
+    -                         "metric": "redemptions",
+    -                         "period": {"start_date": "2026-07-01", "end_date": "2026-07-07"},
+    -                     }
+    -                     if scenario == "attribution"
+    -                     else {
+    -                         "scenario": "campaign",
+    -                         "categories": ["餐饮"],
+    -                         "cities": ["上海"],
+    -                         "enrollment_mode": "auto",
+    -                     }
+    -                 )
+    -                 submission = JobSubmission.model_validate({"session_id": session_id, "spec": spec})
+    -                 values = {
+    -                     "tenant_id": actor.actor.tenant_id,
+    -                     "job_id": "job_" + uuid.uuid4().hex,
+    -                     "session_id": session_id,
+    -                     "thread_id": "thread_" + uuid.uuid4().hex,
+    -                     "run_id": "run_" + uuid.uuid4().hex,
+    -                     "requester_subject_id": actor.actor.subject_id,
+    -                     "requester_issuer": actor.issuer,
+    -                     "requester_external_subject": actor.subject,
+    -                     "submission": submission,
+    -                     "request_hash": submission_hash(submission),
+    -                     "idempotency_key": uuid.uuid4().hex * 2,
+    -                     "created_at": clock.now(),
+    -                     "updated_at": clock.now(),
+    -                     "timeout_at": clock.now() + timedelta(days=1),
+    -                 } | changes
+    -                 return await repo.submit(Job.model_validate(values), _trusted_guard)
+81  +         def service(instance="worker-a", **kwargs):
+82  +             return JobLeaseService(
+83  +                 runtime,
+84  +                 repo,
+85  +                 source,
+86  +                 executor=kwargs.pop("executor", worker),
+87  +                 instance_id=instance,
+88  +                 clock=clock.now,
+89  +                 checkpointer=saver,
+90  +                 **kwargs,
+91  +             )
+92  |
+    -             yield SimpleNamespace(
+    -                 repo=repo,
+    -                 db=db,
+    -                 clock=clock,
+    -                 source=source,
+    -                 path=path,
+    -                 owner=owner,
+    -                 admin=admin,
+    -                 worker=worker,
+    -                 runtime=runtime,
+    -                 config=config,
+    -                 service=service,
+    -                 add=add,
+    -                 saver=saver,
+    -                 directory=directory,
+93  +         async def add(*, scenario="attribution", actor=owner, **changes):
+94  +             session_id = "session_" + uuid.uuid4().hex
+95  +             await repo.create_session(
+96  +                 JobSession(
+97  +                     tenant_id=actor.actor.tenant_id,
+98  +                     session_id=session_id,
+99  +                     requester_subject_id=actor.actor.subject_id,
+100 +                     requester_issuer=actor.issuer,
+101 +                     requester_external_subject=actor.subject,
+102 +                     created_at=clock.now(),
+103 +                 ),
+104 +                 _trusted_guard,
+105 +             )
+106 +             spec = (
+107 +                 {
+108 +                     "scenario": "attribution",
+109 +                     "metric": "redemptions",
+110 +                     "period": {"start_date": "2026-07-01", "end_date": "2026-07-07"},
+111 +                 }
+112 +                 if scenario == "attribution"
+113 +                 else {
+114 +                     "scenario": "campaign",
+115 +                     "categories": ["餐饮"],
+116 +                     "cities": ["上海"],
+117 +                     "enrollment_mode": "auto",
+118 +                 }
+119 |             )
+120 +             submission = JobSubmission.model_validate({"session_id": session_id, "spec": spec})
+121 +             values = {
+122 +                 "tenant_id": actor.actor.tenant_id,
+123 +                 "job_id": "job_" + uuid.uuid4().hex,
+124 +                 "session_id": session_id,
+125 +                 "thread_id": "thread_" + uuid.uuid4().hex,
+126 +                 "run_id": "run_" + uuid.uuid4().hex,
+127 +                 "requester_subject_id": actor.actor.subject_id,
+128 +                 "requester_issuer": actor.issuer,
+129 +                 "requester_external_subject": actor.subject,
+130 +                 "submission": submission,
+131 +                 "request_hash": submission_hash(submission),
+132 +                 "idempotency_key": uuid.uuid4().hex * 2,
+133 +                 "created_at": clock.now(),
+134 +                 "updated_at": clock.now(),
+135 +                 "timeout_at": clock.now() + timedelta(days=1),
+136 +             } | changes
+137 +             return await repo.submit(Job.model_validate(values), _trusted_guard)
+138 +
+139 +         yield SimpleNamespace(
+140 +             repo=repo,
+141 +             db=db,
+142 +             clock=clock,
+143 +             source=source,
+144 +             path=path,
+145 +             owner=owner,
+146 +             admin=admin,
+147 +             worker=worker,
+148 +             runtime=runtime,
+149 +             config=config,
+150 +             service=service,
+151 +             add=add,
+152 +             saver=saver,
+153 +             directory=directory,
+154 +         )
+155 |
+    |
+
+E501 Line too long (106 > 100)
+   --> tests/integration/test_v06_job_leases.py:292:101
+    |
+290 |             await session.execute(
+291 |                 text(
+292 |                     "SELECT count(*) FROM audit_events WHERE action = 'job:execute' AND decision = 'deny'"
+    |                                                                                                     ^^^^^^
+293 |                 )
+294 |             )
+    |
+
+Found 2 errors.
+[*] 1 fixable with the `--fix` option.
+make: *** [lint] Error 1

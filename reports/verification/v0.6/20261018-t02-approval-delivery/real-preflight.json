@@ -1,0 +1,28 @@
+{
+  "target": "feishu",
+  "mode": "read_only_preflight",
+  "bot": "OriaTest",
+  "test_group": "oriaTest",
+  "status": "blocked",
+  "api_requests": 2,
+  "messages_sent": 0,
+  "business_operations": 0,
+  "steps": [
+    {
+      "stage": "authentication",
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "stage": "bot_identity",
+      "http_status": 200,
+      "api_code": 0
+    }
+  ],
+  "run_at": "2026-10-18T00:55:23.737654+08:00",
+  "private_credentials_present": true,
+  "callback_address_present": false,
+  "bot_name_matches": true,
+  "bot_active": false,
+  "blocked_by": "bot_identity_mismatch_or_not_active"
+}

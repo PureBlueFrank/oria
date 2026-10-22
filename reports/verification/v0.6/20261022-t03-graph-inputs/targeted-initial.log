@@ -1,0 +1,29 @@
+.................F..                                                     [100%]
+=================================== FAILURES ===================================
+_ test_campaign_job_input_reaches_existing_graph_approval_with_owned_metadata __
+tests/integration/test_v06_job_graph_inputs.py:40: in test_campaign_job_input_reaches_existing_graph_approval_with_owned_metadata
+    result = await graph.ainvoke(state, config=checkpoint_config(ctx), context=ctx)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/langgraph/pregel/main.py:4090: in ainvoke
+    async for chunk in self.astream(
+.venv/lib/python3.11/site-packages/langgraph/pregel/main.py:3440: in astream
+    async for _ in runner.atick(
+.venv/lib/python3.11/site-packages/langgraph/pregel/_runner.py:396: in atick
+    await arun_with_retry(
+.venv/lib/python3.11/site-packages/langgraph/pregel/_retry.py:744: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/langgraph/_internal/_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+.venv/lib/python3.11/site-packages/langgraph/_internal/_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/orchestrator/scenario_a.py:1288: in _draft
+    result = await _service(runtime.context).generate_draft(
+src/oria/orchestrator/scenario_a.py:367: in generate_draft
+    raise ValueError("research graph did not produce a valid campaign draft")
+E   ValueError: research graph did not produce a valid campaign draft
+E   During task with name 'draft' and id 'e4e608db-c4c5-e5e1-9ac7-95c721c57358'
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_graph_inputs.py::test_campaign_job_input_reaches_existing_graph_approval_with_owned_metadata
+1 failed, 19 passed in 7.57s

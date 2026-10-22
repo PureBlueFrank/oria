@@ -6,7 +6,9 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any, Literal
 
 from cryptography.hazmat.primitives import padding
@@ -30,6 +32,8 @@ class CardAction(ValueModel):
     # Opaque reference resolved against server-owned approval/resource/version/wait.
     # Neither this reference nor a valid platform signature grants approval permission.
     action_ref: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    # An untrusted display selector, never a resource or decision selector.
+    page: int | None = Field(default=None, ge=1, le=20, strict=True)
 
 
 class VerifiedFeishuEvent(ValueModel):
@@ -37,6 +41,7 @@ class VerifiedFeishuEvent(ValueModel):
     binding: IdentityBinding
     message: InboundMessage
     action: CardAction | None = None
+    rejection_reason: str | None = Field(default=None, min_length=1, max_length=1000, repr=False)
     replay_key: str
     expires_at: float
 
@@ -55,6 +60,28 @@ def _text(value: Any, *, limit: int = 256) -> str:
 
 def _digest(*parts: str) -> str:
     return hashlib.sha256(json.dumps(parts, ensure_ascii=False).encode()).hexdigest()
+
+
+_GO_TIMESTAMP = re.compile(
+    r"(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})"
+    r"(?:\.(?P<fraction>[0-9]{1,9}))? (?P<offset>[+-][0-9]{4}) [A-Za-z]{1,10}"
+    r"(?: m=[+-][0-9]{1,20}(?:\.[0-9]{1,9})?)?"
+)
+
+
+def _timestamp_seconds(value: str) -> int | float:
+    if re.fullmatch(r"[0-9]{1,20}", value):
+        return int(value)
+    match = _GO_TIMESTAMP.fullmatch(value)
+    if match is None:
+        raise ValueError("unsupported timestamp")
+    # Go's optional monotonic suffix has no meaning outside its source process.
+    # The explicit UTC offset determines the wall clock; sign the entire original text.
+    seconds = datetime.strptime(
+        f"{match['date']} {match['offset']}", "%Y-%m-%d %H:%M:%S %z"
+    ).timestamp()
+    fraction = match["fraction"]
+    return seconds + (int(fraction) / 10 ** len(fraction) if fraction else 0)
 
 
 class FeishuIngress:
@@ -92,13 +119,15 @@ class FeishuIngress:
                 key in headers
                 for key in ("x-lark-request-timestamp", "x-lark-request-nonce", "x-lark-signature")
             )
-            stamp = 0
+            stamp: int | float = 0
+            replay_timestamp = ""
             nonce = ""
             if signed:
-                timestamp = _text(headers.get("x-lark-request-timestamp"), limit=20)
+                timestamp = _text(headers.get("x-lark-request-timestamp"), limit=96)
                 nonce = _text(headers.get("x-lark-request-nonce"))
                 signature = _text(headers.get("x-lark-signature"), limit=64)
-                stamp = int(timestamp)
+                stamp = _timestamp_seconds(timestamp)
+                replay_timestamp = str(stamp) if isinstance(stamp, int) else timestamp
                 now = request.received_at.timestamp()
                 if abs(now - stamp) > self.settings.max_age_seconds:
                     raise ValueError("stale request")
@@ -127,6 +156,7 @@ class FeishuIngress:
             tenant = _text(header.get("tenant_key"))
             event = _object(document.get("event"))
             action = None
+            rejection_reason = None
             if header.get("event_type") == "im.message.receive_v1":
                 sender = _object(event.get("sender"))
                 if sender.get("sender_type") != "user" or sender.get("tenant_key") != tenant:
@@ -145,7 +175,15 @@ class FeishuIngress:
                 if operator.get("tenant_key") != tenant:
                     raise ValueError("untrusted operator")
                 subject = _text(operator.get("open_id"))
-                action = CardAction.model_validate(_object(event.get("action")).get("value"))
+                callback = _object(event.get("action"))
+                action = CardAction.model_validate(callback.get("value"))
+                if "form_value" in callback:
+                    form = _object(callback["form_value"])
+                    if set(form) != {"rejection_reason"}:
+                        raise ValueError("unsupported form fields")
+                    rejection_reason = _text(form["rejection_reason"], limit=1000).strip()
+                    if not rejection_reason:
+                        raise ValueError("rejection requires a reason")
                 context = _object(event.get("context"))
                 chat = _text(context.get("open_chat_id"))
                 source_id = _text(context.get("open_message_id"))
@@ -160,6 +198,7 @@ class FeishuIngress:
                 source_id,
                 subject if action else "",
                 action.action_ref if action else "",
+                *([str(action.page)] if action is not None and action.page is not None else []),
             )
             return VerifiedFeishuEvent(
                 kind=kind,
@@ -177,7 +216,8 @@ class FeishuIngress:
                     dedupe_key=dedupe,
                 ),
                 action=action,
-                replay_key=_digest(self.settings.app_id, str(stamp), nonce),
+                rejection_reason=rejection_reason,
+                replay_key=_digest(self.settings.app_id, replay_timestamp, nonce),
                 expires_at=stamp + self.settings.max_age_seconds,
             )
         except (ValueError, TypeError, KeyError, PermissionError):

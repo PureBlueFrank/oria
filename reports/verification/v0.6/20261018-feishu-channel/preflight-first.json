@@ -1,0 +1,27 @@
+{
+  "target": "feishu",
+  "mode": "read_only_preflight",
+  "run_at": "2026-10-18T00:08:27.724666+08:00",
+  "expected_bot": "ClawBot",
+  "confirmed_test_group": "oriaTest",
+  "business_writes": 0,
+  "messages_sent": 0,
+  "api_requests": 3,
+  "status": "preflight_passed",
+  "authentication": {
+    "http_status": 200,
+    "api_code": 0
+  },
+  "bot_identity": {
+    "http_status": 200,
+    "api_code": 0
+  },
+  "bot_name_matches": true,
+  "bot_active": true,
+  "group_listing": {
+    "http_status": 200,
+    "api_code": 0
+  },
+  "matched_chat_count": 1,
+  "bot_membership_verified": true
+}

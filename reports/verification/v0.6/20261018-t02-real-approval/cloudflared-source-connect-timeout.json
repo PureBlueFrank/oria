@@ -1,0 +1,9 @@
+{
+  "source": "official Cloudflare GitHub release",
+  "release": "2026.10.1",
+  "asset": "cloudflared-darwin-amd64.tgz",
+  "status": "failed",
+  "system_install": false,
+  "tunnel_started": false,
+  "error_type": "ConnectTimeout"
+}

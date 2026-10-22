@@ -10,16 +10,17 @@ from uuid import uuid4
 
 import pytest
 from langgraph.checkpoint.base import empty_checkpoint
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
 
 from oria.config import resolve_runtime_config
 from oria.core.approvals import Approval
 from oria.domain.models import MerchantSeed, MerchantSeedSet
-from oria.migrations.runner import upgrade_databases
+from oria.migrations.runner import MigrationError, _validate_postgres_rls, upgrade_databases
 from oria.orchestrator.checkpoint import open_tenant_postgres_saver
 from oria.storage.database import DatabaseResources, set_session_tenant_context
 from oria.storage.platform import SQLiteApprovalRepository
 from oria.storage.repositories import SQLiteMerchantRepository
+from oria.storage.urls import sqlalchemy_postgres_url
 
 pytestmark = [pytest.mark.enterprise, pytest.mark.integration]
 
@@ -83,10 +84,23 @@ async def test_real_postgres_revision_chains_repository_contract_and_rls_reset(
     approval_id = f"approval-{run_prefix}"
     merchant_id = f"merchant-{run_prefix}"
     revisions = upgrade_databases(config)
-    assert revisions.platform_revision == "platform_0011"
+    assert revisions.platform_revision == "platform_0013"
     assert revisions.business_revision == "business_0011"
 
     async with DatabaseResources(config) as databases:
+        # A bypassing runtime role would invalidate the isolation evidence.
+        for sessions in (databases.platform_sessions, databases.business_sessions):
+            async with sessions() as session:
+                role = (
+                    await session.execute(
+                        text(
+                            "SELECT rolsuper, rolbypassrls FROM pg_catalog.pg_roles "
+                            "WHERE rolname = current_user"
+                        )
+                    )
+                ).one()
+                assert role == (False, False)
+        now = datetime.now(UTC)
         approval = Approval(
             approval_id=approval_id,
             tenant_id=tenant_a,
@@ -95,7 +109,9 @@ async def test_real_postgres_revision_chains_repository_contract_and_rls_reset(
             canonical_args_hash="sha256:" + "a" * 64,
             checkpoint_id=f"checkpoint-{run_prefix}",
             policy_version="policy-v1",
-            expires_at=datetime.now(UTC) + timedelta(hours=1),
+            created_at=now,
+            updated_at=now,
+            expires_at=now + timedelta(hours=1),
             requester="requester-a",
         )
         approval_repository = SQLiteApprovalRepository(databases.platform_sessions)
@@ -196,4 +212,69 @@ async def test_real_official_postgres_saver_through_tenant_adapter(
         loaded = await saver.aget_tuple(saved)
         assert loaded is not None
         assert loaded.config["configurable"]["thread_id"] == thread_id
-        assert loaded.pending_writes is not None
+        assert loaded.pending_writes == [(f"task-{run_prefix}", "messages", "value")]
+
+        # Identical external thread IDs never cross tenant or namespace boundaries.
+        other_tenant = {
+            "configurable": dict(config_a["configurable"], oria_tenant_id=f"other-{run_prefix}")
+        }
+        other_namespace = {
+            "configurable": dict(config_a["configurable"], checkpoint_ns="unwritten")
+        }
+        for unrelated in (other_tenant, other_namespace):
+            assert await saver.aget_tuple(unrelated) is None
+            assert [item async for item in saver.alist(unrelated)] == []
+
+        child = await saver.aput(
+            saved,
+            empty_checkpoint(),
+            {"source": "loop", "step": 1, "parents": {}},
+            {},
+        )
+        restored = await saver.aget_tuple(child)
+        assert restored is not None and restored.parent_config is not None
+        assert (
+            restored.parent_config["configurable"]["checkpoint_id"]
+            == saved["configurable"]["checkpoint_id"]
+        )
+        assert restored.parent_config["configurable"]["oria_tenant_id"] == tenant_id
+        listed = [item async for item in saver.alist(config_a)]
+        assert {item.config["configurable"]["checkpoint_id"] for item in listed} == {
+            saved["configurable"]["checkpoint_id"],
+            child["configurable"]["checkpoint_id"],
+        }
+
+
+@pytest.mark.parametrize(
+    ("target", "table"), [("platform", "approvals"), ("business", "merchants")]
+)
+@pytest.mark.parametrize("missing", ["enabled", "forced", "policy"])
+def test_real_postgres_schema_gate_rejects_missing_rls_controls(
+    tmp_path: Path,
+    postgres_enterprise_environment: dict[str, str],
+    target: str,
+    table: str,
+    missing: str,
+) -> None:
+    config = _config(tmp_path, postgres_enterprise_environment)
+    upgrade_databases(config)
+    url = config.storage.platform_url if target == "platform" else config.storage.business_url
+    assert url is not None
+    engine = create_engine(sqlalchemy_postgres_url(url))
+    try:
+        with engine.connect() as connection:
+            with connection.begin() as transaction:
+                if missing == "policy":
+                    statement = f'DROP POLICY oria_tenant_isolation ON "{table}"'
+                else:
+                    action = "DISABLE" if missing == "enabled" else "NO FORCE"
+                    statement = f'ALTER TABLE "{table}" {action} ROW LEVEL SECURITY'
+                connection.execute(text(statement))
+                with pytest.raises(MigrationError, match="tenant isolation verification failed"):
+                    _validate_postgres_rls(connection, target)
+                # Restore every mutation; never commit a weakened gate.
+                transaction.rollback()
+            with connection.begin():
+                _validate_postgres_rls(connection, target)
+    finally:
+        engine.dispose()

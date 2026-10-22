@@ -1,0 +1,9 @@
+Discovery phase: application authentication
+Authentication HTTP 200, code 0
+Discovery phase: bot
+Discovery HTTP 200, code 0
+Discovery phase: im
+Discovery HTTP 200, code 0
+Discovery phase: im
+Discovery HTTP 200, code 0
+Four read-only discovery calls passed; unique OriaTest/chat/operator. Private scope saved (0600).

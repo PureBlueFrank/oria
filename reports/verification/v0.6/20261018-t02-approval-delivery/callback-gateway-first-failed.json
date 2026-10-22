@@ -1,0 +1,46 @@
+{
+  "mode": "local_callback_gateway",
+  "status": "failed",
+  "external_requests": 0,
+  "messages_sent": 0,
+  "checks": [
+    {
+      "case": "GET /v1/health",
+      "http_status": 404
+    },
+    {
+      "case": "GET /v1/me",
+      "http_status": 404
+    },
+    {
+      "case": "GET /openapi.json",
+      "http_status": 404
+    },
+    {
+      "case": "GET /docs",
+      "http_status": 404
+    },
+    {
+      "case": "GET /v1/ingress/feishu/events",
+      "http_status": 404
+    },
+    {
+      "case": "POST /v1/approvals/synthetic/decision",
+      "http_status": 404
+    },
+    {
+      "case": "encrypted_signed_challenge",
+      "http_status": 200
+    },
+    {
+      "case": "unmapped_operator_denied",
+      "http_status": 401
+    },
+    {
+      "case": "oversized_callback_denied",
+      "http_status": 413
+    }
+  ],
+  "local_server_stopped": true,
+  "error_type": "OperationalError"
+}

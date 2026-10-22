@@ -1,0 +1,35 @@
+{
+  "mode": "real_feishu_read_only_discovery",
+  "status": "passed",
+  "messages_sent": 0,
+  "api_requests": 4,
+  "steps": [
+    {
+      "step": 1,
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "step": 2,
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "step": 3,
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "step": 4,
+      "http_status": 200,
+      "api_code": 0
+    }
+  ],
+  "bot_name_matches": true,
+  "bot_active": true,
+  "matched_group_count": 1,
+  "group_listing_complete": true,
+  "matched_approver_count": 1,
+  "member_listing_complete": true,
+  "context_sha256": "3f2deb5f9ad0561218e04605b1c581e5b9db11d898e4495ab741a68febb198c4"
+}

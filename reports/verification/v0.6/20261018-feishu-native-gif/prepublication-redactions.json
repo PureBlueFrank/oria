@@ -1,0 +1,41 @@
+{
+  "reason": "Privacy cleanup before user-authorized repository publication; earlier snapshots retain their historical hashes.",
+  "files": [
+    {
+      "file": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/community-final.log",
+      "before_sha256": "437f1f3278be96e9d82a1e5f69a2508686808e486c18c4875e5ec8a3934d83d5",
+      "after_sha256": "88993c8fdf1c6521519317f94c97eee198b4d5c25092cb23710e82197084e129",
+      "change": "Redacted local user directory prefix only; all test outcomes and failures preserved."
+    },
+    {
+      "file": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lifecycle-final.log",
+      "before_sha256": "686a8da11b837b918194a8cde6d6632df6be96fb467becec2aa45a0453a335f9",
+      "after_sha256": "543a4798d1c3b18270ad093b767402105d26a83cf6cc91a6178c17b4c221901e",
+      "change": "Redacted local user directory prefix only; all test outcomes and failures preserved."
+    },
+    {
+      "file": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lifecycle-first.log",
+      "before_sha256": "3d39a0ac60a6266ca715c382dc7a17de4acc4ce3367093c508570abce8f45c7d",
+      "after_sha256": "5f8c3b7ea6e0331cc45af47a399712e66de9112b74ce356109325d3108950f54",
+      "change": "Redacted local user directory prefix only; all test outcomes and failures preserved."
+    },
+    {
+      "file": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/shared-services.log",
+      "before_sha256": "21c1a0be6c9ee346fd990d7c36ed6be04c069ca787c9ad79866e77c3b518adde",
+      "after_sha256": "9de837d5e4ed6703aaab29306993cdf8faecbf5eb399404294db2f1ebb036619",
+      "change": "Redacted local user directory prefix only; all test outcomes and failures preserved."
+    },
+    {
+      "file": "reports/verification/v0.6/20261018-feishu-conversation-demo/summary.md",
+      "before_sha256": "f01139842937626f0970977df82e45a7b155238a20ef47ae68ea778f23f7619e",
+      "after_sha256": "26f2c3492548751c74e64353a1bc1a8aa93a8b3ba5cc9d7db73123387713bbd7",
+      "change": "Redacted test operator display name only."
+    },
+    {
+      "file": "reports/verification/v0.6/20261018-t02-real-approval/summary.md",
+      "before_sha256": "5e7e20824ce872270c73b94d127c3e233e4ee7ad6fc25f386f64ca56e40e2c08",
+      "after_sha256": "d1236aacaf8563e16a6de05375e5028aff7fd34e10ce5d301f536e6e992e7c69",
+      "change": "Redacted test operator display name only."
+    }
+  ]
+}

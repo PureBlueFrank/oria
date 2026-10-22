@@ -1,0 +1,3146 @@
+{
+  "tool": "open-code-review v1.12.13",
+  "mode": "delegate (deterministic OCR selection/rules; host performs review)",
+  "base_commit": "02261a59e46927eedfaf1a9518c282bd256f8276",
+  "target_branch": "master",
+  "master_base_commit": "c57d59e08c7a09969214a130aa67c0e191bab9ea",
+  "code_files": 54,
+  "code_reviewed_files": 54,
+  "code_coverage_rate": 1.0,
+  "findings": [
+    {
+      "path": "docs/demo/feishu/record-replay.html",
+      "start_line": 35,
+      "category": "bug",
+      "severity": "medium",
+      "content": "A fractional scene query such as ?scene=0.5 selected a non-integer array index and crashed render(). Require an integer and use scene zero for invalid values.",
+      "status": "fixed",
+      "verification": "Node VM executes the actual inline page script and replay data: reproduced TypeError before fix, seven URL cases pass after fix."
+    },
+    {
+      "path": "docs/guides/feishu-approval-validation.md",
+      "start_line": 42,
+      "category": "documentation",
+      "severity": "medium",
+      "content": "The guide still treated pending external T02 verification as blocking all T03 code work, contradicting the current execution contract. Several overview descriptions also omitted already implemented admission/lease primitives.",
+      "status": "fixed",
+      "verification": "Aligned the guide, API assembly description, Job ADR label, README and architecture overview while preserving all external acceptance gates."
+    }
+  ],
+  "remaining_blocking_findings": [],
+  "scopes": [
+    {
+      "scope": "workspace",
+      "mode": "workspace",
+      "total_files": 133,
+      "reviewed_files": 74,
+      "skipped_files": 59,
+      "coverage_rate": 0.5564,
+      "ocr_reviewable_files": 43,
+      "ocr_reviewed_files": 43,
+      "ocr_coverage_rate": 1.0,
+      "files": [
+        {
+          "path": "docs/demo/feishu/record-replay.html",
+          "status": "modified",
+          "insertions": 2,
+          "deletions": 1,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "pyproject.toml",
+          "status": "modified",
+          "insertions": 3,
+          "deletions": 1,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "src/oria/api/app.py",
+          "status": "modified",
+          "insertions": 60,
+          "deletions": 4,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/api/approvals.py",
+          "status": "modified",
+          "insertions": 10,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/api/server.py",
+          "status": "modified",
+          "insertions": 17,
+          "deletions": 2,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/ingress/approval_cards.py",
+          "status": "modified",
+          "insertions": 122,
+          "deletions": 23,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/ingress/approval_delivery.py",
+          "status": "modified",
+          "insertions": 1,
+          "deletions": 1,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/ingress/feishu.py",
+          "status": "modified",
+          "insertions": 15,
+          "deletions": 1,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/ingress/receipts.py",
+          "status": "modified",
+          "insertions": 5,
+          "deletions": 1,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/migrations/manifest.json",
+          "status": "modified",
+          "insertions": 4,
+          "deletions": 2,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "src/oria/migrations/runner.py",
+          "status": "modified",
+          "insertions": 64,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/permission/local.py",
+          "status": "modified",
+          "insertions": 16,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/presentation/im.py",
+          "status": "modified",
+          "insertions": 78,
+          "deletions": 5,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/providers/demo.py",
+          "status": "modified",
+          "insertions": 12,
+          "deletions": 1,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/resources/loader.py",
+          "status": "modified",
+          "insertions": 1,
+          "deletions": 1,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "LICENSE",
+          "status": "added",
+          "insertions": 202,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/checks.json",
+          "status": "added",
+          "insertions": 103,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/documentation-checks.json",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/package-content.json",
+          "status": "added",
+          "insertions": 19,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/source-snapshot.json",
+          "status": "added",
+          "insertions": 36,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/wheel-import.json",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/checks.json",
+          "status": "added",
+          "insertions": 62,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/documentation-checks.json",
+          "status": "added",
+          "insertions": 13,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/package-content.json",
+          "status": "added",
+          "insertions": 19,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/source-snapshot.json",
+          "status": "added",
+          "insertions": 18,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/checks.json",
+          "status": "added",
+          "insertions": 64,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/documentation-checks.json",
+          "status": "added",
+          "insertions": 18,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/documentation-initial.json",
+          "status": "added",
+          "insertions": 7,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/package-content.json",
+          "status": "added",
+          "insertions": 20,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/source-snapshot.json",
+          "status": "added",
+          "insertions": 65,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/wheel-import.json",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/checks.json",
+          "status": "added",
+          "insertions": 68,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/documentation-checks.json",
+          "status": "added",
+          "insertions": 15,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/package-content.json",
+          "status": "added",
+          "insertions": 23,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/source-snapshot.json",
+          "status": "added",
+          "insertions": 25,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "src/oria/api/jobs.py",
+          "status": "added",
+          "insertions": 265,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/core/job_leases.py",
+          "status": "added",
+          "insertions": 132,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/core/jobs.py",
+          "status": "added",
+          "insertions": 286,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/migrations/platform/versions/platform_0012_approval_card_interactions.py",
+          "status": "added",
+          "insertions": 45,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/migrations/platform/versions/platform_0013_durable_job_admission.py",
+          "status": "added",
+          "insertions": 131,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/orchestrator/job_inputs.py",
+          "status": "added",
+          "insertions": 116,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/orchestrator/job_leases.py",
+          "status": "added",
+          "insertions": 301,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/storage/jobs.py",
+          "status": "added",
+          "insertions": 290,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "ARCHITECTURE.md",
+          "status": "modified",
+          "insertions": 5,
+          "deletions": 1,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "README.md",
+          "status": "modified",
+          "insertions": 8,
+          "deletions": 2,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "README_EN.md",
+          "status": "modified",
+          "insertions": 7,
+          "deletions": 1,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "ROADMAP.md",
+          "status": "modified",
+          "insertions": 17,
+          "deletions": 1,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/adr/ADR-037-api-identity-and-feishu-boundary.md",
+          "status": "modified",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/adr/README.md",
+          "status": "modified",
+          "insertions": 4,
+          "deletions": 2,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/guides/api-foundation.md",
+          "status": "modified",
+          "insertions": 19,
+          "deletions": 9,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/guides/feishu-approval-validation.md",
+          "status": "modified",
+          "insertions": 3,
+          "deletions": 1,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/README.md",
+          "status": "modified",
+          "insertions": 5,
+          "deletions": 1,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "tests/contract/test_v06_feishu.py",
+          "status": "modified",
+          "insertions": 58,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/contract/test_v06_postgres_persistence.py",
+          "status": "modified",
+          "insertions": 2,
+          "deletions": 2,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_t03_data_init.py",
+          "status": "modified",
+          "insertions": 2,
+          "deletions": 2,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v03_execution_ledger_migration.py",
+          "status": "modified",
+          "insertions": 1,
+          "deletions": 1,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v03_platform_migration.py",
+          "status": "modified",
+          "insertions": 1,
+          "deletions": 1,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_approval_cards.py",
+          "status": "modified",
+          "insertions": 48,
+          "deletions": 3,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_approval_delivery.py",
+          "status": "modified",
+          "insertions": 12,
+          "deletions": 7,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_postgres_enterprise.py",
+          "status": "modified",
+          "insertions": 1,
+          "deletions": 1,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_transactional_approval_acceptance.py",
+          "status": "modified",
+          "insertions": 5,
+          "deletions": 3,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/security/test_t03_bypass_boundaries.py",
+          "status": "modified",
+          "insertions": 2,
+          "deletions": 2,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/security/test_v06_api_identity.py",
+          "status": "modified",
+          "insertions": 6,
+          "deletions": 1,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/unit/test_t03_resources_and_eligibility.py",
+          "status": "modified",
+          "insertions": 1,
+          "deletions": 1,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "docs/adr/ADR-014-durable-job-admission.md",
+          "status": "added",
+          "insertions": 31,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/adr/ADR-025-job-lease-and-fencing.md",
+          "status": "added",
+          "insertions": 35,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/adr/ADR-039-reasoned-approval-card-interactions.md",
+          "status": "added",
+          "insertions": 25,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/guides/durable-jobs.md",
+          "status": "added",
+          "insertions": 105,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/licensing.md",
+          "status": "added",
+          "insertions": 47,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/build-final.log",
+          "status": "added",
+          "insertions": 4,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/build-first.log",
+          "status": "added",
+          "insertions": 4,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/community-final.log",
+          "status": "added",
+          "insertions": 180,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/community-first-pass.log",
+          "status": "added",
+          "insertions": 180,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/lint-final.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/lint-first.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/lint-review-adjustment.log",
+          "status": "added",
+          "insertions": 27,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/real-validation-plan.md",
+          "status": "added",
+          "insertions": 19,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/regression-before-tests.log",
+          "status": "added",
+          "insertions": 65,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/regression-before.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/smoke-final.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/summary.md",
+          "status": "added",
+          "insertions": 59,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-after-review.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-expanded.log",
+          "status": "added",
+          "insertions": 22,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-final.log",
+          "status": "added",
+          "insertions": 21,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-first.log",
+          "status": "added",
+          "insertions": 1236,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-second.log",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261021-t02-approval-interactions/targeted-verified.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/build.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/lint-final.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/lint-initial.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/lint-verified.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/regression.log",
+          "status": "added",
+          "insertions": 184,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/smoke.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/summary.md",
+          "status": "added",
+          "insertions": 36,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/targeted-expanded.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-graph-inputs/targeted-initial.log",
+          "status": "added",
+          "insertions": 29,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/build-initial.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/identity-contract.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/lint-final.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/lint-identity-format.log",
+          "status": "added",
+          "insertions": 14,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/lint-initial.log",
+          "status": "added",
+          "insertions": 16,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/lint.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/mypy-initial.log",
+          "status": "added",
+          "insertions": 3,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/regression-initial.log",
+          "status": "added",
+          "insertions": 209,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/regression.log",
+          "status": "added",
+          "insertions": 182,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/smoke.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/summary.md",
+          "status": "added",
+          "insertions": 45,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/targeted-expanded.log",
+          "status": "added",
+          "insertions": 18,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/targeted-final.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-admission/targeted-first.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/api-worker-separation-before.log",
+          "status": "added",
+          "insertions": 15,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/api-worker-separation-fixture-initial.log",
+          "status": "added",
+          "insertions": 20,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/build-final.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/build.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-final.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-initial.log",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-second.log",
+          "status": "added",
+          "insertions": 206,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-third.log",
+          "status": "added",
+          "insertions": 16,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/lint-verified.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/regression-final.log",
+          "status": "added",
+          "insertions": 182,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/regression.log",
+          "status": "added",
+          "insertions": 185,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/smoke.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/summary.md",
+          "status": "added",
+          "insertions": 46,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/targeted-expanded.log",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/targeted-final.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261022-t03-job-leases/targeted-initial.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "tests/contract/fixtures/feishu-approval-cards-v2.json",
+          "status": "added",
+          "insertions": 251,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "tests/integration/test_v06_approval_interactions.py",
+          "status": "added",
+          "insertions": 263,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_job_graph_inputs.py",
+          "status": "added",
+          "insertions": 95,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_job_leases.py",
+          "status": "added",
+          "insertions": 640,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_job_lifecycle.py",
+          "status": "added",
+          "insertions": 165,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_jobs.py",
+          "status": "added",
+          "insertions": 412,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/unit/test_v06_job_inputs.py",
+          "status": "added",
+          "insertions": 180,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        }
+      ]
+    },
+    {
+      "scope": "master-integration",
+      "mode": "range",
+      "total_files": 218,
+      "reviewed_files": 108,
+      "skipped_files": 110,
+      "coverage_rate": 0.4954,
+      "ocr_reviewable_files": 90,
+      "ocr_reviewed_files": 90,
+      "ocr_coverage_rate": 1.0,
+      "files": [
+        {
+          "path": "docs/demo/feishu/index.html",
+          "status": "added",
+          "insertions": 45,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "docs/demo/feishu/native-data.js",
+          "status": "added",
+          "insertions": 949,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "docs/demo/feishu/native-story.json",
+          "status": "added",
+          "insertions": 805,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/demo/feishu/native.css",
+          "status": "added",
+          "insertions": 62,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "docs/demo/feishu/native.js",
+          "status": "added",
+          "insertions": 120,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "docs/demo/feishu/record-replay.html",
+          "status": "added",
+          "insertions": 73,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "docs/demo/feishu/replay-data.js",
+          "status": "added",
+          "insertions": 448,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "docs/demo/feishu/replay.css",
+          "status": "added",
+          "insertions": 3,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/checks.json",
+          "status": "added",
+          "insertions": 75,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/source-snapshot.json",
+          "status": "added",
+          "insertions": 30,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/environment-catalog-fix.json",
+          "status": "added",
+          "insertions": 77,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/environment-first.json",
+          "status": "added",
+          "insertions": 48,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/environment-saver-expanded.json",
+          "status": "added",
+          "insertions": 77,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/environment-verified.json",
+          "status": "added",
+          "insertions": 77,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/source-snapshot.json",
+          "status": "added",
+          "insertions": 28,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/checks.json",
+          "status": "added",
+          "insertions": 15,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/human-review.json",
+          "status": "added",
+          "insertions": 10,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/outbound-smoke-pre-send-blocked.json",
+          "status": "added",
+          "insertions": 17,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/outbound-smoke.json",
+          "status": "added",
+          "insertions": 46,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/planned-delivery.json",
+          "status": "added",
+          "insertions": 57,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/preflight-first.json",
+          "status": "added",
+          "insertions": 27,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/send-reservation.json",
+          "status": "added",
+          "insertions": 1,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/source-snapshot.json",
+          "status": "added",
+          "insertions": 25,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/checks.json",
+          "status": "added",
+          "insertions": 34,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/cleanup.json",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/evidence-query-initial.json",
+          "status": "added",
+          "insertions": 7,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/initial-window-closed.json",
+          "status": "added",
+          "insertions": 15,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-http-preflight.json",
+          "status": "added",
+          "insertions": 35,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/media-checks.json",
+          "status": "added",
+          "insertions": 51,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/package-content.json",
+          "status": "added",
+          "insertions": 15,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/package-media-content.json",
+          "status": "added",
+          "insertions": 17,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/real-conversation-first.json",
+          "status": "added",
+          "insertions": 13,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/real-conversation-views.json",
+          "status": "added",
+          "insertions": 534,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/real-workflow-complete.json",
+          "status": "added",
+          "insertions": 131,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/renewed-window-closed.json",
+          "status": "added",
+          "insertions": 15,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/source-snapshot.json",
+          "status": "added",
+          "insertions": 21,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-native-gif/browser-checks.json",
+          "status": "added",
+          "insertions": 405,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-native-gif/final-checks.json",
+          "status": "added",
+          "insertions": 16,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-native-gif/media-checks.json",
+          "status": "added",
+          "insertions": 260,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-native-gif/prepublication-redactions.json",
+          "status": "added",
+          "insertions": 41,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-native-gif/screenshot-sources.json",
+          "status": "added",
+          "insertions": 759,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-native-gif/source-snapshot.json",
+          "status": "added",
+          "insertions": 49,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/callback-gateway-first-failed.json",
+          "status": "added",
+          "insertions": 46,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/callback-gateway-local.json",
+          "status": "added",
+          "insertions": 50,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/callback-gateway-observer-public.json",
+          "status": "added",
+          "insertions": 27,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/callback-gateway-public.json",
+          "status": "added",
+          "insertions": 27,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/checks.json",
+          "status": "added",
+          "insertions": 35,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/cloudflared-source.json",
+          "status": "added",
+          "insertions": 10,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/real-preflight.json",
+          "status": "added",
+          "insertions": 28,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/real-readiness.json",
+          "status": "added",
+          "insertions": 28,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/source-snapshot.json",
+          "status": "added",
+          "insertions": 29,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/temporary-tunnel.json",
+          "status": "added",
+          "insertions": 14,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/callback-attempts.json",
+          "status": "added",
+          "insertions": 86,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/callback-gateway-public-renewed.json",
+          "status": "added",
+          "insertions": 27,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/callback-gateway-public.json",
+          "status": "added",
+          "insertions": 27,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/callback-gateway-restored.json",
+          "status": "added",
+          "insertions": 52,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/captured-real-callback-duplicate.json",
+          "status": "added",
+          "insertions": 24,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/checks.json",
+          "status": "added",
+          "insertions": 75,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/cloudflared-source-connect-timeout.json",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/cloudflared-source.json",
+          "status": "added",
+          "insertions": 11,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/discovery-014624.json",
+          "status": "added",
+          "insertions": 35,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/expired-url-diagnostic.json",
+          "status": "added",
+          "insertions": 12,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/first-click-failed.json",
+          "status": "added",
+          "insertions": 56,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/package-content.json",
+          "status": "added",
+          "insertions": 20,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/platform-url-validation.json",
+          "status": "added",
+          "insertions": 18,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/preflight-010150.json",
+          "status": "added",
+          "insertions": 22,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/real-callback-diagnostic.json",
+          "status": "added",
+          "insertions": 43,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/real-callback.json",
+          "status": "added",
+          "insertions": 26,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/real-delivery.json",
+          "status": "added",
+          "insertions": 41,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/real-timestamp-diagnostic.json",
+          "status": "added",
+          "insertions": 43,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/real-timestamp-format.json",
+          "status": "added",
+          "insertions": 44,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/receiver-restart-before-click.json",
+          "status": "added",
+          "insertions": 7,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/renewed-temporary-tunnel.json",
+          "status": "added",
+          "insertions": 17,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/source-snapshot-before-timestamp-fix.json",
+          "status": "added",
+          "insertions": 20,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/source-snapshot.json",
+          "status": "added",
+          "insertions": 39,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/temporary-tunnel.json",
+          "status": "added",
+          "insertions": 18,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "scripts/build_feishu_screenshot_assets.py",
+          "status": "added",
+          "insertions": 82,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "scripts/generate_feishu_replay.py",
+          "status": "added",
+          "insertions": 166,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "scripts/prepare_feishu_demo.py",
+          "status": "added",
+          "insertions": 128,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/api/app.py",
+          "status": "modified",
+          "insertions": 29,
+          "deletions": 5,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/api/server.py",
+          "status": "modified",
+          "insertions": 65,
+          "deletions": 7,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/chat/feishu_demo.py",
+          "status": "added",
+          "insertions": 411,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/chat/guided_demo.py",
+          "status": "added",
+          "insertions": 431,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/cli.py",
+          "status": "modified",
+          "insertions": 51,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/ingress/approval_cards.py",
+          "status": "modified",
+          "insertions": 49,
+          "deletions": 1,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/ingress/approval_delivery.py",
+          "status": "added",
+          "insertions": 107,
+          "deletions": 0,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/ingress/feishu.py",
+          "status": "modified",
+          "insertions": 30,
+          "deletions": 4,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/ingress/feishu_channel.py",
+          "status": "modified",
+          "insertions": 72,
+          "deletions": 15,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/migrations/runner.py",
+          "status": "modified",
+          "insertions": 7,
+          "deletions": 3,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "src/oria/presentation/im.py",
+          "status": "modified",
+          "insertions": 5,
+          "deletions": 2,
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "ARCHITECTURE.md",
+          "status": "modified",
+          "insertions": 3,
+          "deletions": 1,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "README.md",
+          "status": "modified",
+          "insertions": 14,
+          "deletions": 2,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "ROADMAP.md",
+          "status": "modified",
+          "insertions": 15,
+          "deletions": 1,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/adr/ADR-003-sqlite-to-postgresql.md",
+          "status": "modified",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/adr/ADR-037-api-identity-and-feishu-boundary.md",
+          "status": "modified",
+          "insertions": 7,
+          "deletions": 2,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/adr/ADR-038-guided-feishu-demo.md",
+          "status": "added",
+          "insertions": 23,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/adr/README.md",
+          "status": "modified",
+          "insertions": 1,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/demo/feishu/core-flow.gif",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/poster.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/record-replay-poster.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/record-replay.gif",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/01-start.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/02-category.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/03-region.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/04-mode.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/05-confirm.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/06-approval.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/07-launched.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/08-enrollment.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/09-merchant.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/10-sales.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/11-manager.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/12-selection-wait.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/13-selection-done.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/14-second-gate.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/15-completed.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/16-receipts.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/17-attribution.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/18-evidence.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/19-conflicting.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/20-insufficient.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/21-rule-base.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/22-rule-scope.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/23-rule-confirm.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/screenshots/24-rule-page.png",
+          "status": "binary",
+          "insertions": 0,
+          "deletions": 0,
+          "exclude_reason": "binary",
+          "review_status": "skipped",
+          "skip_reason": "Previously committed media; binary content is not executable source. Existing provenance/redaction evidence retained; no new image edits."
+        },
+        {
+          "path": "docs/demo/feishu/storyboard.md",
+          "status": "added",
+          "insertions": 238,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/guides/api-foundation.md",
+          "status": "modified",
+          "insertions": 55,
+          "deletions": 7,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/guides/feishu-approval-validation.md",
+          "status": "added",
+          "insertions": 50,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/guides/feishu-conversation-demo.md",
+          "status": "added",
+          "insertions": 89,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/guides/postgresql.md",
+          "status": "modified",
+          "insertions": 5,
+          "deletions": 1,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "docs/security/V0.3场景A威胁模型.md",
+          "status": "modified",
+          "insertions": 10,
+          "deletions": 2,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "reviewed",
+          "review_method": "license/documentation consistency or structured JSON key/content validation"
+        },
+        {
+          "path": "reports/verification/README.md",
+          "status": "modified",
+          "insertions": 13,
+          "deletions": 1,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/attempts.md",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/build-final.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/community-final.log",
+          "status": "added",
+          "insertions": 177,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/consistency.log",
+          "status": "added",
+          "insertions": 1,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lifecycle-final.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lifecycle-first.log",
+          "status": "added",
+          "insertions": 46,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lint-final.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lint-first.log",
+          "status": "added",
+          "insertions": 29,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/package-content.log",
+          "status": "added",
+          "insertions": 4,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/shared-services.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/smoke-final.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/summary.md",
+          "status": "added",
+          "insertions": 52,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/build.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/community-targeted.log",
+          "status": "added",
+          "insertions": 17,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/consistency.log",
+          "status": "added",
+          "insertions": 1,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/lint.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/package-content.log",
+          "status": "added",
+          "insertions": 1,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/postgres-catalog-fix.log",
+          "status": "added",
+          "insertions": 85,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/postgres-first.log",
+          "status": "added",
+          "insertions": 104,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/postgres-saver-expanded.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/postgres-verified.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261017-postgres-local/summary.md",
+          "status": "added",
+          "insertions": 73,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/lint.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/local-targeted.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/probe.py.txt",
+          "status": "added",
+          "insertions": 85,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/send_smoke.py.txt",
+          "status": "added",
+          "insertions": 149,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-channel/summary.md",
+          "status": "added",
+          "insertions": 47,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/build-final.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/build-media-final.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/cli-help.log",
+          "status": "added",
+          "insertions": 17,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/community-final.log",
+          "status": "added",
+          "insertions": 179,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/community-sandbox-restricted.log",
+          "status": "added",
+          "insertions": 211,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/confirmation-check-final.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/discovery-final.log",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/discovery-renewed.log",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/discovery-second.log",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/discovery.log",
+          "status": "added",
+          "insertions": 1,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/lint-final.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/lint-format-adjustment.log",
+          "status": "added",
+          "insertions": 13,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/lint-initial.log",
+          "status": "added",
+          "insertions": 16,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/lint-media-final.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-first.log",
+          "status": "added",
+          "insertions": 79,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-lifecycle.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-preparation.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-second.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/smoke-final.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/summary.md",
+          "status": "added",
+          "insertions": 57,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-native-gif/encode-frame-quality.log",
+          "status": "added",
+          "insertions": 29,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-native-gif/lint.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-feishu-native-gif/summary.md",
+          "status": "added",
+          "insertions": 61,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/build-before-readiness-docs.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/build-final.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/build-initial-cache-missing.log",
+          "status": "added",
+          "insertions": 9,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/community-final.log",
+          "status": "added",
+          "insertions": 178,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/lint-final.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/lint-initial.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/lint-message-format-failed.log",
+          "status": "added",
+          "insertions": 14,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/package-content.log",
+          "status": "added",
+          "insertions": 17,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/projection-message-final.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/smoke-final.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/summary.md",
+          "status": "added",
+          "insertions": 62,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/targeted-final.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/targeted-fixture-error.log",
+          "status": "added",
+          "insertions": 214,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/targeted-initial-pass.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-approval-delivery/targeted-sod-fixture-failed.log",
+          "status": "added",
+          "insertions": 41,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/build-final.log",
+          "status": "added",
+          "insertions": 5,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/community-final.log",
+          "status": "added",
+          "insertions": 178,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-diagnostics.py.txt",
+          "status": "added",
+          "insertions": 53,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-gateway-before-diagnostics.py.txt",
+          "status": "added",
+          "insertions": 91,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-gateway.py.txt",
+          "status": "added",
+          "insertions": 94,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-manager.py.txt",
+          "status": "added",
+          "insertions": 77,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-test-final.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-test-import-failed.log",
+          "status": "added",
+          "insertions": 16,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-test.py.txt",
+          "status": "added",
+          "insertions": 46,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-watchdog.py.txt",
+          "status": "added",
+          "insertions": 18,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/lint-final.log",
+          "status": "added",
+          "insertions": 6,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/smoke-final.log",
+          "status": "added",
+          "insertions": 2,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/summary.md",
+          "status": "added",
+          "insertions": 52,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/timestamp-contract-final.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/timestamp-regression-before.log",
+          "status": "added",
+          "insertions": 143,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "reports/verification/v0.6/20261018-t02-real-approval/timestamp-targeted.log",
+          "status": "added",
+          "insertions": 8,
+          "deletions": 0,
+          "exclude_reason": "unsupported_ext",
+          "review_status": "skipped",
+          "skip_reason": "Generated historical verification evidence; retained unchanged and scanned for credential patterns; no executable source review applies."
+        },
+        {
+          "path": "tests/contract/test_v06_feishu.py",
+          "status": "modified",
+          "insertions": 57,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_feishu_guided_demo.py",
+          "status": "added",
+          "insertions": 433,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_approval_delivery.py",
+          "status": "added",
+          "insertions": 326,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_feishu_server_lifecycle.py",
+          "status": "added",
+          "insertions": 285,
+          "deletions": 0,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        },
+        {
+          "path": "tests/integration/test_v06_postgres_enterprise.py",
+          "status": "modified",
+          "insertions": 85,
+          "deletions": 4,
+          "exclude_reason": "default_path",
+          "review_status": "reviewed",
+          "review_method": "semantic review and affected behavior verification"
+        }
+      ]
+    }
+  ],
+  "source_sha256": {
+    "docs/demo/feishu/index.html": "545aac570124725fc482bbca80327d01ab9837d9b71adef8dbccf2f9ca1370fd",
+    "docs/demo/feishu/native-data.js": "44b04bc195e2e2d6b526b4aafb25e49598f9ce4b0fee5172d187ccda4bfdbb6e",
+    "docs/demo/feishu/native.css": "0ded9d3016ad54dc54ab3d5ba75c7f7fcf8ec0111aa269e5d545572b6dc6cb6c",
+    "docs/demo/feishu/native.js": "067df850dad83e2f7de764877ce17ced76fea897c3a15747a137b1204e525966",
+    "docs/demo/feishu/record-replay.html": "e5579c12d2a8f420e3aa7c8dfc1d34cf0d80819b8718e1794f5cefa4ca791832",
+    "docs/demo/feishu/replay-data.js": "2a4f2fa14a532cc9dd7ef8ef8f7eff76e82f834ae6390eb631198d0826bb1b24",
+    "docs/demo/feishu/replay.css": "214b17474a258b3eb8b1c257c3d6a890f59cc3ab5440ee647330ed0cc7de9ecc",
+    "scripts/build_feishu_screenshot_assets.py": "91b5859717a8f18fdea8191ee4b920a1159d8c2a1cfe5cb8e0cf6bc1289e093a",
+    "scripts/generate_feishu_replay.py": "066cd876f2053e6b47ec1a0a506ec59e6136bf2449803b8b7a6e84224b906ac9",
+    "scripts/prepare_feishu_demo.py": "87745d74bc537eaf2211ef042b4362fcf6a7f98809adef19b954be936b25cef5",
+    "src/oria/api/app.py": "e1d46545d064daa422bd2eb83702356a3d39e9c60169e31200fbd5523450a615",
+    "src/oria/api/approvals.py": "1dd9ab889ea50ffb1b1f58fd0f171142f9b4bbf0d6426f86f1e72aad485b163d",
+    "src/oria/api/jobs.py": "2de1db0379a98f56c4be3ca908d9e2545f871ab1a9e21396ddca9b4524d1808a",
+    "src/oria/api/server.py": "b175952c98e8f83507d66ad2d6a7148fc8daa5148848e2f842cfdb2763600011",
+    "src/oria/chat/feishu_demo.py": "33b530ff72072ff2a29fa7033af267b7cd91a912ddd6a9774aec37a549d8e8ac",
+    "src/oria/chat/guided_demo.py": "b87df3530ef88ed096d9ee497aa89e5f2d10603dfbddabed99967482e0299d75",
+    "src/oria/cli.py": "9ceba923965035ed3d95ce6fa7af3732ce153217bc499e39de196f7b6f5e7b15",
+    "src/oria/core/job_leases.py": "9b799d0983b991b9a4919efb1ee56e7427da71b8e2e799e577378d614d3e75bf",
+    "src/oria/core/jobs.py": "f1b8ad53d0d25e4ef64abeb1a4463064bc7d495e37246680a1340b0693041ae1",
+    "src/oria/ingress/approval_cards.py": "30561a8f9a45aeede18769b6551fce6f5765a84aa5f5fd4d53a54ff8bb4ec906",
+    "src/oria/ingress/approval_delivery.py": "620115acb196a6b601d9897889a28c3d596451ea03c9a98851904be9cf394d7e",
+    "src/oria/ingress/feishu.py": "4765817dd0cdfda01fb9452685557f50021ce0cc79a81bd60bfd24db7e564b8c",
+    "src/oria/ingress/feishu_channel.py": "e802a02b67484c5d0e58a02d6f2dca72819cfb5b982d0f46e1555f675e80bac4",
+    "src/oria/ingress/receipts.py": "142dbe1c5482950b251ac2aef2b256817855675abce068a05dbbd89183baf21e",
+    "src/oria/migrations/platform/versions/platform_0012_approval_card_interactions.py": "6f1dd4dc497fe0410d4e93d546ccc0a173c7cfe4d577529d1350317ddf6c21fd",
+    "src/oria/migrations/platform/versions/platform_0013_durable_job_admission.py": "0553f08953cb26360832ba491976aef82c6cbe9da97c6b51d8e5d40ce5d0e95f",
+    "src/oria/migrations/runner.py": "1f6fae8ffa6bf5fe9c21ed2af64895281f75b78ec495c5fc6869e3212caee9cb",
+    "src/oria/orchestrator/job_inputs.py": "52e002881f55f3c460fc0c9103b186a55332dd9b0f53d374c6d035acac8007fb",
+    "src/oria/orchestrator/job_leases.py": "964f4eaf468d1835553e0ac133b4ae6845aaa987e9cf0dd1e323b284f685ed59",
+    "src/oria/permission/local.py": "4b6b87feb7fcd5d959f2edec8ab646415e3262bb8a9e7753748a06cf5d18efca",
+    "src/oria/presentation/im.py": "c34245593ddc67a3e1c03b78b1ed6fefd46d1a36b0a268b41208b348789f1a29",
+    "src/oria/providers/demo.py": "a16a61d9a24c70639b03540484f1153d0624006b9cee8ac39dc000723b65b1e1",
+    "src/oria/resources/loader.py": "795063e57e7290dfa5700316cd825f3579863ca4898f12286f644fe67c406120",
+    "src/oria/storage/jobs.py": "20ada7ae9ae8fe664e41ff11293e9bcecca727c81416a196b3aad6e43ee27563",
+    "tests/contract/test_v06_feishu.py": "4f7138332f2255bf6c66ca40667b6719815ecb5465d0bdc4daed28f93222f3aa",
+    "tests/contract/test_v06_postgres_persistence.py": "2b2933014f2c1791decfbf532cdfb689237686d0a743da2a35e1e420f586b3ce",
+    "tests/integration/test_feishu_guided_demo.py": "b8c2b8fc1a78f14c0984f109584730db311f9485a7a1439074aa5f502f668188",
+    "tests/integration/test_t03_data_init.py": "760404a8d08e2f97a1080ec14798ffa1d263a5edf82c3a4cef2a3721b202cf50",
+    "tests/integration/test_v03_execution_ledger_migration.py": "0663efb4f41b8fb9583632194fde2e1d060f12989574f30954132ad8056f3237",
+    "tests/integration/test_v03_platform_migration.py": "0e7711f7f08fe241e44631c587fb212561cfe4cff5a97c677f3b7378cee83918",
+    "tests/integration/test_v06_approval_cards.py": "c0f0a942035c6f757b919255909d2f34c1c7eaa79c4b22245a11f1fc914a84b8",
+    "tests/integration/test_v06_approval_delivery.py": "58784e83974fdadc255911b6ec2cd240b2d0074e8f04211e972c12c56599438e",
+    "tests/integration/test_v06_approval_interactions.py": "503ceb0b086859025b47d08153523d5ca48e1f796cd376f7c24e8b5b457e1d1c",
+    "tests/integration/test_v06_feishu_server_lifecycle.py": "6d619f38e9f28758289e2d67b6bd3d30b9d67f82972e20787b01921dd86ff7c7",
+    "tests/integration/test_v06_job_graph_inputs.py": "7ff0fca07f6c2ea8d27356b7e8a65a41d67253b20383d5bf9ba338225c8a134e",
+    "tests/integration/test_v06_job_leases.py": "bdba75e9536a5acf624f172ba73e1f47b60fa74f49507c57ca52d0b6fd02374d",
+    "tests/integration/test_v06_job_lifecycle.py": "b0e47616287e6d8af6c20d10e8bc0def4d8238da7262d47c3d363fef0d5fc3cf",
+    "tests/integration/test_v06_jobs.py": "d11c98595d53c4855b50632b4c50dcff1c84d25cd28005073a9e35b68fa70f58",
+    "tests/integration/test_v06_postgres_enterprise.py": "c239f35ba1cad3bc83f2415dd26fef159ad3cbe4ec2dc0af45a9c05c9d0efa20",
+    "tests/integration/test_v06_transactional_approval_acceptance.py": "8364e52b0ca2f55d5ebb1087604e6ab10a4358ba9903b48d1042a166a2f12a36",
+    "tests/security/test_t03_bypass_boundaries.py": "f73e7417cd3d1bd70b80e4e4e3e28ac094ec5d2c186431942f21a4d1a3169764",
+    "tests/security/test_v06_api_identity.py": "fece4a5d89f216521d4feb49db2e2132633c52c813cf42b487152592bc37f558",
+    "tests/unit/test_t03_resources_and_eligibility.py": "73055298e89075ab3bbab666308b204d848a76ba198b5dbf109b5baf92a3a51d",
+    "tests/unit/test_v06_job_inputs.py": "62c833b1504124937c69bb26143fe25bbefe1c0dec26adc9863daf2f72844b35"
+  },
+  "limits": [
+    "Review scope covers pending changes and committed main-to-master integration code, not unrelated unchanged historical source.",
+    "No new Live provider, real Feishu, PostgreSQL revision 0012/0013, or production validation was run.",
+    "Generated review/evidence files are administrative outputs; no recursive self-review or self-hash is claimed."
+  ]
+}

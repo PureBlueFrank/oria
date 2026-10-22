@@ -1,0 +1,9 @@
+Discovery phase: application authentication
+Authentication HTTP 200, code 0
+Discovery phase: bot
+Discovery HTTP 200, code 0
+Discovery phase: im
+Discovery HTTP 200, code 0
+Discovery phase: im
+Discovery HTTP 200, code 0
+Discovery failed (TypeError); no private response values are printed.

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oria · 飞书核心流程回放</title>
+  <link rel="stylesheet" href="replay.css">
+</head>
+<body>
+  <main class="stage">
+    <header>
+      <div class="brand"><span class="mark">o</span><strong>Oria</strong><span class="subtitle">飞书核心流程</span></div>
+      <span class="source">真实群聊记录回放</span>
+    </header>
+    <div class="content">
+      <section class="story">
+        <div id="chapter" class="chapter"></div>
+        <h1 id="title"></h1>
+        <p id="description"></p>
+        <div class="fact"><span></span><div id="fact"></div></div>
+        <div class="boundary"><b>本次演示范围</b><span>真实飞书通道</span><span>合成数据 · Mock 模型与业务</span><span>合成业务角色 · 保留审批边界</span></div>
+      </section>
+      <section class="conversation" aria-label="实际机器人回复回放"><div class="conversation-head"><span class="bot-avatar">O</span><div><b>OriaTest</b><small>实际回复内容 · 格式化回放</small></div><span id="counter"></span></div><div id="cards" class="cards"></div></section>
+    </div>
+    <footer><span>素材：本次真实群聊指令、卡片响应与核验记录</span><span id="dots" class="dots"></span><span>Mock 业务演示</span></footer>
+  </main>
+  <nav class="controls" aria-label="回放控制"><button id="previous">上一幕</button><button id="play">播放</button><button id="next">下一幕</button><a href="../../../reports/verification/v0.6/20261018-feishu-conversation-demo/summary.md">查看验证记录</a></nav>
+  <dialog id="detail"><button id="close-detail">关闭</button><div id="detail-content"></div></dialog>
+  <script src="replay-data.js"></script>
+  <script>
+    const data = window.ORIA_FEISHU_REPLAY;
+    const byId = id => document.getElementById(id);
+    const text = (tag, value, className = '') => {const node = document.createElement(tag); node.textContent = value; node.className = className; return node;};
+    const initial = Number(new URLSearchParams(location.search).get('scene'));
+    let current = Number.isInteger(initial) ? Math.min(data.scenes.length - 1, Math.max(0, initial)) : 0;
+    let timer;
+    function cardNode(card, full = false) {
+      const block = document.createElement('article'); block.className = 'reply';
+      block.append(text('div', `指令：${card.command}`, 'command'), text('h2', card.title));
+      block.append(text('p', card.summary, 'summary'));
+      const sections = document.createElement('div'); sections.className = 'sections';
+      for (const section of (full ? card.fullSections : card.sections.slice(0, 2))) {
+        const part = document.createElement('div'); part.className = 'section'; part.append(text('h3', section.title), text('p', section.text)); sections.append(part);
+      }
+      block.append(sections);
+      if (full) block.append(text('p', card.nextStep, 'next-step'));
+      else {
+        const capture = new URLSearchParams(location.search).has('capture');
+        block.append(text('small', `来源：实际回复 #${card.sourceSequence} · ${capture ? '内容节选' : '点击查看完整内容'}`, 'provenance'));
+        const open = () => {byId('detail-content').replaceChildren(cardNode(card, true)); byId('detail').showModal();};
+        block.addEventListener('click', open); block.tabIndex = 0; block.setAttribute('role', 'button');
+        block.setAttribute('aria-label', `${card.title}，查看完整回复`);
+        block.addEventListener('keydown', event => {if (event.key === 'Enter' || event.key === ' ') {event.preventDefault(); open();}});
+      }
+      return block;
+    }
+    function render() {
+      const scene = data.scenes[current];
+      byId('chapter').textContent = scene.label; byId('title').textContent = scene.title; byId('description').textContent = scene.text; byId('fact').textContent = scene.fact;
+      byId('counter').textContent = `${String(current + 1).padStart(2, '0')} / ${data.scenes.length}`;
+      byId('cards').className = `cards ${scene.compact ? 'compact' : ''} ${scene.rules ? 'rules' : ''} ${scene.cards.length > 1 ? 'multiple' : ''}`;
+      byId('cards').replaceChildren(...scene.cards.map(card => cardNode(card)));
+      byId('dots').replaceChildren(...data.scenes.map((_, index) => {const dot = document.createElement('i'); dot.className = index === current ? 'active' : ''; return dot;}));
+      document.documentElement.dataset.scene = String(current);
+    }
+    const move = direction => {current = (current + direction + data.scenes.length) % data.scenes.length; render();};
+    byId('previous').onclick = () => move(-1); byId('next').onclick = () => move(1);
+    byId('play').onclick = () => {if (timer) {clearInterval(timer); timer = undefined; byId('play').textContent = '播放';} else {byId('play').textContent = '暂停'; timer = setInterval(() => move(1), 6500);}};
+    byId('close-detail').onclick = () => byId('detail').close();
+    if (new URLSearchParams(location.search).has('capture')) document.body.classList.add('capture');
+    render();
+  </script>
+</body>
+</html>

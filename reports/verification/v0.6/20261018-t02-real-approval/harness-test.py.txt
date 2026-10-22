@@ -1,0 +1,46 @@
+"""Synthetic ASGI proof of the private observer/replay harness; no real provider IO."""
+import json
+from pathlib import Path
+import httpx
+import pytest
+from tests.integration.test_v06_approval_delivery import delivery_stack,_deliver,_action
+from tests.integration.test_v06_transactional_approval_acceptance import _authenticator,_document,_counts
+from tests.contract.test_v06_feishu import SETTINGS,request
+from oria.api.app import create_app
+from oria.ingress.feishu import FeishuIngress
+from oria.config import resolve_runtime_config
+
+@pytest.mark.asyncio
+async def test_private_wrapper_replays_once_without_raw_payload_storage(delivery_stack,tmp_path):
+ state=delivery_stack
+ assert (await _deliver(state)).ok
+ action=_action(state)
+ auth=_authenticator()
+ app=create_app(authenticator=auth,feishu=FeishuIngress(SETTINGS,state.source),receiver=state.receiver,close=auth.client.aclose)
+ actual=Path(Path('/private/tmp/oria-real-root-20261018.txt').read_text().strip())
+ source=(actual/'gateway.py').read_text().replace("if __name__!='__main__':","if False:").replace("if __name__=='__main__':","if False:")
+ harness=tmp_path/'private-wrapper'; harness.mkdir(mode=0o700)
+ namespace={'__file__':str(harness/'gateway.py'),'__name__':'harness_under_test'}
+ exec(compile(source,str(harness/'gateway.py'),'exec'),namespace)
+ namespace['app']=app
+ namespace['database']=resolve_runtime_config(environ={},data_dir=tmp_path/'data').data_paths.platform_db
+ (harness/'duplicate-test-enabled').write_text('enabled\n')
+ inbound=request(_document(action),nonce='private-wrapper-synthetic-nonce')
+ before=await _counts(state.databases)
+ try:
+  async with httpx.AsyncClient(transport=httpx.ASGITransport(app=namespace['callback_only']),base_url='http://test') as client:
+   response=await client.post('/v1/ingress/feishu/events',content=inbound.raw_body,headers=dict(inbound.headers))
+  assert response.status_code==200 and response.json()['card']['type']=='raw'
+  duplicate=json.loads((harness/'duplicate-callback.json').read_text())
+  assert duplicate['status']=='passed' and duplicate['counts_unchanged']
+  assert duplicate['http_status']==200 and duplicate['terminal_raw_card']
+  assert duplicate['raw_payload_saved'] is False
+  after=await _counts(state.databases)
+  assert after['ingress_receipts']==after['ingress_replays']==1
+  assert after['outbox']==before['outbox']+1
+  assert after['audit_events']==before['audit_events']+1
+  all_evidence=''.join(path.read_text() for path in harness.iterdir() if path.is_file())
+  assert action.action_ref not in all_evidence
+  assert SETTINGS.verification_token.get_secret_value() not in all_evidence
+  assert SETTINGS.encrypt_key.get_secret_value() not in all_evidence
+ finally: await auth.client.aclose()

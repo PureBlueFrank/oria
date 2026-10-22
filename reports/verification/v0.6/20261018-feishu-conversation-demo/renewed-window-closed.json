@@ -1,0 +1,15 @@
+{
+  "status": "closed",
+  "maximum_seconds": 1800,
+  "started_at": "2026-10-18T08:53:08.800515+00:00",
+  "scheduled_stop_at": "2026-10-18T09:22:08.800515+00:00",
+  "application": "independent OriaTest",
+  "scope": "one verified test chat and operator",
+  "accepted_method": "POST",
+  "accepted_path": "/v1/ingress/feishu/events",
+  "port": 8018,
+  "closed_at": "2026-10-18T09:15:45.913733+00:00",
+  "processes_stopped": true,
+  "duration_seconds": 1357.113218,
+  "loopback_listener_closed": true
+}

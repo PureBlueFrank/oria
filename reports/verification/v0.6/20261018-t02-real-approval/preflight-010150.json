@@ -1,0 +1,22 @@
+{
+  "mode": "real_feishu_read_only_preflight",
+  "status": "blocked",
+  "api_requests": 2,
+  "messages_sent": 0,
+  "steps": [
+    {
+      "step": 1,
+      "http_status": 200,
+      "api_code": 0
+    },
+    {
+      "step": 2,
+      "http_status": 200,
+      "api_code": 0
+    }
+  ],
+  "run_at": "2026-10-18T01:01:49.988348+00:00",
+  "bot_name_matches": true,
+  "bot_active": false,
+  "blocked_by": "bot_not_active"
+}

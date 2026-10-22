@@ -1,0 +1,1236 @@
+EEEEEEEEEEEEEEEEEEEEEE.FFFFFFFFFFFFFFFFFFFFFFFFFF....................... [ 98%]
+.                                                                        [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_reasoned_rejection_restarts_and_retries_without_duplicate_decision _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:558: in setup
+    return super().setup()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:944: in pytest_fixture_setup
+    hook_result = yield
+                  ^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:407: in _asyncgen_fixture_wrapper
+    result = runner.run(setup(), context=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:403: in setup
+    res = await gen_obj.__anext__()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+__ ERROR at setup of test_invalid_rejection_reason_never_claims_receipt[None] __
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:558: in setup
+    return super().setup()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:944: in pytest_fixture_setup
+    hook_result = yield
+                  ^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:407: in _asyncgen_fixture_wrapper
+    result = runner.run(setup(), context=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:403: in setup
+    res = await gen_obj.__anext__()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+____ ERROR at setup of test_invalid_rejection_reason_never_claims_receipt[] ____
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:558: in setup
+    return super().setup()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:944: in pytest_fixture_setup
+    hook_result = yield
+                  ^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:407: in _asyncgen_fixture_wrapper
+    result = runner.run(setup(), context=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:403: in setup
+    res = await gen_obj.__anext__()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+__ ERROR at setup of test_invalid_rejection_reason_never_claims_receipt[   ] ___
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:558: in setup
+    return super().setup()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:944: in pytest_fixture_setup
+    hook_result = yield
+                  ^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:407: in _asyncgen_fixture_wrapper
+    result = runner.run(setup(), context=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:403: in setup
+    res = await gen_obj.__anext__()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_invalid_rejection_reason_never_claims_receipt[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:558: in setup
+    return super().setup()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:944: in pytest_fixture_setup
+    hook_result = yield
+                  ^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:407: in _asyncgen_fixture_wrapper
+    result = runner.run(setup(), context=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:403: in setup
+    res = await gen_obj.__anext__()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_invalid_rejection_reason_never_claims_receipt[reason4] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:558: in setup
+    return super().setup()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:944: in pytest_fixture_setup
+    hook_result = yield
+                  ^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:407: in _asyncgen_fixture_wrapper
+    result = runner.run(setup(), context=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:403: in setup
+    res = await gen_obj.__anext__()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_detail_page_reauthorizes_without_deciding_or_creating_outbox _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:558: in setup
+    return super().setup()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:944: in pytest_fixture_setup
+    hook_result = yield
+                  ^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:407: in _asyncgen_fixture_wrapper
+    result = runner.run(setup(), context=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:403: in setup
+    res = await gen_obj.__anext__()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_issued_card_contains_separate_opaque_approve_reject_and_detail_actions _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:558: in setup
+    return super().setup()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:944: in pytest_fixture_setup
+    hook_result = yield
+                  ^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:407: in _asyncgen_fixture_wrapper
+    result = runner.run(setup(), context=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[user-home]/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:403: in setup
+    res = await gen_obj.__anext__()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_delivery_binds_confirmed_message_before_activation_and_callback_updates _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_partial_delivery_never_resends_or_activates_without_binding[POST_timeout-methods0-0-delivery_unknown] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_partial_delivery_never_resends_or_activates_without_binding[POST_rejected-methods1-0-provider_rejected] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_partial_delivery_never_resends_or_activates_without_binding[PATCH_timeout-methods2-3-delivery_unknown] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_partial_delivery_never_resends_or_activates_without_binding[PATCH_rejected-methods3-3-provider_rejected] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_partial_delivery_never_resends_or_activates_without_binding[revoked_after_send-methods4-0-card_binding_unavailable] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_partial_delivery_never_resends_or_activates_without_binding[revoked_before_patch-methods5-3-card_binding_unavailable] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_delivery_denies_invalid_recipient_before_any_network[destination] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_delivery_denies_invalid_recipient_before_any_network[revoked] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_delivery_denies_invalid_recipient_before_any_network[self_approval] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_delivery_denies_invalid_recipient_before_any_network[cross_tenant] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_delivery_denies_invalid_recipient_before_any_network[revoked_before_send] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+__ ERROR at setup of test_channel_update_requires_confirmed_shared_card_owner __
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ ERROR at setup of test_callback_projection_failure_retries_committed_outcome_without_new_decision _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_delivery.py:59: in delivery_stack
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+=================================== FAILURES ===================================
+_______________ test_persistent_reference_adversarial_resolution _______________
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_approval_cards.py:54: in test_persistent_reference_adversarial_resolution
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_______ test_signed_http_success_duplicate_and_restart_are_exactly_once ________
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:151: in test_signed_http_success_duplicate_and_restart_are_exactly_once
+    runtime, databases, repository = await _runtime(tmp_path, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+______ test_failure_after_each_decision_write_rolls_back_and_retries[cas] ______
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:328: in test_failure_after_each_decision_write_rolls_back_and_retries
+    runtime, databases, repository = await _runtime(tmp_path / stage, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_____ test_failure_after_each_decision_write_rolls_back_and_retries[audit] _____
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:328: in test_failure_after_each_decision_write_rolls_back_and_retries
+    runtime, databases, repository = await _runtime(tmp_path / stage, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+____ test_failure_after_each_decision_write_rolls_back_and_retries[outbox] _____
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:328: in test_failure_after_each_decision_write_rolls_back_and_retries
+    runtime, databases, repository = await _runtime(tmp_path / stage, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_____________ test_concurrent_duplicate_two_refs_and_http_card_cas _____________
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:382: in test_concurrent_duplicate_two_refs_and_http_card_cas
+    runtime, databases, repository = await _runtime(tmp_path / "duplicate", identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_________ test_policy_version_invalidates_without_accepting_new_action _________
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:497: in test_policy_version_invalidates_without_accepting_new_action
+    runtime, databases, repository = await _runtime(tmp_path, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+__ test_rejected_or_tampered_actions_leave_no_acceptance_writes[unknown-ref] ___
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+____ test_rejected_or_tampered_actions_leave_no_acceptance_writes[revision] ____
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+___ test_rejected_or_tampered_actions_leave_no_acceptance_writes[revocation] ___
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+______ test_rejected_or_tampered_actions_leave_no_acceptance_writes[sod] _______
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_____ test_rejected_or_tampered_actions_leave_no_acceptance_writes[tenant] _____
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+______ test_rejected_or_tampered_actions_leave_no_acceptance_writes[chat] ______
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+____ test_rejected_or_tampered_actions_leave_no_acceptance_writes[message] _____
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_____ test_rejected_or_tampered_actions_leave_no_acceptance_writes[sender] _____
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ test_rejected_or_tampered_actions_leave_no_acceptance_writes[callback-expiry] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ test_rejected_or_tampered_actions_leave_no_acceptance_writes[binding-expiry] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ test_rejected_or_tampered_actions_leave_no_acceptance_writes[approval-expiry] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+__ test_rejected_or_tampered_actions_leave_no_acceptance_writes[role-change] ___
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:550: in test_rejected_or_tampered_actions_leave_no_acceptance_writes
+    runtime, databases, repository = await _runtime(tmp_path / case, issued_identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+____________________ test_migration_rejects_unknown_intent _____________________
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:635: in test_migration_rejects_unknown_intent
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+____ test_revocation_during_acceptance_rolls_back_before_commit[False-read] ____
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:661: in test_revocation_during_acceptance_rolls_back_before_commit
+    runtime, databases, repository = await _runtime(tmp_path, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ test_revocation_during_acceptance_rolls_back_before_commit[False-after-business] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:661: in test_revocation_during_acceptance_rolls_back_before_commit
+    runtime, databases, repository = await _runtime(tmp_path, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+____ test_revocation_during_acceptance_rolls_back_before_commit[True-read] _____
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:661: in test_revocation_during_acceptance_rolls_back_before_commit
+    runtime, databases, repository = await _runtime(tmp_path, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+_ test_revocation_during_acceptance_rolls_back_before_commit[True-after-business] _
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:661: in test_revocation_during_acceptance_rolls_back_before_commit
+    runtime, databases, repository = await _runtime(tmp_path, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+________ test_policy_denial_is_audited_after_acceptance_rollback[False] ________
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:717: in test_policy_denial_is_audited_after_acceptance_rollback
+    runtime, databases, repository = await _runtime(tmp_path, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+________ test_policy_denial_is_audited_after_acceptance_rollback[True] _________
+src/oria/migrations/runner.py:956: in upgrade_databases
+    heads = verify_migration_assets()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:166: in verify_migration_assets
+    return _verify_migration_tree(resources.files("oria.migrations"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:155: in _verify_migration_tree
+    files = _verify_files(root, chain.get("files"), f"migrations/{target}")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/resources/loader.py:87: in _verify_files
+    raise PackageAssetError(f"package asset integrity check failed: {label}/{name}")
+E   oria.resources.loader.PackageAssetError: package asset integrity check failed: migrations/platform/platform/versions/platform_0012_approval_card_interactions.py
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_v06_transactional_approval_acceptance.py:717: in test_policy_denial_is_audited_after_acceptance_rollback
+    runtime, databases, repository = await _runtime(tmp_path, identity, clock=clock)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_v06_transactional_approval_acceptance.py:46: in _runtime
+    upgrade_databases(config)
+src/oria/migrations/runner.py:958: in upgrade_databases
+    raise MigrationError("installed migration assets failed verification") from exc
+E   oria.migrations.runner.MigrationError: installed migration assets failed verification
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  [workspace]/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_approval_cards.py::test_persistent_reference_adversarial_resolution
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_signed_http_success_duplicate_and_restart_are_exactly_once
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_failure_after_each_decision_write_rolls_back_and_retries[cas]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_failure_after_each_decision_write_rolls_back_and_retries[audit]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_failure_after_each_decision_write_rolls_back_and_retries[outbox]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_concurrent_duplicate_two_refs_and_http_card_cas
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_policy_version_invalidates_without_accepting_new_action
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[unknown-ref]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[revision]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[revocation]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[sod]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[tenant]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[chat]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[message]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[sender]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[callback-expiry]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[binding-expiry]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[approval-expiry]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_rejected_or_tampered_actions_leave_no_acceptance_writes[role-change]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_migration_rejects_unknown_intent
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_revocation_during_acceptance_rolls_back_before_commit[False-read]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_revocation_during_acceptance_rolls_back_before_commit[False-after-business]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_revocation_during_acceptance_rolls_back_before_commit[True-read]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_revocation_during_acceptance_rolls_back_before_commit[True-after-business]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_policy_denial_is_audited_after_acceptance_rollback[False]
+FAILED tests/integration/test_v06_transactional_approval_acceptance.py::test_policy_denial_is_audited_after_acceptance_rollback[True]
+ERROR tests/integration/test_v06_approval_interactions.py::test_reasoned_rejection_restarts_and_retries_without_duplicate_decision
+ERROR tests/integration/test_v06_approval_interactions.py::test_invalid_rejection_reason_never_claims_receipt[None]
+ERROR tests/integration/test_v06_approval_interactions.py::test_invalid_rejection_reason_never_claims_receipt[]
+ERROR tests/integration/test_v06_approval_interactions.py::test_invalid_rejection_reason_never_claims_receipt[   ]
+ERROR tests/integration/test_v06_approval_interactions.py::test_invalid_rejection_reason_never_claims_receipt[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]
+ERROR tests/integration/test_v06_approval_interactions.py::test_invalid_rejection_reason_never_claims_receipt[reason4]
+ERROR tests/integration/test_v06_approval_interactions.py::test_detail_page_reauthorizes_without_deciding_or_creating_outbox
+ERROR tests/integration/test_v06_approval_interactions.py::test_issued_card_contains_separate_opaque_approve_reject_and_detail_actions
+ERROR tests/integration/test_v06_approval_delivery.py::test_delivery_binds_confirmed_message_before_activation_and_callback_updates
+ERROR tests/integration/test_v06_approval_delivery.py::test_partial_delivery_never_resends_or_activates_without_binding[POST_timeout-methods0-0-delivery_unknown]
+ERROR tests/integration/test_v06_approval_delivery.py::test_partial_delivery_never_resends_or_activates_without_binding[POST_rejected-methods1-0-provider_rejected]
+ERROR tests/integration/test_v06_approval_delivery.py::test_partial_delivery_never_resends_or_activates_without_binding[PATCH_timeout-methods2-3-delivery_unknown]
+ERROR tests/integration/test_v06_approval_delivery.py::test_partial_delivery_never_resends_or_activates_without_binding[PATCH_rejected-methods3-3-provider_rejected]
+ERROR tests/integration/test_v06_approval_delivery.py::test_partial_delivery_never_resends_or_activates_without_binding[revoked_after_send-methods4-0-card_binding_unavailable]
+ERROR tests/integration/test_v06_approval_delivery.py::test_partial_delivery_never_resends_or_activates_without_binding[revoked_before_patch-methods5-3-card_binding_unavailable]
+ERROR tests/integration/test_v06_approval_delivery.py::test_delivery_denies_invalid_recipient_before_any_network[destination]
+ERROR tests/integration/test_v06_approval_delivery.py::test_delivery_denies_invalid_recipient_before_any_network[revoked]
+ERROR tests/integration/test_v06_approval_delivery.py::test_delivery_denies_invalid_recipient_before_any_network[self_approval]
+ERROR tests/integration/test_v06_approval_delivery.py::test_delivery_denies_invalid_recipient_before_any_network[cross_tenant]
+ERROR tests/integration/test_v06_approval_delivery.py::test_delivery_denies_invalid_recipient_before_any_network[revoked_before_send]
+ERROR tests/integration/test_v06_approval_delivery.py::test_channel_update_requires_confirmed_shared_card_owner
+ERROR tests/integration/test_v06_approval_delivery.py::test_callback_projection_failure_retries_committed_outcome_without_new_decision
+26 failed, 25 passed, 1 warning, 22 errors in 7.62s

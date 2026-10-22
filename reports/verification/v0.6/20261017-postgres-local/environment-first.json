@@ -1,0 +1,48 @@
+{
+  "task_id": "V0.6-T01",
+  "target": "postgres",
+  "level": "E-like",
+  "attempt": "first",
+  "started_at": "2026-10-17T09:45:11.429984+08:00",
+  "source": "https://ftp.postgresql.org/pub/source/v17.11/postgresql-17.11.tar.bz2",
+  "source_sha256": "dd27f2b3c59e73ed14aa3324901242bf69a032a6347805f274e6260322d42979",
+  "native_local_process": true,
+  "container": false,
+  "databases": 2,
+  "synthetic_data_only": true,
+  "existing_databases_used": false,
+  "server_version": "17.11",
+  "runtime_role": {
+    "superuser": false,
+    "bypassrls": false,
+    "createdb": false,
+    "createrole": false
+  },
+  "pytest_exit_code": 1,
+  "pytest_summary": [
+    "2 failed in 3.38s"
+  ],
+  "platform_tables": [
+    "alembic_version_platform",
+    "approval_binding_invalidations",
+    "approval_card_bindings",
+    "approvals",
+    "audit_events",
+    "document_versions",
+    "documents",
+    "external_waits",
+    "ingestion_runs",
+    "ingress_receipts",
+    "ingress_replays",
+    "integration_event_inbox",
+    "memory_embeddings",
+    "memory_items",
+    "outbox",
+    "read_policy",
+    "rule_snapshot_cache"
+  ],
+  "platform_revision": "platform_0011",
+  "business_tables": [],
+  "server_stopped": true,
+  "finished_at": "2026-10-17T09:45:21.029199+08:00"
+}

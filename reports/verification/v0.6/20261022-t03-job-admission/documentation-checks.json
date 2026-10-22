@@ -1,0 +1,18 @@
+{
+  "checked_files": [
+    "ROADMAP.md",
+    "docs/Oria详细执行路线.md",
+    "docs/adr/README.md",
+    "docs/adr/ADR-014-durable-job-admission.md",
+    "docs/adr/ADR-025-job-lease-and-fencing.md",
+    "docs/guides/api-foundation.md",
+    "docs/guides/durable-jobs.md",
+    "reports/verification/README.md",
+    "reports/verification/v0.6/20261022-t03-job-admission/summary.md"
+  ],
+  "relative_links_exist": true,
+  "utf8_lf_final_newline": true,
+  "git_diff_check": "passed",
+  "historical_reports_rewritten": false,
+  "job_guide_json_examples_validated": 3
+}

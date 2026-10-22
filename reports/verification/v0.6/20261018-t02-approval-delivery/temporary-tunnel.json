@@ -1,0 +1,14 @@
+{
+  "status": "closed",
+  "provider": "Cloudflare",
+  "original_window_deadline": "2026-10-17T17:44:37.251624+00:00",
+  "final_segment_started_at": "2026-10-17T17:22:38.450559+00:00",
+  "closed_at": "2026-10-17T17:33:09.794534+00:00",
+  "maximum_authorized_seconds": 1800,
+  "public_gateway_processes_stopped": true,
+  "local_listener_closed": true,
+  "allowed_method": "POST",
+  "allowed_path": "/v1/ingress/feishu/events",
+  "url_sha256": "cd94f464ab6480abc7417ea644ef8901f5616708af20c99fdf0f4c1225dbb9d2",
+  "group_messages_sent": 0
+}

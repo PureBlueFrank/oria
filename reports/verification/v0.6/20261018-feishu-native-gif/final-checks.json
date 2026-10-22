@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "local_document_references_checked": 220,
+  "missing_local_references": [],
+  "text_media_files_scanned": 9,
+  "text_media_sensitive_pattern_findings": [],
+  "git_diff_check_exit_code": 0,
+  "preview_cleanup": {
+    "status": "closed",
+    "loopback_port": 8129,
+    "listener_present": false,
+    "temporary_browser_tab_closed": true,
+    "original_user_screenshots_unchanged": true
+  },
+  "published_or_pushed": false
+}

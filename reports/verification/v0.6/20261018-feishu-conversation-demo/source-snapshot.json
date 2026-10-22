@@ -1,0 +1,21 @@
+{
+  "files": {
+    "src/oria/chat/guided_demo.py": "b87df3530ef88ed096d9ee497aa89e5f2d10603dfbddabed99967482e0299d75",
+    "src/oria/chat/feishu_demo.py": "33b530ff72072ff2a29fa7033af267b7cd91a912ddd6a9774aec37a549d8e8ac",
+    "src/oria/cli.py": "9ceba923965035ed3d95ce6fa7af3732ce153217bc499e39de196f7b6f5e7b15",
+    "scripts/prepare_feishu_demo.py": "87745d74bc537eaf2211ef042b4362fcf6a7f98809adef19b954be936b25cef5",
+    "tests/integration/test_feishu_guided_demo.py": "b8c2b8fc1a78f14c0984f109584730db311f9485a7a1439074aa5f502f668188",
+    "pyproject.toml": "8e21b42f57e9679759227c41ef3ccee8cf0cccd0331a3e00034d39afbcda665f",
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def",
+    "scripts/generate_feishu_replay.py": "066cd876f2053e6b47ec1a0a506ec59e6136bf2449803b8b7a6e84224b906ac9",
+    "docs/demo/feishu/core-flow.gif": "703cdcff713f081fb764e972396534df51f57c5fd60f08b64f0f95df94d24db2",
+    "docs/demo/feishu/index.html": "7fa0f42dba1c67587793e286487a00daa8df77088baa979db3a3483425b845a1",
+    "docs/demo/feishu/replay-data.js": "2a4f2fa14a532cc9dd7ef8ef8f7eff76e82f834ae6390eb631198d0826bb1b24",
+    "docs/demo/feishu/replay.css": "214b17474a258b3eb8b1c257c3d6a890f59cc3ab5440ee647330ed0cc7de9ecc",
+    "docs/demo/feishu/poster.png": "7929662a20d9b80719c05713e6c60747e56aefab9d28aa0793dc13957318cca7",
+    "README.md": "808031f86efafa896475dbd7c3e9b5d9a63a1a73eef1c0e0b9509923051dd88d",
+    "ROADMAP.md": "ec8b8fa235b6eb504577648a04da2abcf121501a2bbddf925a0ec04d1dcf4786",
+    "docs/guides/feishu-conversation-demo.md": "ab239dbdec38316d2fc4597d2ea378cc76880c387989913542c3bef07521b999",
+    "docs/adr/ADR-038-guided-feishu-demo.md": "b1e5f4a4a28af64a02e9f8490eb3f759506255119bab1b99297106cff49e195d"
+  }
+}

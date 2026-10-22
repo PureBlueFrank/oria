@@ -1,0 +1,1453 @@
+{
+  "schema_version": "1",
+  "mode": "range",
+  "repository": ".",
+  "from": "origin/master",
+  "to": "HEAD",
+  "merge_base": "c57d59e08c7a09969214a130aa67c0e191bab9ea",
+  "total_files": 218,
+  "reviewable_count": 90,
+  "excluded_count": 128,
+  "total_insertions": 13029,
+  "total_deletions": 58,
+  "reviewable_files": [
+    {
+      "path": "docs/demo/feishu/index.html",
+      "status": "added",
+      "insertions": 45,
+      "deletions": 0
+    },
+    {
+      "path": "docs/demo/feishu/native-data.js",
+      "status": "added",
+      "insertions": 949,
+      "deletions": 0
+    },
+    {
+      "path": "docs/demo/feishu/native-story.json",
+      "status": "added",
+      "insertions": 805,
+      "deletions": 0
+    },
+    {
+      "path": "docs/demo/feishu/native.css",
+      "status": "added",
+      "insertions": 62,
+      "deletions": 0
+    },
+    {
+      "path": "docs/demo/feishu/native.js",
+      "status": "added",
+      "insertions": 120,
+      "deletions": 0
+    },
+    {
+      "path": "docs/demo/feishu/record-replay.html",
+      "status": "added",
+      "insertions": 73,
+      "deletions": 0
+    },
+    {
+      "path": "docs/demo/feishu/replay-data.js",
+      "status": "added",
+      "insertions": 448,
+      "deletions": 0
+    },
+    {
+      "path": "docs/demo/feishu/replay.css",
+      "status": "added",
+      "insertions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/checks.json",
+      "status": "added",
+      "insertions": 75,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/source-snapshot.json",
+      "status": "added",
+      "insertions": 30,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/environment-catalog-fix.json",
+      "status": "added",
+      "insertions": 77,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/environment-first.json",
+      "status": "added",
+      "insertions": 48,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/environment-saver-expanded.json",
+      "status": "added",
+      "insertions": 77,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/environment-verified.json",
+      "status": "added",
+      "insertions": 77,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/source-snapshot.json",
+      "status": "added",
+      "insertions": 28,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/checks.json",
+      "status": "added",
+      "insertions": 15,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/human-review.json",
+      "status": "added",
+      "insertions": 10,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/outbound-smoke-pre-send-blocked.json",
+      "status": "added",
+      "insertions": 17,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/outbound-smoke.json",
+      "status": "added",
+      "insertions": 46,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/planned-delivery.json",
+      "status": "added",
+      "insertions": 57,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/preflight-first.json",
+      "status": "added",
+      "insertions": 27,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/send-reservation.json",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/source-snapshot.json",
+      "status": "added",
+      "insertions": 25,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/checks.json",
+      "status": "added",
+      "insertions": 34,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/cleanup.json",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/evidence-query-initial.json",
+      "status": "added",
+      "insertions": 7,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/initial-window-closed.json",
+      "status": "added",
+      "insertions": 15,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-http-preflight.json",
+      "status": "added",
+      "insertions": 35,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/media-checks.json",
+      "status": "added",
+      "insertions": 51,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/package-content.json",
+      "status": "added",
+      "insertions": 15,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/package-media-content.json",
+      "status": "added",
+      "insertions": 17,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/real-conversation-first.json",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/real-conversation-views.json",
+      "status": "added",
+      "insertions": 534,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/real-workflow-complete.json",
+      "status": "added",
+      "insertions": 131,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/renewed-window-closed.json",
+      "status": "added",
+      "insertions": 15,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/source-snapshot.json",
+      "status": "added",
+      "insertions": 21,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-native-gif/browser-checks.json",
+      "status": "added",
+      "insertions": 405,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-native-gif/final-checks.json",
+      "status": "added",
+      "insertions": 16,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-native-gif/media-checks.json",
+      "status": "added",
+      "insertions": 260,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-native-gif/prepublication-redactions.json",
+      "status": "added",
+      "insertions": 41,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-native-gif/screenshot-sources.json",
+      "status": "added",
+      "insertions": 759,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-native-gif/source-snapshot.json",
+      "status": "added",
+      "insertions": 49,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/callback-gateway-first-failed.json",
+      "status": "added",
+      "insertions": 46,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/callback-gateway-local.json",
+      "status": "added",
+      "insertions": 50,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/callback-gateway-observer-public.json",
+      "status": "added",
+      "insertions": 27,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/callback-gateway-public.json",
+      "status": "added",
+      "insertions": 27,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/checks.json",
+      "status": "added",
+      "insertions": 35,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/cloudflared-source.json",
+      "status": "added",
+      "insertions": 10,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/real-preflight.json",
+      "status": "added",
+      "insertions": 28,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/real-readiness.json",
+      "status": "added",
+      "insertions": 28,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/source-snapshot.json",
+      "status": "added",
+      "insertions": 29,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/temporary-tunnel.json",
+      "status": "added",
+      "insertions": 14,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/callback-attempts.json",
+      "status": "added",
+      "insertions": 86,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/callback-gateway-public-renewed.json",
+      "status": "added",
+      "insertions": 27,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/callback-gateway-public.json",
+      "status": "added",
+      "insertions": 27,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/callback-gateway-restored.json",
+      "status": "added",
+      "insertions": 52,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/captured-real-callback-duplicate.json",
+      "status": "added",
+      "insertions": 24,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/checks.json",
+      "status": "added",
+      "insertions": 75,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/cloudflared-source-connect-timeout.json",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/cloudflared-source.json",
+      "status": "added",
+      "insertions": 11,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/discovery-014624.json",
+      "status": "added",
+      "insertions": 35,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/expired-url-diagnostic.json",
+      "status": "added",
+      "insertions": 12,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/first-click-failed.json",
+      "status": "added",
+      "insertions": 56,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/package-content.json",
+      "status": "added",
+      "insertions": 20,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/platform-url-validation.json",
+      "status": "added",
+      "insertions": 18,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/preflight-010150.json",
+      "status": "added",
+      "insertions": 22,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/real-callback-diagnostic.json",
+      "status": "added",
+      "insertions": 43,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/real-callback.json",
+      "status": "added",
+      "insertions": 26,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/real-delivery.json",
+      "status": "added",
+      "insertions": 41,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/real-timestamp-diagnostic.json",
+      "status": "added",
+      "insertions": 43,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/real-timestamp-format.json",
+      "status": "added",
+      "insertions": 44,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/receiver-restart-before-click.json",
+      "status": "added",
+      "insertions": 7,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/renewed-temporary-tunnel.json",
+      "status": "added",
+      "insertions": 17,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/source-snapshot-before-timestamp-fix.json",
+      "status": "added",
+      "insertions": 20,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/source-snapshot.json",
+      "status": "added",
+      "insertions": 39,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/temporary-tunnel.json",
+      "status": "added",
+      "insertions": 18,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/build_feishu_screenshot_assets.py",
+      "status": "added",
+      "insertions": 82,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/generate_feishu_replay.py",
+      "status": "added",
+      "insertions": 166,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/prepare_feishu_demo.py",
+      "status": "added",
+      "insertions": 128,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/api/app.py",
+      "status": "modified",
+      "insertions": 29,
+      "deletions": 5
+    },
+    {
+      "path": "src/oria/api/server.py",
+      "status": "modified",
+      "insertions": 65,
+      "deletions": 7
+    },
+    {
+      "path": "src/oria/chat/feishu_demo.py",
+      "status": "added",
+      "insertions": 411,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/chat/guided_demo.py",
+      "status": "added",
+      "insertions": 431,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/cli.py",
+      "status": "modified",
+      "insertions": 51,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/ingress/approval_cards.py",
+      "status": "modified",
+      "insertions": 49,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/ingress/approval_delivery.py",
+      "status": "added",
+      "insertions": 107,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/ingress/feishu.py",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 4
+    },
+    {
+      "path": "src/oria/ingress/feishu_channel.py",
+      "status": "modified",
+      "insertions": 72,
+      "deletions": 15
+    },
+    {
+      "path": "src/oria/migrations/runner.py",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 3
+    },
+    {
+      "path": "src/oria/presentation/im.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 2
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": "ARCHITECTURE.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "README.md",
+      "status": "modified",
+      "insertions": 14,
+      "deletions": 2,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "modified",
+      "insertions": 15,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-003-sqlite-to-postgresql.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-037-api-identity-and-feishu-boundary.md",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 2,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-038-guided-feishu-demo.md",
+      "status": "added",
+      "insertions": 23,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/demo/feishu/core-flow.gif",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/poster.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/record-replay-poster.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/record-replay.gif",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/01-start.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/02-category.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/03-region.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/04-mode.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/05-confirm.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/06-approval.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/07-launched.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/08-enrollment.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/09-merchant.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/10-sales.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/11-manager.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/12-selection-wait.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/13-selection-done.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/14-second-gate.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/15-completed.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/16-receipts.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/17-attribution.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/18-evidence.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/19-conflicting.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/20-insufficient.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/21-rule-base.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/22-rule-scope.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/23-rule-confirm.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/screenshots/24-rule-page.png",
+      "status": "binary",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "binary"
+    },
+    {
+      "path": "docs/demo/feishu/storyboard.md",
+      "status": "added",
+      "insertions": 238,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/api-foundation.md",
+      "status": "modified",
+      "insertions": 55,
+      "deletions": 7,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/feishu-approval-validation.md",
+      "status": "added",
+      "insertions": 50,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/feishu-conversation-demo.md",
+      "status": "added",
+      "insertions": 89,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/postgresql.md",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/security/V0.3场景A威胁模型.md",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 2,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/README.md",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/attempts.md",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/build-final.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/community-final.log",
+      "status": "added",
+      "insertions": 177,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/consistency.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lifecycle-final.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lifecycle-first.log",
+      "status": "added",
+      "insertions": 46,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lint-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/lint-first.log",
+      "status": "added",
+      "insertions": 29,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/package-content.log",
+      "status": "added",
+      "insertions": 4,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/shared-services.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/smoke-final.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261016-t02-receiver-lifecycle/summary.md",
+      "status": "added",
+      "insertions": 52,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/build.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/community-targeted.log",
+      "status": "added",
+      "insertions": 17,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/consistency.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/lint.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/package-content.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/postgres-catalog-fix.log",
+      "status": "added",
+      "insertions": 85,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/postgres-first.log",
+      "status": "added",
+      "insertions": 104,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/postgres-saver-expanded.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/postgres-verified.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261017-postgres-local/summary.md",
+      "status": "added",
+      "insertions": 73,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/lint.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/local-targeted.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/probe.py.txt",
+      "status": "added",
+      "insertions": 85,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/send_smoke.py.txt",
+      "status": "added",
+      "insertions": 149,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-channel/summary.md",
+      "status": "added",
+      "insertions": 47,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/build-final.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/build-media-final.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/cli-help.log",
+      "status": "added",
+      "insertions": 17,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/community-final.log",
+      "status": "added",
+      "insertions": 179,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/community-sandbox-restricted.log",
+      "status": "added",
+      "insertions": 211,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/confirmation-check-final.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/discovery-final.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/discovery-renewed.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/discovery-second.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/discovery.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/lint-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/lint-format-adjustment.log",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/lint-initial.log",
+      "status": "added",
+      "insertions": 16,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/lint-media-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-first.log",
+      "status": "added",
+      "insertions": 79,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-lifecycle.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-preparation.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/local-second.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/smoke-final.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-conversation-demo/summary.md",
+      "status": "added",
+      "insertions": 57,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-native-gif/encode-frame-quality.log",
+      "status": "added",
+      "insertions": 29,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-native-gif/lint.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-feishu-native-gif/summary.md",
+      "status": "added",
+      "insertions": 61,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/build-before-readiness-docs.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/build-final.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/build-initial-cache-missing.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/community-final.log",
+      "status": "added",
+      "insertions": 178,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/lint-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/lint-initial.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/lint-message-format-failed.log",
+      "status": "added",
+      "insertions": 14,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/package-content.log",
+      "status": "added",
+      "insertions": 17,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/projection-message-final.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/smoke-final.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/summary.md",
+      "status": "added",
+      "insertions": 62,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/targeted-final.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/targeted-fixture-error.log",
+      "status": "added",
+      "insertions": 214,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/targeted-initial-pass.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-approval-delivery/targeted-sod-fixture-failed.log",
+      "status": "added",
+      "insertions": 41,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/build-final.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/community-final.log",
+      "status": "added",
+      "insertions": 178,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-diagnostics.py.txt",
+      "status": "added",
+      "insertions": 53,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-gateway-before-diagnostics.py.txt",
+      "status": "added",
+      "insertions": 91,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-gateway.py.txt",
+      "status": "added",
+      "insertions": 94,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-manager.py.txt",
+      "status": "added",
+      "insertions": 77,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-test-final.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-test-import-failed.log",
+      "status": "added",
+      "insertions": 16,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-test.py.txt",
+      "status": "added",
+      "insertions": 46,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/harness-watchdog.py.txt",
+      "status": "added",
+      "insertions": 18,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/lint-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/smoke-final.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/summary.md",
+      "status": "added",
+      "insertions": 52,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/timestamp-contract-final.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/timestamp-regression-before.log",
+      "status": "added",
+      "insertions": 143,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261018-t02-real-approval/timestamp-targeted.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "tests/contract/test_v06_feishu.py",
+      "status": "modified",
+      "insertions": 57,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_feishu_guided_demo.py",
+      "status": "added",
+      "insertions": 433,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_approval_delivery.py",
+      "status": "added",
+      "insertions": 326,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_feishu_server_lifecycle.py",
+      "status": "added",
+      "insertions": 285,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_postgres_enterprise.py",
+      "status": "modified",
+      "insertions": 85,
+      "deletions": 4,
+      "exclude_reason": "default_path"
+    }
+  ]
+}

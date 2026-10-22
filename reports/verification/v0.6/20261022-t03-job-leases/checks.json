@@ -1,0 +1,68 @@
+{
+  "task": "V0.6-T03",
+  "increment": "current_identity_and_job_lease_primitives",
+  "task_status": "in_progress",
+  "validation_status": "passed",
+  "new_tests": 25,
+  "checks": {
+    "local_suite": {
+      "passed": 1228,
+      "deselected": 9,
+      "warnings": 5,
+      "seconds": 343.38,
+      "exit_code": 0,
+      "log": "regression-final.log"
+    },
+    "lease_tests": {
+      "passed": 25,
+      "seconds": 23.38,
+      "log": "targeted-final.log"
+    },
+    "expanded_targeted_before_extra_case": {
+      "passed": 84,
+      "seconds": 45.09,
+      "log": "targeted-expanded.log"
+    },
+    "lint": {
+      "status": "passed",
+      "log": "lint-verified.log"
+    },
+    "build": {
+      "status": "passed",
+      "log": "build-final.log"
+    },
+    "wheel_import": {
+      "status": "passed",
+      "evidence": "package-content.json"
+    },
+    "smoke": {
+      "status": "passed",
+      "log": "smoke.log"
+    }
+  },
+  "not_run": [
+    "new_postgresql_revision",
+    "real_feishu",
+    "live",
+    "enterprise",
+    "performance"
+  ],
+  "not_implemented": [
+    "domain_transaction_and_side_effect_reservation_fencing",
+    "actual_graph_job_runner",
+    "automatic_retry_timeout_reaper",
+    "approval_inbox_to_job_resume",
+    "feishu_job_conversation",
+    "standalone_worker_takeover",
+    "orphan_cleanup",
+    "reliable_notifications_sse_webhooks"
+  ],
+  "external_writes": false,
+  "user_database_migration": false,
+  "git_push": false,
+  "github_actions": "not_triggered",
+  "evidence_refs": [
+    "../20261022-t03-graph-inputs/summary.md",
+    "../20261022-t03-job-admission/summary.md"
+  ]
+}

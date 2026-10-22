@@ -162,7 +162,12 @@ def test_http_errors_do_not_echo_token_or_validation_input(identity_setup):
             "/v1/me", headers={"Authorization": "Bearer " + token(), "X-Tenant-ID": "victim"}
         )
         assert result.json()["actor"]["tenant_id"] == "tenant"
-        assert client.get("/v1/jobs/unknown").json()["code"] == "not_found"
+        missing_auth = client.get("/v1/jobs/unknown")
+        assert missing_auth.status_code == 401
+        assert missing_auth.json()["code"] == "unauthenticated"
+        unavailable = client.get("/v1/jobs/unknown", headers={"Authorization": "Bearer " + token()})
+        assert unavailable.status_code == 503
+        assert unavailable.json()["code"] == "unavailable"
 
 
 def test_local_profile_is_explicit_and_rejects_non_loopback():

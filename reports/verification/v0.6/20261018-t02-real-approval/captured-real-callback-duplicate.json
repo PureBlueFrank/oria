@@ -1,0 +1,24 @@
+{
+  "mode": "captured_platform_callback_replayed_in_memory_once",
+  "before": {
+    "approvals": 1,
+    "approval_card_bindings": 1,
+    "ingress_receipts": 1,
+    "ingress_replays": 1,
+    "audit_events": 6,
+    "outbox": 1
+  },
+  "raw_payload_saved": false,
+  "http_status": 200,
+  "terminal_raw_card": true,
+  "after": {
+    "approvals": 1,
+    "approval_card_bindings": 1,
+    "ingress_receipts": 1,
+    "ingress_replays": 1,
+    "audit_events": 6,
+    "outbox": 1
+  },
+  "counts_unchanged": true,
+  "status": "passed"
+}

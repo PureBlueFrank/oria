@@ -1,0 +1,75 @@
+{
+  "run_id": "20261016-t02-receiver-lifecycle",
+  "task_id": "V0.6-T02",
+  "completed_at": "2026-10-16T22:22:18.247238+08:00",
+  "increment_status": "passed",
+  "task_status": "in_progress",
+  "source_snapshot": "source-snapshot.json",
+  "checks": {
+    "lifecycle": {
+      "status": "passed",
+      "passed": 12,
+      "warnings": 1,
+      "seconds": 14.96,
+      "evidence": "lifecycle-final.log"
+    },
+    "shared_services": {
+      "status": "passed",
+      "passed": 1,
+      "warnings": 1,
+      "seconds": 3.44,
+      "evidence": "shared-services.log"
+    },
+    "quality": {
+      "status": "passed",
+      "formatted_files": 359,
+      "typed_source_files": 179,
+      "evidence": "lint-final.log"
+    },
+    "community": {
+      "status": "passed",
+      "passed": 1094,
+      "deselected": 3,
+      "warnings": 5,
+      "seconds": 352.86,
+      "evidence": "community-final.log"
+    },
+    "build": {
+      "status": "passed",
+      "evidence": "build-final.log"
+    },
+    "package_content": {
+      "status": "passed",
+      "evidence": "package-content.log"
+    },
+    "smoke": {
+      "status": "passed",
+      "version": "0.1.0",
+      "evidence": "smoke-final.log"
+    },
+    "consistency": {
+      "status": "passed",
+      "evidence": "consistency.log"
+    }
+  },
+  "new_tests": 8,
+  "external_validation": {
+    "live": "not_run",
+    "feishu": "not_run",
+    "postgresql": "not_run",
+    "enterprise": "not_run",
+    "performance": "not_run"
+  },
+  "git": {
+    "committed": false,
+    "pushed": false,
+    "remote_ci": "not_triggered"
+  },
+  "remaining": [
+    "card production delivery/update",
+    "reasoned card rejection",
+    "Feishu detail/pagination",
+    "Job/wait/Graph recovery",
+    "real Feishu/PostgreSQL validation"
+  ]
+}

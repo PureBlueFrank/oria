@@ -1,0 +1,16 @@
+uv run ruff format --check .
+365 files already formatted
+uv run ruff check .
+E501 Line too long (107 > 100)
+   --> src/oria/chat/feishu_demo.py:251:71
+    |
+249 |                     view = view.model_copy(
+250 |                         update={
+251 |                             "summary": "演示已暂停，上次执行或发送结果待维护者核对。以下仅为只读查询。\n\n"
+    |                                                                                                     ^^^^^^^
+252 |                             + view.summary
+253 |                         }
+    |
+
+Found 1 error.
+make: *** [lint] Error 1

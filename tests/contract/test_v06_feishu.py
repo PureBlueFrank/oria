@@ -150,6 +150,63 @@ def test_challenge_and_action_reference_contract():
         adapter.verify(request(doc))
 
 
+def test_go_callback_timestamp_preserves_expiry_and_original_signature():
+    now = datetime(2026, 10, 18, 1, 0, 0, 123456, tzinfo=UTC)
+    timestamp = "2026-10-18 09:00:00.123456789 +0800 CST m=+123456.987654321"
+    doc = event()
+    doc["header"]["event_type"] = "card.action.trigger"
+    doc["event"] = {
+        "operator": {"tenant_key": "ft", "open_id": "ou"},
+        "context": {"open_message_id": "card-msg", "open_chat_id": "chat"},
+        "action": {"value": {"version": 1, "action_ref": "approval-action"}},
+    }
+    inbound = request(doc, timestamp=timestamp, encrypted=True).model_copy(
+        update={"received_at": now}
+    )
+    result = ingress().verify(inbound)
+    assert isinstance(result, VerifiedFeishuEvent) and result.kind == "action"
+    assert result.expires_at == pytest.approx(now.timestamp() + 300, rel=0, abs=0.000001)
+    headers = dict(inbound.headers)
+    headers["X-Lark-Request-Timestamp"] = timestamp.replace("m=+123456", "m=+654321")
+    with pytest.raises(IngressVerificationError):
+        ingress().verify(inbound.model_copy(update={"headers": headers}))
+
+
+@pytest.mark.security
+@pytest.mark.parametrize(
+    "timestamp",
+    [
+        "2026-10-18 00:54:59 +0000 UTC m=+999999.1",
+        "2026-10-18 01:05:01 +0000 UTC m=+0.1",
+        "2026-02-30 01:00:00 +0000 UTC m=+1.0",
+        "2026-10-18 01:00:00 +2500 UTC m=+1.0",
+        "2026-10-18 01:00:00.1234567890 +0000 UTC m=+1.0",
+        "2026-10-18 01:00:00 +0000 UTC m=nan",
+        "2026-10-18T01:00:00Z",
+    ],
+)
+def test_invalid_go_timestamp_never_bypasses_time_window(timestamp):
+    inbound = request(event(), timestamp=timestamp).model_copy(
+        update={"received_at": datetime(2026, 10, 18, 1, 0, 0, tzinfo=UTC)}
+    )
+    with pytest.raises(IngressVerificationError):
+        ingress().verify(inbound)
+
+
+def test_go_timestamp_without_monotonic_suffix_obeys_configured_shorter_window():
+    now = datetime(2026, 10, 18, 1, 0, 0, tzinfo=UTC)
+    adapter = FeishuIngress(SETTINGS.model_copy(update={"max_age_seconds": 5}), ingress().directory)
+    fresh = request(event(), timestamp="2026-10-18 01:00:00 +0000 UTC").model_copy(
+        update={"received_at": now}
+    )
+    assert adapter.verify(fresh).expires_at == now.timestamp() + 5
+    stale = request(event(), timestamp="2026-10-18 00:59:54 +0000 UTC m=+999999.0").model_copy(
+        update={"received_at": now}
+    )
+    with pytest.raises(IngressVerificationError):
+        adapter.verify(stale)
+
+
 def test_no_acknowledgement_without_durable_receiver():
     directory = IdentityDirectory()
     auth = JWTAuthenticator(
@@ -212,6 +269,64 @@ def test_card_golden_all_stages_and_pagination_redaction():
     assert "secret-value" not in card and "demo@example.com" not in card
     with pytest.raises(ValueError):
         render_card(view, page=3)
+
+
+def approval_interaction_cards():
+    pending = IMViewModel(
+        card_schema="2.0",
+        stage="waiting_approval",
+        title="招商发布审批",
+        summary="等待审批",
+        detail_ref="approval-example",
+        next_step="请核对方案后提交决定。",
+        sections=tuple(IMSection(title=f"审批摘要 {i}", text="合成业务摘要") for i in range(6)),
+        actions=(IMAction(label="批准", value=CardAction(action_ref="example-approve")),),
+        rejection_action=CardAction(action_ref="example-reject"),
+        navigation=(IMAction(label="查看详情", value=CardAction(action_ref="example-view")),),
+    )
+    page = pending.model_copy(
+        update={
+            "page": 2,
+            "navigation": (
+                IMAction(label="上一页", value=CardAction(action_ref="example-view", page=1)),
+            ),
+        }
+    )
+    rejected = IMViewModel(
+        card_schema="2.0",
+        stage="result",
+        title="招商发布审批",
+        summary="已拒绝",
+        detail_ref="approval-example",
+        next_step="修改方案后请重新申请审批。",
+        sections=(IMSection(title="审批说明", text="合成拒绝理由: 预算需要调整"),),
+    )
+    return {
+        name: render_card(view, shared_update=True)
+        for name, view in (("pending", pending), ("page-2", page), ("rejected", rejected))
+    }
+
+
+def test_approval_interaction_card_v2_goldens():
+    path = Path(__file__).parent / "fixtures/feishu-approval-cards-v2.json"
+    assert approval_interaction_cards() == json.loads(path.read_text())
+
+
+def test_card_v2_escapes_markup_redacts_private_text_and_preserves_quotes():
+    view = next(views()).model_copy(
+        update={
+            "card_schema": "2.0",
+            "summary": (
+                """预算 "A" 与 'B' <at id=all> """
+                "[链接](https://example.com) demo@example.com"
+            ),
+        }
+    )
+    content = render_card(view)["body"]["elements"][0]["content"]
+    assert """预算 "A" 与 'B' """ in content
+    assert "<at" not in content and "&lt;at" in content
+    assert "\\[链接\\]\\(" in content
+    assert "demo@example.com" not in content
     with pytest.raises(ValueError):
         IMViewModel.model_validate(next(views()).model_dump() | {"raw_tool_json": {}})
 

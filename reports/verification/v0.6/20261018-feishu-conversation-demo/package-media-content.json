@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "artifacts": [
+    {
+      "file": "oria-0.1.0.tar.gz",
+      "entries": 873,
+      "sha256": "5da14e4577238d34505e41d2d74e854a7ee265596684f5154a25e1a12930d01a"
+    },
+    {
+      "file": "oria-0.1.0-py3-none-any.whl",
+      "entries": 230,
+      "sha256": "c9c48a1a448708e194b15a188c1822023b40a4c419a2c3ae1cd7b368d878956e"
+    }
+  ],
+  "source_and_GIF_match": "passed",
+  "credential_value_scan": "passed"
+}

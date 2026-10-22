@@ -1,0 +1,12 @@
+{
+  "mode": "expired_callback_url_diagnostic",
+  "checked_at": "2026-10-18T01:41:44.594687+00:00",
+  "tunnel_status": "closed",
+  "tunnel_closed_at": "2026-10-18T01:39:22.328382+00:00",
+  "url_sha256": "8b844e9c9399589da16753c0e129affa48609b2fd6d7474efbbe8a75b8faba6d",
+  "requests": 1,
+  "credentials_sent": false,
+  "http_status": 530,
+  "content_type": "text/html",
+  "response_is_json": false
+}

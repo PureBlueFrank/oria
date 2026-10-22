@@ -1,0 +1,11 @@
+{
+  "source": "official Cloudflare GitHub release",
+  "release": "2026.10.1",
+  "asset": "cloudflared-darwin-amd64.tgz",
+  "status": "passed",
+  "system_install": false,
+  "tunnel_started": false,
+  "archive_sha256": "3b0dbaf378337e9d7fb6cd235a76d1d6a7dee434c2d8edf9281164fb6a3837ab",
+  "checksum_verified": true,
+  "download_bytes": 21768449
+}

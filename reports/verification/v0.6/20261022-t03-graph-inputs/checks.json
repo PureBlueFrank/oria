@@ -1,0 +1,62 @@
+{
+  "task": "V0.6-T03",
+  "increment": "graph_input_adapters",
+  "task_status": "in_progress",
+  "validation_status": "passed",
+  "checks": {
+    "local_suite": {
+      "passed": 1203,
+      "deselected": 9,
+      "warnings": 5,
+      "seconds": 389.78,
+      "exit_code": 0,
+      "log": "regression.log"
+    },
+    "expanded_targeted": {
+      "passed": 42,
+      "seconds": 34.9,
+      "log": "targeted-expanded.log"
+    },
+    "new_input_tests": 24,
+    "new_admission_tests": 28,
+    "lint": {
+      "status": "passed",
+      "log": "lint-verified.log"
+    },
+    "build": {
+      "status": "passed",
+      "log": "build.log"
+    },
+    "wheel_import": {
+      "status": "passed",
+      "evidence": "package-content.json"
+    },
+    "smoke": {
+      "status": "passed",
+      "log": "smoke.log"
+    }
+  },
+  "not_run": [
+    "new_postgresql_revision",
+    "new_real_feishu_interactions",
+    "live",
+    "enterprise",
+    "performance"
+  ],
+  "not_implemented": [
+    "job_runner_dispatch",
+    "requester_reload_for_execution",
+    "claim_heartbeat_timeout_retry",
+    "execution_fencing",
+    "job_approval_event_resume",
+    "feishu_job_conversation",
+    "reliable_notifications_sse_webhooks"
+  ],
+  "external_writes": false,
+  "user_database_migration": false,
+  "git_push": false,
+  "github_actions": "not_triggered",
+  "evidence_refs": [
+    "../20261022-t03-job-admission/summary.md"
+  ]
+}

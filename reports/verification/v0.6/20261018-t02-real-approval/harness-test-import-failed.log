@@ -1,0 +1,16 @@
+
+==================================== ERRORS ====================================
+________________________ ERROR collecting test session _________________________
+ImportError while importing test module '/private/tmp/test_oria_real_gateway_20261018.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+<user-home>/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/private/tmp/test_oria_real_gateway_20261018.py:6: in <module>
+    from tests.integration.test_v06_approval_delivery import delivery_stack,_deliver,_action
+E   ModuleNotFoundError: No module named 'tests'
+=========================== short test summary info ============================
+ERROR
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.24s

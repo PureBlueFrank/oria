@@ -1,0 +1,17 @@
+
+ Usage: oria feishu-demo [OPTIONS]
+
+ Run the explicit synthetic Feishu walkthrough on loopback; no production Jobs.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --config          <path>                     Private discovered OriaTest  │
+│                                                 scope (0600).                │
+│                                                 [required]                   │
+│ *  --data-dir        <path>                     New, isolated synthetic      │
+│                                                 demonstration directory.     │
+│                                                 [required]                   │
+│    --port            <int range> [1<=x<=65535]  [default: 8018]              │
+│    --seconds         <int range> [1<=x<=1800]   [default: 1800]              │
+│    --help                                       Show this message and exit.  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

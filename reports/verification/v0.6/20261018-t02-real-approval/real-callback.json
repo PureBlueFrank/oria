@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "mode": "real_platform_approval_button_callback",
+  "user_confirmed_terminal_card_and_button_removed": true,
+  "received_at": "2026-10-18T01:59:53.566516+00:00",
+  "signature_verified": true,
+  "encrypted_callback_decoded": true,
+  "application_identity_and_destination_matched": true,
+  "processed_after_receiver_restart": true,
+  "http_status": 200,
+  "returned_terminal_raw_card": true,
+  "approval_statuses": {
+    "approved": 1
+  },
+  "database_counts": {
+    "approvals": 1,
+    "approval_card_bindings": 1,
+    "ingress_receipts": 1,
+    "ingress_replays": 1,
+    "audit_events": 6,
+    "outbox": 1
+  },
+  "decision_audit_increment": 1,
+  "outbox_increment": 1,
+  "raw_payload_saved": false
+}

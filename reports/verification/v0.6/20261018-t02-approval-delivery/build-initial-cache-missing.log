@@ -1,0 +1,9 @@
+uv build
+Building source distribution...
+error: Failed to build `<user-home>/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria`
+  Caused by: Failed to resolve requirements from `build-system.requires`
+  Caused by: No solution found when resolving: `hatchling>=1.27, <2`
+  Caused by: Because hatchling was not found in the cache and you require hatchling>=1.27,<2, we can conclude that your requirements are unsatisfiable.
+
+hint: Packages were unavailable because the network was disabled. When the network is disabled, registry packages may only be read from the cache.
+make: *** [build] Error 2

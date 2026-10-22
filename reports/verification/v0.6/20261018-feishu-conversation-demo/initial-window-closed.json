@@ -1,0 +1,15 @@
+{
+  "status": "closed",
+  "maximum_seconds": 1800,
+  "started_at": "2026-10-18T02:42:12.959536+00:00",
+  "scheduled_stop_at": "2026-10-18T03:11:12.959536+00:00",
+  "application": "independent OriaTest",
+  "scope": "one verified test chat and operator",
+  "accepted_method": "POST",
+  "accepted_path": "/v1/ingress/feishu/events",
+  "port": 8018,
+  "closed_at": "2026-10-18T03:11:13.250441+00:00",
+  "processes_stopped": true,
+  "command_count": 0,
+  "reason_not_exercised": "browser automatic approval service usage limit interrupted setup"
+}

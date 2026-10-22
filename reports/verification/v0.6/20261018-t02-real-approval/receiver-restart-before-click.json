@@ -1,0 +1,7 @@
+{
+  "status": "passed",
+  "binding_persisted_before_restart": true,
+  "different_worker_confirmed": true,
+  "restarted_at": "2026-10-18T01:47:47.361287+00:00",
+  "source": "private receiver lifecycle marker; callback pending"
+}

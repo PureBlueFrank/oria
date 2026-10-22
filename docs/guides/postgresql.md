@@ -2,7 +2,7 @@
 
 Oria 的 Community 默认后端仍是 SQLite。企业环境可以分别为 Platform 与 Business 选择两个独立 PostgreSQL 数据库，并继续复用同一套 Repository 契约；LangGraph checkpoint 使用官方 `AsyncPostgresSaver`。
 
-> 当前验证边界：后端选择、配置失败关闭、migration、Repository、RLS SQL 和 saver adapter 已通过 Contract/Community/Security 验证；仓库当前没有两个真实测试 DSN，因此真实 PostgreSQL Enterprise 验证仍为 `blocked`。详见 [V0.6-T01 验证卡](../../reports/verification/v0.6/20260920-t01/summary.md)。
+> 当前验证边界：Contract/Community/Security 已通过；2026-10-17 使用原生本地 PostgreSQL 17.11、两个隔离临时库和普通运行角色完成真实 migration、Repository、RLS、连接池及官方 saver 验证，8 项通过。详见 [真实 PostgreSQL 验证卡](../../reports/verification/v0.6/20261017-postgres-local/summary.md)。[原缺 DSN blocked 卡](../../reports/verification/v0.6/20260920-t01/summary.md)保留历史，不代表当前仍被该环境条件阻塞；生产环境、PostgreSQL API 和多 worker 尚未验证。
 
 ## 1. 准备两个独立数据库
 
@@ -52,6 +52,10 @@ uv run pytest -m enterprise \
 ```
 
 只有该测试在真实 PostgreSQL 上执行并通过，才能证明 migration、双库 Repository、RLS 默认拒绝、连接池 tenant context 清理和官方 saver 的实际行为。缺少 DSN 导致的 skip/blocked、SQLite、Mock 或静态 SQL 断言都不算 PostgreSQL Enterprise 通过。
+
+本地验证不要求 Docker：可以使用原生 PostgreSQL，包括 PostgreSQL 官方 macOS 下载页列出的 Postgres.app，或经官方校验的源码构建版本。本轮实际使用源码构建的 17.11；没有安装系统服务。须使用单独的新集群/可销毁双库，运行角色不得是超级用户或具有 `BYPASSRLS`。测试会执行迁移和合成数据写入；新增六项 RLS 负例在事务内临时移除 ENABLE/FORCE/policy 并回滚，不能指向业务数据库。测试结束停止本轮实例，凭证不保存到报告或仓库。
+
+本轮绑定 127.0.0.1 的临时端口，主机连接使用 SCRAM 密码验证；仅本地测试连接关闭 TLS，未改变 production URL 必须显式启用 TLS 的约束。通过本地卡不能推断生产网络、TLS、备份、运维或性能结论。
 
 ## 4. 接入边界
 
