@@ -57,7 +57,7 @@ CLI 演示入口为 `oria attribution ask`。默认只在已审阅 development �
 
 下表是跨 V0.1–V0.8 的目标模块图。当前已交付 V0.5 Core 与 V0.6-T01 持久化基础。V0.6-T02 已有 API 身份、飞书协议、IM 展示、SQLite 事务化去重及共用运行时的审批 HTTP/卡片受理；完整快照 CAS 保护审批、审计/outbox 与 receipt 的原子提交。原飞书文本/卡片出站、审批投递与 PATCH 激活、重启后真实签名/AES 批准回调及终态显示已独立验证；新增带理由拒绝与详情/分页仅有本地验证。默认入口不自动发送，可靠投递恢复仍属 T05，见 [API 基础指南](docs/guides/api-foundation.md)。
 
-2026-10-22：V0.6-T03 已本地验证会话/幂等任务受理、查询/取消、两场景初始 Graph 输入，以及当前身份恢复、独立 worker 授权、Job 行租约和 accepted checkpoint 指针；HTTP 仍只持久受理。领域副作用 fencing、实际 Graph 调度、审批/外部事件恢复、文本会话编排与独立 worker 尚未接通；Web 工作台、SSE 和可靠 Webhook 仍待后续，不能据此表宣称完成。详见 [Durable Job 指南](docs/guides/durable-jobs.md)。
+2026-10-22：V0.6-T03 已本地验证会话/幂等任务受理、查询/取消、两场景初始 Graph 输入，以及当前身份恢复、独立 worker 授权、Job 行租约和 accepted checkpoint 指针；HTTP 仍只持久受理。本地草案提交、launch 审批准备和审批后的券预留已有显式 SQLite 租约边界；外部派发及其他领域 fencing、实际 Graph 调度、审批/外部事件恢复、文本会话编排与独立 worker 尚未接通；Web 工作台、SSE 和可靠 Webhook 仍待后续，不能据此表宣称完成。详见 [Durable Job 指南](docs/guides/durable-jobs.md)。
 
 2026-10-17 已在原生本地 PostgreSQL 17.11 隔离双库上验证迁移、Repository、RLS/连接池和官方 saver，见 [独立验证卡](reports/verification/v0.6/20261017-postgres-local/summary.md)。这项持久化基础验证与仍限定 SQLite 的 API 审批装配分开；不代表 PostgreSQL API 或多 worker 恢复已交付。
 

@@ -1,0 +1,5 @@
+{
+  "command": "UV_CACHE_DIR=.artifacts/uv-cache UV_OFFLINE=1 UV_NO_SYNC=1 make test",
+  "exit_code": 0,
+  "seconds": 487.99
+}

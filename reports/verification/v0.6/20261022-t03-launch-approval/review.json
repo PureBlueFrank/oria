@@ -1,0 +1,123 @@
+{
+  "method": "open-code-review-delegate; OCR selects files/resolves rules; host performs review (not an independent reviewer)",
+  "base": "64cc69287dd6d9e7eab1e2d164f852bfef56186b",
+  "prior_head": "517c012db326dfa2fd527c39c8be21bb102abfa3",
+  "total_files": 12,
+  "reviewed_files": 11,
+  "skipped_files": 1,
+  "coverage_rate": 91.67,
+  "checklist": [
+    {
+      "scope": "origin/master..517c012",
+      "path": "src/oria/core/approvals.py",
+      "change_status": "modified",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "origin/master..517c012",
+      "path": "src/oria/domain/launch.py",
+      "change_status": "modified",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "origin/master..517c012",
+      "path": "src/oria/orchestrator/job_execution.py",
+      "change_status": "added",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "origin/master..517c012",
+      "path": "src/oria/orchestrator/job_leases.py",
+      "change_status": "modified",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "origin/master..517c012",
+      "path": "src/oria/permission/local.py",
+      "change_status": "modified",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "origin/master..517c012",
+      "path": "src/oria/storage/job_execution.py",
+      "change_status": "added",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "origin/master..517c012",
+      "path": "src/oria/storage/jobs.py",
+      "change_status": "modified",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "origin/master..517c012",
+      "path": "src/oria/storage/ledger.py",
+      "change_status": "modified",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "origin/master..517c012",
+      "path": "src/oria/storage/repositories.py",
+      "change_status": "modified",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "workspace",
+      "path": "src/oria/orchestrator/job_execution.py",
+      "change_status": "modified",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "workspace",
+      "path": "src/oria/storage/job_execution.py",
+      "change_status": "modified",
+      "review_status": "reviewed",
+      "reason": "Host semantic review with OCR resolved Python rules; complete affected diff and relevant contracts inspected"
+    },
+    {
+      "scope": "workspace",
+      "path": "reports/verification/v0.6/20261022-t03-launch-approval/ocr-preview.json",
+      "change_status": "added",
+      "review_status": "skipped",
+      "reason": "OCR generated metadata, no executable code"
+    }
+  ],
+  "supplemental_tests": [
+    {
+      "path": "tests/integration/test_v06_job_coupon_reservation.py",
+      "review_status": "reviewed",
+      "reason": "Manually included despite OCR default test exclusion; assert real SQLite effects, authority changes, lock races and failure recovery"
+    },
+    {
+      "path": "tests/integration/test_v06_job_execution_fencing.py",
+      "review_status": "reviewed",
+      "reason": "Manually included despite OCR default test exclusion; assert real SQLite effects, authority changes, lock races and failure recovery"
+    },
+    {
+      "path": "tests/integration/test_v06_job_launch_approval.py",
+      "review_status": "reviewed",
+      "reason": "Manually included despite OCR default test exclusion; assert real SQLite effects, authority changes, lock races and failure recovery"
+    }
+  ],
+  "unique_code_files_reviewed": 12,
+  "unresolved_findings": [],
+  "focus": [
+    "current requester/worker and resource policy",
+    "full-snapshot lease and lock ordering",
+    "current complete plan and receipt binding",
+    "commit hooks and cleanup",
+    "separate DB commits and replay after interruption",
+    "approval history/SOD/expiry and redacted audit/outbox",
+    "no external dispatch/Graph or false stage completion"
+  ]
+}

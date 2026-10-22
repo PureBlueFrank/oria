@@ -1,0 +1,37 @@
+F
+=================================== FAILURES ===================================
+______________ test_request_decide_and_reserve_from_persisted_job ______________
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12335b090>, db=<oria.storage.database.Database...tory object at 0x12337a290>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12337bc10>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x122601090>
+
+    @pytest.mark.asyncio
+    async def test_request_decide_and_reserve_from_persisted_job(launch, monkeypatch):
+        c = launch
+        result = await c.service.request_launch_approval(c.token, c.args, c.plan)
+        assert result.plan == c.plan
+        approval = result.approval
+        assert approval.status == "pending" and approval.decider is None
+        assert approval.requester == c.job.requester_subject_id
+        assert approval.canonical_args_hash == c.plan.plan_hash
+        assert approval.expires_at == c.s.clock.now() + timedelta(hours=1)
+        assert await c.approvals.get(c.job.tenant_id, approval.approval_id) == approval
+        saga = await c.launches.get_saga(c.args.campaign_id, c.ctx)
+        assert saga.status == "planned" and saga.checkpoint == approval.checkpoint_id
+>       assert await _counts(c) == (1, 1, 1, 1, 1)
+E       assert (1, 1, 0, 1, 1) == (1, 1, 1, 1, 1)
+E         
+E         At index 2 diff: 0 != 1
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_launch_approval.py:89: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_launch_approval.py::test_request_decide_and_reserve_from_persisted_job
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1 warning in 5.51s

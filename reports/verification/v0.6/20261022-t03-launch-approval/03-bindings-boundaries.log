@@ -1,0 +1,337 @@
+.FF..F.....FFFFFFFFF.......F.                                            [100%]
+=================================== FAILURES ===================================
+__ test_request_requires_each_actual_resource_policy[campaign:launch:request] __
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b770e90>, db=<oria.storage.database.Database...tory object at 0x12ba71f90>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12ba71d50>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b6e1dd0>
+action = 'campaign:launch:request'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("action", ["campaign:launch:request", "approval:launch:request"])
+    async def test_request_requires_each_actual_resource_policy(launch, monkeypatch, action):
+        c = launch
+>       original = c.s.runtime.policy._evaluate
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:97: AttributeError
+__ test_request_requires_each_actual_resource_policy[approval:launch:request] __
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12bc5a850>, db=<oria.storage.database.Database...tory object at 0x12bd632d0>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12bd84f10>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b6f6a10>
+action = 'approval:launch:request'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("action", ["campaign:launch:request", "approval:launch:request"])
+    async def test_request_requires_each_actual_resource_policy(launch, monkeypatch, action):
+        c = launch
+>       original = c.s.runtime.policy._evaluate
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:97: AttributeError
+__________ test_request_rejects_changed_plan_or_persisted_facts[plan] __________
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b4d3f50>, db=<oria.storage.database.Database...tory object at 0x12b6f4ed0>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12b5edf10>)
+mutation = 'plan'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("mutation", ["campaign", "coupon", "plan", "publication", "receipt"])
+    async def test_request_rejects_changed_plan_or_persisted_facts(launch, mutation):
+        c = launch
+        args, plan = c.args, c.plan
+        if mutation in {"campaign", "coupon"}:
+            args = args.model_copy(update={f"{mutation}_id" if mutation == "campaign" else (
+                "coupon_batch_id"
+            ): "other"})
+        elif mutation == "plan":
+            from oria.domain.ledger import LaunchPlan
+    
+            values = plan.model_dump(exclude={"plan_hash"}) | {"material_version": "changed"}
+>           plan = LaunchPlan(**values, plan_hash=LaunchPlan.compute_plan_hash(**values))
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_launch_approval.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/oria/domain/ledger.py:240: in compute_plan_hash
+    ordered_steps = sorted(child_steps, key=lambda step: step.tool_name)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+step = {'tool_name': 'materialize_coupon_batch', 'canonical_args_hash': 'sha256:b6ff26dfb184c4f43bec80709920d4f2bb32f92da558d...': 'campaign_5b22c53cd452465aba91f7d51edcbb3f:sha256:24107469a485bc8e4643ba61654d06026bf0c6d4779f89e8fa6fecbfef6be775'}
+
+>   ordered_steps = sorted(child_steps, key=lambda step: step.tool_name)
+                                                         ^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'tool_name'
+
+src/oria/domain/ledger.py:240: AttributeError
+________________ test_committed_approval_survives_lost_response ________________
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b700a90>, db=<oria.storage.database.Database...tory object at 0x12b7cc390>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12b9176d0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12bd8dc10>
+
+    @pytest.mark.asyncio
+    async def test_committed_approval_survives_lost_response(launch, monkeypatch):
+        from sqlalchemy.ext.asyncio import AsyncSession
+    
+        c = launch
+        original = AsyncSession.commit
+    
+        async def lose_response(session):
+            await original(session)
+            if session.bind is c.s.db.platform_engine:
+                raise RuntimeError("synthetic lost commit response")
+    
+        monkeypatch.setattr(AsyncSession, "commit", lose_response)
+        with pytest.raises(RuntimeError, match="lost commit response"):
+>           await c.service.request_launch_approval(c.token, c.args, c.plan)
+
+tests/integration/test_v06_job_launch_approval.py:208: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/oria/orchestrator/job_execution.py:278: in request_launch_approval
+    return await self._leases._write(prepare())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/orchestrator/job_leases.py:196: in _write
+    return await operation
+           ^^^^^^^^^^^^^^^
+src/oria/orchestrator/job_execution.py:191: in prepare
+    await session.commit()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+session = <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x12b609750>
+
+    async def lose_response(session):
+        await original(session)
+>       if session.bind is c.s.db.platform_engine:
+                           ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'DatabaseResources' object has no attribute 'platform_engine'
+
+tests/integration/test_v06_job_launch_approval.py:203: AttributeError
+________ test_await_boundary_rolls_back_and_releases_locks[expiry-saga] ________
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12bc20990>, db=<oria.storage.database.Database...tory object at 0x12bc23310>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12bc214d0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12bf48bd0>
+stage = 'saga', change = 'expiry'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("stage", ["saga", "approval"])
+    @pytest.mark.parametrize("change", ["expiry", "directory", "policy", "cancel_task"])
+    async def test_await_boundary_rolls_back_and_releases_locks(launch, monkeypatch, stage, change):
+        import asyncio
+    
+        c = launch
+        owner = c.service._coupon_writer if stage == "saga" else c.service._approvals
+        method = "ensure_launch" if stage == "saga" else "_add"
+        original = getattr(owner, method)
+        before_directory = c.s.path.read_text()
+        policy = c.s.runtime.policy
+>       before_policy = policy._evaluate
+                        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:228: AttributeError
+______ test_await_boundary_rolls_back_and_releases_locks[expiry-approval] ______
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12be9fe90>, db=<oria.storage.database.Database...tory object at 0x12bc19590>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12bc18dd0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b637a90>
+stage = 'approval', change = 'expiry'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("stage", ["saga", "approval"])
+    @pytest.mark.parametrize("change", ["expiry", "directory", "policy", "cancel_task"])
+    async def test_await_boundary_rolls_back_and_releases_locks(launch, monkeypatch, stage, change):
+        import asyncio
+    
+        c = launch
+        owner = c.service._coupon_writer if stage == "saga" else c.service._approvals
+        method = "ensure_launch" if stage == "saga" else "_add"
+        original = getattr(owner, method)
+        before_directory = c.s.path.read_text()
+        policy = c.s.runtime.policy
+>       before_policy = policy._evaluate
+                        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:228: AttributeError
+______ test_await_boundary_rolls_back_and_releases_locks[directory-saga] _______
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12c048450>, db=<oria.storage.database.Database...tory object at 0x12bfa1dd0>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12b8ba9d0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b69bd10>
+stage = 'saga', change = 'directory'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("stage", ["saga", "approval"])
+    @pytest.mark.parametrize("change", ["expiry", "directory", "policy", "cancel_task"])
+    async def test_await_boundary_rolls_back_and_releases_locks(launch, monkeypatch, stage, change):
+        import asyncio
+    
+        c = launch
+        owner = c.service._coupon_writer if stage == "saga" else c.service._approvals
+        method = "ensure_launch" if stage == "saga" else "_add"
+        original = getattr(owner, method)
+        before_directory = c.s.path.read_text()
+        policy = c.s.runtime.policy
+>       before_policy = policy._evaluate
+                        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:228: AttributeError
+____ test_await_boundary_rolls_back_and_releases_locks[directory-approval] _____
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b758990>, db=<oria.storage.database.Database...tory object at 0x12b9b9110>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12b9ba790>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12bf2e750>
+stage = 'approval', change = 'directory'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("stage", ["saga", "approval"])
+    @pytest.mark.parametrize("change", ["expiry", "directory", "policy", "cancel_task"])
+    async def test_await_boundary_rolls_back_and_releases_locks(launch, monkeypatch, stage, change):
+        import asyncio
+    
+        c = launch
+        owner = c.service._coupon_writer if stage == "saga" else c.service._approvals
+        method = "ensure_launch" if stage == "saga" else "_add"
+        original = getattr(owner, method)
+        before_directory = c.s.path.read_text()
+        policy = c.s.runtime.policy
+>       before_policy = policy._evaluate
+                        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:228: AttributeError
+________ test_await_boundary_rolls_back_and_releases_locks[policy-saga] ________
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12bdc1d10>, db=<oria.storage.database.Database...tory object at 0x12ba72690>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12ba73310>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b936090>
+stage = 'saga', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("stage", ["saga", "approval"])
+    @pytest.mark.parametrize("change", ["expiry", "directory", "policy", "cancel_task"])
+    async def test_await_boundary_rolls_back_and_releases_locks(launch, monkeypatch, stage, change):
+        import asyncio
+    
+        c = launch
+        owner = c.service._coupon_writer if stage == "saga" else c.service._approvals
+        method = "ensure_launch" if stage == "saga" else "_add"
+        original = getattr(owner, method)
+        before_directory = c.s.path.read_text()
+        policy = c.s.runtime.policy
+>       before_policy = policy._evaluate
+                        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:228: AttributeError
+______ test_await_boundary_rolls_back_and_releases_locks[policy-approval] ______
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12bd8f050>, db=<oria.storage.database.Database...tory object at 0x12bd00cd0>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12bd00050>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b83a210>
+stage = 'approval', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("stage", ["saga", "approval"])
+    @pytest.mark.parametrize("change", ["expiry", "directory", "policy", "cancel_task"])
+    async def test_await_boundary_rolls_back_and_releases_locks(launch, monkeypatch, stage, change):
+        import asyncio
+    
+        c = launch
+        owner = c.service._coupon_writer if stage == "saga" else c.service._approvals
+        method = "ensure_launch" if stage == "saga" else "_add"
+        original = getattr(owner, method)
+        before_directory = c.s.path.read_text()
+        policy = c.s.runtime.policy
+>       before_policy = policy._evaluate
+                        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:228: AttributeError
+_____ test_await_boundary_rolls_back_and_releases_locks[cancel_task-saga] ______
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12c0c5290>, db=<oria.storage.database.Database...tory object at 0x12c0dc450>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12c0dc390>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12bd9b5d0>
+stage = 'saga', change = 'cancel_task'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("stage", ["saga", "approval"])
+    @pytest.mark.parametrize("change", ["expiry", "directory", "policy", "cancel_task"])
+    async def test_await_boundary_rolls_back_and_releases_locks(launch, monkeypatch, stage, change):
+        import asyncio
+    
+        c = launch
+        owner = c.service._coupon_writer if stage == "saga" else c.service._approvals
+        method = "ensure_launch" if stage == "saga" else "_add"
+        original = getattr(owner, method)
+        before_directory = c.s.path.read_text()
+        policy = c.s.runtime.policy
+>       before_policy = policy._evaluate
+                        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:228: AttributeError
+___ test_await_boundary_rolls_back_and_releases_locks[cancel_task-approval] ____
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b905e10>, db=<oria.storage.database.Database...tory object at 0x12bf2f150>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12bf2e610>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12be86150>
+stage = 'approval', change = 'cancel_task'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("stage", ["saga", "approval"])
+    @pytest.mark.parametrize("change", ["expiry", "directory", "policy", "cancel_task"])
+    async def test_await_boundary_rolls_back_and_releases_locks(launch, monkeypatch, stage, change):
+        import asyncio
+    
+        c = launch
+        owner = c.service._coupon_writer if stage == "saga" else c.service._approvals
+        method = "ensure_launch" if stage == "saga" else "_add"
+        original = getattr(owner, method)
+        before_directory = c.s.path.read_text()
+        policy = c.s.runtime.policy
+>       before_policy = policy._evaluate
+                        ^^^^^^^^^^^^^^^^
+E       AttributeError: 'LocalPolicyEngine' object has no attribute '_evaluate'
+
+tests/integration/test_v06_job_launch_approval.py:228: AttributeError
+________________ test_expired_approval_history_is_not_extended _________________
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12c16a350>, db=<oria.storage.database.Database...tory object at 0x12be85890>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x12be852d0>)
+
+    @pytest.mark.asyncio
+    async def test_expired_approval_history_is_not_extended(launch):
+        c = launch
+        first = await c.service.request_launch_approval(c.token, c.args, c.plan)
+        c.s.clock.advance(3600)
+        replacement = c.s.service("replacement")
+        token = lease_token(await replacement.claim(c.job.job_id))
+        with pytest.raises(PermissionError):
+            await JobExecutionService(replacement, c.s.db).request_launch_approval(
+                token, c.args, c.plan
+            )
+        assert await c.approvals.get(c.job.tenant_id, first.approval.approval_id) == first.approval
+        assert await _counts(c) == (1, 1, 1, 1, 1)
+>       assert await c.s.repo.get(c.job.tenant_id, c.job.job_id) == c.claimed
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...timezone.utc))
+E         
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_launch_approval.py:302: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_launch_approval.py::test_request_requires_each_actual_resource_policy[campaign:launch:request]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_request_requires_each_actual_resource_policy[approval:launch:request]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_request_rejects_changed_plan_or_persisted_facts[plan]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_committed_approval_survives_lost_response
+FAILED tests/integration/test_v06_job_launch_approval.py::test_await_boundary_rolls_back_and_releases_locks[expiry-saga]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_await_boundary_rolls_back_and_releases_locks[expiry-approval]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_await_boundary_rolls_back_and_releases_locks[directory-saga]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_await_boundary_rolls_back_and_releases_locks[directory-approval]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_await_boundary_rolls_back_and_releases_locks[policy-saga]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_await_boundary_rolls_back_and_releases_locks[policy-approval]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_await_boundary_rolls_back_and_releases_locks[cancel_task-saga]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_await_boundary_rolls_back_and_releases_locks[cancel_task-approval]
+FAILED tests/integration/test_v06_job_launch_approval.py::test_expired_approval_history_is_not_extended
+13 failed, 16 passed, 1 warning in 20.14s

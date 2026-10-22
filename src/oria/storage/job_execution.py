@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from oria.core.context import Context
 from oria.core.jobs import Job
 from oria.core.types import EventEnvelope, JsonValue, ResourceRef
+from oria.domain.business import LaunchSagaState
 from oria.domain.launch import (
     CampaignDraft,
     DefaultCampaignLaunchService,
@@ -154,6 +155,44 @@ class JobCouponReservationWriter:
     async def prepare(
         self, session: AsyncSession, job: Job, args: MaterializeCouponBatchArgs, plan: LaunchPlan
     ) -> str:
+        await self.validate_draft(session, job, args, plan)
+        saga = await self._sagas._find_by_unique_key(
+            session, (job.tenant_id, args.campaign_id), job.tenant_id
+        )
+        if saga is None or saga.status != "planned":
+            raise PermissionError("coupon reservation requires a persisted planned saga")
+        return saga.checkpoint
+
+    @staticmethod
+    def launch_saga(job: Job, args: MaterializeCouponBatchArgs) -> LaunchSagaState:
+        """Stable logical approval point; it is never a saver checkpoint."""
+        return LaunchSagaState(
+            launch_saga_id=f"{job.job_id}:launch:v1",
+            tenant_id=job.tenant_id,
+            campaign_id=args.campaign_id,
+            status="planned",
+            checkpoint=f"job:{job.job_id}:launch-approval:v1",
+            version=1,
+            created_at=job.created_at,
+            updated_at=job.created_at,
+        )
+
+    async def ensure_launch(
+        self, session: AsyncSession, job: Job, args: MaterializeCouponBatchArgs, plan: LaunchPlan
+    ) -> None:
+        await self.validate_draft(session, job, args, plan)
+        expected = self.launch_saga(job, args)
+        saga = await self._sagas._find_by_unique_key(
+            session, (job.tenant_id, args.campaign_id), job.tenant_id
+        )
+        if saga is None:
+            await self._sagas._insert(session, expected)
+        elif saga != expected:
+            raise PermissionError("existing launch saga does not match the Job approval point")
+
+    async def validate_draft(
+        self, session: AsyncSession, job: Job, args: MaterializeCouponBatchArgs, plan: LaunchPlan
+    ) -> None:
         # Obtain the Business DB write lock BEFORE reading any binding facts. Other
         # Business writers cannot change draft/saga/history before this commit.
         campaign_id = (
@@ -215,12 +254,18 @@ class JobCouponReservationWriter:
             or (history.receipt_summary_hash != draft.campaign_draft_hash)
         ):
             raise PermissionError("the Job has no matching committed draft")
+
+    async def require_launch(
+        self, session: AsyncSession, job: Job, args: MaterializeCouponBatchArgs, plan: LaunchPlan
+    ) -> str:
+        await self.validate_draft(session, job, args, plan)
         saga = await self._sagas._find_by_unique_key(
             session, (job.tenant_id, args.campaign_id), job.tenant_id
         )
-        if saga is None or saga.status != "planned":
-            raise PermissionError("coupon reservation requires a persisted planned saga")
-        return saga.checkpoint
+        expected = self.launch_saga(job, args)
+        if saga != expected:
+            raise PermissionError("persisted Job launch approval point changed")
+        return expected.checkpoint
 
     async def reserve(self, session: AsyncSession, reservation: ToolExecution) -> ToolExecution:
         history = await self._tools._find_by_id(

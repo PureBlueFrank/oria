@@ -1,0 +1,48 @@
+uv run ruff format --check .
+386 files already formatted
+uv run ruff check .
+SIM117 [*] Use a single `with` statement with multiple contexts instead of nested `with` statements
+   --> src/oria/orchestrator/job_execution.py:180:13
+    |
+178 |               # A committed saga without an approval is deliberately inert. Replays
+179 |               # repair this gap rather than pretending the two DBs commit atomically.
+180 | /             async with self._leases._repository._hold_execution_lease(
+181 | |                 job, token, self._leases._now
+182 | |             ):
+183 | |                 async with self._databases.business_sessions.begin() as session:
+    | |________________________________________________________________________________^
+184 |                       await guard()
+185 |                       await launch_guard()
+    |
+help: Combine `with` statements
+    |
+181 |                 job, token, self._leases._now
+    -             ):
+    -                 async with self._databases.business_sessions.begin() as session:
+182 +             ), self._databases.business_sessions.begin() as session:
+183 +                 await guard()
+184 +                 await launch_guard()
+185 +                 event.listen(session.sync_session, "before_commit", check)
+186 +                 try:
+187 +                     await self._coupon_writer.ensure_launch(session, job, args, plan)
+188 |                     await guard()
+189 |                     await launch_guard()
+    -                     event.listen(session.sync_session, "before_commit", check)
+    -                     try:
+    -                         await self._coupon_writer.ensure_launch(session, job, args, plan)
+    -                         await guard()
+    -                         await launch_guard()
+    -                         check()
+    -                         await session.commit()
+    -                     finally:
+    -                         event.remove(session.sync_session, "before_commit", check)
+190 +                     check()
+191 +                     await session.commit()
+192 +                 finally:
+193 +                     event.remove(session.sync_session, "before_commit", check)
+194 |
+    |
+
+Found 1 error.
+[*] 1 fixable with the `--fix` option.
+make: *** [lint] Error 1

@@ -1,0 +1,582 @@
+{
+  "schema_version": "1",
+  "mode": "range",
+  "repository": "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria",
+  "from": "origin/master",
+  "to": "HEAD",
+  "merge_base": "64cc69287dd6d9e7eab1e2d164f852bfef56186b",
+  "total_files": 82,
+  "reviewable_count": 9,
+  "excluded_count": 73,
+  "total_insertions": 11397,
+  "total_deletions": 107,
+  "reviewable_files": [
+    {
+      "path": "src/oria/core/approvals.py",
+      "status": "modified",
+      "insertions": 41,
+      "deletions": 17
+    },
+    {
+      "path": "src/oria/domain/launch.py",
+      "status": "modified",
+      "insertions": 75,
+      "deletions": 55
+    },
+    {
+      "path": "src/oria/orchestrator/job_execution.py",
+      "status": "added",
+      "insertions": 237,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/orchestrator/job_leases.py",
+      "status": "modified",
+      "insertions": 42,
+      "deletions": 13
+    },
+    {
+      "path": "src/oria/permission/local.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/storage/job_execution.py",
+      "status": "added",
+      "insertions": 239,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/storage/jobs.py",
+      "status": "modified",
+      "insertions": 39,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/storage/ledger.py",
+      "status": "modified",
+      "insertions": 26,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/storage/repositories.py",
+      "status": "modified",
+      "insertions": 32,
+      "deletions": 17
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-025-job-lease-and-fencing.md",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 2,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/durable-jobs.md",
+      "status": "modified",
+      "insertions": 24,
+      "deletions": 2,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/01-valid-red.log",
+      "status": "added",
+      "insertions": 71,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/02-valid-red.log",
+      "status": "added",
+      "insertions": 41,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/03-valid-green.log",
+      "status": "added",
+      "insertions": 105,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/04-valid-green.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/05-history-checkpoint-red.log",
+      "status": "added",
+      "insertions": 32,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/06-history-green.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/07-bindings.log",
+      "status": "added",
+      "insertions": 889,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/08-bindings-boundaries.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/09-races.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/10-lint-initial.log",
+      "status": "added",
+      "insertions": 1042,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/baseline-checks.json",
+      "status": "added",
+      "insertions": 7,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/changed-files.md",
+      "status": "added",
+      "insertions": 39,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/commands.jsonl",
+      "status": "added",
+      "insertions": 20,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/documentation-checks.json",
+      "status": "added",
+      "insertions": 169,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/independent-community.log",
+      "status": "added",
+      "insertions": 36,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/independent-lint.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/independent-package-clean-results.json",
+      "status": "added",
+      "insertions": 170,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/independent-package-clean.log",
+      "status": "added",
+      "insertions": 1334,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/independent-package-results.json",
+      "status": "added",
+      "insertions": 170,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/independent-package.log",
+      "status": "added",
+      "insertions": 1334,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/independent-results.json",
+      "status": "added",
+      "insertions": 41,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/independent-security.log",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/independent-start-fingerprints.json",
+      "status": "added",
+      "insertions": 195,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/lint-final-corrected.log",
+      "status": "added",
+      "insertions": 12,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/lint-final.log",
+      "status": "added",
+      "insertions": 25,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/mutation-no-checkpoint-equality.log",
+      "status": "added",
+      "insertions": 35,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/mutation-no-requester-sod.log",
+      "status": "added",
+      "insertions": 180,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/mutation-probe-output.txt",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/review.md",
+      "status": "added",
+      "insertions": 21,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/source-snapshot.json",
+      "status": "added",
+      "insertions": 20,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md",
+      "status": "added",
+      "insertions": 87,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/targeted-final-rechecked.log",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/targeted-final.log",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-coupon-reservation/targeted-result.json",
+      "status": "added",
+      "insertions": 33,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/01-cancel-red.log",
+      "status": "added",
+      "insertions": 21,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/02-cancel-green.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/03-valid-red.log",
+      "status": "added",
+      "insertions": 46,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/04-valid-green-initial.log",
+      "status": "added",
+      "insertions": 109,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/05-valid-green.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/06-commit-authority-red.log",
+      "status": "added",
+      "insertions": 142,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/07-commit-authority-green.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/08-behaviors.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/09-races.log",
+      "status": "added",
+      "insertions": 122,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/10-fencing-targeted.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/changed-files.md",
+      "status": "added",
+      "insertions": 43,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/checks.json",
+      "status": "added",
+      "insertions": 198,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/documentation-checks.json",
+      "status": "added",
+      "insertions": 26,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/evidence-head-check-failure.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-community.log",
+      "status": "added",
+      "insertions": 35,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-lint.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-package-cache-retry.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-package-network-retry.log",
+      "status": "added",
+      "insertions": 1337,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-package-results.json",
+      "status": "added",
+      "insertions": 35,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-package-retry-results.json",
+      "status": "added",
+      "insertions": 149,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-package.log",
+      "status": "added",
+      "insertions": 20,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-results.json",
+      "status": "added",
+      "insertions": 37,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-review.md",
+      "status": "added",
+      "insertions": 20,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-security.log",
+      "status": "added",
+      "insertions": 12,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/independent-source-fingerprints.json",
+      "status": "added",
+      "insertions": 195,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/lint-final.log",
+      "status": "added",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/lint-initial.log",
+      "status": "added",
+      "insertions": 21,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/lint-result.json",
+      "status": "added",
+      "insertions": 58,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/lint-second.log",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/review.md",
+      "status": "added",
+      "insertions": 37,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/source-snapshot.json",
+      "status": "added",
+      "insertions": 63,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/summary.md",
+      "status": "added",
+      "insertions": 78,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/targeted-final.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-execution-fencing/targeted-result.json",
+      "status": "added",
+      "insertions": 29,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "tests/integration/test_v06_job_coupon_reservation.py",
+      "status": "added",
+      "insertions": 872,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_job_execution_fencing.py",
+      "status": "added",
+      "insertions": 622,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    }
+  ]
+}
