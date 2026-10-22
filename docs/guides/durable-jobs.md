@@ -125,3 +125,11 @@ spec 的 campaign/coupon/recruitment ID 必须分别为 `campaign_<job suffix>`�
 SQLite 平台完整快照写锁持有到业务单事务结束；审批在同一平台事务只读检查，不在锁内打开普通授权审计 writer。业务先取得 campaign 写锁，再读草案/saga，授权有效后才在原 ExecutionLedger 的稳定 canonical 业务 key 上 reserve。await 后及 COMMIT 入口重查当前身份、Policy、审批版本/有效期和租约；无效初始审批不会调用 ledger reserve。重复/跨 epoch 重用同 key，旧 token 即使已有 history 仍拒绝，内容变化冲突。只写 reserved，不发外部请求、不标 executing/success，也不授予 dispatch 权限。
 
 业务库单库原子；这不是跨库 2PC。审批撤销/取消/其他业务写若排在本次 COMMIT 后生效，不撤销已提交事实；目录/Policy 在驱动收到 COMMIT 后撤权也不能保证追溯回滚。锁会阻塞其他 SQLite writer，两资源实例实测不代表 PostgreSQL/S2 或独立 worker。Graph runner、派发前 fencing、其他领域、调度/恢复仍未实现；T02/T03/T04/Core 未关闭，V0.5-T07 29/80 不变。证据见[本轮验证卡](../../reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md)与 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)。
+
+## 从 Job 草案申请 launch 审批（2026-10-22）
+
+显式内部调用 `request_launch_approval(token, args, plan)`，其中 args 为既有 `MaterializeCouponBatchArgs`，plan 为完整 `LaunchPlan`。入口从持久草案和成功草案账本重新验证内容，检查当前 Job/身份/租约以及实际 campaign 的 draft、launch 和既有审批申请权限，然后创建 planned saga 与真实 pending approval。调用方不能指定 checkpoint、审批 ID、expiry 或 Context；逻辑审批点由 Job 派生，不是 saver checkpoint。审批最多有效一小时且不超过 Job timeout。
+
+Business saga 与 Platform 审批分阶段提交：先持久化 saga，再重新锁定并核验业务事实，提交审批、审计和 outbox。中断可能留下无审批的 planned saga；同一有效 Job 重试补齐审批。已提交审批的重试返回相同 ID/期限，不重复创建，也不延长有效期。冲突、拒绝、失效、过期或旧 Policy 版本的历史均拒绝；重新申请新版本尚未接线。两个阶段均重查当前权限和租约，审批提交期间持有业务写锁，防止草案被并发修改。
+
+返回值复用 `LaunchApprovalBinding`。独立审批人仍通过现有 ApprovalService 决定，批准后才能调用上一节的券 reservation。该链路仅用临时 SQLite 与合成身份验证，尚未接入默认 API、Graph、飞书或独立 worker；不改变 Job 状态/accepted pointer，也不执行外部券派发。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)和[验证卡](../../reports/verification/v0.6/20261022-t03-launch-approval/summary.md)。

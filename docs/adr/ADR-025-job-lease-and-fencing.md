@@ -1,6 +1,6 @@
 # ADR-025：Job lease 与 fencing 恢复
 
-- 状态：已接受（身份恢复、Job 租约及 SQLite 草案/券 reservation 切片）；其余领域/外部副作用、runner 和接管验收仍待实施
+- 状态：已接受（身份恢复、Job 租约及 SQLite 草案/launch 审批准备/券 reservation 切片）；其余领域/外部副作用、runner 和接管验收仍待实施
 - 日期：2026-10-22
 - 关联：V0.6-T03/T04、ADR-004、ADR-014
 
@@ -53,6 +53,18 @@ heartbeat、checkpoint 指针和执行状态提交必须匹配 tenant/job/owner/
 await 后及业务 COMMIT 入口以当前目录和只读 Policy 同步复核 requester、worker、owner、实际资源、审批 policy_version/expiry 和 lease/deadline。approval 行在平台锁内稳定、业务事实在业务锁内稳定；外部 writer 排在业务提交后完成时，不能追溯撤销本次已提交 reservation。**原子性仅限业务库单事务，不是跨库 2PC**；COMMIT 交给驱动后的目录/Policy 撤权、时间跨越或 cancellation 不保证追溯回滚。业务提交后平台释放/响应失败仍应按稳定账本读取。
 
 仅合成临时 SQLite，两资源实例竞争须到达实际 Job/approval UPDATE，另验证业务事实 UPDATE 被阻塞；不是 PostgreSQL/S2 或独立 worker 证明。无新依赖/migration/环境变量。Graph、dispatch fencing、其他领域、调度/恢复与 Postgres S2 未实现，T02/T03/T04/Core 未关闭，V0.5-T07 29/80 不变。实施前审查、RED/GREEN 和实测结果见[本轮验证卡](../../reports/verification/v0.6/20261022-t03-coupon-reservation/summary.md)。
+
+## SQLite Job launch 审批准备（2026-10-22）
+
+显式内部 `JobExecutionService.request_launch_approval(token, args, plan)` 补齐持久 Job 草案到真实 launch 审批的前置流程。固定 typed 参数与完整 LaunchPlan；审批 ID、planned saga、逻辑 checkpoint 均从 Job 派生，调用方不能传入 checkpoint、expiry、Context 或 adapter。除当前 requester/独立 worker/owner、实际 campaign draft/launch 权限外，还检查既有 `approval:launch:request`。新审批期限为服务端申请时起最多一小时，且不超过 Job timeout。
+
+两阶段之间允许显式恢复，不提供跨库原子性。第一阶段持平台完整快照写锁，在业务单事务中验证原始完整草案、成功 draft receipt 与计划，幂等创建固定 planned saga。第二阶段重新获取平台锁和业务写锁，再次核对全部事实及固定 saga，通过同一平台事务创建 pending approval、approval.created 审计和既有状态 outbox。第二阶段业务事务只持 no-op 写锁，保持至平台提交结束后回滚；平台提交后不再写业务事实。平台锁帮助器允许调用方在该阶段显式提交审批事务，finally 的 rollback 只释放尚未提交的事务，不追溯撤销已提交审批。
+
+阶段间失败可留下无审批的 planned saga；它不能授权券 reservation 或外部执行。有效 Job 重试补齐同一审批。平台提交成功而响应丢失时，重试返回相同审批/期限而不重复审计或延长有效期。每次历史读取和跨 epoch 重试仍重新检查身份、Policy、租约、当前完整草案及 saga。冲突、拒绝、失效、过期或 policy version 已变化的审批失败关闭，不自动生成另一张审批；重新申请/新版本流程尚未接线。
+
+await 后及两种 COMMIT 入口均复核当前目录/Policy/lease；平台提交还复核审批绑定与有效期。取消、接管及业务 writer 排在锁后执行，不撤销已经提交的审批；驱动接收 COMMIT 后的撤权/时钟变化/cancellation 仍受前述限制。审批决定复用现有 ApprovalService，要求独立 decider；本入口不决定审批、不预留券、不调用 adapter、不改变 Job 状态或 accepted pointer，逻辑审批点不是官方 saver checkpoint。
+
+仅临时 SQLite/合成身份，未接入默认 API/Graph/worker；不证明 PostgreSQL、多进程 worker 或 S2。实现与验证见[本轮验证卡](../../reports/verification/v0.6/20261022-t03-launch-approval/summary.md)。外部 dispatch fencing、其他领域写入、Graph/异步恢复、T02 真实交互缺口及 T03/T04/Core 门禁保留，V0.5-T07 仍为 29/80。
 
 ## 实施前基线
 

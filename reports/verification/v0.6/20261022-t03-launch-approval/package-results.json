@@ -1,0 +1,72 @@
+[
+  {
+    "command": [
+      "uv",
+      "venv",
+      ".artifacts/t03-launch-approval-package/venv",
+      "--python",
+      "3.11"
+    ],
+    "exit_code": 0,
+    "seconds": 0.03
+  },
+  {
+    "command": [
+      "uv",
+      "export",
+      "--locked",
+      "--no-dev",
+      "--no-emit-project",
+      "--format",
+      "requirements-txt",
+      "--output-file",
+      ".artifacts/t03-launch-approval-package/requirements.txt"
+    ],
+    "exit_code": 0,
+    "seconds": 0.06
+  },
+  {
+    "command": [
+      "uv",
+      "pip",
+      "install",
+      "--python",
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "-r",
+      ".artifacts/t03-launch-approval-package/requirements.txt"
+    ],
+    "exit_code": 0,
+    "seconds": 0.68
+  },
+  {
+    "command": [
+      "uv",
+      "pip",
+      "install",
+      "--python",
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "--no-deps",
+      "dist/oria-0.1.0-py3-none-any.whl"
+    ],
+    "exit_code": 0,
+    "seconds": 0.08
+  },
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "-I",
+      "-c",
+      "import oria; from oria.orchestrator.job_execution import JobExecutionService as S; assert callable(S.request_launch_approval); assert \"site-packages\" in oria.__file__; print(\"installed wheel launch request OK:\", oria.__file__)"
+    ],
+    "exit_code": 0,
+    "seconds": 48.66
+  },
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/oria",
+      "--version"
+    ],
+    "exit_code": 0,
+    "seconds": 6.46
+  }
+]

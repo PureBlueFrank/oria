@@ -2,12 +2,14 @@
 
 import hashlib
 import json
+from datetime import timedelta
 
 from sqlalchemy import event
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from oria.core.approvals import (
+    Approval,
     ApprovalResumeRequest,
     approval_resume_rejection,
     canonical_args_hash,
@@ -15,13 +17,14 @@ from oria.core.approvals import (
 from oria.core.execution_ledger import ExecutionLedger
 from oria.core.job_leases import JobLeaseToken, validate_lease
 from oria.core.jobs import CampaignJobSpec, JobConflict
-from oria.core.types import AuthorizationContext, AuthorizationRequest, ResourceRef
+from oria.core.types import AuthorizationContext, AuthorizationRequest, EventEnvelope, ResourceRef
 from oria.domain.launch import (
     LAUNCH_PLAN_POLICY,
     LAUNCH_PLAN_TOOL_NAME,
     MATERIALIZE_TOOL_NAME,
     CampaignDraft,
     CampaignDraftSpec,
+    LaunchApprovalBinding,
     MaterializeCouponBatchArgs,
     build_campaign_draft,
 )
@@ -128,6 +131,158 @@ class JobExecutionService:
             return draft
 
         return await self._leases._write(persist())
+
+    async def request_launch_approval(
+        self,
+        token: JobLeaseToken,
+        args: MaterializeCouponBatchArgs,
+        plan: LaunchPlan,
+    ) -> LaunchApprovalBinding:
+        """Prepare a fixed Job launch approval without dispatch or a Graph transition."""
+        args = MaterializeCouponBatchArgs.model_validate(args.model_dump())
+        plan = LaunchPlan.model_validate(plan.model_dump())
+        job, ctx, guard = await self._leases._leased(token, business_resource_id=args.campaign_id)
+        suffix = job.job_id.removeprefix("job_")
+        if not isinstance(job.submission.spec, CampaignJobSpec) or (
+            args.campaign_id,
+            args.coupon_batch_id,
+        ) != (f"campaign_{suffix}", f"coupon_{suffix}"):
+            raise PermissionError("launch approval must belong to the campaign Job")
+        expected_saga = self._coupon_writer.launch_saga(job, args)
+        requests = tuple(
+            AuthorizationRequest(
+                actor=ctx.actor,
+                executor=ctx.executor,
+                action=action,
+                resource=ResourceRef(
+                    tenant_id=job.tenant_id, resource_type=kind, resource_id=resource_id
+                ),
+                context=AuthorizationContext(correlation_id=ctx.correlation_id),
+            )
+            for action, kind, resource_id in (
+                (LAUNCH_PLAN_POLICY.required_action, "campaign", args.campaign_id),
+                ("approval:launch:request", "approval", expected_saga.checkpoint),
+            )
+        )
+        launch_guard = _LeaseAuthorization(self._leases, job, ctx, requests)
+        for request in requests:
+            decision = await self._leases._policy.authorize(request, ctx)
+            launch_guard._check(request, decision)
+
+        def check(_: Session | None = None) -> None:
+            guard.check_commit()
+            launch_guard.check_commit()
+            validate_lease(job, token, self._leases._now())
+
+        async def prepare() -> LaunchApprovalBinding:
+            # A committed saga without an approval is deliberately inert. Replays
+            # repair this gap rather than pretending the two DBs commit atomically.
+            async with (
+                self._leases._repository._hold_execution_lease(job, token, self._leases._now),
+                self._databases.business_sessions.begin() as session,
+            ):
+                await guard()
+                await launch_guard()
+                event.listen(session.sync_session, "before_commit", check)
+                try:
+                    await self._coupon_writer.ensure_launch(session, job, args, plan)
+                    await guard()
+                    await launch_guard()
+                    check()
+                    await session.commit()
+                finally:
+                    event.remove(session.sync_session, "before_commit", check)
+
+            # Reacquire both locks and revalidate after the durable Business commit.
+            # The Business transaction below only holds a no-op write lock; it is
+            # rolled back after the Platform approval/audit/outbox commit.
+            async with (
+                self._leases._repository._hold_execution_lease(
+                    job, token, self._leases._now
+                ) as platform,
+                self._databases.business_sessions() as session,
+            ):
+                await guard()
+                await launch_guard()
+                checkpoint = await self._coupon_writer.require_launch(session, job, args, plan)
+                repository = self._approvals.bind(platform)
+                approval_id = f"{job.job_id}:launch-approval:v1"
+                approval = await repository.get(job.tenant_id, approval_id)
+                now = self._leases._now()
+                policy_version = self._leases._policy.evaluate_now(requests[-1], ctx).policy_version
+                if approval is None:
+                    approval = Approval(
+                        approval_id=approval_id,
+                        tenant_id=job.tenant_id,
+                        approval_action="launch_approval",
+                        tool_name=LAUNCH_PLAN_TOOL_NAME,
+                        canonical_args_hash=plan.plan_hash,
+                        checkpoint_id=checkpoint,
+                        policy_version=policy_version,
+                        expires_at=min(now + timedelta(hours=1), job.timeout_at),
+                        requester=job.requester_subject_id,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    is_new = True
+                else:
+                    is_new = False
+
+                def check_approval(_: Session | None = None) -> None:
+                    check()
+                    current = self._leases._policy.evaluate_now(requests[-1], ctx)
+                    if (
+                        approval.approval_action != "launch_approval"
+                        or approval.tool_name != LAUNCH_PLAN_TOOL_NAME
+                        or approval.canonical_args_hash != plan.plan_hash
+                        or approval.checkpoint_id != checkpoint
+                        or approval.policy_version != current.policy_version
+                        or approval.requester != job.requester_subject_id
+                        or approval.business_binding is not None
+                        or approval.decider == approval.requester
+                        or approval.status not in {"pending", "approved"}
+                        or approval.expires_at <= self._leases._now()
+                        or approval.expires_at > job.timeout_at
+                        or approval.expires_at > approval.created_at + timedelta(hours=1)
+                        or approval.created_at < job.created_at
+                        or approval.updated_at > self._leases._now()
+                    ):
+                        raise PermissionError("existing launch approval is not reusable")
+
+                check_approval()
+                event.listen(platform.sync_session, "before_commit", check_approval)
+                try:
+                    if is_new:
+                        await repository.add(
+                            approval,
+                            EventEnvelope(
+                                event_id=f"{approval_id}:created",
+                                occurred_at=approval.created_at,
+                                tenant_id=job.tenant_id,
+                                actor=ctx.actor.subject_id,
+                                action="approval.created",
+                                resource=ResourceRef(
+                                    tenant_id=job.tenant_id,
+                                    resource_type="approval",
+                                    resource_id=approval_id,
+                                ),
+                                decision="allow",
+                                policy_version=approval.policy_version,
+                                args_hash=plan.plan_hash,
+                                result="success",
+                                correlation_id=ctx.correlation_id,
+                                payload={"approval_action": "launch_approval", "status": "pending"},
+                            ),
+                        )
+                    await guard()
+                    await launch_guard()
+                    check_approval()
+                    await platform.commit()
+                finally:
+                    event.remove(platform.sync_session, "before_commit", check_approval)
+            return LaunchApprovalBinding(plan=plan, approval=approval)
+
+        return await self._leases._write(prepare())
 
     async def reserve_coupon_materialization(
         self,

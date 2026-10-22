@@ -1,0 +1,198 @@
+{
+  "targeted": {
+    "command": "uv run pytest tests/integration/test_v06_job_launch_approval.py tests/integration/test_v06_job_coupon_reservation.py tests/integration/test_v06_job_execution_fencing.py tests/integration/test_v06_job_leases.py -q",
+    "passed": 182,
+    "warnings": 1,
+    "seconds": 114.31,
+    "exit_code": 0
+  },
+  "lint": {
+    "command": "make lint",
+    "formatted_files": 386,
+    "mypy_source_files": 192,
+    "exit_code": 0
+  },
+  "community": {
+    "command": "UV_CACHE_DIR=.artifacts/uv-cache UV_OFFLINE=1 UV_NO_SYNC=1 make test",
+    "exit_code": 0,
+    "seconds": 487.99,
+    "passed": 1385,
+    "deselected": 9,
+    "warnings": 5
+  },
+  "build": {
+    "command": "make build",
+    "exit_code": 0
+  },
+  "package": [
+    {
+      "command": [
+        "uv",
+        "venv",
+        ".artifacts/t03-launch-approval-package/venv",
+        "--python",
+        "3.11"
+      ],
+      "exit_code": 0,
+      "seconds": 0.03
+    },
+    {
+      "command": [
+        "uv",
+        "export",
+        "--locked",
+        "--no-dev",
+        "--no-emit-project",
+        "--format",
+        "requirements-txt",
+        "--output-file",
+        ".artifacts/t03-launch-approval-package/requirements.txt"
+      ],
+      "exit_code": 0,
+      "seconds": 0.06
+    },
+    {
+      "command": [
+        "uv",
+        "pip",
+        "install",
+        "--python",
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "-r",
+        ".artifacts/t03-launch-approval-package/requirements.txt"
+      ],
+      "exit_code": 0,
+      "seconds": 0.68
+    },
+    {
+      "command": [
+        "uv",
+        "pip",
+        "install",
+        "--python",
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "--no-deps",
+        "dist/oria-0.1.0-py3-none-any.whl"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08
+    },
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "-I",
+        "-c",
+        "import oria; from oria.orchestrator.job_execution import JobExecutionService as S; assert callable(S.request_launch_approval); assert \"site-packages\" in oria.__file__; print(\"installed wheel launch request OK:\", oria.__file__)"
+      ],
+      "exit_code": 0,
+      "seconds": 48.66
+    },
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/oria",
+        "--version"
+      ],
+      "exit_code": 0,
+      "seconds": 6.46
+    }
+  ],
+  "wheel_verifiers": [
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "scripts/verify_t02_wheel.py"
+      ],
+      "exit_code": 0,
+      "seconds": 3.44
+    },
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "scripts/verify_t03_wheel.py",
+        "--data-dir",
+        ".artifacts/t03-launch-approval-package/t03-data"
+      ],
+      "exit_code": 0,
+      "seconds": 7.67
+    },
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "scripts/verify_t04_wheel.py",
+        "--data-dir",
+        ".artifacts/t03-launch-approval-package/t04-data"
+      ],
+      "exit_code": 0,
+      "seconds": 4.2
+    },
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "scripts/verify_t05_wheel.py",
+        "--data-dir",
+        ".artifacts/t03-launch-approval-package/t05-data"
+      ],
+      "exit_code": 0,
+      "seconds": 3.89
+    },
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "scripts/verify_t06_wheel.py",
+        "--data-dir",
+        ".artifacts/t03-launch-approval-package/t06-data"
+      ],
+      "exit_code": 0,
+      "seconds": 4.09
+    },
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "scripts/verify_t07_wheel.py",
+        "--data-dir",
+        ".artifacts/t03-launch-approval-package/t07-data"
+      ],
+      "exit_code": 0,
+      "seconds": 3.05
+    },
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "scripts/verify_t08_wheel.py",
+        "--work-dir",
+        ".artifacts/t03-launch-approval-package/t08-work"
+      ],
+      "exit_code": 0,
+      "seconds": 9.36
+    },
+    {
+      "command": [
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "scripts/verify_v02_t05_wheel.py"
+      ],
+      "exit_code": 0,
+      "seconds": 2.8
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "mypy",
+        "--python-executable",
+        ".artifacts/t03-launch-approval-package/venv/bin/python",
+        "--strict",
+        "scripts/wheel_type_consumer.py"
+      ],
+      "exit_code": 0,
+      "seconds": 6.81
+    }
+  ],
+  "source_fingerprint_mismatches": [],
+  "external_validation": {
+    "live": "not_run",
+    "enterprise": "not_run",
+    "performance": "not_run",
+    "postgres": "not_run",
+    "real_feishu": "not_run"
+  }
+}

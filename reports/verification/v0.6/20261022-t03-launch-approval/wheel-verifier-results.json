@@ -1,0 +1,91 @@
+[
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "scripts/verify_t02_wheel.py"
+    ],
+    "exit_code": 0,
+    "seconds": 3.44
+  },
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "scripts/verify_t03_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-launch-approval-package/t03-data"
+    ],
+    "exit_code": 0,
+    "seconds": 7.67
+  },
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "scripts/verify_t04_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-launch-approval-package/t04-data"
+    ],
+    "exit_code": 0,
+    "seconds": 4.2
+  },
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "scripts/verify_t05_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-launch-approval-package/t05-data"
+    ],
+    "exit_code": 0,
+    "seconds": 3.89
+  },
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "scripts/verify_t06_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-launch-approval-package/t06-data"
+    ],
+    "exit_code": 0,
+    "seconds": 4.09
+  },
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "scripts/verify_t07_wheel.py",
+      "--data-dir",
+      ".artifacts/t03-launch-approval-package/t07-data"
+    ],
+    "exit_code": 0,
+    "seconds": 3.05
+  },
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "scripts/verify_t08_wheel.py",
+      "--work-dir",
+      ".artifacts/t03-launch-approval-package/t08-work"
+    ],
+    "exit_code": 0,
+    "seconds": 9.36
+  },
+  {
+    "command": [
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "scripts/verify_v02_t05_wheel.py"
+    ],
+    "exit_code": 0,
+    "seconds": 2.8
+  },
+  {
+    "command": [
+      "uv",
+      "run",
+      "mypy",
+      "--python-executable",
+      ".artifacts/t03-launch-approval-package/venv/bin/python",
+      "--strict",
+      "scripts/wheel_type_consumer.py"
+    ],
+    "exit_code": 0,
+    "seconds": 6.81
+  }
+]

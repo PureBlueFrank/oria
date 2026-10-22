@@ -1,0 +1,42 @@
+F
+=================================== FAILURES ===================================
+______________ test_request_decide_and_reserve_from_persisted_job ______________
+
+launch = namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x123c697d0>, db=<oria.storage.database.Database...tory object at 0x123ea5a90>, launches=<oria.storage.repositories.SQLiteCampaignLaunchRepository object at 0x123ea7b90>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x123c610d0>
+
+    @pytest.mark.asyncio
+    async def test_request_decide_and_reserve_from_persisted_job(launch, monkeypatch):
+        c = launch
+>       result = await c.service.request_launch_approval(c.token, c.args, c.plan)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_launch_approval.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <oria.orchestrator.job_execution.JobExecutionService object at 0x123f03c50>
+token = JobLeaseToken(epoch=1)
+args = MaterializeCouponBatchArgs(campaign_id='campaign_83af53e847814f1798164e8594033562', coupon_batch_id='coupon_83af53e847814f1798164e8594033562', coupon_spec_hash='sha256:24107469a485bc8e4643ba61654d06026bf0c6d4779f89e8fa6fecbfef6be775')
+plan = LaunchPlan(campaign_draft_id='campaign_83af53e847814f1798164e8594033562', campaign_draft_hash='sha256:de929f9828cee90e..._policy_version='compensation-v1', plan_hash='sha256:95fa0f0f697089d3ec4a34498ccc9a56b978412e7099ceba0ef3fec46b4f324a')
+
+    async def request_launch_approval(
+        self,
+        token: JobLeaseToken,
+        args: MaterializeCouponBatchArgs,
+        plan: LaunchPlan,
+    ) -> LaunchApprovalBinding:
+        """Prepare a fixed Job launch approval without dispatch or a Graph transition."""
+>       raise PermissionError("Job launch approval preparation is not available")
+E       PermissionError: Job launch approval preparation is not available
+
+src/oria/orchestrator/job_execution.py:140: PermissionError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_launch_approval.py::test_request_decide_and_reserve_from_persisted_job
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1 warning in 5.17s
