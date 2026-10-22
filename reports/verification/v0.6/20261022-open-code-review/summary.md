@@ -36,3 +36,13 @@
 本报告记录提交前事实。推送及合并后的所有 Actions 结果以对应 PR Checks 和目标 `master` 提交的 Actions 记录为准，不预填远程 CI 结论。既有报告的失败历史和源码快照保持原样；本轮摘要仅用于当前审查范围，不覆盖旧证据。
 
 本轮 `community.log` 的仓库副本仅移除 pytest 堆栈中三处行末空格以满足差异检查；失败堆栈和结果均保留，未经处理的原始输出仍在本地 `.artifacts/ocr-20261022/community.log`。
+
+## 首轮 CI 发现与打包门禁补验
+
+首次推送 `e9cf37a` 的 [push CI](https://github.com/PureBlueFrank/oria/actions/runs/39725854351) 和 [PR CI](https://github.com/PureBlueFrank/oria/actions/runs/39725896587) 均在 `verify_t03_wheel.py` 失败：脚本仍要求 `platform_0011`，但本次包已包含 `platform_0013`。本地包内容/导入检查此前没有执行完整的安装后验证脚本，属于本次迁移配套检查遗漏；不将该失败归为基础设施问题，也不修改历史失败结论。
+
+已在新建隔离虚拟环境中安装当前 wheel，先用旧断言复现相同错误（`package-regression-before.log`），再仅更新期望 revision，保持安装路径、资源完整性、重复初始化和表结构检查。环境依赖通过项目规定的 `make sync` 按 `uv.lock` 离线同步；首次工作区缓存缺少 grpcio，改用既有 uv 缓存成功，两个同步记录均保留，未绕过锁文件安装依赖。
+
+修复后完整执行安装包门禁：T02 全模块导入、T03 资源/幂等初始化、T04 Provider、T05 RAG、T06 Tool、T07 Graph、T08 Demo、V0.2-T05 评测资源及严格类型消费，**9/9 通过**，见 `package-gate-after.log`。此修复不更改业务代码；无需重复已通过的本地业务全集，新提交仍须重新通过远程 CI。
+
+该脚本已另行执行 OCR preview/rule 和完整语义审查，**1/1 通过**，见 `ci-package-review.json`。加上首轮 54 个不同代码文件，累计审查 55 个；没有剩余阻断发现。

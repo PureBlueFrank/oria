@@ -16,7 +16,7 @@
 
 ## 关键证据
 
-- [提交前 Open Code Review](v0.6/20261022-open-code-review/summary.md)：覆盖工作区及 main→master 的 54 个不同代码文件，修复演示页非法下标和文档状态矛盾；完整集唯一回环沙箱失败已单独复验，保留首次失败及逐文件记录。
+- [提交前 Open Code Review](v0.6/20261022-open-code-review/summary.md)：首轮覆盖 54 个不同代码文件，另补审 1 个 CI 打包脚本；修复非法下标、文档状态矛盾和迁移 revision 断言。完整集回环用例及安装包 9 项门禁已复验，保留首次本地/CI 失败及逐文件记录。
 - [T03 当前身份恢复与 Job 租约](v0.6/20261022-t03-job-leases/summary.md)：独立 worker 授权、claim/heartbeat/finish、epoch/尝试预算、真实 saver 指针/父链及旧 token 拒绝；Job 行原语验证，不代表 Graph 或领域副作用已 fencing。
 - [T03 两场景 Graph 输入适配](v0.6/20261022-t03-graph-inputs/summary.md)：owner/标识与初始状态绑定、显式业务模板、稳定派生 ID、期限约束，以及招商审批中断和归因动态选路/弃答 E2E-F；不代表 Job runner 已执行或恢复。
 - [T03 Job 持久化受理](v0.6/20261022-t03-job-admission/summary.md)：会话所有权、两场景结构化提交、并发幂等、状态/事件原子 CAS、取消、撤权回滚和进程重建；当前只受理，不执行 Graph，worker/事件恢复尚未实施。

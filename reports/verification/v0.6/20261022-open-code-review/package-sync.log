@@ -1,0 +1,9 @@
+Using CPython 3.11.15
+Creating virtual environment at: .artifacts/ocr-20261022/package-venv
+Resolved 167 packages in 18ms
+  × Failed to download `grpcio==1.83.0`
+  ╰─▶ Network connectivity is disabled, but the
+      requested data wasn't found in the cache for:
+      `https://files.pythonhosted.org/packages/21/cc/d14833d15d5984e366f1b027fa78bd038c9b028c66880bffb0f5a4d25ee2/grpcio-1.83.0-cp311-cp311-macosx_11_0_universal2.whl`
+
+hint: `grpcio` (v1.83.0) was included because `oria` (v0.1.0) depends on `chromadb` (v1.5.9) which depends on `grpcio`
