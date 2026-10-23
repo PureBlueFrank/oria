@@ -24,7 +24,7 @@ from oria.core.types import (
 )
 from oria.orchestrator.checkpoint import TenantCheckpointSaver, checkpoint_config
 from oria.permission.local import LocalPolicyEngine
-from oria.storage.jobs import Guard, JobRepository
+from oria.storage.jobs import JobRepository
 
 T = TypeVar("T")
 CompletionStatus = Literal["succeeded", "failed", "cancelled", "waiting_approval", "waiting_event"]
@@ -204,7 +204,7 @@ class JobLeaseService:
         expected: Job,
         replacement: Job,
         ctx: Context,
-        guard: Guard,
+        guard: _LeaseAuthorization,
         operation: LeaseOperation,
         token: JobLeaseToken | None,
     ) -> Job:
@@ -216,6 +216,7 @@ class JobLeaseService:
                 operation=operation,
                 token=token,
                 clock=self._now,
+                commit_guard=guard.check_commit,
             )
         )
         self._current(result, ctx)

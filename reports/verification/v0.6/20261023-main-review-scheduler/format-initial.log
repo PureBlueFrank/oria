@@ -1,0 +1,9 @@
+unformatted: File would be reformatted
+   --> src/oria/storage/jobs.py:286:1
+    |
+285 |                 validate_lease(expected, token, now)
+286 +
+287 |         async def fenced_guard() -> None:
+    |
+
+1 file would be reformatted, 395 files already formatted

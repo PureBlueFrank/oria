@@ -158,6 +158,33 @@ class JobRepository:
         except (SQLAlchemyError, ValueError):
             raise JobUnavailable("job read unavailable") from None
 
+    async def scheduling_candidates(
+        self, tenant_id: str, *, after_job_id: str = "", limit: int = 100
+    ) -> tuple[str, ...]:
+        """Read a bounded page of references, never claims or execution authority.
+
+        Keyset traversal advances even past denied/corrupt rows. Time and authorization
+        are evaluated on a fresh row by the scheduler and again at the mutation CAS.
+        """
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100:
+            raise ValueError("scheduler page size must be 1-100")
+        try:
+            async with self._sessions() as session:
+                await set_session_tenant_context(session, tenant_id)
+                rows = await session.execute(
+                    text(
+                        "SELECT job_id FROM jobs WHERE tenant_id = :tenant "
+                        "AND job_id > :after AND status IN "
+                        "('queued','running','waiting_approval','waiting_event',"
+                        "'retry_scheduled','cancellation_requested') "
+                        "ORDER BY job_id LIMIT :limit"
+                    ),
+                    {"tenant": tenant_id, "after": after_job_id, "limit": limit},
+                )
+                return tuple(rows.scalars())
+        except SQLAlchemyError:
+            raise JobUnavailable("job scheduling scan unavailable") from None
+
     @staticmethod
     async def _read(session: AsyncSession, tenant_id: str, job_id: str) -> Job | None:
         row = (
@@ -241,22 +268,13 @@ class JobRepository:
         operation: LeaseOperation,
         token: JobLeaseToken | None,
         clock: Callable[[], datetime],
+        commit_guard: Callable[[], None],
     ) -> Job:
         expected = Job.model_validate(expected.model_dump())
         replacement = Job.model_validate(replacement.model_dump())
         validate_lease_change(expected, replacement, operation, token)
 
-        async def fenced_guard() -> None:
-            now = clock()
-            if operation == "claim":
-                validate_claim(expected, now)
-                if replacement.lease_expires_at is None or replacement.lease_expires_at <= now:
-                    raise JobConflict("new lease expired before submission")
-            else:
-                assert token is not None
-                validate_lease(expected, token, now)
-            await guard()
-            # A suspended authorization callback cannot outlive the current lease.
+        def check_time() -> None:
             now = clock()
             if operation == "claim":
                 validate_claim(expected, now)
@@ -266,7 +284,17 @@ class JobRepository:
                 assert token is not None
                 validate_lease(expected, token, now)
 
-        return await self._replace(expected, replacement, fenced_guard)
+        async def fenced_guard() -> None:
+            check_time()
+            await guard()
+            check_time()
+
+        def check_commit() -> None:
+            check_time()
+            commit_guard()
+            check_time()
+
+        return await self._replace(expected, replacement, fenced_guard, commit_guard=check_commit)
 
     async def _replace(
         self,

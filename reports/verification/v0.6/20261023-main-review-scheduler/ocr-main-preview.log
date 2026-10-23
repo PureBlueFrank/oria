@@ -1,0 +1,316 @@
+{
+  "schema_version": "1",
+  "mode": "range",
+  "repository": "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria",
+  "from": "origin/main^1",
+  "to": "origin/main",
+  "merge_base": "cbc486a5c7bfe231d9d0ff4ab5705bcbda0c414e",
+  "total_files": 44,
+  "reviewable_count": 9,
+  "excluded_count": 35,
+  "total_insertions": 3987,
+  "total_deletions": 7,
+  "reviewable_files": [
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/baseline-ci.json",
+      "status": "added",
+      "insertions": 25,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/documentation-checks.json",
+      "status": "added",
+      "insertions": 4,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/package-content.json",
+      "status": "added",
+      "insertions": 7,
+      "deletions": 0
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/source-snapshot.json",
+      "status": "added",
+      "insertions": 15,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/core/dispatch.py",
+      "status": "added",
+      "insertions": 186,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/core/job_scheduling.py",
+      "status": "added",
+      "insertions": 84,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/core/jobs.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 0
+    },
+    {
+      "path": "src/oria/orchestrator/job_leases.py",
+      "status": "modified",
+      "insertions": 89,
+      "deletions": 1
+    },
+    {
+      "path": "src/oria/storage/jobs.py",
+      "status": "modified",
+      "insertions": 35,
+      "deletions": 1
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "modified",
+      "insertions": 11,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-025-job-lease-and-fencing.md",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-040-fenced-dispatch-admission.md",
+      "status": "added",
+      "insertions": 26,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/durable-jobs.md",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 2,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/README.md",
+      "status": "modified",
+      "insertions": 8,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/build-final.log",
+      "status": "added",
+      "insertions": 4,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/build-retry.log",
+      "status": "added",
+      "insertions": 4,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/build.log",
+      "status": "added",
+      "insertions": 7,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/collection-final.log",
+      "status": "added",
+      "insertions": 1496,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/community.log",
+      "status": "added",
+      "insertions": 195,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/format-final.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/format.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/independent-review.md",
+      "status": "added",
+      "insertions": 61,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/lint-initial.log",
+      "status": "added",
+      "insertions": 175,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/mypy-final.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/mypy.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/ruff-final.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/ruff.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/smoke.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-parallel-progress/summary.md",
+      "status": "added",
+      "insertions": 45,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-dispatch-contract/01-contract-initial.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-dispatch-contract/02-revalidation-red.log",
+      "status": "added",
+      "insertions": 167,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-dispatch-contract/03-targeted-green.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-dispatch-contract/04-strict-revalidation-red.log",
+      "status": "added",
+      "insertions": 78,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-dispatch-contract/05-final-contract.log",
+      "status": "added",
+      "insertions": 19,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-dispatch-contract/06-serializer-red.log",
+      "status": "added",
+      "insertions": 315,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-dispatch-contract/07-final-contract.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-dispatch-contract/summary.md",
+      "status": "added",
+      "insertions": 27,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-scheduling/01-targeted.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-scheduling/02-targeted.log",
+      "status": "added",
+      "insertions": 15,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-scheduling/03-targeted-venv.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261022-t03-job-scheduling/summary.md",
+      "status": "added",
+      "insertions": 24,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "tests/contract/test_v06_dispatch_contract.py",
+      "status": "added",
+      "insertions": 473,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_job_scheduling.py",
+      "status": "added",
+      "insertions": 329,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    }
+  ]
+}

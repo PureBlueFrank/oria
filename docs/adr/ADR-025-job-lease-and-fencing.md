@@ -88,7 +88,15 @@ await 后及两种 COMMIT 入口均复核当前目录/Policy/lease；平台提�
 
 本地临时 SQLite 回归覆盖预算、竞争、取消、期限、事件失败、身份/Policy 撤销及最后提交入口变化，见[调度验证卡](../../reports/verification/v0.6/20261022-t03-job-scheduling/summary.md)。外部接纳契约另见 [ADR-040](ADR-040-fenced-dispatch-admission.md)；两项均不代表 Graph、自动恢复或真实外部派发已接通，T03/T04/Core 继续进行中。
 
-## 实施前基线
+## 提交入口复核与有界调度（2026-10-23）
+
+main 审查发现 `replace_leased` 在最后一次 async guard 返回后到实际 COMMIT 入口之间缺少同步复核；身份撤销虽可能在服务返回时被发现，Job 行与事件已经提交。claim、heartbeat、checkpoint 与 finish 现与显式调度一致：Repository 要求同步 commit guard，并在其前后复核当前时钟与 lease。12 项提交入口故障注入先失败后通过。边界仍是 COMMIT 交给驱动之前，不承诺外部目录与数据库跨资源原子性。
+
+新增内部 `JobScheduler(leases, batch_size=100, interval_seconds=1)`，由显式调用 `run_once()` 或拥有停止事件的宿主 `run(stop)` 启动。单次最多读取 100 个同租户非终态 Job 引用，按 job_id keyset 分页，完成一轮后回绕；每个任务重读当前行，由既有 `release_retry/expire` 执行当前授权与完整快照 CAS。权限拒绝、数据不可用、竞争分别计数，不保存业务内容或异常文本；坏记录或撤权记录不能使后续页永久饥饿。扫描失败按固定间隔等待，取消传播并释放事务资源。
+
+只释放已记录的到期 retry、关闭绝对超时和收尾取消，不领取执行租约、不推断错误可重试性、不恢复审批/事件等待、不触发 Graph/模型/Adapter。数据库状态是恢复依据，游标和统计可丢弃；重启从头扫描仍由 CAS 防重复。进程内锁只保护扫描游标，不作为多 worker 安全依据。尚无默认 API 装配、`worker run` 或特权撤权清理；SQLite 本地证据不替代 PostgreSQL S2。见[本轮验证卡](../../reports/verification/v0.6/20261023-main-review-scheduler/summary.md)。
+
+## 实施前基线（历史）
 
 ADR-014 已为状态、预算、lease 与 accepted pointer 建列，并在受信 Repository 的 queued→running 转换要求 attempt/epoch 各递增一次。当前没有 claim、heartbeat、worker runner 或过期回收；通用 CAS 不能证明有效 lease，也不能保护领域写入或外部副作用。测试内构造 running/waiting 状态只验证取消及拒绝陈旧快照，不代表已经执行或恢复 Graph。
 

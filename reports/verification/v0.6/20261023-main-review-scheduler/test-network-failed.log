@@ -1,0 +1,17 @@
+uv run pytest -m "not live and not enterprise and not performance"
+   Building oria @ file:///Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent%E9%A1%B9%E7%9B%AE/oria
+WARN Retry attempt #0. Sleeping 1.874100859s before the next attempt
+WARN Retry attempt #1. Sleeping 1.389443254s before the next attempt
+WARN Retry attempt #2. Sleeping 1.793342906s before the next attempt
+  × Failed to build `oria @
+  │ file:///Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent%E9%A1%B9%E7%9B%AE/oria`
+  ├─▶ Failed to resolve requirements from `build-system.requires`
+  ├─▶ No solution found when resolving: `hatchling>=1.27, <2`
+  ├─▶ Request failed after 3 retries in 5.1s
+  ├─▶ Failed to fetch: `https://pypi.org/simple/hatchling/`
+  ├─▶ error sending request for url (https://pypi.org/simple/hatchling/)
+  ├─▶ client error (Connect)
+  ├─▶ dns error
+  ╰─▶ failed to lookup address information: nodename nor servname provided, or
+      not known
+make: *** [test] Error 1

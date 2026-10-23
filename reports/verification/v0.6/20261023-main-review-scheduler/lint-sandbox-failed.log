@@ -1,0 +1,4 @@
+uv run ruff format --check .
+error: Failed to initialize cache at `/Users/franklee/.cache/uv`
+  Caused by: failed to open file `/Users/franklee/.cache/uv/sdists-v9/.git`: Operation not permitted (os error 1)
+make: *** [lint] Error 2

@@ -1,0 +1,859 @@
+uv run pytest -m "not live and not enterprise and not performance"
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria
+configfile: pyproject.toml
+testpaths: tests
+plugins: asyncio-1.4.0, langsmith-0.11.1, anyio-4.14.2
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1509 items / 9 deselected / 1500 selected
+
+tests/contract/test_config_resolution.py ......................          [  1%]
+tests/contract/test_context_isolation.py .                               [  1%]
+tests/contract/test_core_types.py ...........                            [  2%]
+tests/contract/test_imports_and_schemas.py ..                            [  2%]
+tests/contract/test_runtime_lifecycle.py ....                            [  2%]
+tests/contract/test_t03_domain_services.py ...                           [  2%]
+tests/contract/test_t04_providers.py ...........................         [  4%]
+tests/contract/test_t06_tools.py ..                                      [  4%]
+tests/contract/test_t07_checkpoint.py ...                                [  5%]
+tests/contract/test_t07_golden_dataset.py ...                            [  5%]
+tests/contract/test_v02_anthropic.py ......                              [  5%]
+tests/contract/test_v02_baseline_update_policy.py ....                   [  5%]
+tests/contract/test_v02_eval_workflows.py ..                             [  6%]
+tests/contract/test_v02_nightly_preflight.py ..........                  [  6%]
+tests/contract/test_v02_openai_compat.py .........                       [  7%]
+tests/contract/test_v02_platform_migration.py .                          [  7%]
+tests/contract/test_v02_policy_acl.py ..                                 [  7%]
+tests/contract/test_v02_provider_diagnostics.py ..                       [  7%]
+tests/contract/test_v02_provider_matrix.py ............................. [  9%]
+...............................                                          [ 11%]
+tests/contract/test_v02_rag_dataset.py ..                                [ 11%]
+tests/contract/test_v02_rag_version_migration.py ..                      [ 11%]
+tests/contract/test_v03_assortment_tools.py ..                           [ 12%]
+tests/contract/test_v03_campaign_draft.py .                              [ 12%]
+tests/contract/test_v03_campaign_launch_contract.py ..                   [ 12%]
+tests/contract/test_v03_enrollment_tools.py .......                      [ 12%]
+tests/contract/test_v03_execution_ledger.py ......                       [ 13%]
+tests/contract/test_v03_integration_events.py .........                  [ 13%]
+tests/contract/test_v03_product_catalog.py .....                         [ 14%]
+tests/contract/test_v04_analytics_tools.py ...                           [ 14%]
+tests/contract/test_v04_attribution_agent_contract.py ......             [ 14%]
+tests/contract/test_v04_attribution_factual_grounding.py ............... [ 15%]
+..............................................                           [ 18%]
+tests/contract/test_v04_attribution_golden.py .......................    [ 20%]
+tests/contract/test_v04_attribution_golden_v2.py ................        [ 21%]
+tests/contract/test_v05_comparison_runner.py ........                    [ 21%]
+tests/contract/test_v05_eval_compare.py .....                            [ 22%]
+tests/contract/test_v05_eval_compare_live.py ...........                 [ 22%]
+tests/contract/test_v05_guardrails.py ...                                [ 23%]
+tests/contract/test_v05_long_term_memory.py ......                       [ 23%]
+tests/contract/test_v05_memory.py ...                                    [ 23%]
+tests/contract/test_v05_supervisor.py ........                           [ 24%]
+tests/contract/test_v06_checkpoint_adapter.py ...                        [ 24%]
+tests/contract/test_v06_dispatch_contract.py ........................... [ 26%]
+....................                                                     [ 27%]
+tests/contract/test_v06_feishu.py ..........................             [ 29%]
+tests/contract/test_v06_postgres_persistence.py ............             [ 30%]
+tests/integration/test_attribution_demo.py ........                      [ 30%]
+tests/integration/test_cli_workflow_ux.py .                              [ 30%]
+tests/integration/test_feishu_guided_demo.py ...............             [ 31%]
+tests/integration/test_t03_data_init.py ......                           [ 32%]
+tests/integration/test_t05_rag_pipeline.py ......                        [ 32%]
+tests/integration/test_t07_agent_semantics.py ........................   [ 34%]
+tests/integration/test_t07_golden_harness.py .                           [ 34%]
+tests/integration/test_t07_research_graph.py ...                         [ 34%]
+tests/integration/test_t08_demo.py ........                              [ 34%]
+tests/integration/test_v02_rag_eval.py .                                 [ 34%]
+tests/integration/test_v02_rag_golden.py .                               [ 35%]
+tests/integration/test_v02_rag_lifecycle.py ....                         [ 35%]
+tests/integration/test_v02_retrieval_pipeline_it.py ..                   [ 35%]
+tests/integration/test_v03_approval_invalidation.py ..                   [ 35%]
+tests/integration/test_v03_assortment_prechecks.py ...                   [ 35%]
+tests/integration/test_v03_assortment_repository.py ........             [ 36%]
+tests/integration/test_v03_business_migration.py ...                     [ 36%]
+tests/integration/test_v03_business_repositories.py .                    [ 36%]
+tests/integration/test_v03_campaign_launch_recovery.py ....              [ 36%]
+tests/integration/test_v03_confirmation_service.py ......                [ 37%]
+tests/integration/test_v03_enrollment_branches.py .........              [ 37%]
+tests/integration/test_v03_enrollment_recovery.py ....                   [ 38%]
+tests/integration/test_v03_enrollment_transaction_eligibility.py ....... [ 38%]
+                                                                         [ 38%]
+tests/integration/test_v03_execution_ledger_migration.py .....           [ 38%]
+tests/integration/test_v03_execution_recovery.py ...                     [ 39%]
+tests/integration/test_v03_fault_injection.py ....                       [ 39%]
+tests/integration/test_v03_ledger_repositories.py ...                    [ 39%]
+tests/integration/test_v03_platform_migration.py .....                   [ 39%]
+tests/integration/test_v03_platform_repositories.py ....                 [ 40%]
+tests/integration/test_v03_scenario_a_workflow.py ..                     [ 40%]
+tests/integration/test_v04_attribution_agent.py .................        [ 41%]
+tests/integration/test_v04_attribution_eval.py ...                       [ 41%]
+tests/integration/test_v04_synthetic_analytics.py .............          [ 42%]
+tests/integration/test_v05_context_governance.py ..                      [ 42%]
+tests/integration/test_v05_eval_compare_flow.py .                        [ 42%]
+tests/integration/test_v05_guardrail_runtime.py .                        [ 42%]
+tests/integration/test_v05_memory_cli.py .                               [ 42%]
+tests/integration/test_v05_supervisor_e2e.py .                           [ 42%]
+tests/integration/test_v06_api_lifecycle.py .....                        [ 43%]
+tests/integration/test_v06_approval_cards.py ...                         [ 43%]
+tests/integration/test_v06_approval_delivery.py ..............           [ 44%]
+tests/integration/test_v06_approval_interactions.py ................     [ 45%]
+tests/integration/test_v06_approval_race.py .                            [ 45%]
+tests/integration/test_v06_feishu_server_lifecycle.py ........           [ 46%]
+tests/integration/test_v06_ingress_receipts.py ...                       [ 46%]
+tests/integration/test_v06_job_coupon_dispatch.py ....................   [ 47%]
+tests/integration/test_v06_job_coupon_reservation.py ................... [ 48%]
+.....................................................                    [ 52%]
+tests/integration/test_v06_job_execution_fencing.py .................... [ 53%]
+....................                                                     [ 55%]
+tests/integration/test_v06_job_graph_inputs.py .....                     [ 55%]
+tests/integration/test_v06_job_launch_approval.py ...................... [ 56%]
+.......................                                                  [ 58%]
+tests/integration/test_v06_job_lease_commit.py FFFFFFFFFFFF              [ 59%]
+tests/integration/test_v06_job_leases.py ........................F       [ 60%]
+tests/integration/test_v06_job_lifecycle.py ......                       [ 61%]
+tests/integration/test_v06_job_scheduling.py ........................... [ 63%]
+.........                                                                [ 63%]
+tests/integration/test_v06_jobs.py ......................                [ 65%]
+tests/integration/test_v06_transactional_approval_acceptance.py ........ [ 65%]
+.................                                                        [ 66%]
+tests/security/test_config_boundaries.py .....                           [ 67%]
+tests/security/test_runtime_boundaries.py ....                           [ 67%]
+tests/security/test_t03_bypass_boundaries.py .................           [ 68%]
+tests/security/test_t04_provider_boundaries.py ........                  [ 69%]
+tests/security/test_t05_rag_boundaries.py .......                        [ 69%]
+tests/security/test_t06_tool_boundaries.py ..                            [ 69%]
+tests/security/test_v02_policy_audit_boundaries.py ...                   [ 69%]
+tests/security/test_v03_approval_rbac.py ............                    [ 70%]
+tests/security/test_v03_campaign_launch_security.py ...........          [ 71%]
+tests/security/test_v03_enrollment_boundaries.py ........                [ 71%]
+tests/security/test_v03_integration_inbox.py ...........                 [ 72%]
+tests/security/test_v04_analytics_tool_boundaries.py ...                 [ 72%]
+tests/security/test_v04_attribution_data_isolation.py ....               [ 73%]
+tests/security/test_v05_abac_guardrails.py .....                         [ 73%]
+tests/security/test_v05_memory_boundaries.py ...                         [ 73%]
+tests/security/test_v05_supervisor_boundaries.py .                       [ 73%]
+tests/security/test_v06_api_identity.py ..............                   [ 74%]
+tests/security/test_v06_approval_api.py ..                               [ 74%]
+tests/unit/test_attribution_ablation_script.py ...                       [ 74%]
+tests/unit/test_attribution_decision_rules.py ...............            [ 75%]
+tests/unit/test_attribution_demo_config.py ..                            [ 76%]
+tests/unit/test_chat_router.py ................                          [ 77%]
+tests/unit/test_chat_session.py ....                                     [ 77%]
+tests/unit/test_cli.py ............                                      [ 78%]
+tests/unit/test_codex_app_server.py .......                              [ 78%]
+tests/unit/test_scenario_a_live.py ....................................  [ 81%]
+tests/unit/test_structured_salvage.py ............                       [ 81%]
+tests/unit/test_t03_resources_and_eligibility.py ................        [ 82%]
+tests/unit/test_t04_embedders.py .....                                   [ 83%]
+tests/unit/test_t05_rule_snapshots.py ..............                     [ 84%]
+tests/unit/test_t06_tool_registry.py ..                                  [ 84%]
+tests/unit/test_t07_graph_routing.py .......                             [ 84%]
+tests/unit/test_t07_patterns.py .....                                    [ 85%]
+tests/unit/test_t07_prompt.py ..                                         [ 85%]
+tests/unit/test_t07_reducers.py ......................                   [ 86%]
+tests/unit/test_t07_scenario_a_graph.py .......                          [ 87%]
+tests/unit/test_t07_tool_executor.py ..                                  [ 87%]
+tests/unit/test_target_selection.py ......                               [ 87%]
+tests/unit/test_v02_bm25.py ..                                           [ 87%]
+tests/unit/test_v02_cross_encoder_reranker.py ...                        [ 88%]
+tests/unit/test_v02_rag_metrics.py ..                                    [ 88%]
+tests/unit/test_v02_rag_public_labels.py ..                              [ 88%]
+tests/unit/test_v02_retrieval_pipeline.py ...                            [ 88%]
+tests/unit/test_v03_approval_values.py .......                           [ 89%]
+tests/unit/test_v03_assortment_selection.py .                            [ 89%]
+tests/unit/test_v03_business_confirmations.py ....                       [ 89%]
+tests/unit/test_v03_business_domain.py ................................. [ 91%]
+............................                                             [ 93%]
+tests/unit/test_v03_campaign_launch.py .......                           [ 93%]
+tests/unit/test_v03_ledger_values.py ...............                     [ 94%]
+tests/unit/test_v03_product_eligibility.py ........                      [ 95%]
+tests/unit/test_v04_attribution_assembly.py ..                           [ 95%]
+tests/unit/test_v04_attribution_conclusion.py .........                  [ 96%]
+tests/unit/test_v04_attribution_live.py .........                        [ 96%]
+tests/unit/test_v04_attribution_models.py ...                            [ 96%]
+tests/unit/test_v04_attribution_prompt.py ...                            [ 97%]
+tests/unit/test_v04_attribution_rubric.py .                              [ 97%]
+tests/unit/test_v05_context_budget.py .....                              [ 97%]
+tests/unit/test_v06_job_inputs.py ...................                    [ 98%]
+tests/unit/test_workflow_presentation.py ..................              [100%]
+
+=================================== FAILURES ===================================
+__________ test_lease_commit_rechecks_final_authority[identity-claim] __________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12a79eb10>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x129265550>
+operation = 'claim', change = 'identity'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+        with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+            if operation == "claim":
+                await worker.claim(job.job_id)
+            elif operation == "heartbeat":
+                await worker.heartbeat(token)
+            elif operation == "checkpoint":
+                await worker.publish_checkpoint(token, "commit-candidate")
+            else:
+                await worker.finish(token, "succeeded")
+>       assert await s.repo.get(job.tenant_id, job.job_id) == before
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...fo=TzInfo(0)))
+E
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_lease_commit.py:52: AssertionError
+________ test_lease_commit_rechecks_final_authority[identity-heartbeat] ________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12ae0e610>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12a95fd50>
+operation = 'heartbeat', change = 'identity'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+        with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+            if operation == "claim":
+                await worker.claim(job.job_id)
+            elif operation == "heartbeat":
+                await worker.heartbeat(token)
+            elif operation == "checkpoint":
+                await worker.publish_checkpoint(token, "commit-candidate")
+            else:
+                await worker.finish(token, "succeeded")
+>       assert await s.repo.get(job.tenant_id, job.job_id) == before
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...timezone.utc))
+E
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_lease_commit.py:52: AssertionError
+_______ test_lease_commit_rechecks_final_authority[identity-checkpoint] ________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12945db50>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1294c1110>
+operation = 'checkpoint', change = 'identity'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+        with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+            if operation == "claim":
+                await worker.claim(job.job_id)
+            elif operation == "heartbeat":
+                await worker.heartbeat(token)
+            elif operation == "checkpoint":
+                await worker.publish_checkpoint(token, "commit-candidate")
+            else:
+                await worker.finish(token, "succeeded")
+>       assert await s.repo.get(job.tenant_id, job.job_id) == before
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...timezone.utc))
+E
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_lease_commit.py:52: AssertionError
+_________ test_lease_commit_rechecks_final_authority[identity-finish] __________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12ab9a750>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x129956550>
+operation = 'finish', change = 'identity'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+        with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+            if operation == "claim":
+                await worker.claim(job.job_id)
+            elif operation == "heartbeat":
+                await worker.heartbeat(token)
+            elif operation == "checkpoint":
+                await worker.publish_checkpoint(token, "commit-candidate")
+            else:
+                await worker.finish(token, "succeeded")
+>       assert await s.repo.get(job.tenant_id, job.job_id) == before
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...timezone.utc))
+E
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_lease_commit.py:52: AssertionError
+___________ test_lease_commit_rechecks_final_authority[policy-claim] ___________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b291790>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12a604f90>
+operation = 'claim', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+_________ test_lease_commit_rechecks_final_authority[policy-heartbeat] _________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b2a91d0>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12ab51e10>
+operation = 'heartbeat', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+________ test_lease_commit_rechecks_final_authority[policy-checkpoint] _________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12adba750>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x129806c50>
+operation = 'checkpoint', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+__________ test_lease_commit_rechecks_final_authority[policy-finish] ___________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12967a750>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x128c0b3d0>
+operation = 'finish', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+___________ test_lease_commit_rechecks_final_authority[clock-claim] ____________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12ab49850>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12a8236d0>
+operation = 'claim', change = 'clock'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+_________ test_lease_commit_rechecks_final_authority[clock-heartbeat] __________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b1e2750>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b1e2bd0>
+operation = 'heartbeat', change = 'clock'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+_________ test_lease_commit_rechecks_final_authority[clock-checkpoint] _________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12aca2750>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b009bd0>
+operation = 'checkpoint', change = 'clock'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+___________ test_lease_commit_rechecks_final_authority[clock-finish] ___________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12ab1d450>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b08a990>
+operation = 'finish', change = 'clock'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+__________ test_two_independent_repository_processes_only_claim_once ___________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12ab1a750>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+
+    @pytest.mark.asyncio
+    async def test_two_independent_repository_processes_only_claim_once(leases):
+        s = leases
+        job = await s.add()
+        script = """
+    import asyncio, json, sys
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    from oria.config import resolve_runtime_config
+    from oria.core.jobs import Job, JobConflict
+    from oria.storage.database import DatabaseResources
+    from oria.storage.jobs import JobRepository
+    async def guard(): pass
+    async def main():
+        config = resolve_runtime_config(environ={}, data_dir=Path(sys.argv[1]))
+        now = datetime.fromisoformat(sys.argv[4])
+        async with DatabaseResources(config) as db:
+            repo = JobRepository(db.platform_sessions)
+            expected = await repo.get('tenant', sys.argv[2])
+            replacement = Job.model_validate(expected.model_dump() | {
+                'status': 'running', 'revision': expected.revision + 1,
+                'attempt': 1, 'lease_epoch': expected.lease_epoch + 1,
+                'lease_owner': sys.argv[3], 'heartbeat_at': now,
+                'lease_expires_at': now + timedelta(seconds=30), 'updated_at': now,
+            })
+            try:
+                await repo.replace_leased(expected, replacement, guard,
+                    operation='claim', token=None, clock=lambda: now, commit_guard=lambda: None)
+                print(json.dumps({'claimed': True}))
+            except JobConflict:
+                print(json.dumps({'claimed': False}))
+    asyncio.run(main())
+    """
+
+        async def run(owner):
+            result = await asyncio.to_thread(
+                subprocess.run,
+                [
+                    sys.executable,
+                    "-c",
+                    script,
+                    str(s.config.data_paths.root),
+                    job.job_id,
+                    owner,
+                    s.clock.now().isoformat(),
+                ],
+                text=True,
+                capture_output=True,
+                check=True,
+                timeout=30,
+            )
+            return json.loads(result.stdout)["claimed"]
+
+>       assert sorted(await asyncio.gather(run("process-a"), run("process-b"))) == [False, True]
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_leases.py:637:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/integration/test_v06_job_leases.py:619: in run
+    result = await asyncio.to_thread(
+/Users/franklee/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/asyncio/threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/franklee/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/concurrent/futures/thread.py:58: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input = None, capture_output = True, timeout = 30, check = True
+popenargs = (['/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/bin/python3', '-c', "\nimport asy...f-franklee/pytest-85/test_two_independent_repositor0/data', 'job_566fba631482430d9fd651d8de4a4c92', 'process-b', ...],)
+kwargs = {'text': True, 'stdout': -1, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+
+        If timeout is given, and the process takes too long, a TimeoutExpired
+        exception will be raised.
+
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/bin/python3', '-c', "\nimport asyncio, json, sys\nfrom datetime import datetime, timedelta\nfrom pathlib import Path\nfrom oria.config import resolve_runtime_config\nfrom oria.core.jobs import Job, JobConflict\nfrom oria.storage.database import DatabaseResources\nfrom oria.storage.jobs import JobRepository\nasync def guard(): pass\nasync def main():\n    config = resolve_runtime_config(environ={}, data_dir=Path(sys.argv[1]))\n    now = datetime.fromisoformat(sys.argv[4])\n    async with DatabaseResources(config) as db:\n        repo = JobRepository(db.platform_sessions)\n        expected = await repo.get('tenant', sys.argv[2])\n        replacement = Job.model_validate(expected.model_dump() | {\n            'status': 'running', 'revision': expected.revision + 1,\n            'attempt': 1, 'lease_epoch': expected.lease_epoch + 1,\n            'lease_owner': sys.argv[3], 'heartbeat_at': now,\n            'lease_expires_at': now + timedelta(seconds=30), 'updated_at': now,\n        })\n        try:\n            await repo.replace_leased(expected, replacement, guard,\n                operation='claim', token=None, clock=lambda: now)\n            print(json.dumps({'claimed': True}))\n        except JobConflict:\n            print(json.dumps({'claimed': False}))\nasyncio.run(main())\n", '/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-85/test_two_independent_repositor0/data', 'job_566fba631482430d9fd651d8de4a4c92', 'process-b', '2026-10-22T00:00:00+00:00']' returned non-zero exit status 1.
+
+/Users/franklee/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/subprocess.py:571: CalledProcessError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+tests/integration/test_v03_business_migration.py::test_empty_business_database_upgrades_to_v03_and_rolls_back_to_base
+  /Users/franklee/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/contextlib.py:144: SAWarning: WARNING: SQL-parsed foreign key constraint '('tenant_id', 'enrollment_id', 'enrollments', 'tenant_id', 'enrollment_id')' could not be located in PRAGMA foreign_keys for table enrollment_items
+    next(self.gen)
+
+tests/integration/test_v03_execution_ledger_migration.py::test_business_0003_empty_upgrade_is_repeatable_and_downgrades_cleanly
+tests/integration/test_v03_execution_ledger_migration.py::test_platform_and_business_revision_chains_upgrade_independently
+tests/integration/test_v03_execution_ledger_migration.py::test_business_0004_enforces_and_downgrades_launch_saga_states
+  /Users/franklee/.local/share/uv/python/cpython-3.11.15-macos-x86_64-none/lib/python3.11/contextlib.py:144: SAWarning: WARNING: SQL-parsed foreign key constraint '('tenant_id', 'campaign_id', 'merchant_id', 'enrollments', 'tenant_id', 'campaign_id', 'merchant_id')' could not be located in PRAGMA foreign_keys for table enrollment_items
+    next(self.gen)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[identity-claim]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[identity-heartbeat]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[identity-checkpoint]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[identity-finish]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[policy-claim]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[policy-heartbeat]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[policy-checkpoint]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[policy-finish]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[clock-claim]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[clock-heartbeat]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[clock-checkpoint]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[clock-finish]
+FAILED tests/integration/test_v06_job_leases.py::test_two_independent_repository_processes_only_claim_once
+==== 13 failed, 1487 passed, 9 deselected, 5 warnings in 575.35s (0:09:35) =====
+make: *** [test] Error 1

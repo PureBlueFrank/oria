@@ -112,7 +112,13 @@ worker 与当前目录中的 API executor 必须使用不同的 service ID，双
 - `release_retry(job_id)`：到期后以完整快照 CAS 进入 queued，并只增加一次 attempt。下一次 claim 保持该 attempt；重复/竞争 release 不会重复扣预算，也不能恢复审批或事件等待。
 - `expire(job_id)`：达到绝对 timeout 后关闭为 failed；若已请求取消且 lease 已到期则关闭为 cancelled，取消优先。终态重试无新增事件，不改变 accepted pointer，不抢仍有效的 lease。
 
-这些方法均要求当前 requester 与独立 worker 权限，异步边界及 COMMIT 入口重查身份/Policy/时间。状态和事件同事务回滚；被撤权 Job 的 expire 也拒绝，尚无特权清理通道。没有自动队列轮询、错误分类、Graph runner 或 HTTP 调度路由；未知业务副作用仍须对账，不能因 Job 获得新 attempt 就重新派发。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)与[调度验证卡](../../reports/verification/v0.6/20261022-t03-job-scheduling/summary.md)。
+这些方法均要求当前 requester 与独立 worker 权限，异步边界及 COMMIT 入口重查身份/Policy/时间。状态和事件同事务回滚；被撤权 Job 的 expire 也拒绝，尚无特权清理通道。显式轮询宿主见下节；仍无错误分类、Graph runner 或 HTTP 调度路由，未知业务副作用仍须对账，不能因 Job 获得新 attempt 就重新派发。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)与[调度验证卡](../../reports/verification/v0.6/20261022-t03-job-scheduling/summary.md)。
+
+## 有界调度轮询（2026-10-23）
+
+受信宿主可显式构造 `JobScheduler(leases, batch_size=100, interval_seconds=1)`，通过 `run_once()` 处理一页，或 `await scheduler.run(stop_event)` 周期运行。宿主负责已有 JobLeaseService/数据库生命周期以及停止事件；默认 API 不启动它。每页 1–100 项，间隔大于 0 且最多 60 秒。`SchedulingResult` 仅含扫描、释放、关闭、跳过、拒绝和不可用数量。
+
+轮询对同租户非终态引用分页并回绕；到期 retry 释放为 queued，绝对超时关闭为 failed，已请求取消的过期 lease 关闭为 cancelled。每次写入均重新恢复当前身份并检查 Policy、期限和完整快照 CAS；撤权记录保留且不阻塞后续记录。重启不会重复扣 attempt，竞争不会重复写事件。它不执行 Graph、模型、外部 Adapter，也不恢复审批/事件等待。`worker run`、其余领域 fencing 和通知仍待实现，T03/T04/Core 未关闭。
 
 ## 显式本地草案 fencing（2026-10-22）
 

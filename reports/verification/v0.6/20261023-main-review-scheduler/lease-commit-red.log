@@ -1,0 +1,522 @@
+FFFFFFFFFFFF                                                             [100%]
+=================================== FAILURES ===================================
+__________ test_lease_commit_rechecks_final_authority[identity-claim] __________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12dade790>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12d851190>
+operation = 'claim', change = 'identity'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+        with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+            if operation == "claim":
+                await worker.claim(job.job_id)
+            elif operation == "heartbeat":
+                await worker.heartbeat(token)
+            elif operation == "checkpoint":
+                await worker.publish_checkpoint(token, "commit-candidate")
+            else:
+                await worker.finish(token, "succeeded")
+>       assert await s.repo.get(job.tenant_id, job.job_id) == before
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...fo=TzInfo(0)))
+E
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_lease_commit.py:52: AssertionError
+________ test_lease_commit_rechecks_final_authority[identity-heartbeat] ________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12db4e790>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12ce0ec90>
+operation = 'heartbeat', change = 'identity'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+        with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+            if operation == "claim":
+                await worker.claim(job.job_id)
+            elif operation == "heartbeat":
+                await worker.heartbeat(token)
+            elif operation == "checkpoint":
+                await worker.publish_checkpoint(token, "commit-candidate")
+            else:
+                await worker.finish(token, "succeeded")
+>       assert await s.repo.get(job.tenant_id, job.job_id) == before
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...timezone.utc))
+E
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_lease_commit.py:52: AssertionError
+_______ test_lease_commit_rechecks_final_authority[identity-checkpoint] ________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12e04e790>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12da3c910>
+operation = 'checkpoint', change = 'identity'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+        with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+            if operation == "claim":
+                await worker.claim(job.job_id)
+            elif operation == "heartbeat":
+                await worker.heartbeat(token)
+            elif operation == "checkpoint":
+                await worker.publish_checkpoint(token, "commit-candidate")
+            else:
+                await worker.finish(token, "succeeded")
+>       assert await s.repo.get(job.tenant_id, job.job_id) == before
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...timezone.utc))
+E
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_lease_commit.py:52: AssertionError
+_________ test_lease_commit_rechecks_final_authority[identity-finish] __________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12e04dcd0>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12de129d0>
+operation = 'finish', change = 'identity'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+        with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+            if operation == "claim":
+                await worker.claim(job.job_id)
+            elif operation == "heartbeat":
+                await worker.heartbeat(token)
+            elif operation == "checkpoint":
+                await worker.publish_checkpoint(token, "commit-candidate")
+            else:
+                await worker.finish(token, "succeeded")
+>       assert await s.repo.get(job.tenant_id, job.job_id) == before
+E       AssertionError: assert Job(job_id='j...fo=TzInfo(0))) == Job(job_id='j...timezone.utc))
+E
+E         Use -v to get more diff
+
+tests/integration/test_v06_job_lease_commit.py:52: AssertionError
+___________ test_lease_commit_rechecks_final_authority[policy-claim] ___________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12e009bd0>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12deb34d0>
+operation = 'claim', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+_________ test_lease_commit_rechecks_final_authority[policy-heartbeat] _________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12dd45c10>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12e291650>
+operation = 'heartbeat', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+________ test_lease_commit_rechecks_final_authority[policy-checkpoint] _________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12d915c10>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12dda0dd0>
+operation = 'checkpoint', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+__________ test_lease_commit_rechecks_final_authority[policy-finish] ___________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12dfb3350>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12da60a90>
+operation = 'finish', change = 'policy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+___________ test_lease_commit_rechecks_final_authority[clock-claim] ____________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12e47d610>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12d9ecc10>
+operation = 'claim', change = 'clock'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+_________ test_lease_commit_rechecks_final_authority[clock-heartbeat] __________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12dde1bd0>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12dff5e50>
+operation = 'heartbeat', change = 'clock'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+_________ test_lease_commit_rechecks_final_authority[clock-checkpoint] _________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12e329bd0>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12dff6110>
+operation = 'checkpoint', change = 'clock'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+___________ test_lease_commit_rechecks_final_authority[clock-finish] ___________
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x12e2fb350>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12d93b690>
+operation = 'finish', change = 'clock'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["claim", "heartbeat", "checkpoint", "finish"])
+    @pytest.mark.parametrize("change", ["identity", "policy", "clock"])
+    async def test_lease_commit_rechecks_final_authority(leases, monkeypatch, operation, change):
+        s = leases
+        job = await s.add()
+        worker = s.service()
+        before = job if operation == "claim" else await worker.claim(job.job_id)
+        token = None if operation == "claim" else lease_token(before)
+        if operation == "checkpoint":
+            await _save(s, token, "commit-candidate")
+        history = await _events(s, job.job_id)
+        append = s.repo._append_event
+
+        async def arm_commit_change(session, value):
+            await append(session, value)
+
+            def change_before_guard(_):
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(30)
+
+            event.listen(session.sync_session, "before_commit", change_before_guard, insert=True)
+
+        monkeypatch.setattr(s.repo, "_append_event", arm_commit_change)
+>       with pytest.raises((AuthenticationError, PermissionError, JobConflict)):
+E       Failed: DID NOT RAISE any of (AuthenticationError, PermissionError, JobConflict)
+
+tests/integration/test_v06_job_lease_commit.py:43: Failed
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[identity-claim]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[identity-heartbeat]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[identity-checkpoint]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[identity-finish]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[policy-claim]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[policy-heartbeat]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[policy-checkpoint]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[policy-finish]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[clock-claim]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[clock-heartbeat]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[clock-checkpoint]
+FAILED tests/integration/test_v06_job_lease_commit.py::test_lease_commit_rechecks_final_authority[clock-finish]
+12 failed, 1 warning in 10.93s

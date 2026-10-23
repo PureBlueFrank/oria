@@ -1,0 +1,221 @@
+{
+  "schema_version": "1",
+  "mode": "workspace",
+  "repository": "/Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria",
+  "total_files": 30,
+  "reviewable_count": 3,
+  "excluded_count": 27,
+  "total_insertions": 2515,
+  "total_deletions": 18,
+  "reviewable_files": [
+    {
+      "path": "src/oria/orchestrator/job_leases.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 2
+    },
+    {
+      "path": "src/oria/storage/jobs.py",
+      "status": "modified",
+      "insertions": 39,
+      "deletions": 11
+    },
+    {
+      "path": "src/oria/orchestrator/job_scheduler.py",
+      "status": "added",
+      "insertions": 110,
+      "deletions": 0
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 2,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/adr/ADR-025-job-lease-and-fencing.md",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "docs/guides/durable-jobs.md",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 1,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/README.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "tests/integration/test_v06_job_leases.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/build.log",
+      "status": "added",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/community.log",
+      "status": "added",
+      "insertions": 198,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/format-initial.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/format.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/initial-diagnostic.log",
+      "status": "added",
+      "insertions": 859,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/lease-commit-green.log",
+      "status": "added",
+      "insertions": 9,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/lease-commit-red.log",
+      "status": "added",
+      "insertions": 522,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/lint-sandbox-failed.log",
+      "status": "added",
+      "insertions": 4,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/mypy.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/ocr-final-preview.log",
+      "status": "added",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/ocr-final-rules.log",
+      "status": "added",
+      "insertions": 16,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/ocr-main-preview.log",
+      "status": "added",
+      "insertions": 316,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/ocr-main-python-rules.log",
+      "status": "added",
+      "insertions": 17,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/ocr-main-remaining-rules.log",
+      "status": "added",
+      "insertions": 26,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/ocr-review.md",
+      "status": "added",
+      "insertions": 49,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/ruff.log",
+      "status": "added",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/scheduler.log",
+      "status": "added",
+      "insertions": 8,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/smoke.log",
+      "status": "added",
+      "insertions": 2,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/summary.md",
+      "status": "added",
+      "insertions": 27,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "reports/verification/v0.6/20261023-main-review-scheduler/test-network-failed.log",
+      "status": "added",
+      "insertions": 17,
+      "deletions": 0,
+      "exclude_reason": "unsupported_ext"
+    },
+    {
+      "path": "tests/integration/test_v06_job_lease_commit.py",
+      "status": "added",
+      "insertions": 53,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    },
+    {
+      "path": "tests/integration/test_v06_job_scheduler.py",
+      "status": "added",
+      "insertions": 200,
+      "deletions": 0,
+      "exclude_reason": "default_path"
+    }
+  ]
+}

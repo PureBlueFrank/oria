@@ -18,12 +18,14 @@
 
 **当前开发顺序（2026-10-22）**：T02 本地身份、受理、审批与展示契约已有实现，T03 Job 持久化、两场景输入、身份恢复与 Job 租约原语已有本地验证。本地草案、launch 审批、券 reservation 与**受控 Mock 券派发**已接入租约；该派发只接受内存 Mock。外部接纳 fencing/幂等/unknown 对账的独立类型契约，以及显式 retry/timeout 原语现已补齐本地验证，见[本轮进展与验证](reports/verification/v0.6/20261022-parallel-progress/summary.md)。下一步实现真实接收端边界并覆盖其余领域提交；再接 Graph 调度、自动 retry/timeout、飞书会话和审批/外部事件恢复，随后进入 T04 独立 worker 接管、T05 可靠通知与事件流。真实飞书交互和 PostgreSQL revision 各自留待独立验证。按详细路线 §1.4，`Depends on` 表示代码/schema/契约依赖，外部验证尚未通过不阻止已有契约上的开发；此前日期记录中的“T03 依赖未满足”按此更正，不关闭任何验证门禁。
 
-### 当前待办清单（2026-10-22）
+**本轮本地进展（2026-10-23）**：修复 main 中 claim/heartbeat/checkpoint/finish 在最终 COMMIT 入口缺少身份、Policy 与租约复核的问题；新增显式 `JobScheduler`，以有界租户分页自动释放到期 retry、关闭超时 Job 和收尾取消。沿用当前 requester/worker 权限与完整快照 CAS，撤权任务不会阻塞后续页。尚未装配独立 worker 或默认 API 后台任务，不执行 Graph 或重投业务副作用。详见[本轮审查与验证](reports/verification/v0.6/20261023-main-review-scheduler/summary.md)。外部验证依用户选择保留。
+
+### 当前待办清单（2026-10-23）
 
 | 顺序 | 对应任务 | 待办与完成条件 |
 | --- | --- | --- |
 | 1 | V0.6-T03 | 接纳 fencing、稳定幂等和 unknown 对账类型契约已通过本地验证；仍需真实接收端实现、持久对账和独立目标验证。 |
-| 2 | V0.6-T03 | 显式 retry/expire 原语已通过本地验证；仍需覆盖其余领域提交，接入 Graph、自动调度、审批与外部事件恢复、飞书会话；默认 HTTP 仍只受理 Job。 |
+| 2 | V0.6-T03 | retry/expire 原语及显式有界轮询已有本地验证；仍需覆盖其余领域提交，接入 Graph、调度进程装配、审批与外部事件恢复、飞书会话；默认 HTTP 仍只受理 Job。 |
 | 3 | V0.6-T04/T05 | 实现独立 worker、accepted pointer/orphan 生命周期、可靠通知/SSE/Webhook 和失败重试；数据库 CAS 原语不等于 worker 已交付。 |
 | 4 | V0.6-T02/T06/T07 | 新审批拒绝/详情/分页真实飞书验收，PostgreSQL 新 revision 验证，以及 S0–S5、两独立 worker S1/S2 验收；逐卡记录结果。 |
 | 独立卡 | V0.5-T07 | 补齐剩余 51/80 次 single/multi Live 对照和独立盲评；恢复前显式确认 target、环境及预算，不以本地测试代替。 |

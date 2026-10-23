@@ -608,7 +608,7 @@ async def main():
         })
         try:
             await repo.replace_leased(expected, replacement, guard,
-                operation='claim', token=None, clock=lambda: now)
+                operation='claim', token=None, clock=lambda: now, commit_guard=lambda: None)
             print(json.dumps({'claimed': True}))
         except JobConflict:
             print(json.dumps({'claimed': False}))
