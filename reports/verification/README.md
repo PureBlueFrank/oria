@@ -11,11 +11,18 @@
 | V0.3 | Core、Community 十步 Workflow 与必需 DeepSeek Live 通过 | SQLite 单 worker、Mock Adapter 下的审批、恢复、幂等、故障注入和对账 | PostgreSQL 多 worker或真实券、招商、商品库、选品、C 端、IM 接入 |
 | V0.4 | T01–T05 完成；原 DeepSeek Live failed；GPT-5.6 Sol 推荐 Live 卡通过 | 合成分析数据、只读 Tool、动态 Agent、冻结 Golden、原 DeepSeek 失败事实及 GPT-5.6 Sol Live 通过卡 | 真实企业数据、OpenAI API 通道或其他 Provider 效果 |
 | V0.5 | T01–T06 与 Core 已完成；T07 Live 进行中（29/80，额度暂停） | 上下文治理、opt-in Memory、ABAC/Guardrail、supervisor/Subagent、对照 harness 与 S2–S4 C/SEC | single/multi Live 质量提升、Enterprise/Performance |
-| V0.6 | T01 Community/Contract 与本地 PostgreSQL E-like 通过；T02/T03 进行中 | 双后端持久化、API 身份、SQLite 去重/审批、Job 受理及租约原语；新审批交互为本地验证 | 新交互真实通道、新 revision PostgreSQL、领域副作用 fencing、Job→Graph/事件恢复、自动会话投递与多 worker |
+| V0.6 | T01 Community/Contract 与本地 PostgreSQL E-like 通过；T02/T03 进行中 | 双后端持久化、API 身份、SQLite 去重/审批、Job 受理与租约、本地草案/launch 审批/券 reservation 及受控 Mock 派发；新审批交互为本地验证 | 新交互真实通道、新 revision PostgreSQL、真实外部副作用及其余领域 fencing、Job→Graph/事件恢复、自动会话投递与多 worker |
 | P0–P2 | 2026-09-10 完成复核 | Scenario B 历史失败卡、修复证据、GPT-5.6 Sol 推荐 Live 卡、静态交互 Demo 与统一证据入口 | 后续平台能力已交付 |
 
 ## 关键证据
 
+- [T03 并行推进与当前 TODO](v0.6/20261022-parallel-progress/summary.md)：外部派发类型契约、显式 retry/expire、独立复审修复和本轮组合验证；真实通道、Graph/worker 与阶段门禁单独列示。
+- [T03 外部接纳与对账类型契约](v0.6/20261022-t03-dispatch-contract/summary.md)：稳定 operation key、当前权威 lease、确定 receipt 与 unknown 不重投；只有测试内 receiver，没有生产接收端或真实外部保证。
+- [T03 显式重试与到期处理](v0.6/20261022-t03-job-scheduling/summary.md)：到期 release 单次预算、取消优先、CAS/事件原子回滚与提交入口重验；没有自动调度循环或 Graph 恢复。
+- [T03 受控 Mock 券派发](v0.6/20261022-t03-coupon-dispatch/summary.md)：先持久化 executing，再在租约边界内调用精确内存 Adapter；结果原子提交，中断/unknown 不盲目重投。派发 20 项、相关回归 201 项、最终完整 Community 1405 项通过；不证明真实网络接纳 fencing。
+- [T03 Job launch 审批准备](v0.6/20261022-t03-launch-approval/summary.md)：从持久草案生成 planned saga 与 pending approval，分阶段提交及中断重试，审批不延长；本地申请→独立审批→券 reservation 已验证。
+- [T03 审批约束的券 reservation](v0.6/20261022-t03-coupon-reservation/summary.md)：绑定完整持久计划、真实批准和当前 Job 租约，稳定键跨 epoch 复用；仅 reserve，不授予派发权限。
+- [T03 本地草案执行 fencing](v0.6/20261022-t03-execution-fencing/summary.md)：SQLite 平台锁保护本地业务单事务草案/ledger/事件提交，重查当前身份与租约；两实例竞争不等同 PostgreSQL 多 worker。
 - [提交前 Open Code Review](v0.6/20261022-open-code-review/summary.md)：首轮覆盖 54 个不同代码文件，另补审 1 个 CI 打包脚本；修复非法下标、文档状态矛盾和迁移 revision 断言。完整集回环用例及安装包 9 项门禁已复验，保留首次本地/CI 失败及逐文件记录。
 - [T03 当前身份恢复与 Job 租约](v0.6/20261022-t03-job-leases/summary.md)：独立 worker 授权、claim/heartbeat/finish、epoch/尝试预算、真实 saver 指针/父链及旧 token 拒绝；Job 行原语验证，不代表 Graph 或领域副作用已 fencing。
 - [T03 两场景 Graph 输入适配](v0.6/20261022-t03-graph-inputs/summary.md)：owner/标识与初始状态绑定、显式业务模板、稳定派生 ID、期限约束，以及招商审批中断和归因动态选路/弃答 E2E-F；不代表 Job runner 已执行或恢复。

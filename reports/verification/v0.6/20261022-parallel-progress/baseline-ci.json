@@ -1,0 +1,25 @@
+{
+  "main_sha": "cbc486a5c7bfe231d9d0ff4ab5705bcbda0c414e",
+  "main_tree": "57ddc5373d75295fd3923a735ff26f91904cb6cd",
+  "branch_sha": "476b03423d7b9d0aafaef96360ae040d9fc2b416",
+  "branch_runs": [
+    {
+      "id": 39799683297,
+      "name": "CI",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/PureBlueFrank/oria/actions/runs/39799683297"
+    },
+    {
+      "id": 39799617596,
+      "name": "CI",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/PureBlueFrank/oria/actions/runs/39799617596"
+    }
+  ],
+  "main_runs": [],
+  "note": "Read-only GitHub snapshot. Existing PR #5 was merged before this task. Local starting tree matches remote main tree; this task has not pushed changes. No runs were returned for the merge SHA at inspection time."
+}

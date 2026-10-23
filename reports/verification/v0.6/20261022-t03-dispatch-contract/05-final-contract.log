@@ -1,0 +1,19 @@
+...............................................                          [100%]
+=============================== warnings summary ===============================
+tests/contract/test_v06_dispatch_contract.py::test_copied_key_cannot_be_coerced_into_a_second_admission[operation_key]
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/pydantic/main.py:475: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `str` - serialized value may not be as expected [field_name='operation_key', input_value=b'coupon-a:materialize:v1', input_type=bytes])
+    return self.__pydantic_serializer__.to_python(
+
+tests/contract/test_v06_dispatch_contract.py::test_copied_key_cannot_be_coerced_into_a_second_admission[adapter_id]
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/pydantic/main.py:475: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `str` - serialized value may not be as expected [field_name='adapter_id', input_value=b'fixture-coupon', input_type=bytes])
+    return self.__pydantic_serializer__.to_python(
+
+tests/contract/test_v06_dispatch_contract.py::test_payload_validation_does_not_coerce_an_unchecked_copy
+  /Users/franklee/Documents/workspace/codexSpace/project-info/AI-Agent项目/oria/.venv/lib/python3.11/site-packages/pydantic/main.py:475: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `decimal` - serialized value may not be as expected [field_name='amount', input_value='10.00', input_type=str])
+    return self.__pydantic_serializer__.to_python(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+47 passed, 3 warnings in 1.56s

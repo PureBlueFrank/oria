@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -18,6 +18,7 @@ from oria.core.job_leases import (
     validate_lease,
     validate_lease_change,
 )
+from oria.core.job_scheduling import ScheduleOperation, validate_schedule_change
 from oria.core.jobs import (
     Job,
     JobConflict,
@@ -274,6 +275,7 @@ class JobRepository:
         guard: Guard,
         *,
         idempotent_cancel: bool = False,
+        commit_guard: Callable[[], None] | None = None,
     ) -> Job:
         expected_values = _values(expected)
         values = _values(replacement)
@@ -285,6 +287,8 @@ class JobRepository:
         try:
             async with self._sessions.begin() as session:
                 await set_session_tenant_context(session, expected.tenant_id)
+                if commit_guard is not None:
+                    event.listen(session.sync_session, "before_commit", lambda _: commit_guard())
                 await guard()
                 updated = (
                     await session.execute(
@@ -308,6 +312,36 @@ class JobRepository:
                 return replacement
         except SQLAlchemyError:
             raise JobUnavailable("job transition unavailable") from None
+
+    async def replace_scheduled(
+        self,
+        expected: Job,
+        replacement: Job,
+        guard: Guard,
+        *,
+        operation: ScheduleOperation,
+        token: JobLeaseToken | None,
+        clock: Callable[[], datetime],
+        commit_guard: Callable[[], None],
+    ) -> Job:
+        expected = Job.model_validate(expected.model_dump())
+        replacement = Job.model_validate(replacement.model_dump())
+
+        def check_time() -> None:
+            validate_schedule_change(expected, replacement, operation, token, clock())
+
+        async def checked_guard() -> None:
+            check_time()
+            await guard()
+            check_time()
+
+        def check_commit() -> None:
+            check_time()
+            commit_guard()
+            check_time()
+
+        check_time()
+        return await self._replace(expected, replacement, checked_guard, commit_guard=check_commit)
 
     @staticmethod
     async def _append_event(session: AsyncSession, job: Job) -> None:

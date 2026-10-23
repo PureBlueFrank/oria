@@ -86,7 +86,7 @@ operator 与 campaign_admin 可创建自己的会话并提交、读取和取消�
 
 归因复用既有 `initial_attribution_state`、ResearchSpec 和固定版本 Prompt，将指标、起止日期、区域/类目编码作为规范数据输入，并绑定当前租户。执行方仍须显式装配已有的只读 AnalyticsQueryStore 和五工具 registry，沿用归因预算、证据校验、动态选路和弃答规则。输入适配不提供业务数据，也不生成或猜测结论。
 
-本地输入契约 E2E-F 已覆盖招商到达真实审批中断及归因的两种不同调查路径；这不代表持久化 Job 已执行、已恢复或已获得执行权。HTTP 仍为 `admission_only`。身份恢复与 Job 租约原语见下节；实际调度和完整领域/外部副作用 fencing 尚未接入；仅下节后新增的显式本地草案边界受保护。详见[输入适配验证卡](../../reports/verification/v0.6/20261022-t03-graph-inputs/summary.md)。
+本地输入契约 E2E-F 已覆盖招商到达真实审批中断及归因的两种不同调查路径；这不代表持久化 Job 已执行、已恢复或已获得执行权。HTTP 仍为 `admission_only`。身份恢复、Job 租约及显式 retry/expire 原语见下文；实际 Graph 调度和完整领域/外部副作用 fencing 尚未接入。草案、launch 审批、券 reservation 与受控 Mock 派发分别有显式内部边界。详见[输入适配验证卡](../../reports/verification/v0.6/20261022-t03-graph-inputs/summary.md)。
 
 ## 内部身份恢复与 Job 租约（2026-10-22）
 
@@ -103,6 +103,16 @@ worker 与当前目录中的 API executor 必须使用不同的 service ID，双
 `publish_checkpoint(token, checkpoint_id)` 要求显式 tenant-scoped 官方 saver。namespace 只能由当前 Job/epoch 派生，不能由调用方指定；checkpoint 必须已存在。同 epoch 仅能沿 accepted 父链推进（最多回溯 256 个），重复发布同一指针不新增事件，祖先/兄弟/其他 namespace 均拒绝。指针推进仍重新鉴权并走租约 CAS；新 epoch 保留原 accepted pointer，旧 epoch 的迟到写入不改变它。orphan 清理尚未实现。
 
 本地已覆盖两执行实例与两独立仓储进程竞争、续租、暂停过期、接管后旧 token、取消、真实 SQLite saver 指针与 lineage、目录/Policy 撤权及回滚。仓储子进程用受信测试 guard 验证 SQL/CAS，不代表完整 worker 进程或生产接管。上述租约原语仅保护 Job 行和 accepted pointer。本地草案另有下节的显式 opt-in 边界；其余领域提交、外部副作用 reservation/调用前 fencing、自动 retry/timeout 回收及独立 worker 尚未接入；不得将其用于真实任务自动执行。没有新环境变量、迁移或外部连接。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)和[本轮验证卡](../../reports/verification/v0.6/20261022-t03-job-leases/summary.md)。
+
+## 显式重试与到期处理（2026-10-22）
+
+同一受信 `JobLeaseService` 增加三个内部方法：
+
+- `schedule_retry(token, delay_seconds=...)`：当前有效 running lease 才能申请，延迟为 1–86400 秒整数，retry_at 必须早于 Job timeout，且仍有尝试预算；保存 retry_scheduled 并释放 lease，不执行任何业务重投。
+- `release_retry(job_id)`：到期后以完整快照 CAS 进入 queued，并只增加一次 attempt。下一次 claim 保持该 attempt；重复/竞争 release 不会重复扣预算，也不能恢复审批或事件等待。
+- `expire(job_id)`：达到绝对 timeout 后关闭为 failed；若已请求取消且 lease 已到期则关闭为 cancelled，取消优先。终态重试无新增事件，不改变 accepted pointer，不抢仍有效的 lease。
+
+这些方法均要求当前 requester 与独立 worker 权限，异步边界及 COMMIT 入口重查身份/Policy/时间。状态和事件同事务回滚；被撤权 Job 的 expire 也拒绝，尚无特权清理通道。没有自动队列轮询、错误分类、Graph runner 或 HTTP 调度路由；未知业务副作用仍须对账，不能因 Job 获得新 attempt 就重新派发。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)与[调度验证卡](../../reports/verification/v0.6/20261022-t03-job-scheduling/summary.md)。
 
 ## 显式本地草案 fencing（2026-10-22）
 
@@ -140,4 +150,10 @@ Business saga 与 Platform 审批分阶段提交：先持久化 saga，再重新
 
 业务库先持久化 `reserved → executing` 和 admitted 事件，再调用无网络的 Mock。accepted 在单个业务事务中更新 coupon、launch saga、ledger、Domain/Audit/outbox；rejected 为 failed，unknown、异常、超时为 unknown。若调用后取消、撤权或结果提交失败，executing 历史保留；下一次有效调用将其收敛为 unknown，任何终态或 unknown 都不会盲目重投。异常文本不进入持久事件。
 
-这个切片只证明 Community Mock 闭环。既有 `CouponBatchAdapter` 没有 Job epoch fencing 契约，真实网络派发仍关闭；真实 adapter 实现前还需确定接纳 fencing、稳定幂等与未知结果对账协议。平台和业务 SQLite 写锁覆盖短暂 Mock 调用，另有两个独立资源实例的 writer 阻塞测试；这会阻塞同库 writer，不证明 PostgreSQL、多 worker/S2 或跨库原子性。Job 状态及 accepted checkpoint pointer 不改变，真实外部派发、自动对账/补偿、Graph runner 和恢复仍未接入。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)及[派发验证卡](../../reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。
+这个切片只证明 Community Mock 闭环。既有 `CouponBatchAdapter` 没有 Job epoch fencing 契约，真实网络派发仍关闭；新的独立类型契约见下节。平台和业务 SQLite 写锁覆盖短暂 Mock 调用，另有两个独立资源实例的 writer 阻塞测试；这会阻塞同库 writer，不证明 PostgreSQL、多 worker/S2 或跨库原子性。Job 状态及 accepted checkpoint pointer 不改变，真实外部派发、自动对账/补偿、Graph runner 和恢复仍未接入。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)及[派发验证卡](../../reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。
+
+## 外部派发接纳与对账契约（2026-10-22）
+
+`oria.core.dispatch.FencedDispatchAdapter` 定义独立的 `admit` 和只读 `lookup`。稳定键包含 tenant/adapter/tool/operation key，完整参数 hash、资源与 Job 绑定不可改变；epoch 不产生新键。接收端必须把权威当前租约/授权检查与持久接纳序列化，客户端 preflight 不能提供这一保证。公共 helper 只是严格的值与绑定校验，不提供认证、远程事务或生产实现。
+
+pending 表示已接纳；只有完整绑定的确定 receipt 才能通过 `reconcile_dispatch` 投影为 succeeded/failed。unknown、not_found、响应丢失和异常都不能授权重投。当前只提供类型/Protocol、校验器、纯投影与测试内 receiver，未将其接到现有 Mock 派发或真实网络。真实 Adapter 接纳、安全传输、持久对账和领域结果提交继续待实现，见 [ADR-040](../adr/ADR-040-fenced-dispatch-admission.md)与[契约验证卡](../../reports/verification/v0.6/20261022-t03-dispatch-contract/summary.md)。

@@ -54,6 +54,7 @@
 | ADR-037 | API 身份映射与飞书受理边界 | 实施中 | [ADR-037](ADR-037-api-identity-and-feishu-boundary.md)；T02 基础实现，持久去重与任务受理未收口 |
 | ADR-038 | 显式合成飞书对话演示 | 实施中 | [ADR-038](ADR-038-guided-feishu-demo.md)；复用现有核心，不替代 T03–T05 |
 | ADR-039 | 带理由拒绝与审批卡片详情 | 实施中 | [ADR-039](ADR-039-reasoned-approval-card-interactions.md)；本地实现，新增真实交互待验收 |
+| ADR-040 | 外部副作用接纳与未知结果对账 | 已接受 | [ADR-040](ADR-040-fenced-dispatch-admission.md)；类型契约与 Fixture，真实接收端尚未实现或验收 |
 
 新建 ADR 使用 [ADR 模板](000-template.md)。已接受 ADR 如需改变关键边界，应新建 ADR 并把原记录标为“已替代”，不直接覆盖历史理由。
 
