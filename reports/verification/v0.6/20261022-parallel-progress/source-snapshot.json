@@ -1,0 +1,15 @@
+{
+  "base_commit": "476b03423d7b9d0aafaef96360ae040d9fc2b416",
+  "started_date": "2026-10-22",
+  "completed_date": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "files": {
+    "src/oria/core/dispatch.py": "5c47638687243fee3a84d70062890c07ebf486fdef7dca555b7aeb7c95ec2428",
+    "src/oria/core/job_scheduling.py": "402278ac1b6937781dfe55db170ca6e5b284eba2f8df59882326476490038680",
+    "src/oria/core/jobs.py": "b05b658be6ac7da996376be117dbb1bbe080dc2dc06f4aad40a538d397ec8412",
+    "src/oria/orchestrator/job_leases.py": "c00dfb0ae41223f9762e9a5e2eac3679d8d0d7d9ccdbaa9c7a9a53d3ff81ab82",
+    "src/oria/storage/jobs.py": "99bfe9dd2daf64f89307e476a0afc5acf231b5a1882ab2906dbcd833e67a65c4",
+    "tests/contract/test_v06_dispatch_contract.py": "592df5ef8a71feb28a6579eb647083cb6a15d607dd05022df89c9fa2334c08a2",
+    "tests/integration/test_v06_job_scheduling.py": "e577f1c360203e79d55569a674bccff62faf8fe1e43195dfb1defa993af16bb9"
+  }
+}

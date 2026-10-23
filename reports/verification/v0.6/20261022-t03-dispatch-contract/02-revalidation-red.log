@@ -1,0 +1,167 @@
+FFFFFFFF                                                                 [100%]
+=================================== FAILURES ===================================
+_ test_reconciliation_revalidates_copied_unknown_before_projecting_terminal_state[succeeded] _
+
+state = 'succeeded'
+
+    @pytest.mark.parametrize("state", ["succeeded", "rejected"])
+    def test_reconciliation_revalidates_copied_unknown_before_projecting_terminal_state(state):
+        request = _request()
+        unknown = DispatchObservation(operation=request.operation, state="unknown", observed_at=NOW)
+        forged = unknown.model_copy(update={"state": state})
+>       with pytest.raises(ValidationError):
+E       Failed: DID NOT RAISE ValidationError
+
+tests/contract/test_v06_dispatch_contract.py:402: Failed
+_ test_reconciliation_revalidates_copied_unknown_before_projecting_terminal_state[rejected] _
+
+state = 'rejected'
+
+    @pytest.mark.parametrize("state", ["succeeded", "rejected"])
+    def test_reconciliation_revalidates_copied_unknown_before_projecting_terminal_state(state):
+        request = _request()
+        unknown = DispatchObservation(operation=request.operation, state="unknown", observed_at=NOW)
+        forged = unknown.model_copy(update={"state": state})
+>       with pytest.raises(ValidationError):
+E       Failed: DID NOT RAISE ValidationError
+
+tests/contract/test_v06_dispatch_contract.py:402: Failed
+___________ test_helpers_revalidate_copied_request_scope[admission] ____________
+
+helper = 'admission'
+payload = _Payload(coupon_id='coupon-a', amount=Decimal('10.00'))
+
+    @pytest.mark.parametrize("helper", ["admission", "payload", "history", "reconcile"])
+    def test_helpers_revalidate_copied_request_scope(helper, payload):
+        request = _request()
+        forged = request.model_copy(
+            update={"operation": request.operation.model_copy(update={"tenant_id": "other-tenant"})}
+        )
+        history = DispatchObservation(operation=request.operation, state="unknown", observed_at=NOW)
+>       with pytest.raises(ValidationError):
+E       Failed: DID NOT RAISE ValidationError
+
+tests/contract/test_v06_dispatch_contract.py:413: Failed
+____________ test_helpers_revalidate_copied_request_scope[payload] _____________
+
+helper = 'payload'
+payload = _Payload(coupon_id='coupon-a', amount=Decimal('10.00'))
+
+    @pytest.mark.parametrize("helper", ["admission", "payload", "history", "reconcile"])
+    def test_helpers_revalidate_copied_request_scope(helper, payload):
+        request = _request()
+        forged = request.model_copy(
+            update={"operation": request.operation.model_copy(update={"tenant_id": "other-tenant"})}
+        )
+        history = DispatchObservation(operation=request.operation, state="unknown", observed_at=NOW)
+>       with pytest.raises(ValidationError):
+E       Failed: DID NOT RAISE ValidationError
+
+tests/contract/test_v06_dispatch_contract.py:413: Failed
+____________ test_helpers_revalidate_copied_request_scope[history] _____________
+
+helper = 'history'
+payload = _Payload(coupon_id='coupon-a', amount=Decimal('10.00'))
+
+    @pytest.mark.parametrize("helper", ["admission", "payload", "history", "reconcile"])
+    def test_helpers_revalidate_copied_request_scope(helper, payload):
+        request = _request()
+        forged = request.model_copy(
+            update={"operation": request.operation.model_copy(update={"tenant_id": "other-tenant"})}
+        )
+        history = DispatchObservation(operation=request.operation, state="unknown", observed_at=NOW)
+        with pytest.raises(ValidationError):
+            if helper == "admission":
+                validate_dispatch_admission(forged, _job(), NOW)
+            elif helper == "payload":
+                validate_dispatch_payload(forged, payload, schema=_Payload)
+            elif helper == "history":
+>               validate_dispatch_history(forged, history)
+
+tests/contract/test_v06_dispatch_contract.py:419: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+request = DispatchRequest(operation=DispatchOperation(adapter_id='fixture-coupon', tool_name='materialize_coupon_batch', tool_schema_version=1), fence=JobLeaseToken(epoch=1))
+history = DispatchObservation(operation=DispatchOperation(adapter_id='fixture-coupon', tool_name='materialize_coupon_batch', too...n', observed_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), accepted_fence=None, receipt=None)
+
+    def validate_dispatch_history(request: DispatchRequest, history: DispatchObservation) -> None:
+        """Reject any changed binding at the same durable key, including another Job."""
+        if request.operation != history.operation:
+>           raise DispatchRejected("dispatch operation binding conflicts with history")
+E           oria.core.dispatch.DispatchRejected: dispatch operation binding conflicts with history
+
+src/oria/core/dispatch.py:153: DispatchRejected
+___________ test_helpers_revalidate_copied_request_scope[reconcile] ____________
+
+helper = 'reconcile'
+payload = _Payload(coupon_id='coupon-a', amount=Decimal('10.00'))
+
+    @pytest.mark.parametrize("helper", ["admission", "payload", "history", "reconcile"])
+    def test_helpers_revalidate_copied_request_scope(helper, payload):
+        request = _request()
+        forged = request.model_copy(
+            update={"operation": request.operation.model_copy(update={"tenant_id": "other-tenant"})}
+        )
+        history = DispatchObservation(operation=request.operation, state="unknown", observed_at=NOW)
+        with pytest.raises(ValidationError):
+            if helper == "admission":
+                validate_dispatch_admission(forged, _job(), NOW)
+            elif helper == "payload":
+                validate_dispatch_payload(forged, payload, schema=_Payload)
+            elif helper == "history":
+                validate_dispatch_history(forged, history)
+            else:
+>               reconcile_dispatch(forged, history)
+
+tests/contract/test_v06_dispatch_contract.py:421: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/oria/core/dispatch.py:170: in reconcile_dispatch
+    validate_dispatch_history(request, observation)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+request = DispatchRequest(operation=DispatchOperation(adapter_id='fixture-coupon', tool_name='materialize_coupon_batch', tool_schema_version=1), fence=JobLeaseToken(epoch=1))
+history = DispatchObservation(operation=DispatchOperation(adapter_id='fixture-coupon', tool_name='materialize_coupon_batch', too...n', observed_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=datetime.timezone.utc), accepted_fence=None, receipt=None)
+
+    def validate_dispatch_history(request: DispatchRequest, history: DispatchObservation) -> None:
+        """Reject any changed binding at the same durable key, including another Job."""
+        if request.operation != history.operation:
+>           raise DispatchRejected("dispatch operation binding conflicts with history")
+E           oria.core.dispatch.DispatchRejected: dispatch operation binding conflicts with history
+
+src/oria/core/dispatch.py:153: DispatchRejected
+_______________ test_admission_revalidates_receiver_job_snapshot _______________
+
+    def test_admission_revalidates_receiver_job_snapshot():
+        job = _job().model_copy(update={"request_hash": "f" * 64})
+>       with pytest.raises(ValidationError):
+E       Failed: DID NOT RAISE ValidationError
+
+tests/contract/test_v06_dispatch_contract.py:426: Failed
+________________ test_reconciliation_revalidates_nested_receipt ________________
+
+    def test_reconciliation_revalidates_nested_receipt():
+        request = _request()
+        observation = DispatchObservation(
+            operation=request.operation,
+            state="succeeded",
+            accepted_fence=request.fence,
+            observed_at=NOW,
+            receipt=_receipt(request, "accepted"),
+        )
+        forged = observation.model_copy(
+            update={"receipt": observation.receipt.model_copy(update={"receipt_id": ""})}
+        )
+>       with pytest.raises(ValidationError):
+E       Failed: DID NOT RAISE ValidationError
+
+tests/contract/test_v06_dispatch_contract.py:442: Failed
+=========================== short test summary info ============================
+FAILED tests/contract/test_v06_dispatch_contract.py::test_reconciliation_revalidates_copied_unknown_before_projecting_terminal_state[succeeded]
+FAILED tests/contract/test_v06_dispatch_contract.py::test_reconciliation_revalidates_copied_unknown_before_projecting_terminal_state[rejected]
+FAILED tests/contract/test_v06_dispatch_contract.py::test_helpers_revalidate_copied_request_scope[admission]
+FAILED tests/contract/test_v06_dispatch_contract.py::test_helpers_revalidate_copied_request_scope[payload]
+FAILED tests/contract/test_v06_dispatch_contract.py::test_helpers_revalidate_copied_request_scope[history]
+FAILED tests/contract/test_v06_dispatch_contract.py::test_helpers_revalidate_copied_request_scope[reconcile]
+FAILED tests/contract/test_v06_dispatch_contract.py::test_admission_revalidates_receiver_job_snapshot
+FAILED tests/contract/test_v06_dispatch_contract.py::test_reconciliation_revalidates_nested_receipt
+8 failed, 36 deselected in 1.66s

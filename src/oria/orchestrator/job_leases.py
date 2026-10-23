@@ -13,7 +13,8 @@ from typing import Literal, TypeVar
 from oria.api.identity import AuthenticationError, IdentityDirectory
 from oria.core.context import Context, RuntimeServices
 from oria.core.job_leases import JobLeaseToken, LeaseOperation, validate_claim, validate_lease
-from oria.core.jobs import Job, JobConflict
+from oria.core.job_scheduling import ScheduleOperation, validate_schedule_time
+from oria.core.jobs import TERMINAL_JOB_STATUSES, Job, JobConflict
 from oria.core.types import (
     AuthorizationContext,
     AuthorizationRequest,
@@ -279,6 +280,93 @@ class JobLeaseService:
             }
         )
         return await self._update(job, replacement, ctx, guard, "finish", token)
+
+    async def _schedule(
+        self,
+        job: Job,
+        replacement: Job,
+        ctx: Context,
+        guard: _LeaseAuthorization,
+        operation: ScheduleOperation,
+        token: JobLeaseToken | None = None,
+    ) -> Job:
+        result = await self._write(
+            self._repository.replace_scheduled(
+                job,
+                replacement,
+                guard,
+                operation=operation,
+                token=token,
+                clock=self._now,
+                commit_guard=guard.check_commit,
+            )
+        )
+        self._current(result, ctx)
+        return result
+
+    async def schedule_retry(self, token: JobLeaseToken, *, delay_seconds: int) -> Job:
+        """Record a trusted runner's retry decision, without repeating business effects."""
+        if isinstance(delay_seconds, bool) or not isinstance(delay_seconds, int):
+            raise ValueError("retry delay must be an integer number of seconds")
+        if not 1 <= delay_seconds <= 86400:
+            raise ValueError("retry delay must be 1-86400 seconds")
+        job, ctx, guard = await self._leased(token)
+        now = self._now()
+        validate_schedule_time(job, "retry", now, token)
+        replacement = Job.model_validate(
+            job.model_dump()
+            | {
+                "status": "retry_scheduled",
+                "revision": job.revision + 1,
+                "updated_at": now,
+                "retry_at": now + timedelta(seconds=delay_seconds),
+                "lease_owner": None,
+                "heartbeat_at": None,
+                "lease_expires_at": None,
+            }
+        )
+        return await self._schedule(job, replacement, ctx, guard, "retry", token)
+
+    async def release_retry(self, job_id: str) -> Job:
+        """Make one due retry claimable and reserve its attempt exactly once."""
+        job = await self._load(job_id)
+        ctx, guard = await self._authorize(job)
+        now = self._now()
+        validate_schedule_time(job, "release_retry", now)
+        replacement = Job.model_validate(
+            job.model_dump()
+            | {
+                "status": "queued",
+                "revision": job.revision + 1,
+                "updated_at": now,
+                "retry_at": None,
+                "attempt": job.attempt + 1,
+            }
+        )
+        return await self._schedule(job, replacement, ctx, guard, "release_retry")
+
+    async def expire(self, job_id: str) -> Job:
+        """Close a timed-out Job or an expired cancelled lease, using a current CAS."""
+        job = await self._load(job_id)
+        ctx, guard = await self._authorize(job)
+        if job.status in TERMINAL_JOB_STATUSES:
+            await self._write(guard())
+            return job
+        now = self._now()
+        validate_schedule_time(job, "expire", now)
+        replacement = Job.model_validate(
+            job.model_dump()
+            | {
+                "status": "cancelled" if job.cancel_requested else "failed",
+                "revision": job.revision + 1,
+                "updated_at": now,
+                "retry_at": None,
+                "lease_owner": None,
+                "heartbeat_at": None,
+                "lease_expires_at": None,
+            }
+        )
+        return await self._schedule(job, replacement, ctx, guard, "expire")
 
     async def publish_checkpoint(self, token: JobLeaseToken, checkpoint_id: str) -> Job:
         job, ctx, guard = await self._leased(token)

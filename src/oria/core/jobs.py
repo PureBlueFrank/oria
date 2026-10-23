@@ -248,6 +248,8 @@ def validate_transition(expected: Job, replacement: Job) -> None:
     validate_job_update(expected, replacement)
     if replacement.status not in _TRANSITIONS.get(expected.status, frozenset()):
         raise JobConflict("invalid job transition")
+    if expected.status == "retry_scheduled" and replacement.status == "queued":
+        raise JobConflict("retry release requires scheduler budget and deadline checks")
     if expected.status == "queued" and replacement.status == "running":
         if (
             replacement.attempt != max(1, expected.attempt)

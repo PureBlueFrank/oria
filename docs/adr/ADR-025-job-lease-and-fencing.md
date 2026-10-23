@@ -1,6 +1,6 @@
 # ADR-025：Job lease 与 fencing 恢复
 
-- 状态：已接受（身份恢复、Job 租约及 SQLite 草案/launch 审批/reservation/受控 Mock 派发切片）；真实外部副作用、其余领域、runner 和接管验收仍待实施
+- 状态：已接受（身份恢复、Job 租约、显式重试/到期处理及 SQLite 草案/launch 审批/reservation/受控 Mock 派发切片）；真实外部副作用、其余领域、runner 和接管验收仍待实施
 - 日期：2026-10-22
 - 关联：V0.6-T03/T04、ADR-004、ADR-014
 
@@ -75,6 +75,18 @@ await 后及两种 COMMIT 入口均复核当前目录/Policy/lease；平台提�
 若进程取消、结果提交失败、lease/Policy 失效，先前已提交的 executing 行不会回滚成 reserved；有效重试把遗留 executing 收敛到 unknown，unknown/failed/succeeded 均不再调用 adapter。成功重试只复用原结果并再次验证 ready coupon、原始审批计划和 saga。审批/Job/Business SQLite 写锁会阻塞其他连接直至 Mock 结果提交或回滚；这是 Community 单 worker 证据，不代表 PostgreSQL/S2、真实网络、独立 worker 或跨库 2PC。COMMIT 交给驱动后撤权/时钟变化不保证追溯撤销。
 
 验证限临时 SQLite、合成身份与 Mock；覆盖成功与重复、拒绝/未知、异常/超时、取消、结果 COMMIT 失败、调用期间撤权/租约过期、新旧 epoch，以及两个独立 SQLite 资源实例的写锁。实现前决策、原始失败、定向结果、全库门禁和限制见[派发验证卡](../../reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。真实外部 adapter、对账/补偿、其他领域 fencing、Graph/调度/恢复及 PostgreSQL S2 仍未完成。
+
+## 显式重试与到期处理（2026-10-22）
+
+`JobLeaseService.schedule_retry(token, delay_seconds=...)` 记录受信执行器的重试决定。仅接受当前有效 running lease、未取消且有剩余尝试预算的 Job；延迟为 1–86400 秒的整数，retry_at 必须严格早于绝对 timeout。提交后为 retry_scheduled，清除 lease，保持 attempt/epoch 和 accepted pointer。它不分类错误、不调用模型/Adapter，也不授权重复未知副作用。
+
+`release_retry(job_id)` 仅将到期但未超时的 retry_scheduled 变成 queued，同一完整快照 CAS 内预占下一 attempt 并记录事件；随后 claim 保持该 attempt，只增加 epoch。重复或竞争 release 至多一个成功。普通 Repository 转换不能将 retry_scheduled 伪装成不计费的等待续行。正常审批/事件等待的 queued 续行仍不扣失败预算；该接口不能恢复 waiting_approval/waiting_event。
+
+`expire(job_id)` 仅将达到绝对 timeout 的非终态 Job 关闭为 failed，或在已请求取消的 lease 到期后关闭为 cancelled；两者同时满足时取消优先。仍有效的执行租约不被抢占，accepted pointer 不改变，终态重复调用不新增事件。普通 running lease 过期但 Job 未超时仍由既有 claim 接管；没有自动轮询、重试分类或 worker/reaper。
+
+三个操作都重载当前 requester、要求独立受信 worker 与当前 Policy。每次 await 前后及同步 COMMIT 入口重查身份/权限/时间，状态与事件同一事务 CAS；失败整笔回滚。显式 expire 也不绕过撤权，因此被撤权的 Job 可能继续保留原状态，需未来有明确权限的管理流程处理。COMMIT 已交给驱动后的外部撤权或时钟变化不保证追溯撤销，与前述边界一致。没有新增 migration、依赖或环境变量。
+
+本地临时 SQLite 回归覆盖预算、竞争、取消、期限、事件失败、身份/Policy 撤销及最后提交入口变化，见[调度验证卡](../../reports/verification/v0.6/20261022-t03-job-scheduling/summary.md)。外部接纳契约另见 [ADR-040](ADR-040-fenced-dispatch-admission.md)；两项均不代表 Graph、自动恢复或真实外部派发已接通，T03/T04/Core 继续进行中。
 
 ## 实施前基线
 

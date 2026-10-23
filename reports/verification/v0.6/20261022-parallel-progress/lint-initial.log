@@ -1,0 +1,175 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/oria/orchestrator/job_leases.py:3:1
+   |
+ 1 |   """Tokenless requester recovery and fenced Job-row operations for trusted workers."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | import hashlib
+ 6 | | import json
+ 7 | | import re
+ 8 | | import uuid
+ 9 | | from collections.abc import Awaitable, Callable
+10 | | from datetime import UTC, datetime, timedelta
+11 | | from typing import Literal, TypeVar
+12 | |
+13 | | from oria.api.identity import AuthenticationError, IdentityDirectory
+14 | | from oria.core.context import Context, RuntimeServices
+15 | | from oria.core.job_leases import JobLeaseToken, LeaseOperation, validate_claim, validate_lease
+16 | | from oria.core.jobs import TERMINAL_JOB_STATUSES, Job, JobConflict
+17 | | from oria.core.job_scheduling import ScheduleOperation, validate_schedule_time
+18 | | from oria.core.types import (
+19 | |     AuthorizationContext,
+20 | |     AuthorizationRequest,
+21 | |     PolicyDecision,
+22 | |     Principal,
+23 | |     ResourceRef,
+24 | | )
+25 | | from oria.orchestrator.checkpoint import TenantCheckpointSaver, checkpoint_config
+26 | | from oria.permission.local import LocalPolicyEngine
+27 | | from oria.storage.jobs import Guard, JobRepository
+   | |__________________________________________________^
+28 |
+29 |   T = TypeVar("T")
+   |
+help: Organize imports
+   |
+15 | from oria.core.job_leases import JobLeaseToken, LeaseOperation, validate_claim, validate_lease
+16 + from oria.core.job_scheduling import ScheduleOperation, validate_schedule_time
+17 | from oria.core.jobs import TERMINAL_JOB_STATUSES, Job, JobConflict
+   - from oria.core.job_scheduling import ScheduleOperation, validate_schedule_time
+18 | from oria.core.types import (
+   |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/oria/storage/jobs.py:3:1
+   |
+ 1 |   """Tenant-scoped durable admission and compare-and-set state/event transactions."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+ 6 | | from contextlib import asynccontextmanager
+ 7 | | from datetime import datetime
+ 8 | | from typing import Any
+ 9 | |
+10 | | from sqlalchemy import event, text
+11 | | from sqlalchemy.exc import SQLAlchemyError
+12 | | from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+13 | |
+14 | | from oria.core.job_leases import (
+15 | |     JobLeaseToken,
+16 | |     LeaseOperation,
+17 | |     validate_claim,
+18 | |     validate_lease,
+19 | |     validate_lease_change,
+20 | | )
+21 | | from oria.core.jobs import (
+22 | |     Job,
+23 | |     JobConflict,
+24 | |     JobSession,
+25 | |     JobSubmission,
+26 | |     JobUnavailable,
+27 | |     submission_json,
+28 | |     validate_transition,
+29 | | )
+30 | | from oria.core.job_scheduling import ScheduleOperation, validate_schedule_change
+31 | | from oria.storage.database import set_session_tenant_context
+   | |____________________________________________________________^
+32 |
+33 |   Guard = Callable[[], Awaitable[None]]
+   |
+help: Organize imports
+   |
+20 | )
+21 + from oria.core.job_scheduling import ScheduleOperation, validate_schedule_change
+22 | from oria.core.jobs import (
+--------------------------------------------------------------------------------
+30 | )
+   - from oria.core.job_scheduling import ScheduleOperation, validate_schedule_change
+31 | from oria.storage.database import set_session_tenant_context
+   |
+
+E501 Line too long (101 > 100)
+   --> tests/contract/test_v06_dispatch_contract.py:264:101
+    |
+262 |     await receiver.settle(request, state)
+263 |     result = await receiver.lookup(request)
+264 |     assert reconcile_dispatch(request, result) == ("succeeded" if state == "succeeded" else "failed")
+    |                                                                                                     ^
+265 |     assert receiver.effect_count == 1
+266 |     assert await receiver.admit(request, payload) == result
+    |
+
+E501 Line too long (102 > 100)
+   --> tests/contract/test_v06_dispatch_contract.py:310:101
+    |
+308 |         receiver.now = NOW + timedelta(minutes=1)
+309 |     elif reason == "cancelled":
+310 |         await receiver.replace_authority(_job(status="cancellation_requested", cancel_requested=True))
+    |                                                                                                     ^^
+311 |     elif reason == "revoked":
+312 |         receiver.authorized = False
+    |
+
+E501 Line too long (105 > 100)
+   --> tests/integration/test_v06_job_scheduling.py:205:101
+    |
+203 | @pytest.mark.parametrize("operation", ["retry", "release_retry", "expire"])
+204 | @pytest.mark.parametrize("failure", ["event", "identity", "policy"])
+205 | async def test_scheduling_rolls_back_state_and_event_on_failure(leases, monkeypatch, operation, failure):
+    |                                                                                                     ^^^^^
+206 |     s = leases
+207 |     worker, running, retry = await _retry(s)
+    |
+
+E731 Do not assign a `lambda` expression, use a `def`
+   --> tests/integration/test_v06_job_scheduling.py:212:9
+    |
+210 |         await worker.release_retry(retry.job_id)
+211 |         before = await worker.claim(retry.job_id)
+212 |         invoke = lambda: worker.schedule_retry(lease_token(before), delay_seconds=10)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+213 |     else:
+214 |         before = retry
+    |
+help: Rewrite `invoke` as a `def`
+
+E731 Do not assign a `lambda` expression, use a `def`
+   --> tests/integration/test_v06_job_scheduling.py:216:9
+    |
+214 |         before = retry
+215 |         s.clock.advance(10 if operation == "release_retry" else 3600)
+216 |         invoke = lambda: getattr(worker, operation)(retry.job_id)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+217 |     events = await _events(s, running.job_id)
+218 |     append = s.repo._append_event
+    |
+help: Rewrite `invoke` as a `def`
+
+E731 Do not assign a `lambda` expression, use a `def`
+   --> tests/integration/test_v06_job_scheduling.py:246:9
+    |
+244 |         await worker.release_retry(retry.job_id)
+245 |         before = await worker.claim(retry.job_id)
+246 |         invoke = lambda: worker.schedule_retry(lease_token(before), delay_seconds=5)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+247 |     else:
+248 |         s.clock.advance(5)
+    |
+help: Rewrite `invoke` as a `def`
+
+E731 Do not assign a `lambda` expression, use a `def`
+   --> tests/integration/test_v06_job_scheduling.py:250:9
+    |
+248 |         s.clock.advance(5)
+249 |         before = retry
+250 |         invoke = lambda: worker.release_retry(retry.job_id)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+251 |     events = await _events(s, running.job_id)
+252 |     append = s.repo._append_event
+    |
+help: Rewrite `invoke` as a `def`
+
+Found 9 errors.
+[*] 2 fixable with the `--fix` option (4 hidden fixes can be enabled with the `--unsafe-fixes` option).

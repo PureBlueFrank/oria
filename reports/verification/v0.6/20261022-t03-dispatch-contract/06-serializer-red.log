@@ -1,0 +1,315 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+___ test_copied_key_cannot_be_coerced_into_a_second_admission[operation_key] ___
+
+payload = _Payload(coupon_id='coupon-a', amount=Decimal('10.00'))
+field = 'operation_key'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("field", ["operation_key", "adapter_id"])
+    @pytest.mark.filterwarnings("error:Pydantic serializer warnings:UserWarning")
+    async def test_copied_key_cannot_be_coerced_into_a_second_admission(payload, field):
+        receiver = _Receiver()
+        request = _request()
+        await receiver.admit(request, payload)
+        copied = request.model_copy(
+            update={
+                "operation": request.operation.model_copy(
+                    update={field: getattr(request.operation, field).encode()}
+                )
+            }
+        )
+        with pytest.raises(ValidationError):
+>           await receiver.admit(copied, payload)
+
+tests/contract/test_v06_dispatch_contract.py:465: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/contract/test_v06_dispatch_contract.py:131: in admit
+    self._authorize(request)
+tests/contract/test_v06_dispatch_contract.py:127: in _authorize
+    validate_dispatch_admission(request, self.job, self.now)
+src/oria/core/dispatch.py:128: in validate_dispatch_admission
+    request = DispatchRequest.model_validate(request.model_dump(), strict=True)
+                                             ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = DispatchRequest(operation=DispatchOperation(adapter_id='fixture-coupon', tool_name='materialize_coupon_batch', tool_schema_version=1), fence=JobLeaseToken(epoch=1))
+mode = 'python', include = None, exclude = None, context = None, by_alias = None
+exclude_unset = False, exclude_defaults = False, exclude_none = False
+exclude_computed_fields = False, round_trip = False, warnings = True
+fallback = None, serialize_as_any = False, polymorphic_serialization = None
+
+    def model_dump(
+        self,
+        *,
+        mode: Literal['json', 'python'] | str = 'python',
+        include: IncEx | None = None,
+        exclude: IncEx | None = None,
+        context: Any | None = None,
+        by_alias: bool | None = None,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+        exclude_computed_fields: bool = False,
+        round_trip: bool = False,
+        warnings: bool | Literal['none', 'warn', 'error'] = True,
+        fallback: Callable[[Any], Any] | None = None,
+        serialize_as_any: bool = False,
+        polymorphic_serialization: bool | None = None,
+    ) -> dict[str, Any]:
+        """!!! abstract "Usage Documentation"
+            [`model_dump`](../concepts/serialization.md#python-mode)
+    
+        Generate a dictionary representation of the model, optionally specifying which fields to include or exclude.
+    
+        Args:
+            mode: The mode in which `to_python` should run.
+                If mode is 'json', the output will only contain JSON serializable types.
+                If mode is 'python', the output may contain non-JSON-serializable Python objects.
+            include: A set of fields to include in the output.
+            exclude: A set of fields to exclude from the output.
+            context: Additional context to pass to the serializer.
+            by_alias: Whether to use the field's alias in the dictionary key if defined.
+            exclude_unset: Whether to exclude fields that have not been explicitly set.
+            exclude_defaults: Whether to exclude fields that are set to their default value.
+            exclude_none: Whether to exclude fields that have a value of `None`.
+            exclude_computed_fields: Whether to exclude computed fields.
+                While this can be useful for round-tripping, it is usually recommended to use the dedicated
+                `round_trip` parameter instead.
+            round_trip: If True, dumped values should be valid as input for non-idempotent types such as Json[T].
+            warnings: How to handle serialization errors. False/"none" ignores them, True/"warn" logs errors,
+                "error" raises a [`PydanticSerializationError`][pydantic_core.PydanticSerializationError].
+            fallback: A function to call when an unknown value is encountered. If not provided,
+                a [`PydanticSerializationError`][pydantic_core.PydanticSerializationError] error is raised.
+            serialize_as_any: Whether to serialize fields with duck-typing serialization behavior.
+            polymorphic_serialization: Whether to use model and dataclass polymorphic serialization for this call.
+    
+        Returns:
+            A dictionary representation of the model.
+        """
+>       return self.__pydantic_serializer__.to_python(
+            self,
+            mode=mode,
+            by_alias=by_alias,
+            include=include,
+            exclude=exclude,
+            context=context,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            exclude_computed_fields=exclude_computed_fields,
+            round_trip=round_trip,
+            warnings=warnings,
+            fallback=fallback,
+            serialize_as_any=serialize_as_any,
+            polymorphic_serialization=polymorphic_serialization,
+        )
+E       UserWarning: Pydantic serializer warnings:
+E         PydanticSerializationUnexpectedValue(Expected `str` - serialized value may not be as expected [field_name='operation_key', input_value=b'coupon-a:materialize:v1', input_type=bytes])
+
+.venv/lib/python3.11/site-packages/pydantic/main.py:475: UserWarning
+____ test_copied_key_cannot_be_coerced_into_a_second_admission[adapter_id] _____
+
+payload = _Payload(coupon_id='coupon-a', amount=Decimal('10.00'))
+field = 'adapter_id'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("field", ["operation_key", "adapter_id"])
+    @pytest.mark.filterwarnings("error:Pydantic serializer warnings:UserWarning")
+    async def test_copied_key_cannot_be_coerced_into_a_second_admission(payload, field):
+        receiver = _Receiver()
+        request = _request()
+        await receiver.admit(request, payload)
+        copied = request.model_copy(
+            update={
+                "operation": request.operation.model_copy(
+                    update={field: getattr(request.operation, field).encode()}
+                )
+            }
+        )
+        with pytest.raises(ValidationError):
+>           await receiver.admit(copied, payload)
+
+tests/contract/test_v06_dispatch_contract.py:465: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/contract/test_v06_dispatch_contract.py:131: in admit
+    self._authorize(request)
+tests/contract/test_v06_dispatch_contract.py:127: in _authorize
+    validate_dispatch_admission(request, self.job, self.now)
+src/oria/core/dispatch.py:128: in validate_dispatch_admission
+    request = DispatchRequest.model_validate(request.model_dump(), strict=True)
+                                             ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = DispatchRequest(operation=DispatchOperation(adapter_id=b'fixture-coupon', tool_name='materialize_coupon_batch', tool_schema_version=1), fence=JobLeaseToken(epoch=1))
+mode = 'python', include = None, exclude = None, context = None, by_alias = None
+exclude_unset = False, exclude_defaults = False, exclude_none = False
+exclude_computed_fields = False, round_trip = False, warnings = True
+fallback = None, serialize_as_any = False, polymorphic_serialization = None
+
+    def model_dump(
+        self,
+        *,
+        mode: Literal['json', 'python'] | str = 'python',
+        include: IncEx | None = None,
+        exclude: IncEx | None = None,
+        context: Any | None = None,
+        by_alias: bool | None = None,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+        exclude_computed_fields: bool = False,
+        round_trip: bool = False,
+        warnings: bool | Literal['none', 'warn', 'error'] = True,
+        fallback: Callable[[Any], Any] | None = None,
+        serialize_as_any: bool = False,
+        polymorphic_serialization: bool | None = None,
+    ) -> dict[str, Any]:
+        """!!! abstract "Usage Documentation"
+            [`model_dump`](../concepts/serialization.md#python-mode)
+    
+        Generate a dictionary representation of the model, optionally specifying which fields to include or exclude.
+    
+        Args:
+            mode: The mode in which `to_python` should run.
+                If mode is 'json', the output will only contain JSON serializable types.
+                If mode is 'python', the output may contain non-JSON-serializable Python objects.
+            include: A set of fields to include in the output.
+            exclude: A set of fields to exclude from the output.
+            context: Additional context to pass to the serializer.
+            by_alias: Whether to use the field's alias in the dictionary key if defined.
+            exclude_unset: Whether to exclude fields that have not been explicitly set.
+            exclude_defaults: Whether to exclude fields that are set to their default value.
+            exclude_none: Whether to exclude fields that have a value of `None`.
+            exclude_computed_fields: Whether to exclude computed fields.
+                While this can be useful for round-tripping, it is usually recommended to use the dedicated
+                `round_trip` parameter instead.
+            round_trip: If True, dumped values should be valid as input for non-idempotent types such as Json[T].
+            warnings: How to handle serialization errors. False/"none" ignores them, True/"warn" logs errors,
+                "error" raises a [`PydanticSerializationError`][pydantic_core.PydanticSerializationError].
+            fallback: A function to call when an unknown value is encountered. If not provided,
+                a [`PydanticSerializationError`][pydantic_core.PydanticSerializationError] error is raised.
+            serialize_as_any: Whether to serialize fields with duck-typing serialization behavior.
+            polymorphic_serialization: Whether to use model and dataclass polymorphic serialization for this call.
+    
+        Returns:
+            A dictionary representation of the model.
+        """
+>       return self.__pydantic_serializer__.to_python(
+            self,
+            mode=mode,
+            by_alias=by_alias,
+            include=include,
+            exclude=exclude,
+            context=context,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            exclude_computed_fields=exclude_computed_fields,
+            round_trip=round_trip,
+            warnings=warnings,
+            fallback=fallback,
+            serialize_as_any=serialize_as_any,
+            polymorphic_serialization=polymorphic_serialization,
+        )
+E       UserWarning: Pydantic serializer warnings:
+E         PydanticSerializationUnexpectedValue(Expected `str` - serialized value may not be as expected [field_name='adapter_id', input_value=b'fixture-coupon', input_type=bytes])
+
+.venv/lib/python3.11/site-packages/pydantic/main.py:475: UserWarning
+__________ test_payload_validation_does_not_coerce_an_unchecked_copy ___________
+
+payload = _Payload(coupon_id='coupon-a', amount=Decimal('10.00'))
+
+    @pytest.mark.filterwarnings("error:Pydantic serializer warnings:UserWarning")
+    def test_payload_validation_does_not_coerce_an_unchecked_copy(payload):
+        copied = payload.model_copy(update={"amount": "10.00"})
+        with pytest.raises(ValidationError):
+>           validate_dispatch_payload(_request(), copied, schema=_Payload)
+
+tests/contract/test_v06_dispatch_contract.py:473: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/oria/core/dispatch.py:143: in validate_dispatch_payload
+    payload = schema.model_validate(payload.model_dump(mode="python"), strict=True)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = _Payload(coupon_id='coupon-a', amount='10.00'), mode = 'python'
+include = None, exclude = None, context = None, by_alias = None
+exclude_unset = False, exclude_defaults = False, exclude_none = False
+exclude_computed_fields = False, round_trip = False, warnings = True
+fallback = None, serialize_as_any = False, polymorphic_serialization = None
+
+    def model_dump(
+        self,
+        *,
+        mode: Literal['json', 'python'] | str = 'python',
+        include: IncEx | None = None,
+        exclude: IncEx | None = None,
+        context: Any | None = None,
+        by_alias: bool | None = None,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+        exclude_computed_fields: bool = False,
+        round_trip: bool = False,
+        warnings: bool | Literal['none', 'warn', 'error'] = True,
+        fallback: Callable[[Any], Any] | None = None,
+        serialize_as_any: bool = False,
+        polymorphic_serialization: bool | None = None,
+    ) -> dict[str, Any]:
+        """!!! abstract "Usage Documentation"
+            [`model_dump`](../concepts/serialization.md#python-mode)
+    
+        Generate a dictionary representation of the model, optionally specifying which fields to include or exclude.
+    
+        Args:
+            mode: The mode in which `to_python` should run.
+                If mode is 'json', the output will only contain JSON serializable types.
+                If mode is 'python', the output may contain non-JSON-serializable Python objects.
+            include: A set of fields to include in the output.
+            exclude: A set of fields to exclude from the output.
+            context: Additional context to pass to the serializer.
+            by_alias: Whether to use the field's alias in the dictionary key if defined.
+            exclude_unset: Whether to exclude fields that have not been explicitly set.
+            exclude_defaults: Whether to exclude fields that are set to their default value.
+            exclude_none: Whether to exclude fields that have a value of `None`.
+            exclude_computed_fields: Whether to exclude computed fields.
+                While this can be useful for round-tripping, it is usually recommended to use the dedicated
+                `round_trip` parameter instead.
+            round_trip: If True, dumped values should be valid as input for non-idempotent types such as Json[T].
+            warnings: How to handle serialization errors. False/"none" ignores them, True/"warn" logs errors,
+                "error" raises a [`PydanticSerializationError`][pydantic_core.PydanticSerializationError].
+            fallback: A function to call when an unknown value is encountered. If not provided,
+                a [`PydanticSerializationError`][pydantic_core.PydanticSerializationError] error is raised.
+            serialize_as_any: Whether to serialize fields with duck-typing serialization behavior.
+            polymorphic_serialization: Whether to use model and dataclass polymorphic serialization for this call.
+    
+        Returns:
+            A dictionary representation of the model.
+        """
+>       return self.__pydantic_serializer__.to_python(
+            self,
+            mode=mode,
+            by_alias=by_alias,
+            include=include,
+            exclude=exclude,
+            context=context,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            exclude_computed_fields=exclude_computed_fields,
+            round_trip=round_trip,
+            warnings=warnings,
+            fallback=fallback,
+            serialize_as_any=serialize_as_any,
+            polymorphic_serialization=polymorphic_serialization,
+        )
+E       UserWarning: Pydantic serializer warnings:
+E         PydanticSerializationUnexpectedValue(Expected `decimal` - serialized value may not be as expected [field_name='amount', input_value='10.00', input_type=str])
+
+.venv/lib/python3.11/site-packages/pydantic/main.py:475: UserWarning
+=========================== short test summary info ============================
+FAILED tests/contract/test_v06_dispatch_contract.py::test_copied_key_cannot_be_coerced_into_a_second_admission[operation_key]
+FAILED tests/contract/test_v06_dispatch_contract.py::test_copied_key_cannot_be_coerced_into_a_second_admission[adapter_id]
+FAILED tests/contract/test_v06_dispatch_contract.py::test_payload_validation_does_not_coerce_an_unchecked_copy
+3 failed, 44 deselected in 1.39s
