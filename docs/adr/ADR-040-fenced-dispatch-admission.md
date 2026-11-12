@@ -24,3 +24,7 @@
 契约测试的内存 receiver 在同一锁内修改合成租约权威和接纳历史，覆盖旧 epoch 先到、重复/跨 epoch、同键冲突、身份/取消/过期、响应丢失、只读查询和无凭据终态拒绝。它只是可执行的 conformance 示例，不是可复用生产 Adapter，也不证明跨进程、持久化或企业系统安全。
 
 每个真实 Adapter 必须另存目标、身份、原子接纳方案及故障/接管/重放证据。该卡通过前，不启用网络派发，不关闭 T03/T04/Core 或 PostgreSQL S2 门禁。见[本地契约验证卡](../../reports/verification/v0.6/20261022-t03-dispatch-contract/summary.md)。
+
+## 本地持久参考验证增量（2026-11-12）
+
+测试支持模块 `tests/contract/durable_dispatch_receiver.py` 将合成权威与 history 放入同一 SQLite 数据库，以 BEGIN IMMEDIATE 序列化并在提交前复核期限。独立进程提交前/后退出、重新查询、竞争去重及旧 epoch 拒绝已本地验证，见[恢复验证卡](../../reports/verification/v0.6/20261112-durable-receiver-recovery/summary.md)。history 行本身代表合成效果，控制端授权布尔值与固定默认时钟仅用于测试；不增加生产 Adapter 能力，不取代真实身份、审批、Job 权威或外部效果边界证明。

@@ -1,0 +1,70 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_lease_expiring_during_transaction_rejects_without_new_effect[False] ___
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-1/test_lease_expiring_during_tra0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x115fd5210>
+lookup = False
+
+    @pytest.mark.parametrize("lookup", [False, True])
+    def test_lease_expiring_during_transaction_rejects_without_new_effect(tmp_path, monkeypatch, lookup):
+        from datetime import timedelta
+
+        from tests.contract import durable_dispatch_receiver as module
+        from tests.contract.test_v06_dispatch_contract import NOW
+
+        receiver = DurableReferenceReceiver(tmp_path / "receiver.db")
+        receiver.replace_authority(_job())
+        payload = _Payload(coupon_id="coupon-a", amount=Decimal("10.00"))
+        if lookup:
+            receiver.execute(_request(), payload)
+            original = module.validate_dispatch_history
+        else:
+            original = module.validate_dispatch_payload
+
+        def advance(*args, **kwargs):
+            original(*args, **kwargs)
+            monkeypatch.setattr(module, "NOW", NOW + timedelta(minutes=1))
+
+        name = "validate_dispatch_history" if lookup else "validate_dispatch_payload"
+        monkeypatch.setattr(module, name, advance)
+>       with pytest.raises(DispatchRejected):
+E       Failed: DID NOT RAISE DispatchRejected
+
+tests/contract/test_v06_durable_dispatch_receiver.py:71: Failed
+___ test_lease_expiring_during_transaction_rejects_without_new_effect[True] ____
+
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-1/test_lease_expiring_during_tra1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x115fb9150>
+lookup = True
+
+    @pytest.mark.parametrize("lookup", [False, True])
+    def test_lease_expiring_during_transaction_rejects_without_new_effect(tmp_path, monkeypatch, lookup):
+        from datetime import timedelta
+
+        from tests.contract import durable_dispatch_receiver as module
+        from tests.contract.test_v06_dispatch_contract import NOW
+
+        receiver = DurableReferenceReceiver(tmp_path / "receiver.db")
+        receiver.replace_authority(_job())
+        payload = _Payload(coupon_id="coupon-a", amount=Decimal("10.00"))
+        if lookup:
+            receiver.execute(_request(), payload)
+            original = module.validate_dispatch_history
+        else:
+            original = module.validate_dispatch_payload
+
+        def advance(*args, **kwargs):
+            original(*args, **kwargs)
+            monkeypatch.setattr(module, "NOW", NOW + timedelta(minutes=1))
+
+        name = "validate_dispatch_history" if lookup else "validate_dispatch_payload"
+        monkeypatch.setattr(module, name, advance)
+>       with pytest.raises(DispatchRejected):
+E       Failed: DID NOT RAISE DispatchRejected
+
+tests/contract/test_v06_durable_dispatch_receiver.py:71: Failed
+=========================== short test summary info ============================
+FAILED tests/contract/test_v06_durable_dispatch_receiver.py::test_lease_expiring_during_transaction_rejects_without_new_effect[False]
+FAILED tests/contract/test_v06_durable_dispatch_receiver.py::test_lease_expiring_during_transaction_rejects_without_new_effect[True]
+2 failed, 2 deselected in 1.82s

@@ -185,3 +185,5 @@ V0.6-T02 审批投递与结果更新（2026-10-18）：新增受信 ApprovalCard
 **V0.6-T03 Job 券的受控 Mock 派发（2026-10-22）**：新增显式内部 `JobCouponDispatchService.materialize`，仅接受精确 `InMemoryCouponBatchAdapter` 和 SQLite 双库；从审批后的稳定 reservation 持久化 executing 后才调用 Mock，并原子提交成功的 coupon/saga/ledger/domain/audit/outbox 结果。rejected、unknown、异常或超时不会自动重投；取消、撤权或结果提交失败保留 executing，后续有效重试失败关闭为 unknown。新增 19 项覆盖审批状态、成功/重放、状态映射、异常/超时、取消、提交失败、撤权、lease 过期、epoch 接管和两个独立 SQLite 连接的 writer 阻塞；派发文件 20 项通过，相关回归 202 项通过。见 [设计与验证卡](reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。本切片**不表示真实网络/企业 Adapter 已获 fencing**：现有 Adapter 协议没有 Job epoch 接纳语义；真实派发、其余领域提交 fencing、对账/补偿、Graph/调度/异步恢复及 PostgreSQL S2 仍待完成，T03/T04/Core 未关闭，V0.5-T07 29/80 不变。
 
 **2026-11-12 本地参考接收端切片**：新增测试专用 SQLite 持久接纳模型，同事务读取合成租约权威并记录合成效果；并发去重、连接重建、旧 epoch、参数冲突和撤权契约验证通过。仍未实现生产认证、真实 Job 权威集成或独立进程崩溃验收；T03/Core 保持进行中。
+
+**2026-11-12 本地参考接收端恢复验证**：补齐独立进程提交前崩溃回滚、提交后响应丢失查询、进程竞争去重及旧 epoch 拒绝；修复事务中途到期仍返回成功的参考实现缺口，增加提交前复核与显式连接关闭。参考接收端及 dispatch 契约共 63 项通过，全库静态检查通过。仅测试用 SQLite 合成权威，真实身份/审批/领域事实与 Job 权威尚未集成；T03/Core 保持进行中。见[验证卡](reports/verification/v0.6/20261112-durable-receiver-recovery/summary.md)。

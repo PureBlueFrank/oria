@@ -1,0 +1,10 @@
+E501 Line too long (101 > 100)
+  --> tests/contract/test_v06_durable_dispatch_receiver.py:50:101
+   |
+49 | @pytest.mark.parametrize("lookup", [False, True])
+50 | def test_lease_expiring_during_transaction_rejects_without_new_effect(tmp_path, monkeypatch, lookup):
+   |                                                                                                     ^
+51 |     from datetime import timedelta
+   |
+
+Found 1 error.

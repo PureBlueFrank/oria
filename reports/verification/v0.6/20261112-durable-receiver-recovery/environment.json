@@ -1,0 +1,18 @@
+{
+  "base_commit": "d194721e343454aa53334a3116db01e9a3479da0",
+  "date": "2026-11-12",
+  "timezone": "Asia/Shanghai",
+  "target": "synthetic local SQLite reference receiver",
+  "source_sha256": {
+    "tests/contract/durable_dispatch_receiver.py": "b05f47a76f6c53f4460d147d621b06a7dff71b8c88aa740c6d1c9b143ad85465",
+    "tests/contract/test_v06_durable_dispatch_receiver.py": "d6ab27f2176648af8804e497fe319b3d739664e990b9d22d4b80d96fd037f1c2",
+    "src/oria/core/dispatch.py": "5c47638687243fee3a84d70062890c07ebf486fdef7dca555b7aeb7c95ec2428",
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def"
+  },
+  "results": {
+    "contracts_passed": 63,
+    "lint": "passed",
+    "external": "not_run",
+    "new_ci": "not_triggered"
+  }
+}
