@@ -1,0 +1,42 @@
+{
+  "base_commit": "fda4f9f9f283789e08e06666a7755aa4dae1aca3",
+  "python": "3.11.15",
+  "platform": "Darwin",
+  "uv": "0.12.6",
+  "verification_level": [
+    "Fixture",
+    "Community",
+    "Security",
+    "Recovery"
+  ],
+  "dataset": "temporary SQLite; synthetic identities; InMemoryCouponBatchAdapter",
+  "provider_model": null,
+  "source_sha256": {
+    "src/oria/adapters/launch.py": "1f21f8c3d7395abff026b4050df82465a94e1772d6f01ae6530cbaccc4c95bae",
+    "src/oria/orchestrator/job_coupon_dispatch.py": "7ff82828662a95fe6207430c3a734a4efcae27b1dad1c2d884fcee8284be3c46",
+    "src/oria/storage/job_coupon_dispatch.py": "a173c8f401df226092f927561334a353e539da3523769bb33e207abf48f2cd8c",
+    "tests/integration/test_v06_job_coupon_reconciliation.py": "69c6c225d0a96e1b2a5be48bbff23dd9956d047e52a3739013311281abf8d83a",
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def"
+  },
+  "executed_on": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "task_id": "V0.6-T03",
+  "results": {
+    "new_tests": 32,
+    "community": {
+      "passed": 1549,
+      "failed": 1,
+      "deselected": 9,
+      "warnings": 5,
+      "failure_cause": "sandbox denied loopback socket bind"
+    },
+    "loopback_retry": {
+      "passed": 1
+    },
+    "lint": "passed",
+    "build": "passed",
+    "smoke": "passed",
+    "external_verification": "not_run",
+    "new_github_actions": "not_triggered"
+  }
+}

@@ -158,6 +158,14 @@ Business saga 与 Platform 审批分阶段提交：先持久化 saga，再重新
 
 这个切片只证明 Community Mock 闭环。既有 `CouponBatchAdapter` 没有 Job epoch fencing 契约，真实网络派发仍关闭；新的独立类型契约见下节。平台和业务 SQLite 写锁覆盖短暂 Mock 调用，另有两个独立资源实例的 writer 阻塞测试；这会阻塞同库 writer，不证明 PostgreSQL、多 worker/S2 或跨库原子性。Job 状态及 accepted checkpoint pointer 不改变，真实外部派发、自动对账/补偿、Graph runner 和恢复仍未接入。见 [ADR-025](../adr/ADR-025-job-lease-and-fencing.md)及[派发验证卡](../../reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。
 
+## 受控 Mock 的结果对账（2026-10-30）
+
+内部宿主可显式调用 `JobCouponDispatchService.reconcile(token, args, plan, approval_id)`。它复用派发入口的当前 requester/独立 worker、租约、审批和完整草案/计划校验，只查询精确 `InMemoryCouponBatchAdapter` 中按原幂等键及完整参数绑定的历史；不接受调用方直接提供回执。reserved 状态拒绝对账，executing/unknown 可查询，succeeded/failed 复核后返回原结果。原 `materialize` 的未知结果仍不会重投。
+
+确定 accepted/rejected 回执可把 executing/unknown 原子投影为 succeeded/failed；成功时券 ready、saga、ledger、Domain/Audit/outbox 同一业务事务提交。无历史、unknown、超时、异常或无效回执不授权重投；已有 unknown 保持原记录且不重复生成事件，孤立 executing 收敛为 unknown。查询后及最终提交入口复核权限、租约和审批，取消传播且事务回滚；不记录异常正文。
+
+仅适用 SQLite 与受控内存 Mock。Oria 对账结果持久保存，但 Mock 历史不跨接收端进程重启保存，重建 Mock 后查不到历史时保持 unknown。查询仍在短暂 SQLite 锁内运行，最多 5 秒；不会恢复 Job/Graph 或推进 accepted checkpoint。真实网络接纳/鉴权查询、持久接收端与自动对账调度仍待实施，见[验证卡](../../reports/verification/v0.6/20261030-t03-coupon-reconciliation/summary.md)。
+
 ## 外部派发接纳与对账契约（2026-10-22）
 
 `oria.core.dispatch.FencedDispatchAdapter` 定义独立的 `admit` 和只读 `lookup`。稳定键包含 tenant/adapter/tool/operation key，完整参数 hash、资源与 Job 绑定不可改变；epoch 不产生新键。接收端必须把权威当前租约/授权检查与持久接纳序列化，客户端 preflight 不能提供这一保证。公共 helper 只是严格的值与绑定校验，不提供认证、远程事务或生产实现。

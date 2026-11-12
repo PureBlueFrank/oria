@@ -32,6 +32,7 @@ class InMemoryCouponBatchAdapter:
         self._clock = clock
         self.materialize_calls: list[str] = []
         self.compensation_calls: list[str] = []
+        self._materializations: dict[str, tuple[MaterializeCouponBatchArgs, Receipt]] = {}
 
     async def materialize(
         self,
@@ -39,13 +40,32 @@ class InMemoryCouponBatchAdapter:
         *,
         idempotency_key: str,
     ) -> Receipt:
+        args = MaterializeCouponBatchArgs.model_validate(args.model_dump(), strict=True)
+        previous = await self.lookup_materialization(args, idempotency_key=idempotency_key)
+        if previous is not None:
+            return previous
         self.materialize_calls.append(idempotency_key)
-        return self._receipt(
+        receipt = self._receipt(
             operation="materialize",
             resource_ref=f"coupon_batch:{args.coupon_batch_id}",
             idempotency_key=idempotency_key,
             status=self.materialize_status,
         )
+        self._materializations[idempotency_key] = (args, receipt)
+        return receipt
+
+    async def lookup_materialization(
+        self, args: MaterializeCouponBatchArgs, *, idempotency_key: str
+    ) -> Receipt | None:
+        """Read bound Mock history without creating an effect; restart loses history."""
+        args = MaterializeCouponBatchArgs.model_validate(args.model_dump(), strict=True)
+        history = self._materializations.get(idempotency_key)
+        if history is None:
+            return None
+        bound_args, receipt = history
+        if bound_args != args:
+            raise ValueError("Mock coupon operation conflicts with its history")
+        return receipt
 
     async def compensate(
         self,

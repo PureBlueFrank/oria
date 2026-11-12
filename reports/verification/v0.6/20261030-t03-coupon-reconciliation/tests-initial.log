@@ -1,0 +1,174 @@
+FFFF.......................                                              [100%]
+=================================== FAILURES ===================================
+__ test_lost_response_reconciles_once_across_service_restart[accepted-False] ___
+
+dispatch = namespace(c=namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b8254d0>, db=<oria.storage.datab...object at 0x12b9adf10>, service=<oria.orchestrator.job_coupon_dispatch.JobCouponDispatchService object at 0x12b5b2610>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b5b1410>
+orphan = False, status = 'accepted'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("orphan", [False, True])
+    @pytest.mark.parametrize("status", ["accepted", "rejected"])
+    async def test_lost_response_reconciles_once_across_service_restart(
+        dispatch, monkeypatch, orphan, status
+    ):
+        d = dispatch
+        c = d.c
+        d.adapter.materialize_status = status
+        await _lose_response(d, monkeypatch, orphan=orphan)
+        c.s.clock.advance(1)  # The receipt predates the later reconciliation transaction.
+        async with DatabaseResources(c.s.config) as db:
+>           service = JobCouponDispatchService(c.worker, db, d.adapter)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_coupon_reconciliation.py:64:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/oria/orchestrator/job_coupon_dispatch.py:38: in __init__
+    self._execution = JobExecutionService(leases, databases)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <oria.orchestrator.job_execution.JobExecutionService object at 0x12b94a510>
+leases = <oria.orchestrator.job_leases.JobLeaseService object at 0x12b85f610>
+databases = <oria.storage.database.DatabaseResources object at 0x12b7e4400>
+
+    def __init__(self, leases: JobLeaseService, databases: DatabaseResources) -> None:
+        if databases.platform_backend != "sqlite" or databases.business_backend != "sqlite":
+            raise ValueError("local Job execution fencing currently requires SQLite")
+        if leases._repository._sessions is not databases.platform_sessions:
+>           raise ValueError("Job repository must use the supplied platform sessions")
+E           ValueError: Job repository must use the supplied platform sessions
+
+src/oria/orchestrator/job_execution.py:47: ValueError
+___ test_lost_response_reconciles_once_across_service_restart[accepted-True] ___
+
+dispatch = namespace(c=namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12bc6d4d0>, db=<oria.storage.datab...object at 0x12bc64910>, service=<oria.orchestrator.job_coupon_dispatch.JobCouponDispatchService object at 0x12bcb6ad0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b214650>
+orphan = True, status = 'accepted'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("orphan", [False, True])
+    @pytest.mark.parametrize("status", ["accepted", "rejected"])
+    async def test_lost_response_reconciles_once_across_service_restart(
+        dispatch, monkeypatch, orphan, status
+    ):
+        d = dispatch
+        c = d.c
+        d.adapter.materialize_status = status
+        await _lose_response(d, monkeypatch, orphan=orphan)
+        c.s.clock.advance(1)  # The receipt predates the later reconciliation transaction.
+        async with DatabaseResources(c.s.config) as db:
+>           service = JobCouponDispatchService(c.worker, db, d.adapter)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_coupon_reconciliation.py:64:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/oria/orchestrator/job_coupon_dispatch.py:38: in __init__
+    self._execution = JobExecutionService(leases, databases)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <oria.orchestrator.job_execution.JobExecutionService object at 0x12bd48690>
+leases = <oria.orchestrator.job_leases.JobLeaseService object at 0x12bc92950>
+databases = <oria.storage.database.DatabaseResources object at 0x12bcebc40>
+
+    def __init__(self, leases: JobLeaseService, databases: DatabaseResources) -> None:
+        if databases.platform_backend != "sqlite" or databases.business_backend != "sqlite":
+            raise ValueError("local Job execution fencing currently requires SQLite")
+        if leases._repository._sessions is not databases.platform_sessions:
+>           raise ValueError("Job repository must use the supplied platform sessions")
+E           ValueError: Job repository must use the supplied platform sessions
+
+src/oria/orchestrator/job_execution.py:47: ValueError
+__ test_lost_response_reconciles_once_across_service_restart[rejected-False] ___
+
+dispatch = namespace(c=namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b9e5d50>, db=<oria.storage.datab...object at 0x12b835650>, service=<oria.orchestrator.job_coupon_dispatch.JobCouponDispatchService object at 0x12b837250>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12b948a50>
+orphan = False, status = 'rejected'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("orphan", [False, True])
+    @pytest.mark.parametrize("status", ["accepted", "rejected"])
+    async def test_lost_response_reconciles_once_across_service_restart(
+        dispatch, monkeypatch, orphan, status
+    ):
+        d = dispatch
+        c = d.c
+        d.adapter.materialize_status = status
+        await _lose_response(d, monkeypatch, orphan=orphan)
+        c.s.clock.advance(1)  # The receipt predates the later reconciliation transaction.
+        async with DatabaseResources(c.s.config) as db:
+>           service = JobCouponDispatchService(c.worker, db, d.adapter)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_coupon_reconciliation.py:64:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/oria/orchestrator/job_coupon_dispatch.py:38: in __init__
+    self._execution = JobExecutionService(leases, databases)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <oria.orchestrator.job_execution.JobExecutionService object at 0x12b7d7450>
+leases = <oria.orchestrator.job_leases.JobLeaseService object at 0x12b85c350>
+databases = <oria.storage.database.DatabaseResources object at 0x12b97c180>
+
+    def __init__(self, leases: JobLeaseService, databases: DatabaseResources) -> None:
+        if databases.platform_backend != "sqlite" or databases.business_backend != "sqlite":
+            raise ValueError("local Job execution fencing currently requires SQLite")
+        if leases._repository._sessions is not databases.platform_sessions:
+>           raise ValueError("Job repository must use the supplied platform sessions")
+E           ValueError: Job repository must use the supplied platform sessions
+
+src/oria/orchestrator/job_execution.py:47: ValueError
+___ test_lost_response_reconciles_once_across_service_restart[rejected-True] ___
+
+dispatch = namespace(c=namespace(s=namespace(repo=<oria.storage.jobs.JobRepository object at 0x12b7d5750>, db=<oria.storage.datab...object at 0x12b717150>, service=<oria.orchestrator.job_coupon_dispatch.JobCouponDispatchService object at 0x1117cbc90>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x12bc39850>
+orphan = True, status = 'rejected'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("orphan", [False, True])
+    @pytest.mark.parametrize("status", ["accepted", "rejected"])
+    async def test_lost_response_reconciles_once_across_service_restart(
+        dispatch, monkeypatch, orphan, status
+    ):
+        d = dispatch
+        c = d.c
+        d.adapter.materialize_status = status
+        await _lose_response(d, monkeypatch, orphan=orphan)
+        c.s.clock.advance(1)  # The receipt predates the later reconciliation transaction.
+        async with DatabaseResources(c.s.config) as db:
+>           service = JobCouponDispatchService(c.worker, db, d.adapter)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/integration/test_v06_job_coupon_reconciliation.py:64:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/oria/orchestrator/job_coupon_dispatch.py:38: in __init__
+    self._execution = JobExecutionService(leases, databases)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <oria.orchestrator.job_execution.JobExecutionService object at 0x12be28450>
+leases = <oria.orchestrator.job_leases.JobLeaseService object at 0x12bd3e850>
+databases = <oria.storage.database.DatabaseResources object at 0x12be97fb0>
+
+    def __init__(self, leases: JobLeaseService, databases: DatabaseResources) -> None:
+        if databases.platform_backend != "sqlite" or databases.business_backend != "sqlite":
+            raise ValueError("local Job execution fencing currently requires SQLite")
+        if leases._repository._sessions is not databases.platform_sessions:
+>           raise ValueError("Job repository must use the supplied platform sessions")
+E           ValueError: Job repository must use the supplied platform sessions
+
+src/oria/orchestrator/job_execution.py:47: ValueError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  <repo>/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_coupon_reconciliation.py::test_lost_response_reconciles_once_across_service_restart[accepted-False]
+FAILED tests/integration/test_v06_job_coupon_reconciliation.py::test_lost_response_reconciles_once_across_service_restart[accepted-True]
+FAILED tests/integration/test_v06_job_coupon_reconciliation.py::test_lost_response_reconciles_once_across_service_restart[rejected-False]
+FAILED tests/integration/test_v06_job_coupon_reconciliation.py::test_lost_response_reconciles_once_across_service_restart[rejected-True]
+4 failed, 23 passed, 1 warning in 21.67s

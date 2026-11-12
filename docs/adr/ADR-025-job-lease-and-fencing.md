@@ -76,6 +76,12 @@ await 后及两种 COMMIT 入口均复核当前目录/Policy/lease；平台提�
 
 验证限临时 SQLite、合成身份与 Mock；覆盖成功与重复、拒绝/未知、异常/超时、取消、结果 COMMIT 失败、调用期间撤权/租约过期、新旧 epoch，以及两个独立 SQLite 资源实例的写锁。实现前决策、原始失败、定向结果、全库门禁和限制见[派发验证卡](../../reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。真实外部 adapter、对账/补偿、其他领域 fencing、Graph/调度/恢复及 PostgreSQL S2 仍未完成。
 
+## 受控 Mock 对账增量（2026-10-30）
+
+`JobCouponDispatchService.reconcile` 复用上述受控 Mock 派发的授权与 SQLite 双锁边界，只查询固定券操作历史，不接纳或重投。Mock 将完整 typed 参数与原幂等键、首次 receipt 绑定；重复参数冲突拒绝。查询结果再次校验 receipt 类型、adapter、资源和时间。当前身份/Policy、租约及审批在查询后和 COMMIT 入口重新检查。
+
+确定回执使 executing/unknown 在一个业务事务中提交 ledger、成功领域投影及 Domain/Audit/outbox；unknown 无确定结果时保持原值，不重复产生事件。reserved 不能以对账名义派发。成功/失败历史每次重读仍需当前授权与领域事实匹配。服务/连接重建可以继续读取已持久 Oria 结果；接收端内存历史丢失时不推断副作用未发生，不授予重试。没有跨库原子性、持久接收端、网络 fencing、自动对账或 Graph 装配，也不实现 ADR-040 的真实 `FencedDispatchAdapter`。见[本轮验证卡](../../reports/verification/v0.6/20261030-t03-coupon-reconciliation/summary.md)。
+
 ## 显式重试与到期处理（2026-10-22）
 
 `JobLeaseService.schedule_retry(token, delay_seconds=...)` 记录受信执行器的重试决定。仅接受当前有效 running lease、未取消且有剩余尝试预算的 Job；延迟为 1–86400 秒的整数，retry_at 必须严格早于绝对 timeout。提交后为 retry_scheduled，清除 lease，保持 attempt/epoch 和 accepted pointer。它不分类错误、不调用模型/Adapter，也不授权重复未知副作用。

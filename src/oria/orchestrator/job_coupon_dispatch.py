@@ -47,6 +47,27 @@ class JobCouponDispatchService:
         plan: LaunchPlan,
         approval_id: str,
     ) -> ToolExecution:
+        return await self._execute(token, args, plan, approval_id, reconcile_only=False)
+
+    async def reconcile(
+        self,
+        token: JobLeaseToken,
+        args: MaterializeCouponBatchArgs,
+        plan: LaunchPlan,
+        approval_id: str,
+    ) -> ToolExecution:
+        """Resolve an existing uncertain Mock effect by lookup, never by redispatch."""
+        return await self._execute(token, args, plan, approval_id, reconcile_only=True)
+
+    async def _execute(
+        self,
+        token: JobLeaseToken,
+        args: MaterializeCouponBatchArgs,
+        plan: LaunchPlan,
+        approval_id: str,
+        *,
+        reconcile_only: bool,
+    ) -> ToolExecution:
         args = MaterializeCouponBatchArgs.model_validate(args.model_dump())
         plan = LaunchPlan.model_validate(plan.model_dump())
         job, ctx, guard = await self._leases._leased(token, business_resource_id=args.campaign_id)
@@ -114,7 +135,24 @@ class JobCouponDispatchService:
                         await guard()
                         await launch_guard()
                         check()
-                        if execution.status == "executing":
+                        if reconcile_only:
+                            if execution.status == "reserved":
+                                raise ValueError("coupon reconciliation requires a prior dispatch")
+                            result = execution
+                            if execution.status in {"executing", "unknown"}:
+                                observed_receipt = await self._lookup(execution, args)
+                                check()
+                                result = await self._writer.finish(
+                                    session,
+                                    execution,
+                                    args,
+                                    observed_receipt,
+                                    ctx=ctx,
+                                    epoch=token.epoch,
+                                    policy_version=approval.policy_version,
+                                    now=self._leases._now(),
+                                )
+                        elif execution.status == "executing":
                             # This fence is now exclusively held: an executing row
                             # from an earlier call is an orphan, never a retry grant.
                             result = await self._writer.finish(
@@ -144,7 +182,7 @@ class JobCouponDispatchService:
                         await session.commit()
                     finally:
                         event.remove(session.sync_session, "before_commit", check)
-                if execution.status != "reserved":
+                if reconcile_only or execution.status != "reserved":
                     return result
 
                 async with self._databases.business_sessions.begin() as session:
@@ -201,3 +239,27 @@ class JobCouponDispatchService:
                 return result
 
         return await self._leases._write(execute())
+
+    async def _lookup(
+        self, execution: ToolExecution, args: MaterializeCouponBatchArgs
+    ) -> Receipt | None:
+        try:
+            async with asyncio.timeout(self._timeout):
+                received = await self._adapter.lookup_materialization(
+                    args, idempotency_key=execution.idempotency_key
+                )
+            if received is None:
+                return None
+            receipt = Receipt.model_validate(received.model_dump(warnings=False), strict=True)
+            if (
+                receipt.adapter_id != self._adapter.adapter_id
+                or receipt.resource_ref != f"coupon_batch:{args.coupon_batch_id}"
+                or receipt.received_at < execution.created_at
+                or receipt.received_at > self._leases._now()
+            ):
+                return None
+            return receipt
+        except Exception:
+            # Absence, malformed results and lookup failures never grant redispatch.
+            # Cancellation propagates; exception text is never persisted.
+            return None

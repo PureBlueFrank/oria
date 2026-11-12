@@ -100,6 +100,8 @@
 
 - [main 审查与有界调度（10 月 23 日）](v0.6/20261023-main-review-scheduler/summary.md)：租约操作最终提交入口撤权/到期回归与修复；显式分页调度释放 retry、超时与取消收尾，当前授权、CAS、坏记录隔离及停止恢复。仅本地 SQLite/Fixture/Community；保留 Graph、独立 worker 和外部验证缺口。
 
+- [T03 受控 Mock 券结果对账（10 月 30 日）](v0.6/20261030-t03-coupon-reconciliation/summary.md)：丢失响应后的显式查询与业务事务投影，保留未知结果、跨 epoch/独立连接幂等、撤权与提交失败回滚；不是持久接收端或真实网络验证。
+
 ## Demo 与架构证据
 
 - [静态交互 Demo](../../docs/demo/index.html)：无后端、`file://` 可用；展示场景 A 十步冻结 Trace，以及场景 B 的归因、冲突、弃答和契约拦停。

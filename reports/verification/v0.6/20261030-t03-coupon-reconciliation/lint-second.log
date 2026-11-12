@@ -1,0 +1,8 @@
+uv run ruff format --check .
+397 files already formatted
+uv run ruff check .
+All checks passed!
+uv run mypy src/oria
+src/oria/orchestrator/job_coupon_dispatch.py:197: error: Name "receipt" already defined on line 143  [no-redef]
+Found 1 error in 1 file (checked 197 source files)
+make: *** [lint] Error 1

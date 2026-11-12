@@ -120,12 +120,16 @@ class JobCouponDispatchWriter:
         policy_version: str,
         now: datetime,
     ) -> ToolExecution:
+        if execution.status not in {"executing", "unknown"}:
+            raise ValueError("coupon outcome requires an executing or unknown operation")
         target: Literal["succeeded", "failed", "unknown"] = "unknown"
         if receipt is not None:
             if receipt.status == "accepted":
                 target = "succeeded"
             elif receipt.status == "rejected":
                 target = "failed"
+        if execution.status == "unknown" and target == "unknown":
+            return execution
         if target == "succeeded":
             await self._launches.mark_coupon_ready(
                 session,
@@ -149,7 +153,7 @@ class JobCouponDispatchWriter:
             tenant_id=ctx.tenant_id,
             execution_id=execution.execution_id,
             target=target,
-            expected_status="executing",
+            expected_status=execution.status,
             updated_at=now,
             receipt_id=None if receipt is None else receipt.receipt_id,
             receipt_summary_hash=None if receipt is None else receipt.summary_hash,

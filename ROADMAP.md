@@ -20,11 +20,13 @@
 
 **本轮本地进展（2026-10-23）**：修复 main 中 claim/heartbeat/checkpoint/finish 在最终 COMMIT 入口缺少身份、Policy 与租约复核的问题；新增显式 `JobScheduler`，以有界租户分页自动释放到期 retry、关闭超时 Job 和收尾取消。沿用当前 requester/worker 权限与完整快照 CAS，撤权任务不会阻塞后续页。尚未装配独立 worker 或默认 API 后台任务，不执行 Graph 或重投业务副作用。详见[本轮审查与验证](reports/verification/v0.6/20261023-main-review-scheduler/summary.md)。外部验证依用户选择保留。
 
-### 当前待办清单（2026-10-23）
+**本轮本地进展（2026-10-30）**：新增显式 `JobCouponDispatchService.reconcile`，从精确内存 Mock 的原操作历史恢复丢失响应，复用当前身份/Policy/租约/审批与领域事实校验。在同一业务事务提交确定回执对应的 ledger、券状态、saga 与 Domain/Audit/outbox；未知结果不重投，重复/竞争不新增副作用。已覆盖本地对账与安全回归，完整结果见[验证卡](reports/verification/v0.6/20261030-t03-coupon-reconciliation/summary.md)。持久化的是 Oria 结果投影；Mock 历史重启会丢失，真实接收端持久接纳和对账仍未实现。T03/Core 保持进行中。
+
+### 当前待办清单（2026-10-30）
 
 | 顺序 | 对应任务 | 待办与完成条件 |
 | --- | --- | --- |
-| 1 | V0.6-T03 | 接纳 fencing、稳定幂等和 unknown 对账类型契约已通过本地验证；仍需真实接收端实现、持久对账和独立目标验证。 |
+| 1 | V0.6-T03 | 外部类型契约与受控 Mock 的持久结果对账已本地验证；仍需真实接收端原子接纳、持久操作历史、认证查询及独立目标验证，不能直接换入网络 Adapter。 |
 | 2 | V0.6-T03 | retry/expire 原语及显式有界轮询已有本地验证；仍需覆盖其余领域提交，接入 Graph、调度进程装配、审批与外部事件恢复、飞书会话；默认 HTTP 仍只受理 Job。 |
 | 3 | V0.6-T04/T05 | 实现独立 worker、accepted pointer/orphan 生命周期、可靠通知/SSE/Webhook 和失败重试；数据库 CAS 原语不等于 worker 已交付。 |
 | 4 | V0.6-T02/T06/T07 | 新审批拒绝/详情/分页真实飞书验收，PostgreSQL 新 revision 验证，以及 S0–S5、两独立 worker S1/S2 验收；逐卡记录结果。 |
@@ -181,3 +183,5 @@ V0.6-T02 审批投递与结果更新（2026-10-18）：新增受信 ApprovalCard
 **审批测试 CI 收尾（2026-10-22）**：并行同步 PR 的旧回放测试跨秒误判已用确定性 RED 复现；原样重放同一请求并显式覆盖重新签名重试，70 项相关回归及全库静态通过。保留原失败，生产防重放/审批逻辑未改，见 [回归卡](reports/verification/v0.6/20261022-approval-replay-regression/summary.md)。
 
 **V0.6-T03 Job 券的受控 Mock 派发（2026-10-22）**：新增显式内部 `JobCouponDispatchService.materialize`，仅接受精确 `InMemoryCouponBatchAdapter` 和 SQLite 双库；从审批后的稳定 reservation 持久化 executing 后才调用 Mock，并原子提交成功的 coupon/saga/ledger/domain/audit/outbox 结果。rejected、unknown、异常或超时不会自动重投；取消、撤权或结果提交失败保留 executing，后续有效重试失败关闭为 unknown。新增 19 项覆盖审批状态、成功/重放、状态映射、异常/超时、取消、提交失败、撤权、lease 过期、epoch 接管和两个独立 SQLite 连接的 writer 阻塞；派发文件 20 项通过，相关回归 202 项通过。见 [设计与验证卡](reports/verification/v0.6/20261022-t03-coupon-dispatch/summary.md)。本切片**不表示真实网络/企业 Adapter 已获 fencing**：现有 Adapter 协议没有 Job epoch 接纳语义；真实派发、其余领域提交 fencing、对账/补偿、Graph/调度/异步恢复及 PostgreSQL S2 仍待完成，T03/T04/Core 未关闭，V0.5-T07 29/80 不变。
+
+**2026-11-12 本地参考接收端切片**：新增测试专用 SQLite 持久接纳模型，同事务读取合成租约权威并记录合成效果；并发去重、连接重建、旧 epoch、参数冲突和撤权契约验证通过。仍未实现生产认证、真实 Job 权威集成或独立进程崩溃验收；T03/Core 保持进行中。

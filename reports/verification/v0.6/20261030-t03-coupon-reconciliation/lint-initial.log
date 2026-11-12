@@ -1,0 +1,52 @@
+uv run ruff format --check .
+397 files already formatted
+uv run ruff check .
+I001 [*] Import block is un-sorted or un-formatted
+  --> tests/integration/test_v06_job_coupon_reconciliation.py:3:1
+   |
+ 1 |   """Durable local outcome projection from retained Mock history, never a network target."""
+ 2 |
+ 3 | / import asyncio
+ 4 | | from datetime import timedelta
+ 5 | |
+ 6 | | import pytest
+ 7 | | from sqlalchemy import event, text
+ 8 | | from sqlalchemy.orm import Session
+ 9 | | from tests.integration.test_v06_job_coupon_dispatch import (
+10 | |     _execution_state,
+11 | |     dispatch as dispatch,
+12 | | )
+13 | | from tests.integration.test_v06_job_launch_approval import launch as launch
+14 | | from tests.integration.test_v06_job_leases import leases as leases
+15 | |
+16 | | from oria.adapters.launch import InMemoryCouponBatchAdapter
+17 | | from oria.core.job_leases import lease_token
+18 | | from oria.core.jobs import JobConflict
+19 | | from oria.orchestrator.job_coupon_dispatch import JobCouponDispatchService
+20 | | from oria.storage.database import DatabaseResources
+   | |___________________________________________________^
+21 |
+22 |   pytestmark = [pytest.mark.integration, pytest.mark.security, pytest.mark.recovery]
+   |
+help: Organize imports
+   |
+10 |     _execution_state,
+11 + )
+12 + from tests.integration.test_v06_job_coupon_dispatch import (
+13 |     dispatch as dispatch,
+   |
+
+E501 Line too long (105 > 100)
+  --> tests/integration/test_v06_job_coupon_reconciliation.py:86:101
+   |
+84 |                 await session.execute(
+85 |                     text(
+86 |                         f"SELECT count(*) FROM {table} WHERE {column} LIKE 'coupon_batch.job_dispatch.%'"
+   |                                                                                                     ^^^^^
+87 |                     )
+88 |                 )
+   |
+
+Found 2 errors.
+[*] 1 fixable with the `--fix` option.
+make: *** [lint] Error 1
