@@ -16,6 +16,7 @@
 
 ## 关键证据
 
+- [T03 源码持久本地参考与投影](v0.6/20261113-local-reference-projection/summary.md)：显式合成接收端历史跨重启持久化，响应丢失/投影失败后对账；复用权限/审批/领域锁，未知不重投。
 - [T03 参考接收端审批与领域约束](v0.6/20261113-approved-coupon-reference/summary.md)：临时真实审批/领域仓储与双库锁保护合成接纳，历史查询同样复核；不推进 Oria 业务结果。
 - [T03 参考接收端 Job 权威接入](v0.6/20261112-job-authority-reference/summary.md)：真实临时 Job/身份/Policy 与平台锁覆盖合成接纳；103 项组合通过，审批/领域事实仍未接入。
 - [T03 本地参考接收端恢复](v0.6/20261112-durable-receiver-recovery/summary.md)：独立进程崩溃/丢失响应、稳定键去重、旧 epoch 拒绝及提交前到期回滚；仅合成权威，不代表真实 Job/企业 Adapter 集成。

@@ -1,0 +1,23 @@
+E501 Line too long (107 > 100)
+   --> tests/integration/test_v06_local_coupon_reference.py:124:101
+    |
+122 | @pytest.mark.asyncio
+123 | @pytest.mark.parametrize("failure", ["identity", "policy", "lease", "approval"])
+124 | async def test_reference_commit_authority_loss_rolls_back_effect(dispatch, tmp_path, monkeypatch, failure):
+    |                                                                                                     ^^^^^^^
+125 |     d, path = dispatch, tmp_path / "reference.db"
+126 |     service = _service(d, path)
+    |
+
+E501 Line too long (102 > 100)
+   --> tests/integration/test_v06_local_coupon_reference.py:143:101
+    |
+141 |                     def changed(request, ctx):
+142 |                         return evaluate(request, ctx).model_copy(update=(
+143 |                             {"allow": False} if failure == "policy" else {"policy_version": "changed"}
+    |                                                                                                     ^^
+144 |                         ))
+145 |                     monkeypatch.setattr(d.c.s.runtime.policy, "evaluate_now", changed)
+    |
+
+Found 2 errors.

@@ -171,3 +171,23 @@ Business saga 与 Platform 审批分阶段提交：先持久化 saga，再重新
 `oria.core.dispatch.FencedDispatchAdapter` 定义独立的 `admit` 和只读 `lookup`。稳定键包含 tenant/adapter/tool/operation key，完整参数 hash、资源与 Job 绑定不可改变；epoch 不产生新键。接收端必须把权威当前租约/授权检查与持久接纳序列化，客户端 preflight 不能提供这一保证。公共 helper 只是严格的值与绑定校验，不提供认证、远程事务或生产实现。
 
 pending 表示已接纳；只有完整绑定的确定 receipt 才能通过 `reconcile_dispatch` 投影为 succeeded/failed。unknown、not_found、响应丢失和异常都不能授权重投。当前只提供类型/Protocol、校验器、纯投影与测试内 receiver，未将其接到现有 Mock 派发或真实网络。真实 Adapter 接纳、安全传输、持久对账和领域结果提交继续待实现，见 [ADR-040](../adr/ADR-040-fenced-dispatch-admission.md)与[契约验证卡](../../reports/verification/v0.6/20261022-t03-dispatch-contract/summary.md)。
+
+## 显式持久本地参考接收端
+
+仅在合成数据、隔离本地数据库上使用：
+
+```python
+from pathlib import Path
+from oria.orchestrator.job_coupon_dispatch import JobCouponDispatchService
+
+service = JobCouponDispatchService.local_reference(
+    leases, databases, Path("/path/to/isolated/local-reference.sqlite3")
+)
+result = await service.materialize(token, args, plan, approval_id)
+# 重建同一配置的 service 后，丢失响应/投影失败可显式对账：
+result = await service.reconcile(token, args, plan, approval_id)
+```
+
+父目录须已存在；参考文件不能是 platform/business 库或其别名，不能使用已有外来 SQLite 数据库。工厂不执行网络或自动装配，普通构造器的精确内存 Mock 限制保持。仍须真实本地 Job 租约、当前身份/Policy、独立审批和完整领域事实校验。接收端历史跨服务/进程重建保留；确定回执在一个 Oria 业务事务中更新执行账本、券/saga 和事件。返回成功仅指合成本地效果，receipt 具有 localref_/synthetic_ 标识。
+
+未知结果、无历史或查询异常不能重投；接收端已提交而业务投影失败时，保留原历史并执行 reconcile。参考文件丢失也不能推断没有发生效果。平台、业务和参考库不是跨库原子事务，保留策略需一起考虑。没有新增环境变量、生产 schema migration 或默认后台任务。完整边界见 [ADR-040](../adr/ADR-040-fenced-dispatch-admission.md) 和[验证卡](../../reports/verification/v0.6/20261113-local-reference-projection/summary.md)。

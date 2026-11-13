@@ -1,0 +1,33 @@
+{
+  "base_commit": "75fdd64b17da54a5d8961cc688e9380ac9cb55dc",
+  "date": "2026-11-13",
+  "timezone": "Asia/Shanghai",
+  "python": "3.11.15",
+  "uv": "0.12.6",
+  "target": "local_reference_coupon; temporary synthetic SQLite only",
+  "source_sha256": {
+    "src/oria/orchestrator/job_coupon_dispatch.py": "f86888cc4715a836bf6005a6e5664d5572936cc353f3f5865a0daf2cf13ad6c4",
+    "src/oria/storage/local_coupon_reference.py": "f31f625f3f54fba2a6659934beb777fef5a77672ab7919ebc8a150eed1e88464",
+    "tests/integration/test_v06_local_coupon_reference.py": "9390d1e1680ed0b5f8deeb7ac04504ea072d056020f5fbd417ac2d95be2cf08c",
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def"
+  },
+  "results": {
+    "new_tests": 15,
+    "focused_passed": 66,
+    "lint": "passed",
+    "build": "passed on retry",
+    "smoke": "passed",
+    "wheel": "passed",
+    "external": "not_run",
+    "community": {
+      "passed": 1621,
+      "failed": 1,
+      "deselected": 9,
+      "warnings": 5,
+      "cause": "sandbox denied loopback socket bind"
+    },
+    "loopback_retry_passed": 1,
+    "fresh_process_passed": 1,
+    "final_lint": "passed"
+  }
+}

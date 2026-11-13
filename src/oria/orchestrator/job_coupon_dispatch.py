@@ -1,12 +1,15 @@
 """Explicit Community-only coupon dispatch; no network or Graph assembly."""
 
 import asyncio
+from collections.abc import Callable
+from pathlib import Path
 
 from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from oria.adapters.launch import InMemoryCouponBatchAdapter
 from oria.core.approvals import ApprovalResumeRequest, approval_resume_rejection
+from oria.core.dispatch import DispatchOperation, DispatchRequest, reconcile_dispatch
 from oria.core.job_leases import JobLeaseToken, validate_lease
 from oria.core.jobs import CampaignJobSpec
 from oria.core.types import AuthorizationContext, AuthorizationRequest, ResourceRef
@@ -16,6 +19,7 @@ from oria.orchestrator.job_execution import JobExecutionService
 from oria.orchestrator.job_leases import JobLeaseService, _LeaseAuthorization
 from oria.storage.database import DatabaseResources
 from oria.storage.job_coupon_dispatch import JobCouponDispatchWriter
+from oria.storage.local_coupon_reference import LocalCouponReferenceStore
 
 
 class JobCouponDispatchService:
@@ -39,6 +43,28 @@ class JobCouponDispatchService:
         self._leases, self._databases = leases, databases
         self._adapter, self._timeout = adapter, timeout_seconds
         self._writer = JobCouponDispatchWriter(databases.business_sessions)
+        self._reference: LocalCouponReferenceStore | None = None
+
+    @classmethod
+    def local_reference(
+        cls, leases: JobLeaseService, databases: DatabaseResources, path: Path
+    ) -> "JobCouponDispatchService":
+        """Explicit synthetic SQLite mode; never installed by default Runtime/API."""
+        result = cls(leases, databases, InMemoryCouponBatchAdapter(clock=leases._now))
+        for sessions in (databases.platform_sessions, databases.business_sessions):
+            database = sessions.kw["bind"].url.database
+            if (
+                database is None
+                or Path(database).resolve() == path.resolve()
+                or (path.exists() and Path(database).exists() and path.samefile(database))
+            ):
+                raise ValueError("reference receiver requires a separate SQLite file")
+        result._reference = LocalCouponReferenceStore(path)
+        return result
+
+    @property
+    def _adapter_id(self) -> str:
+        return self._adapter.adapter_id if self._reference is None else self._reference.adapter_id
 
     async def materialize(
         self,
@@ -132,6 +158,12 @@ class JobCouponDispatchService:
                     event.listen(session.sync_session, "before_commit", check)
                     try:
                         execution = await self._writer.load(session, job, args, plan)
+                        if (
+                            self._reference is not None
+                            and execution.status in {"succeeded", "failed"}
+                            and not (execution.receipt_id or "").startswith("localref_")
+                        ):
+                            raise PermissionError("execution belongs to another receiver")
                         await guard()
                         await launch_guard()
                         check()
@@ -140,7 +172,9 @@ class JobCouponDispatchService:
                                 raise ValueError("coupon reconciliation requires a prior dispatch")
                             result = execution
                             if execution.status in {"executing", "unknown"}:
-                                observed_receipt = await self._lookup(execution, args)
+                                observed_receipt = await self._lookup(
+                                    execution, args, token=token, check=check
+                                )
                                 check()
                                 result = await self._writer.finish(
                                     session,
@@ -204,12 +238,20 @@ class JobCouponDispatchService:
                             )
                             async with asyncio.timeout(timeout):
                                 check()
-                                received = await self._adapter.materialize(
-                                    args, idempotency_key=executing.idempotency_key
-                                )
+                                received: Receipt | None
+                                if self._reference is None:
+                                    received = await self._adapter.materialize(
+                                        args, idempotency_key=executing.idempotency_key
+                                    )
+                                else:
+                                    received = self._reference_receipt(
+                                        token, executing, args, admit=True, check=check
+                                    )
+                                    if received is None:
+                                        raise ValueError("reference admission unresolved")
                             receipt = Receipt.model_validate(received.model_dump())
                             if (
-                                receipt.adapter_id != self._adapter.adapter_id
+                                receipt.adapter_id != self._adapter_id
                                 or receipt.resource_ref != f"coupon_batch:{args.coupon_batch_id}"
                                 or receipt.received_at < executing.updated_at
                                 or receipt.received_at > self._leases._now()
@@ -241,18 +283,28 @@ class JobCouponDispatchService:
         return await self._leases._write(execute())
 
     async def _lookup(
-        self, execution: ToolExecution, args: MaterializeCouponBatchArgs
+        self,
+        execution: ToolExecution,
+        args: MaterializeCouponBatchArgs,
+        *,
+        token: JobLeaseToken,
+        check: Callable[[], None],
     ) -> Receipt | None:
         try:
             async with asyncio.timeout(self._timeout):
-                received = await self._adapter.lookup_materialization(
-                    args, idempotency_key=execution.idempotency_key
-                )
+                if self._reference is None:
+                    received = await self._adapter.lookup_materialization(
+                        args, idempotency_key=execution.idempotency_key
+                    )
+                else:
+                    received = self._reference_receipt(
+                        token, execution, args, admit=False, check=check
+                    )
             if received is None:
                 return None
             receipt = Receipt.model_validate(received.model_dump(warnings=False), strict=True)
             if (
-                receipt.adapter_id != self._adapter.adapter_id
+                receipt.adapter_id != self._adapter_id
                 or receipt.resource_ref != f"coupon_batch:{args.coupon_batch_id}"
                 or receipt.received_at < execution.created_at
                 or receipt.received_at > self._leases._now()
@@ -263,3 +315,37 @@ class JobCouponDispatchService:
             # Absence, malformed results and lookup failures never grant redispatch.
             # Cancellation propagates; exception text is never persisted.
             return None
+
+    def _reference_receipt(
+        self,
+        token: JobLeaseToken,
+        execution: ToolExecution,
+        args: MaterializeCouponBatchArgs,
+        *,
+        admit: bool,
+        check: Callable[[], None],
+    ) -> Receipt | None:
+        assert self._reference is not None
+        request = DispatchRequest(
+            operation=DispatchOperation(
+                tenant_id=execution.tenant_id,
+                job_id=token.job_id,
+                adapter_id=self._reference.adapter_id,
+                tool_name=execution.tool_name,
+                operation_key=f"{args.coupon_batch_id}:materialize:v1",
+                resource_ref=f"coupon_batch:{args.coupon_batch_id}",
+                tool_schema_version=1,
+                canonical_args_hash=execution.canonical_args_hash,
+            ),
+            fence=token,
+        )
+        observation = self._reference.observe(
+            request,
+            args,
+            admit=admit,
+            check=check,
+            clock=self._leases._now,
+        )
+        if reconcile_dispatch(request, observation) == "unknown":
+            return None
+        return observation.receipt

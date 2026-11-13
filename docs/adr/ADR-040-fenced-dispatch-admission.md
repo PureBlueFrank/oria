@@ -36,3 +36,13 @@
 ### 本地审批与领域事实验证（2026-11-13）
 
 `tests/integration/approved_coupon_reference.py` 进一步使用真实临时审批、实际 typed 券参数和完整计划，复用 JobCouponDispatchWriter.load 校验草案/saga/reservation，平台与业务锁均覆盖独立合成接收端提交。提交前重新校验审批版本/期限和当前权限，历史查询走同一边界；两库独立进程 UPDATE 锁探针见[验证卡](../../reports/verification/v0.6/20261113-approved-coupon-reference/summary.md)。只允许 reserved 前置状态，不能混用既有业务派发；合成历史 succeeded 不更新 Oria ledger/coupon/saga，不代表真实派发成功。生产接收端及投影、认证传输、PostgreSQL 验收仍未完成。
+
+### 显式源码级本地参考模式与结果投影（2026-11-13）
+
+新增 `JobCouponDispatchService.local_reference(leases, databases, path)`，把参考接收端的持久历史封装进 src。普通构造器仍只接受精确内存 Mock；工厂仅用于显式合成数据/隔离本地库，不注册 HTTP、CLI、Graph 或默认 Runtime，也不实现网络 FencedDispatchAdapter。
+
+参考文件是与 Oria platform/business 分离的 SQLite 库（含符号链接/硬链接同文件检查），schema v1 仅保存 local_coupon_history：稳定操作键及脱敏 DispatchAdmission，无原始券参数。已有外来表或未知版本拒绝；不迁移用户库。接收端写入使用 BEGIN IMMEDIATE，锁等待为 0；业务库与平台权威锁全程保持，受信 service 传入的同步 check 在历史读取/提交前复核当前身份、Policy、租约和审批，业务事实已由同一 writer 在写锁内校验。不存在可由网络调用方提供的 guard。同步磁盘 COMMIT 不承诺可被 asyncio timeout 抢占，COMMIT 已交给驱动后的撤权/到期仍不保证追溯回滚。
+
+沿用已有先持久 executing、再接纳、再原子提交领域投影的流程。参考 receipt 使用 local_reference_coupon / localref_ / synthetic_ 标识。稳定键为 tenant/adapter/tool/coupon 固定操作，不含参数 hash 或 epoch；完整 operation 绑定仍严格校验。接收端提交后响应丢失或 Oria 投影回滚时，历史独立保留；显式 reconcile 只查询确定回执，再用既有 writer 在一个业务事务提交 ledger/coupon/saga/Domain/Audit/outbox。unknown/not_found 不重投；没有历史时 lookup 不创建文件；拒绝将其他接收端的终态账本当作本地参考终态。
+
+这里的领域成功是本地合成效果，不是企业券派发。三个库不是分布式事务；接收端历史必须与本地测试数据一起保留，丢失历史不授权重新派发。真实接收端认证、生产网络接纳、自动恢复/worker 与 PostgreSQL S2 继续待办。验证见[源码参考模式卡](../../reports/verification/v0.6/20261113-local-reference-projection/summary.md)。

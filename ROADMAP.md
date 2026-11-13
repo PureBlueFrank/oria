@@ -22,11 +22,11 @@
 
 **本轮本地进展（2026-10-30）**：新增显式 `JobCouponDispatchService.reconcile`，从精确内存 Mock 的原操作历史恢复丢失响应，复用当前身份/Policy/租约/审批与领域事实校验。在同一业务事务提交确定回执对应的 ledger、券状态、saga 与 Domain/Audit/outbox；未知结果不重投，重复/竞争不新增副作用。已覆盖本地对账与安全回归，完整结果见[验证卡](reports/verification/v0.6/20261030-t03-coupon-reconciliation/summary.md)。持久化的是 Oria 结果投影；Mock 历史重启会丢失，真实接收端持久接纳和对账仍未实现。T03/Core 保持进行中。
 
-### 当前待办清单（2026-10-30）
+### 当前待办清单（2026-11-13）
 
 | 顺序 | 对应任务 | 待办与完成条件 |
 | --- | --- | --- |
-| 1 | V0.6-T03 | 外部类型契约与受控 Mock 的持久结果对账已本地验证；仍需真实接收端原子接纳、持久操作历史、认证查询及独立目标验证，不能直接换入网络 Adapter。 |
+| 1 | V0.6-T03 | 外部类型契约、受控 Mock 对账及显式 SQLite 合成接收端持久历史/结果投影已本地实现；仍需真实接收端原子接纳、持久操作历史、认证查询及独立目标验证，不能直接换入网络 Adapter。 |
 | 2 | V0.6-T03 | retry/expire 原语及显式有界轮询已有本地验证；仍需覆盖其余领域提交，接入 Graph、调度进程装配、审批与外部事件恢复、飞书会话；默认 HTTP 仍只受理 Job。 |
 | 3 | V0.6-T04/T05 | 实现独立 worker、accepted pointer/orphan 生命周期、可靠通知/SSE/Webhook 和失败重试；数据库 CAS 原语不等于 worker 已交付。 |
 | 4 | V0.6-T02/T06/T07 | 新审批拒绝/详情/分页真实飞书验收，PostgreSQL 新 revision 验证，以及 S0–S5、两独立 worker S1/S2 验收；逐卡记录结果。 |
@@ -191,3 +191,5 @@ V0.6-T02 审批投递与结果更新（2026-10-18）：新增受信 ApprovalCard
 **2026-11-12 参考接收端 Job 权威接入**：新增测试专用 bridge，接入真实临时 JobRepository、当前身份/Policy 与平台完整快照租约锁，接纳库不保存权威副本。覆盖跨 epoch 读取、提交前撤权/到期回滚、跨进程实际 Job UPDATE 锁冲突及提交后丢失响应查询；组合 103 项通过。launch 审批/领域事实尚未接入，不能授权券派发，T03/Core 不关闭。见[验证卡](reports/verification/v0.6/20261112-job-authority-reference/summary.md)。
 
 **2026-11-13 参考接收端审批与领域约束**：测试专用接纳接入真实临时 launch 审批、完整草案/计划/saga/reservation 校验；平台/审批与业务事实锁覆盖独立合成接收端提交，历史查询同样重新校验。仅持久合成历史，Oria ledger/券/saga 不推进，没有运行时或网络接入。验证与失败历史见[验证卡](reports/verification/v0.6/20261113-approved-coupon-reference/summary.md)。生产封装、真实目标及结果投影仍待办，T03/Core 不关闭。
+
+**2026-11-13 源码级本地参考模式**：新增显式 JobCouponDispatchService.local_reference 工厂，接收端历史跨重启持久化；丢失响应或领域投影失败可经 reconcile 查询确定回执，原子更新 Oria ledger/券/saga/事件。复用当前身份、审批、领域事实及租约锁；未知结果不重投。仅合成数据/隔离库，无真实网络或默认装配；T03/Core 保持进行中。见[验证卡](reports/verification/v0.6/20261113-local-reference-projection/summary.md)。
