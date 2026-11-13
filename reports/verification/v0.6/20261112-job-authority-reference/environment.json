@@ -1,0 +1,20 @@
+{
+  "base_commit": "541e3b7306eac14070a979ced8b235c9d5c03cf7",
+  "date": "2026-11-12",
+  "timezone": "Asia/Shanghai",
+  "target": "temporary SQLite Job authority and synthetic durable receiver",
+  "source_sha256": {
+    "tests/integration/job_authority_reference.py": "894936decc9f1da6fa960f696f8811041ec258fa6006c590111a121ed9ef194d",
+    "tests/integration/test_v06_job_authority_reference.py": "ac7ad6478647bac8dcc01cd0f75ada1349ae59c1e0499c5371246485720d0045",
+    "tests/contract/durable_dispatch_receiver.py": "b05f47a76f6c53f4460d147d621b06a7dff71b8c88aa740c6d1c9b143ad85465",
+    "src/oria/orchestrator/job_leases.py": "eeeb933fcd6ae1fc3ad84c094d6d4ea277c701a22e74a57abe3bd2cd07463325",
+    "src/oria/storage/jobs.py": "0d3c641de83470dc32570b17d02b821b0497728b9add166dd85110c5b7e6324d",
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def"
+  },
+  "results": {
+    "combined_passed": 103,
+    "warnings": 1,
+    "lint": "passed",
+    "external": "not_run"
+  }
+}

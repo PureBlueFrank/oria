@@ -16,6 +16,8 @@
 
 ## 关键证据
 
+- [T03 参考接收端审批与领域约束](v0.6/20261113-approved-coupon-reference/summary.md)：临时真实审批/领域仓储与双库锁保护合成接纳，历史查询同样复核；不推进 Oria 业务结果。
+- [T03 参考接收端 Job 权威接入](v0.6/20261112-job-authority-reference/summary.md)：真实临时 Job/身份/Policy 与平台锁覆盖合成接纳；103 项组合通过，审批/领域事实仍未接入。
 - [T03 本地参考接收端恢复](v0.6/20261112-durable-receiver-recovery/summary.md)：独立进程崩溃/丢失响应、稳定键去重、旧 epoch 拒绝及提交前到期回滚；仅合成权威，不代表真实 Job/企业 Adapter 集成。
 - [T03 并行推进与当前 TODO](v0.6/20261022-parallel-progress/summary.md)：外部派发类型契约、显式 retry/expire、独立复审修复和本轮组合验证；真实通道、Graph/worker 与阶段门禁单独列示。
 - [T03 外部接纳与对账类型契约](v0.6/20261022-t03-dispatch-contract/summary.md)：稳定 operation key、当前权威 lease、确定 receipt 与 unknown 不重投；只有测试内 receiver，没有生产接收端或真实外部保证。

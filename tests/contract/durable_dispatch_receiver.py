@@ -11,6 +11,7 @@ from contextlib import closing, contextmanager
 from datetime import datetime
 from pathlib import Path
 
+from pydantic import BaseModel
 from tests.contract.test_v06_dispatch_contract import NOW, _Payload, _receipt
 
 from oria.core.dispatch import (
@@ -71,8 +72,14 @@ class DurableReferenceReceiver:
             raise PermissionError("synthetic authority denied")
         validate_dispatch_admission(request, Job.model_validate_json(row[0]), self._clock())
 
+    def _validate_payload(self, request: DispatchRequest, payload: BaseModel) -> None:
+        validate_dispatch_payload(request, payload, schema=_Payload)
+        value = _Payload.model_validate(payload.model_dump(), strict=True)
+        if request.operation.resource_ref != f"coupon_batch:{value.coupon_id}":
+            raise DispatchRejected("synthetic resource binding differs")
+
     def execute(
-        self, request: DispatchRequest, payload: _Payload | None = None
+        self, request: DispatchRequest, payload: BaseModel | None = None
     ) -> DispatchObservation:
         request = DispatchRequest.model_validate(request.model_dump(), strict=True)
         if (
@@ -84,9 +91,7 @@ class DurableReferenceReceiver:
         with self._transaction() as db:
             self._authorize(db, request)
             if payload is not None:
-                validate_dispatch_payload(request, payload, schema=_Payload)
-                if request.operation.resource_ref != f"coupon_batch:{payload.coupon_id}":
-                    raise DispatchRejected("synthetic resource binding differs")
+                self._validate_payload(request, payload)
             key = json.dumps(request.operation.deduplication_key)
             prior = db.execute("SELECT result FROM history WHERE key = ?", (key,)).fetchone()
             result: DispatchObservation

@@ -187,3 +187,7 @@ V0.6-T02 审批投递与结果更新（2026-10-18）：新增受信 ApprovalCard
 **2026-11-12 本地参考接收端切片**：新增测试专用 SQLite 持久接纳模型，同事务读取合成租约权威并记录合成效果；并发去重、连接重建、旧 epoch、参数冲突和撤权契约验证通过。仍未实现生产认证、真实 Job 权威集成或独立进程崩溃验收；T03/Core 保持进行中。
 
 **2026-11-12 本地参考接收端恢复验证**：补齐独立进程提交前崩溃回滚、提交后响应丢失查询、进程竞争去重及旧 epoch 拒绝；修复事务中途到期仍返回成功的参考实现缺口，增加提交前复核与显式连接关闭。参考接收端及 dispatch 契约共 63 项通过，全库静态检查通过。仅测试用 SQLite 合成权威，真实身份/审批/领域事实与 Job 权威尚未集成；T03/Core 保持进行中。见[验证卡](reports/verification/v0.6/20261112-durable-receiver-recovery/summary.md)。
+
+**2026-11-12 参考接收端 Job 权威接入**：新增测试专用 bridge，接入真实临时 JobRepository、当前身份/Policy 与平台完整快照租约锁，接纳库不保存权威副本。覆盖跨 epoch 读取、提交前撤权/到期回滚、跨进程实际 Job UPDATE 锁冲突及提交后丢失响应查询；组合 103 项通过。launch 审批/领域事实尚未接入，不能授权券派发，T03/Core 不关闭。见[验证卡](reports/verification/v0.6/20261112-job-authority-reference/summary.md)。
+
+**2026-11-13 参考接收端审批与领域约束**：测试专用接纳接入真实临时 launch 审批、完整草案/计划/saga/reservation 校验；平台/审批与业务事实锁覆盖独立合成接收端提交，历史查询同样重新校验。仅持久合成历史，Oria ledger/券/saga 不推进，没有运行时或网络接入。验证与失败历史见[验证卡](reports/verification/v0.6/20261113-approved-coupon-reference/summary.md)。生产封装、真实目标及结果投影仍待办，T03/Core 不关闭。

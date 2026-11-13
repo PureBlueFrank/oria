@@ -1,0 +1,22 @@
+E501 Line too long (103 > 100)
+  --> tests/integration/test_v06_approved_coupon_reference.py:40:101
+   |
+39 | @pytest.mark.asyncio
+40 | async def test_approved_reference_durable_across_epoch_without_business_projection(dispatch, tmp_path):
+   |                                                                                                     ^^^
+41 |     d, path = dispatch, tmp_path / "approved.db"
+42 |     before = await _execution_state(d.c)
+   |
+
+E501 Line too long (106 > 100)
+   --> tests/integration/test_v06_approved_coupon_reference.py:121:101
+    |
+119 | @pytest.mark.parametrize("history", [False, True])
+120 | @pytest.mark.parametrize("mutation", ["policy_version", "expiry"])
+121 | async def test_approval_rechecked_at_reference_commit(dispatch, tmp_path, monkeypatch, history, mutation):
+    |                                                                                                     ^^^^^^
+122 |     d, path = dispatch, tmp_path / "approved.db"
+123 |     c = d.c
+    |
+
+Found 2 errors.

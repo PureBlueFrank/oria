@@ -28,3 +28,11 @@
 ## 本地持久参考验证增量（2026-11-12）
 
 测试支持模块 `tests/contract/durable_dispatch_receiver.py` 将合成权威与 history 放入同一 SQLite 数据库，以 BEGIN IMMEDIATE 序列化并在提交前复核期限。独立进程提交前/后退出、重新查询、竞争去重及旧 epoch 拒绝已本地验证，见[恢复验证卡](../../reports/verification/v0.6/20261112-durable-receiver-recovery/summary.md)。history 行本身代表合成效果，控制端授权布尔值与固定默认时钟仅用于测试；不增加生产 Adapter 能力，不取代真实身份、审批、Job 权威或外部效果边界证明。
+
+### 本地 Job 权威接入验证（2026-11-12）
+
+测试 bridge `tests/integration/job_authority_reference.py` 通过现有 JobLeaseService 重载当前身份与 Policy，以 JobRepository 完整快照 CAS 持平台写锁覆盖独立接收端 SQLite 提交；接收端不存权威副本，作用域结束即禁用实例。独立进程对实际 jobs 行 UPDATE 在接纳期间失败、锁释放后成功，响应丢失后仍可查询已提交历史，见[验证卡](../../reports/verification/v0.6/20261112-job-authority-reference/summary.md)。本 bridge 尚无 launch 审批与领域事实检查，仅用于合成效果，不能作为业务副作用授权或生产 Adapter。平台与接收端不是跨库事务，COMMIT 已交给驱动后的撤权或期限变化仍不保证追溯撤销。
+
+### 本地审批与领域事实验证（2026-11-13）
+
+`tests/integration/approved_coupon_reference.py` 进一步使用真实临时审批、实际 typed 券参数和完整计划，复用 JobCouponDispatchWriter.load 校验草案/saga/reservation，平台与业务锁均覆盖独立合成接收端提交。提交前重新校验审批版本/期限和当前权限，历史查询走同一边界；两库独立进程 UPDATE 锁探针见[验证卡](../../reports/verification/v0.6/20261113-approved-coupon-reference/summary.md)。只允许 reserved 前置状态，不能混用既有业务派发；合成历史 succeeded 不更新 Oria ledger/coupon/saga，不代表真实派发成功。生产接收端及投影、认证传输、PostgreSQL 验收仍未完成。

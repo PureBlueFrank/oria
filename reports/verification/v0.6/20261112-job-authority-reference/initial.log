@@ -1,0 +1,129 @@
+...F......                                                               [100%]
+=================================== FAILURES ===================================
+____ test_current_authority_loss_before_receiver_commit_rolls_back[expiry] _____
+
+request = DispatchRequest(operation=DispatchOperation(adapter_id='fixture-coupon', tool_name='materialize_coupon_batch', tool_schema_version=1), fence=JobLeaseToken(epoch=1))
+current_job = Job(job_id='job_575eccbe086b4646be5efcabdba25292', session_id='session_5cb63c08a38245929819bcb6fac96c32', status='runn...ime.datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)), updated_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)))
+now = datetime.datetime(2026, 10, 22, 0, 0, 31, tzinfo=datetime.timezone.utc)
+
+    def validate_dispatch_admission(request: DispatchRequest, current_job: Job, now: datetime) -> None:
+        """Check a receiver-owned current row *inside* its atomic admission boundary.
+
+        Callers must additionally verify current requester/worker Policy, approval, domain
+        bindings and typed payload. Passing a worker-provided snapshot is not fencing.
+        """
+        request = DispatchRequest.model_validate(request.model_dump(warnings=False), strict=True)
+        current_job = Job.model_validate(current_job.model_dump(warnings=False), strict=True)
+        if current_job.status != "running" or current_job.cancel_requested:
+            raise DispatchRejected("dispatch job is not running")
+        try:
+>           validate_lease(current_job, request.fence, now)
+
+src/oria/core/dispatch.py:133:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+job = Job(job_id='job_575eccbe086b4646be5efcabdba25292', session_id='session_5cb63c08a38245929819bcb6fac96c32', status='runn...ime.datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)), updated_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)))
+token = JobLeaseToken(epoch=1)
+now = datetime.datetime(2026, 10, 22, 0, 0, 31, tzinfo=datetime.timezone.utc)
+
+    def validate_lease(job: Job, token: JobLeaseToken, now: datetime) -> None:
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("lease time must include timezone")
+        if (
+            lease_token(job) != token
+            or job.lease_expires_at is None
+            or now < job.updated_at
+            or now >= job.lease_expires_at
+            or now >= job.timeout_at
+        ):
+>           raise JobConflict("job lease is no longer valid")
+E           oria.core.jobs.JobConflict: job lease is no longer valid
+
+src/oria/core/job_leases.py:43: JobConflict
+
+The above exception was the direct cause of the following exception:
+
+leases = namespace(repo=<oria.storage.jobs.JobRepository object at 0x127e05ad0>, db=<oria.storage.database.DatabaseResources ob..., attributes=PrincipalAttributes(organization=None, region=None, labels=frozenset()), authn_method='server-config')))))
+tmp_path = PosixPath('/private/var/folders/n0/y_bp2wy92d3d02qk7xz_dw0m0000gn/T/pytest-of-franklee/pytest-4/test_current_authority_loss_be2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x127b4d210>
+change = 'expiry'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("change", ["identity", "policy", "expiry"])
+    async def test_current_authority_loss_before_receiver_commit_rolls_back(
+        leases, tmp_path, monkeypatch, change
+    ):
+        import sqlite3
+
+        s = leases
+        service, job = await _claimed(s)
+        request, payload = _request(job)
+        path = tmp_path / "reference.db"
+        original = _JobBoundReceiver._authorize
+        calls = 0
+
+        def revoke_at_commit(receiver, db, value):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                if change == "identity":
+                    s.path.write_text('{"bindings": []}')
+                elif change == "policy":
+                    monkeypatch.setattr(s.runtime.policy, "_trusted_actors", frozenset())
+                else:
+                    s.clock.advance(31)
+            original(receiver, db, value)
+
+        monkeypatch.setattr(_JobBoundReceiver, "_authorize", revoke_at_commit)
+        with pytest.raises((PermissionError, AuthenticationError, JobConflict)):
+>           await execute_reference(service, path, request, payload)
+
+tests/integration/test_v06_job_authority_reference.py:104:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/integration/job_authority_reference.py:72: in execute_reference
+    return await service._write(execute())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/oria/orchestrator/job_leases.py:197: in _write
+    return await operation
+           ^^^^^^^^^^^^^^^
+tests/integration/job_authority_reference.py:68: in execute
+    return receiver.execute(request, payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/contract/durable_dispatch_receiver.py:114: in execute
+    self._authorize(db, request)
+tests/integration/test_v06_job_authority_reference.py:100: in revoke_at_commit
+    original(receiver, db, value)
+tests/integration/job_authority_reference.py:34: in _authorize
+    validate_dispatch_admission(request, self._job, self._service._now())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+request = DispatchRequest(operation=DispatchOperation(adapter_id='fixture-coupon', tool_name='materialize_coupon_batch', tool_schema_version=1), fence=JobLeaseToken(epoch=1))
+current_job = Job(job_id='job_575eccbe086b4646be5efcabdba25292', session_id='session_5cb63c08a38245929819bcb6fac96c32', status='runn...ime.datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)), updated_at=datetime.datetime(2026, 10, 22, 0, 0, tzinfo=TzInfo(0)))
+now = datetime.datetime(2026, 10, 22, 0, 0, 31, tzinfo=datetime.timezone.utc)
+
+    def validate_dispatch_admission(request: DispatchRequest, current_job: Job, now: datetime) -> None:
+        """Check a receiver-owned current row *inside* its atomic admission boundary.
+
+        Callers must additionally verify current requester/worker Policy, approval, domain
+        bindings and typed payload. Passing a worker-provided snapshot is not fencing.
+        """
+        request = DispatchRequest.model_validate(request.model_dump(warnings=False), strict=True)
+        current_job = Job.model_validate(current_job.model_dump(warnings=False), strict=True)
+        if current_job.status != "running" or current_job.cancel_requested:
+            raise DispatchRejected("dispatch job is not running")
+        try:
+            validate_lease(current_job, request.fence, now)
+        except JobConflict as exc:
+>           raise DispatchRejected("dispatch fence is not current") from exc
+E           oria.core.dispatch.DispatchRejected: dispatch fence is not current
+
+src/oria/core/dispatch.py:135: DispatchRejected
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  <workspace>/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_v06_job_authority_reference.py::test_current_authority_loss_before_receiver_commit_rolls_back[expiry]
+1 failed, 9 passed, 1 warning in 10.94s

@@ -1,0 +1,23 @@
+{
+  "base_commit": "541e3b7306eac14070a979ced8b235c9d5c03cf7",
+  "date": "2026-11-13",
+  "timezone": "Asia/Shanghai",
+  "target": "temporary SQLite approval/domain repositories and synthetic reference receiver",
+  "source_sha256": {
+    "tests/contract/durable_dispatch_receiver.py": "f311a1cff8a2bbb5be74f66a5c43dab35eaca3456542b5ca8a94a0c68ab12421",
+    "tests/integration/job_authority_reference.py": "894936decc9f1da6fa960f696f8811041ec258fa6006c590111a121ed9ef194d",
+    "tests/integration/approved_coupon_reference.py": "120ef623f132de7f361cb3bd243d5850baf71da51f9b0d9b90bfcd3295394673",
+    "tests/integration/test_v06_approved_coupon_reference.py": "415ec624252657d3e34542df69ad33f4dc4961b528c9a17649e9a9dbf6708098",
+    "src/oria/orchestrator/job_coupon_dispatch.py": "7ff82828662a95fe6207430c3a734a4efcae27b1dad1c2d884fcee8284be3c46",
+    "src/oria/storage/job_coupon_dispatch.py": "a173c8f401df226092f927561334a353e539da3523769bb33e207abf48f2cd8c",
+    "uv.lock": "36c6f155404025b358f075c50f3b47e7b5e2da93c9066b9bfdc78a1cb5146def"
+  },
+  "results": {
+    "new_tests": 27,
+    "combined_passed": 182,
+    "warnings": 1,
+    "lint": "passed",
+    "external": "not_run",
+    "new_ci": "not_triggered"
+  }
+}
