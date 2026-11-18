@@ -398,7 +398,10 @@ async def run_nightly_requests(
             ledger.cancel(reservation)
             reason = f"provider request failed: {type(exc).__name__}"
             break
-        if response.model != target.model:
+        expected_models = {target.model}
+        if target.provider == "deepseek" and target.model == "deepseek-v4-flash":
+            expected_models.update({"deepseek-flash", "deepseek-v4.1-flash-1017"})
+        if response.model not in expected_models:
             ledger.cancel(reservation)
             reason = "provider response model does not match target"
             break

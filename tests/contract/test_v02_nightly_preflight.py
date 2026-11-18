@@ -179,7 +179,10 @@ def test_reasoning_tokens_are_a_subset_of_output_and_not_double_charged() -> Non
 
 
 @pytest.mark.asyncio
-async def test_complete_bounded_nightly_sample_passes() -> None:
+@pytest.mark.parametrize(
+    "response_model", ["deepseek-v4-flash", "deepseek-flash", "deepseek-v4.1-flash-1017", "unknown"]
+)
+async def test_complete_bounded_nightly_sample_passes(response_model: str) -> None:
     config = load_nightly_config(_CONFIG)
     target = config.targets[0].model_copy(
         update={"budget": config.targets[0].budget.model_copy(update={"max_cases": 2})}
@@ -196,7 +199,7 @@ async def test_complete_bounded_nightly_sample_passes() -> None:
     async def invoke(request: NightlyRequest) -> NightlyProviderResponse:
         return NightlyProviderResponse(
             request_id=f"req-{request.repetition}",
-            model=target.model,
+            model=response_model,
             input_tokens=40,
             output_tokens=10,
             reasoning_tokens=2,
@@ -217,6 +220,11 @@ async def test_complete_bounded_nightly_sample_passes() -> None:
         clock=lambda: 0.0,
     )
 
+    if response_model == "unknown":
+        assert card.status == "failed"
+        assert card.completed_request_count == 0
+        assert card.reason == "provider response model does not match target"
+        return
     assert card.status == "passed"
     assert card.request_count == 2
     assert card.completed_request_count == 2
