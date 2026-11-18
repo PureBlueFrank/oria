@@ -107,7 +107,11 @@ async def _run(args: argparse.Namespace, progress: LiveProgress) -> dict[str, ob
         if text_result.request_id is None or "ORIA_LIVE_OK" not in text_result.text:
             raise RuntimeError("text smoke failed")
         raw_model = (text_result.internal_raw_response() or {}).get("model")
-        if raw_model != resolved.llm.model:
+        # DeepSeek documents this retired alias as served by V4.1 Flash.
+        expected_models = {resolved.llm.model}
+        if resolved.llm.provider == "deepseek" and resolved.llm.model == "deepseek-v4-flash":
+            expected_models.update({"deepseek-flash", "deepseek-v4.1-flash-1017"})
+        if raw_model not in expected_models:
             raise RuntimeError("provider response model mismatch")
         request_ids.append(text_result.request_id)
         usages.append(text_result.usage)
