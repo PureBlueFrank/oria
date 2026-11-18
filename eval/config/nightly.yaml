@@ -7,7 +7,7 @@ targets:
     dataset_manifest: datasets/rag/v1.manifest.json
     dataset_version: "1"
     repetitions: 2
-    pricing_snapshot_id: deepseek-20260830
+    pricing_snapshot_id: deepseek-20261118
     rate_tier: peak
     budget:
       max_cases: 12

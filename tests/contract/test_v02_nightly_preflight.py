@@ -31,7 +31,7 @@ def test_missing_credential_blocks_before_any_request() -> None:
         pricing_dir=_PRICING,
         target_id="deepseek",
         environ={},
-        now=datetime.fromisoformat("2026-08-30T12:00:00+08:00"),
+        now=datetime.fromisoformat("2026-11-18T12:00:00+08:00"),
         known_targets=frozenset({"deepseek"}),
     )
 
@@ -46,7 +46,7 @@ def test_unknown_target_blocks_before_configured_target_lookup() -> None:
         pricing_dir=_PRICING,
         target_id="unknown",
         environ={"DEEPSEEK_API_KEY": "test-only"},
-        now=datetime.fromisoformat("2026-08-30T12:00:00+08:00"),
+        now=datetime.fromisoformat("2026-11-18T12:00:00+08:00"),
         known_targets=frozenset({"deepseek"}),
     )
 
@@ -61,7 +61,7 @@ def test_expired_pricing_blocks_before_dataset_or_provider_setup() -> None:
         pricing_dir=_PRICING,
         target_id="deepseek",
         environ={"DEEPSEEK_API_KEY": "test-only"},
-        now=datetime.fromisoformat("2026-10-01T00:00:00+08:00"),
+        now=datetime.fromisoformat("2026-11-26T00:00:00+08:00"),
         known_targets=frozenset({"deepseek"}),
     )
 
@@ -87,7 +87,7 @@ def test_reviewed_dataset_is_ready_when_key_and_price_are_valid() -> None:
         pricing_dir=_PRICING,
         target_id="deepseek",
         environ={"DEEPSEEK_API_KEY": "test-only"},
-        now=datetime.fromisoformat("2026-08-30T12:00:00+08:00"),
+        now=datetime.fromisoformat("2026-11-18T12:00:00+08:00"),
         known_targets=frozenset({"deepseek"}),
     )
 
@@ -110,7 +110,7 @@ def test_pending_dataset_blocks_even_when_key_and_price_are_valid(
         pricing_dir=_PRICING,
         target_id="deepseek",
         environ={"DEEPSEEK_API_KEY": "test-only"},
-        now=datetime.fromisoformat("2026-08-30T12:00:00+08:00"),
+        now=datetime.fromisoformat("2026-11-18T12:00:00+08:00"),
         known_targets=frozenset({"deepseek"}),
     )
 
