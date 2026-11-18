@@ -246,7 +246,12 @@ def main() -> int:
                 "cache_read_tokens": sum(item.cache_read_tokens or 0 for item in progress.usages),
             },
             "checks": progress.checks,
-            "reason": type(exc).__name__,
+            "reason": (
+                str(exc)
+                if type(exc) is RuntimeError
+                and str(exc) in {"text smoke failed", "provider response model mismatch"}
+                else type(exc).__name__
+            ),
         }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(card, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
